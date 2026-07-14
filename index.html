@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 멀티 탭 허브</title>
+<style>
+  :root{
+    --bg:#121212;
+    --panel:#1a1a1a;
+    --panel-2:#202020;
+    --line:#2c2c2c;
+    --text:#eeeeee;
+    --text-dim:#9a9a9a;
+    --text-faint:#6b6b6b;
+    --red:#ff5b52;
+    --red-bg:rgba(255,91,82,0.12);
+    --green:#3ecf8e;
+    --claude:#d97757;
+    --manus:#f2b134;
+    --gemini:#6d8cff;
+    --chatgpt:#3ecf8e;
+    --perplexity:#22b8cf;
+    --canva:#7d2ae8;
+    --deepl:#2e6ae6;
+    --playground:#ff5ca8;
+    --notion:#ffffff;
+    --suno:#a855f7;
+    --leonardo:#ff8a3d;
+    --wrtn:#14b8a6;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Pretendard,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:860px;margin:0 auto;}
+
+  h1{font-size:20px;font-weight:700;margin:0 0 4px;letter-spacing:-0.01em;}
+  .sub{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:24px;}
+
+  .qbox{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:20px;
+  }
+  .qbox label{
+    display:block;font-size:12px;font-weight:700;text-transform:uppercase;
+    letter-spacing:0.04em;color:var(--text-dim);margin-bottom:8px;
+  }
+  textarea{
+    width:100%;min-height:88px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;color:var(--text);font-size:14px;line-height:1.6;
+    padding:12px 14px;resize:vertical;font-family:inherit;
+  }
+  textarea:focus{outline:none;border-color:#4a4a4a;}
+  .qbox-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:12px;flex-wrap:wrap;}
+  .copy-btn{
+    font-size:12px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--text);cursor:pointer;
+  }
+  .copy-btn:hover{border-color:#4a4a4a;}
+  .copy-hint{font-size:11px;color:var(--text-faint);}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;}
+  @media (max-width:760px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:480px){.grid{grid-template-columns:1fr;}}
+  .launch{
+    display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);padding:16px;
+    cursor:pointer;text-align:left;color:var(--text);
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .launch:hover{border-color:#4a4a4a;}
+  .launch:active{transform:scale(0.98);}
+  .badge{
+    width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;color:#141414;flex-shrink:0;
+  }
+  .badge.claude{background:var(--claude);}
+  .badge.manus{background:var(--manus);}
+  .badge.gemini{background:var(--gemini);}
+  .badge.chatgpt{background:var(--chatgpt);}
+  .badge.perplexity{background:var(--perplexity);}
+  .badge.canva{background:var(--canva);color:#fff;}
+  .badge.deepl{background:var(--deepl);}
+  .badge.playground{background:var(--playground);}
+  .badge.notion{background:var(--notion);}
+  .badge.suno{background:var(--suno);color:#fff;}
+  .badge.leonardo{background:var(--leonardo);}
+  .badge.wrtn{background:var(--wrtn);}
+  .launch-name{font-weight:700;font-size:14px;margin-bottom:2px;}
+  .launch-desc{font-size:12px;color:var(--text-dim);line-height:1.4;}
+
+  .status-title{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--text-dim);margin-bottom:10px;
+  }
+  .status-count{font-size:11px;color:var(--text-faint);font-weight:500;text-transform:none;letter-spacing:0;}
+  .status-list{display:flex;flex-direction:column;gap:6px;}
+  .status-empty{font-size:13px;color:var(--text-faint);padding:10px 2px;}
+
+  .status-row{
+    display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .status-row.answered{background:var(--red-bg);border-color:rgba(255,91,82,0.4);}
+  .status-row .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .status-row .dot.open{background:var(--green);}
+  .status-row .dot.closed{background:var(--text-faint);}
+  .row-name{font-weight:700;font-size:13px;min-width:78px;flex-shrink:0;}
+  .row-meta{font-size:12px;color:var(--text-dim);flex:1;font-variant-numeric:tabular-nums;}
+  .row-state{
+    font-size:11px;padding:3px 8px;border-radius:100px;border:1px solid var(--line);
+    color:var(--text-dim);white-space:nowrap;flex-shrink:0;
+  }
+  .status-row.answered .row-state{color:var(--red);border-color:rgba(255,91,82,0.5);font-weight:700;}
+
+  .row-actions{display:flex;gap:6px;flex-shrink:0;}
+  .row-btn{
+    font-size:11px;padding:6px 10px;border-radius:7px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--text-dim);cursor:pointer;white-space:nowrap;
+    transition:all .15s ease;
+  }
+  .row-btn:hover{border-color:#4a4a4a;color:var(--text);}
+  .row-btn.mark.on{background:var(--red);border-color:var(--red);color:#141414;}
+  .row-btn.goto{border-color:rgba(255,255,255,0.18);}
+
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:#232323;border:1px solid var(--line);color:var(--text);font-size:13px;
+    padding:10px 16px;border-radius:100px;opacity:0;pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>AI 멀티 탭 허브</h1>
+  <div class="sub">
+    질문을 입력하고 AI 버튼을 누르면 질문이 클립보드에 복사되고, 지금 쓰고 있는 크롬 창에 새 탭으로 열립니다.
+    아래 "열린 탭" 목록의 <b>탭으로 이동</b>을 누르면 그 탭으로 전환을 시도합니다.
+  </div>
+
+  <div class="qbox">
+    <label for="q">질문</label>
+    <textarea id="q" placeholder="여기에 질문을 입력하세요..."></textarea>
+    <div class="qbox-foot">
+      <button class="copy-btn" id="copyOnly">클립보드에만 복사</button>
+      <div class="copy-hint">탭을 열 때 자동으로 복사됩니다 (탭 안에서 Ctrl+V)</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <button class="launch" data-service="claude" data-url="https://claude.ai/new" data-label="Claude">
+      <div class="badge claude">C</div>
+      <div><div class="launch-name">Claude</div><div class="launch-desc">복잡한 글쓰기·분석·코딩에 강한 대화형 AI</div></div>
+    </button>
+    <button class="launch" data-service="chatgpt" data-url="https://chatgpt.com/" data-label="ChatGPT">
+      <div class="badge chatgpt">O</div>
+      <div><div class="launch-name">ChatGPT</div><div class="launch-desc">범용 대화와 다양한 플러그인·GPTs 생태계</div></div>
+    </button>
+    <button class="launch" data-service="gemini" data-url="https://gemini.google.com/app" data-label="Gemini">
+      <div class="badge gemini">G</div>
+      <div><div class="launch-name">Gemini</div><div class="launch-desc">구글 서비스 연동에 강한 멀티모달 AI</div></div>
+    </button>
+    <button class="launch" data-service="manus" data-url="https://manus.im/app" data-label="Manus">
+      <div class="badge manus">M</div>
+      <div><div class="launch-name">Manus</div><div class="launch-desc">여러 툴을 자동으로 조합해 작업을 대신 수행하는 에이전트</div></div>
+    </button>
+    <button class="launch" data-service="perplexity" data-url="https://www.perplexity.ai/" data-label="Perplexity">
+      <div class="badge perplexity">P</div>
+      <div><div class="launch-name">Perplexity</div><div class="launch-desc">출처를 함께 보여주는 AI 검색 엔진</div></div>
+    </button>
+    <button class="launch" data-service="canva" data-url="https://www.canva.com/" data-label="Canva">
+      <div class="badge canva">Cv</div>
+      <div><div class="launch-name">Canva</div><div class="launch-desc">템플릿 기반 디자인·이미지 편집 툴</div></div>
+    </button>
+    <button class="launch" data-service="deepl" data-url="https://www.deepl.com/en/translator" data-label="DeepL">
+      <div class="badge deepl">D</div>
+      <div><div class="launch-name">DeepL</div><div class="launch-desc">자연스러운 문장 품질로 유명한 번역기</div></div>
+    </button>
+    <button class="launch" data-service="playground" data-url="https://playgroundai.com/design" data-label="Playground">
+      <div class="badge playground">Pg</div>
+      <div><div class="launch-name">Playground AI</div><div class="launch-desc">이미지 생성·편집에 특화된 크리에이티브 툴</div></div>
+    </button>
+    <button class="launch" data-service="notion" data-url="https://app.notion.com" data-label="Notion">
+      <div class="badge notion">N</div>
+      <div><div class="launch-name">Notion</div><div class="launch-desc">메모·문서·데이터베이스 올인원 워크스페이스</div></div>
+    </button>
+    <button class="launch" data-service="suno" data-url="https://suno.com/discover" data-label="Suno">
+      <div class="badge suno">S</div>
+      <div><div class="launch-name">Suno</div><div class="launch-desc">텍스트 설명만으로 음악을 만들어주는 AI 작곡 툴</div></div>
+    </button>
+    <button class="launch" data-service="leonardo" data-url="https://app.leonardo.ai/" data-label="Leonardo">
+      <div class="badge leonardo">Le</div>
+      <div><div class="launch-name">Leonardo.ai</div><div class="launch-desc">게임·컨셉아트에 강한 이미지 생성 AI</div></div>
+    </button>
+    <button class="launch" data-service="wrtn" data-url="https://wrtn.ai/tools" data-label="Wrtn">
+      <div class="badge wrtn">W</div>
+      <div><div class="launch-name">Wrtn (뤼튼)</div><div class="launch-desc">한국어에 최적화된 AI 어시스턴트·툴 모음</div></div>
+    </button>
+  </div>
+
+  <div class="status-title">
+    <span>열린 탭</span>
+    <span class="status-count" id="statusCount">0개 열림</span>
+  </div>
+  <div class="status-list" id="statusList">
+    <div class="status-empty">아직 열린 탭이 없습니다.</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const tabs = []; // {id, service, label, url, win, windowName, openedAt, closed, answered}
+  let seq = 0;
+
+  const statusList = document.getElementById('statusList');
+  const statusCount = document.getElementById('statusCount');
+  const toastEl = document.getElementById('toast');
+  const qEl = document.getElementById('q');
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toastEl.classList.remove('show'), 2400);
+  }
+
+  function fmtTime(d){
+    return d.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+
+  // 팝업(별도 창)이 아니라 지금 쓰고 있는 크롬 창의 새 탭으로 열리도록,
+  // window.open에 창 크기/위치 지정을 하지 않는다.
+  function openAiTarget(url, existingName, servicePrefix){
+    const windowName = existingName || (servicePrefix + '_' + Date.now() + '_' + (++seq));
+    return { win: window.open(url, windowName), windowName };
+  }
+
+  function render(){
+    const openCount = tabs.filter(t => !t.closed).length;
+    statusCount.textContent = openCount + '개 열림' + (tabs.length ? ` · 총 ${tabs.length}개 기록` : '');
+
+    if(tabs.length === 0){
+      statusList.innerHTML = '<div class="status-empty">아직 열린 탭이 없습니다.</div>';
+      return;
+    }
+
+    statusList.innerHTML = '';
+    [...tabs].reverse().forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'status-row' + (t.answered ? ' answered' : '');
+
+      row.innerHTML = `
+        <div class="dot ${t.closed ? 'closed' : 'open'}"></div>
+        <div class="row-name">${t.label}</div>
+        <div class="row-meta">${fmtTime(t.openedAt)} 열림</div>
+        <div class="row-state">${t.answered ? '답변 도착' : (t.closed ? '닫힘' : '대기중')}</div>
+        <div class="row-actions">
+          <button class="row-btn goto" data-act="goto">${t.closed ? '다시 열기' : '탭으로 이동'}</button>
+          <button class="row-btn mark ${t.answered ? 'on' : ''}" data-act="mark">${t.answered ? '표시됨' : '답변 도착'}</button>
+        </div>
+      `;
+
+      row.querySelector('[data-act="goto"]').addEventListener('click', () => {
+        if(t.closed){
+          reopenTab(t.id);
+        } else {
+          goToTab(t.id);
+        }
+      });
+      row.querySelector('[data-act="mark"]').addEventListener('click', () => {
+        t.answered = !t.answered;
+        render();
+      });
+
+      statusList.appendChild(row);
+    });
+  }
+
+  function goToTab(id){
+    const t = tabs.find(t => t.id === id);
+    if(!t) return;
+    if(t.win && !t.win.closed){
+      try{
+        t.win.focus();
+        showToast(t.label + ' 탭으로 이동을 시도했습니다');
+      }catch(e){
+        showToast('이 사이트는 보안 정책상 자동 이동이 막혀있어요 — 크롬 상단 탭을 직접 클릭해주세요');
+      }
+    } else {
+      showToast('이미 닫힌 탭입니다 — "다시 열기"를 눌러주세요');
+      t.closed = true;
+      render();
+    }
+  }
+
+  function reopenTab(id){
+    const t = tabs.find(t => t.id === id);
+    if(!t) return;
+    const { win } = openAiTarget(t.url, t.windowName, t.service);
+    if(win){
+      t.win = win;
+      t.closed = false;
+      showToast(t.label + ' 탭을 다시 열었습니다');
+      render();
+    } else {
+      showToast('새 탭이 차단되었습니다 — 브라우저 팝업 허용이 필요할 수 있어요');
+    }
+  }
+
+  function pollClosedStates(){
+    let changed = false;
+    tabs.forEach(t => {
+      if(!t.closed && t.win && t.win.closed){
+        t.closed = true;
+        changed = true;
+      }
+    });
+    if(changed) render();
+  }
+  setInterval(pollClosedStates, 1000);
+
+  async function copyQuestion(){
+    const text = qEl.value.trim();
+    if(!text){
+      showToast('질문을 먼저 입력해주세요');
+      return false;
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){
+      showToast('클립보드 복사 실패 — 직접 복사해주세요');
+      return false;
+    }
+  }
+
+  document.getElementById('copyOnly').addEventListener('click', async () => {
+    const ok = await copyQuestion();
+    if(ok) showToast('질문이 클립보드에 복사되었습니다');
+  });
+
+  document.querySelectorAll('.launch').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const service = btn.dataset.service;
+      const url = btn.dataset.url;
+      const label = btn.dataset.label;
+
+      const hasQuestion = qEl.value.trim().length > 0;
+      let copied = false;
+      if(hasQuestion){
+        copied = await copyQuestion();
+      }
+
+      const id = service + '_' + (seq + 1);
+      const { win, windowName } = openAiTarget(url, null, service);
+
+      if(!win){
+        showToast('새 탭이 차단되었습니다 — 브라우저 팝업 허용이 필요할 수 있어요');
+        return;
+      }
+
+      tabs.push({ id, service, label, url, win, windowName, openedAt: new Date(), closed:false, answered:false });
+      render();
+
+      showToast(
+        copied
+          ? label + ' 탭이 열렸습니다 · 질문이 복사되었어요 (Ctrl+V로 붙여넣기)'
+          : label + ' 탭이 열렸습니다'
+      );
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>

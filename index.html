@@ -7,16 +7,21 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root{
-    --ink:#191919; --ink-2:#2e2e2e; --ink-3:#545454; --ink-4:#767676; --ink-5:#a1a1a1;
-    --line-soft:#e3e3e3; --line-softer:#ededed;
-    --surface:#ffffff; --surface-1:#f7f7f7;
-    --accent:#0F80F6;
+    --bg:#141414;
+    --surface-1:#1e1e1e;
+    --ink:#f2f2f2;
+    --ink-2:#d4d4d4;
+    --ink-3:#a8a8a8;
+    --ink-4:#828282;
+    --ink-5:#5f5f5f;
+    --line-soft:#2e2e2e;
+    --accent:#3d9bff;
     --font:"Pretendard",sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{
-    font-family:var(--font); font-weight:500; color:var(--ink);
-    background:var(--surface); line-height:1.6;
+    font-family:var(--font); font-weight:500; color:var(--ink-2);
+    background:var(--bg); line-height:1.6;
     word-break:keep-all; overflow-wrap:break-word;
     -webkit-font-smoothing:antialiased;
     font-feature-settings:"tnum";
@@ -28,7 +33,7 @@
     font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
     color:var(--ink-4); font-weight:600; margin-bottom:10px;
   }
-  h1{ font-size:40px; font-weight:700; letter-spacing:-0.02em; line-height:1.15; }
+  h1{ font-size:40px; font-weight:700; letter-spacing:-0.02em; line-height:1.15; color:var(--ink); }
   .sub{ margin-top:14px; font-size:15px; color:var(--ink-3); }
   .count{ font-weight:700; color:var(--ink); }
 
@@ -42,7 +47,7 @@
   li a{
     display:grid; grid-template-columns:auto 1fr auto; align-items:start; gap:18px;
     padding:22px 4px; border-bottom:1px solid var(--line-soft);
-    text-decoration:none; color:var(--ink);
+    text-decoration:none; color:var(--ink-2);
     transition:background 200ms cubic-bezier(0.32,0.72,0,1), padding 200ms cubic-bezier(0.32,0.72,0,1);
   }
   li a:hover{ background:var(--surface-1); padding-left:12px; padding-right:12px; }
@@ -55,10 +60,10 @@
   .badge{
     display:inline-block; margin-left:8px; padding:2px 8px; border-radius:5px;
     font-size:11px; font-weight:600; letter-spacing:0.02em; vertical-align:middle;
-    background:var(--surface-1); color:var(--ink-4); border:1px solid var(--line-soft);
+    background:var(--surface-1); color:var(--ink-3); border:1px solid var(--line-soft);
   }
-  .badge.base{ background:rgba(15,128,246,0.08); color:var(--accent); border-color:transparent; }
-  .badge.latest{ background:rgba(1,160,88,0.10); color:#01A058; border-color:transparent; }
+  .badge.base{ background:rgba(61,155,255,0.14); color:var(--accent); border-color:transparent; }
+  .badge.latest{ background:rgba(1,200,110,0.14); color:#2bd682; border-color:transparent; }
   .desc{ margin-top:6px; font-size:13.5px; color:var(--ink-3); line-height:1.55; }
   .file{
     margin-top:8px; font-size:12px; color:var(--ink-5);
@@ -87,6 +92,19 @@
       <h1>AI HUB</h1>
       <p class="sub">조회화면 구성기 버전 모음 · 총 <span class="count">8</span>건. 001이 기본이고 번호가 올라갈수록 기능이 확장됩니다.</p>
     </header>
+
+    <div class="group-label">주요 도구</div>
+    <ul>
+      <li><a href="ai-popup-hub.html">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">AI 팝업 허브</span>
+          <span class="desc">AI 팝업 관련 도구 모음 페이지입니다.</span>
+          <span class="file">ai-popup-hub.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+    </ul>
 
     <div class="group-label">조회화면 구성기 · 버전별</div>
     <ul>
@@ -156,19 +174,6 @@
           <span class="name">최신 통합본<span class="badge latest">LATEST</span></span>
           <span class="desc">지금까지의 선택형 조건·팝업·다중 패널·탭·툴바·그룹헤더·합계행을 모두 아우르는 가장 완성된 버전입니다. 실사용은 이 버전을 권장합니다.</span>
           <span class="file">__CREATE_HTML_20260716_007.html</span>
-        </span>
-        <span class="arrow">&#8594;</span>
-      </a></li>
-    </ul>
-
-    <div class="group-label">기타 도구</div>
-    <ul>
-      <li><a href="ai-popup-hub.html">
-        <span class="num">&#8212;</span>
-        <span class="body">
-          <span class="name">AI 팝업 허브</span>
-          <span class="desc">AI 팝업 관련 도구 모음 페이지입니다.</span>
-          <span class="file">ai-popup-hub.html</span>
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>조회화면 구성기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --blue:#2f89ee; --blue-dark:#2278df; --blue-soft:#e9f2fd;
+    --head-bg:#e9f1fa; --grid-head:#edf3fa; --grid-grp:#dbe7f6; --label-bg:#f6f9fc;
+    --border:#d3dce8; --border-soft:#e1e8f1; --sel:#cfe0f5;
+    --text:#333a44; --text-sub:#69707a; --white:#fff; --danger:#e0554e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:12.5px;color:var(--text);background:#eef1f5;-webkit-font-smoothing:antialiased;}
+  .wrap{padding:16px;max-width:1720px;margin:0 auto;}
+
+  /* ===== Builder toolbar ===== */
+  .builder{background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .builder-top{background:#eef4fb;border-bottom:1px solid #c9dcf1;padding:10px 14px;font-weight:700;color:#2c3742;font-size:13px;display:flex;align-items:center;gap:8px;border-radius:6px 6px 0 0;}
+  .builder-top .hint{margin-left:auto;font-weight:500;color:#7a828d;font-size:11.5px;}
+  .builder-sec{padding:12px 14px;border-bottom:1px solid var(--border-soft);display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .builder-sec:last-child{border-bottom:none;}
+  .sec-title{font-weight:700;color:#3a4551;font-size:12px;width:110px;flex-shrink:0;}
+  .b-txt{height:30px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:inherit;font-size:12.5px;color:var(--text);outline:none;}
+  .b-txt:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.14);}
+  .b-sel{height:30px;border:1px solid var(--border);border-radius:4px;padding:0 26px 0 10px;font-family:inherit;font-size:12.5px;background:#fff;appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;}
+  .b-chk{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#4a5563;cursor:pointer;user-select:none;}
+  .type-btn{border:1px solid var(--border);background:#f7fafd;color:#2c3742;padding:7px 13px;border-radius:5px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit;white-space:nowrap;}
+  .type-btn:hover{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-dark);}
+  .type-btn.accent{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .type-btn.accent:hover{background:var(--blue-dark);}
+  .type-btn.ghost{background:#fff;color:#5a6472;}
+  .divider-v{width:1px;height:22px;background:var(--border-soft);margin:0 2px;}
+
+  /* ===== Buttons ===== */
+  .btn{border:1px solid var(--border);background:#fff;color:#42505f;padding:5px 12px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;line-height:1.4;white-space:nowrap;}
+  .btn:hover{background:#f4f6f9;}
+  .btn-primary{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .btn-primary:hover{background:var(--blue-dark);}
+  .btn-sm{padding:4px 9px;font-size:11.5px;}
+  .btn-ghost{background:#f7f9fb;color:#5a6472;}
+  .btn-danger{border-color:#eab7b3;color:#c0403a;background:#fff;}
+  .btn-danger:hover{background:#fdecec;}
+
+  /* ===== Preview panel ===== */
+  .panel{background:var(--white);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .panel-head{display:flex;align-items:center;gap:8px;background:#e9f1fa;border-bottom:1px solid #c9dcf1;padding:9px 14px;border-radius:4px 4px 0 0;}
+  .panel-head .caret{cursor:pointer;color:#3f5670;font-size:12px;line-height:1;user-select:none;transition:transform .2s;display:inline-block;}
+  .panel-head.collapsed .caret{transform:rotate(-90deg);}
+  .panel-head .title{font-weight:700;font-size:13px;color:#2c3742;}
+  .panel-head .title-input{font-weight:700;font-size:13px;color:#2c3742;border:1px dashed transparent;background:transparent;font-family:inherit;padding:2px 6px;border-radius:3px;min-width:220px;}
+  .panel-head .title-input:hover,.panel-head .title-input:focus{border-color:#b7cbe6;background:#fff;outline:none;}
+  .panel-head .actions{margin-left:auto;display:flex;gap:6px;}
+
+  .search-body{padding:0;overflow:hidden;transition:max-height .25s ease;}
+  table.search{width:100%;border-collapse:collapse;table-layout:fixed;}
+  table.search th,table.search td{border:1px solid var(--border-soft);padding:0;height:38px;vertical-align:middle;}
+  table.search th{background:var(--label-bg);color:#495260;font-weight:600;text-align:left;padding:0 14px;width:130px;font-size:12px;}
+  table.search td{padding:5px 10px;background:#fff;}
+  table.search colgroup col.c-lbl{width:130px;}
+  table.search td.has-ctrl{position:relative;}
+  .empty-cond{text-align:center;color:#9aa2ac;height:60px;background:#fafbfc;}
+  .fld-row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
+  .ext-row.ext-hidden{display:none;}
+  .ext-badge{display:inline-block;margin-left:6px;font-size:10px;color:#fff;background:#f0a020;border-radius:8px;padding:1px 6px;font-weight:700;vertical-align:middle;}
+  .req-star{color:var(--danger);font-weight:800;margin-left:3px;}
+
+  input.txt,select.cmb{height:28px;border:1px solid var(--border);border-radius:3px;padding:0 8px;font-family:inherit;font-size:12px;color:var(--text);background:#fff;width:100%;outline:none;}
+  input.txt:focus,select.cmb:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  input.txt[readonly]{background:#fff;cursor:pointer;}
+  select.cmb{appearance:none;-webkit-appearance:none;background:#fff;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;padding-right:24px;cursor:pointer;}
+  .grow{flex:1;min-width:0;}
+  .date-wrap,.month-wrap{position:relative;width:150px;}
+  .date-wrap input,.month-wrap input{padding-right:26px;cursor:pointer;}
+  .pick-btn{position:absolute;right:1px;top:1px;bottom:1px;width:24px;border:none;background:transparent;cursor:pointer;color:#5b6470;display:flex;align-items:center;justify-content:center;}
+  .tilde{color:#8b939d;padding:0 2px;}
+  .num-in{width:120px;text-align:right;font-feature-settings:"tnum";}
+  .select-box{height:28px;border:1px solid var(--border);border-radius:3px;background:#fff;display:flex;align-items:center;padding:0 8px;font-size:12px;cursor:pointer;flex:1;min-width:0;color:var(--text);}
+  .select-box.empty{color:#9aa2ac;}
+  .select-box:hover{border-color:var(--blue);}
+  .select-box .val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lbl-input{width:100%;height:26px;border:1px dashed #c1cddd;border-radius:3px;padding:0 6px;font-family:inherit;font-size:12px;background:#fff;color:#2c3742;font-weight:600;outline:none;}
+  .lbl-input:focus{border-color:var(--blue);border-style:solid;}
+  /* radio / checkbox option groups */
+  .opt-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:2px 0;}
+  .opt{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#48515c;cursor:pointer;user-select:none;}
+  .opt input{margin:0;}
+
+  /* cell edit controls */
+  .cell-ctrl{position:absolute;top:3px;right:4px;display:flex;gap:2px;z-index:3;}
+  .cell-ctrl button{width:20px;height:20px;border:1px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;color:#5a6472;padding:0;display:flex;align-items:center;justify-content:center;}
+  .cell-ctrl button:hover{background:#eef4fb;}
+  .cell-ctrl button.on{background:#f0a020;color:#fff;border-color:#dc8f14;}
+  .cell-ctrl button.req.on{background:var(--danger);border-color:#c9463f;}
+  .cell-ctrl button.del:hover{background:#fdecec;color:#d0433c;border-color:#f0b4b1;}
+
+  /* excel bar */
+  .excel-bar{display:flex;align-items:center;gap:6px;padding:10px 2px;}
+  .excel-bar .count{margin-right:auto;font-size:12px;color:#5a6472;font-weight:600;}
+  .excel-bar .count b{color:var(--blue-dark);font-feature-settings:"tnum";}
+
+  /* grid */
+  .grid-outer{background:#fff;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .grid-scroll{overflow-x:auto;overflow-y:auto;max-height:520px;}
+  table.grid{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%;}
+  table.grid thead th{position:sticky;top:0;z-index:2;background:var(--grid-head);color:#34404d;font-weight:700;border:1px solid #cdd7e2;border-top:none;padding:0;text-align:center;height:38px;}
+  table.grid thead th.grp{background:var(--grid-grp);z-index:2;}
+  table.grid thead th.grp2{top:39px;}
+  table.grid thead th .col-hd{display:flex;align-items:center;justify-content:center;gap:4px;padding:7px 8px;position:relative;}
+  table.grid thead th .col-hd.sortable{cursor:pointer;}
+  table.grid thead th .col-hd.sortable:hover{color:var(--blue-dark);}
+  table.grid thead th .sort-ar{font-size:9px;color:#8794a6;}
+  table.grid thead th .col-input{width:100%;min-width:70px;height:26px;border:1px dashed #c1cddd;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#fff;font-weight:700;color:#34404d;outline:none;}
+  table.grid thead th .col-input:focus{border-color:var(--blue);border-style:solid;}
+  table.grid thead th .grp-input{width:100%;min-width:80px;height:24px;border:1px dashed #b3c5de;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#eef5fd;font-weight:700;color:#2f5488;outline:none;}
+  table.grid thead th .grp-input:focus{border-color:var(--blue);border-style:solid;background:#fff;}
+  table.grid tbody td{border:1px solid #e6e9ee;padding:7px 8px;color:#3d4550;text-align:center;height:32px;}
+  table.grid tbody td.l{text-align:left;}
+  table.grid tbody td.r{text-align:right;font-feature-settings:"tnum";}
+  table.grid tbody tr:nth-child(even) td{background:#fafbfc;}
+  table.grid tbody tr:hover td{background:#eef5fd;}
+  table.grid td.rownum{background:#f2f4f7;color:#6b7480;font-weight:600;width:44px;position:relative;}
+  table.grid td.rownum .row-del{display:none;position:absolute;inset:0;margin:auto;width:18px;height:18px;border:1px solid #f0b4b1;background:#fff;color:#d0433c;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:0;}
+  body.edit table.grid td.rownum:hover .row-del{display:flex;align-items:center;justify-content:center;}
+  body.edit table.grid td.rownum:hover span{visibility:hidden;}
+  table.grid tbody td .cell-input{width:100%;height:24px;border:1px solid transparent;border-radius:3px;padding:0 5px;font-family:inherit;font-size:12px;background:transparent;color:#3d4550;outline:none;text-align:inherit;}
+  table.grid tbody td.l .cell-input{text-align:left;}
+  table.grid tbody td.r .cell-input{text-align:right;font-feature-settings:"tnum";}
+  table.grid tbody td .cell-input:hover{border-color:#dce3ec;}
+  table.grid tbody td .cell-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  table.grid tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1f5;border:1px solid #cdd7e2;padding:7px 8px;font-weight:700;color:#2c3742;text-align:center;}
+  table.grid tfoot td.r{text-align:right;font-feature-settings:"tnum";}
+  .col-gear{width:36px;background:var(--grid-head);}
+  .empty-grid{padding:50px 0;text-align:center;color:#9aa2ac;font-size:13px;}
+
+  /* saved popup chips */
+  .pop-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .pop-chip{display:inline-flex;align-items:center;gap:6px;background:#eef5fd;border:1px solid #cfe0f5;border-radius:14px;padding:4px 6px 4px 11px;font-size:12px;color:#2f5488;font-weight:600;}
+  .pop-chip .mini{border:none;background:#d8e6f7;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;color:#2f5488;line-height:1;padding:0;}
+  .pop-chip .mini:hover{background:#c3d8f0;}
+  .pop-chip .mini.x:hover{background:#f6d4d1;color:#c0403a;}
+  .pop-none{color:#9aa2ac;font-size:12px;}
+
+  /* builder-inner list (popup builder modal) */
+  .pf-list{display:flex;flex-direction:column;gap:6px;margin:8px 0;}
+  .pf-item{display:flex;align-items:center;gap:8px;background:#f6f9fc;border:1px solid var(--border-soft);border-radius:4px;padding:6px 10px;font-size:12px;}
+  .pf-item .t{background:#e4edf8;color:#3f6193;border-radius:3px;padding:1px 7px;font-size:11px;font-weight:700;}
+  .pf-item .nm{flex:1;color:#3d4550;}
+  .pf-item .rm{border:none;background:transparent;color:#b0343c;cursor:pointer;font-size:13px;}
+  .pb-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .pb-row label{font-size:12px;color:#5a6472;font-weight:600;width:64px;}
+  .pb-sub{font-weight:700;color:#3a4551;font-size:12.5px;margin:14px 0 6px;border-top:1px solid #eef0f3;padding-top:12px;}
+
+  /* description */
+  .desc-box{background:#fff;border:1px solid var(--border);border-radius:4px;margin-top:14px;padding:14px 16px;}
+  .desc-box label{display:block;font-weight:700;color:#3a4551;font-size:12.5px;margin-bottom:8px;}
+  .desc-box textarea{width:100%;min-height:90px;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.6;color:var(--text);resize:vertical;outline:none;}
+  .desc-box textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+
+  /* calendar & month popup */
+  .cal{position:absolute;z-index:9999;background:#fff;border:1px solid #b9c2ce;border-radius:6px;box-shadow:0 8px 26px rgba(30,45,70,.22);padding:10px;width:240px;font-size:12px;display:none;}
+  .cal.open{display:block;}
+  .cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .cal-hd .nav{border:none;background:#f1f4f8;width:26px;height:26px;border-radius:4px;cursor:pointer;color:#4a5563;font-size:14px;}
+  .cal-hd .nav:hover{background:#e4e9f0;}
+  .cal-hd .ym{font-weight:700;color:#2c3742;}
+  .cal table{width:100%;border-collapse:collapse;}
+  .cal th{color:#8a929c;font-weight:600;padding:4px 0;font-size:11px;}
+  .cal td{text-align:center;padding:0;}
+  .cal td button{width:100%;height:28px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:12px;color:#3d4550;font-family:inherit;}
+  .cal td button:hover{background:var(--blue-soft);}
+  .cal td button.today{color:var(--blue);font-weight:700;}
+  .cal td button.on{background:var(--blue);color:#fff;font-weight:700;}
+  .cal td button.mute{color:#c3c9d1;}
+  .cal td button.sun{color:#d9534f;}
+  .cal td button.sat{color:#3a6fb0;}
+  .cal-ft{display:flex;justify-content:space-between;margin-top:8px;}
+  .cal-ft button{border:none;background:transparent;color:var(--blue);cursor:pointer;font-size:12px;font-weight:600;}
+  .month-pop{width:212px;}
+  .month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .month-grid button{height:34px;border:1px solid var(--border-soft);background:#fff;border-radius:4px;cursor:pointer;font-size:12px;color:#3d4550;font-family:inherit;}
+  .month-grid button:hover{background:var(--blue-soft);border-color:var(--blue);}
+  .month-grid button.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700;}
+
+  /* modal */
+  .modal-mask{position:fixed;inset:0;background:rgba(20,28,40,.4);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:60px 16px;}
+  .modal-mask.open{display:flex;}
+  .modal{background:#fff;border-radius:6px;box-shadow:0 14px 44px rgba(0,0,0,.3);width:660px;max-width:100%;max-height:calc(100vh - 120px);display:flex;flex-direction:column;}
+  .modal.wide{width:720px;}
+  .modal-hd{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #e6e9ee;}
+  .modal-hd .mt{font-size:15px;font-weight:700;color:#2c3742;}
+  .modal-hd .x{margin-left:auto;border:none;background:transparent;cursor:pointer;font-size:20px;color:#8a929c;line-height:1;}
+  .modal-hd .x:hover{color:#333;}
+  .modal-body{padding:16px 18px;overflow:auto;}
+  .m-search{width:100%;border-collapse:collapse;margin-bottom:12px;}
+  .m-search td{padding:4px 6px;}
+  .m-search td.ml{width:80px;color:#5a6472;font-size:12px;font-weight:600;}
+  .m-search input,.m-search select{height:28px;border:1px solid var(--border);border-radius:3px;padding:0 8px;width:100%;font-family:inherit;font-size:12px;}
+  .m-search select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;padding-right:24px;}
+  .m-btns{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;}
+  .m-grid-wrap{border:1px solid var(--border);border-radius:3px;max-height:340px;overflow:auto;}
+  table.m-grid{width:100%;border-collapse:collapse;font-size:12px;}
+  table.m-grid thead th{position:sticky;top:0;background:var(--grid-head);border-bottom:1px solid #cdd7e2;padding:7px 8px;color:#34404d;font-weight:700;text-align:left;}
+  table.m-grid tbody td{border-bottom:1px solid #eef0f3;padding:6px 8px;color:#3d4550;}
+  table.m-grid tbody tr{cursor:pointer;}
+  table.m-grid tbody tr:hover td{background:#eef5fd;}
+  table.m-grid td.chk{text-align:center;width:34px;}
+  .badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+  .badge.open{background:#e5f4ec;color:#1c8a52;}
+  .badge.close{background:#fdecec;color:#d0433c;}
+  .filter-btn{border:1px solid var(--blue);color:var(--blue);background:#fff;height:28px;border-radius:3px;padding:0 12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;}
+  .tree{border:1px solid var(--border);border-radius:3px;max-height:360px;overflow:auto;padding:8px 4px;}
+  .tree ul{list-style:none;margin:0;padding-left:18px;}
+  .tree>ul{padding-left:4px;}
+  .tree li{padding:2px 0;}
+  .tree label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;color:#3d4550;padding:2px 4px;border-radius:3px;}
+  .tree label:hover{background:#f2f6fb;}
+  .tree .tw{cursor:pointer;display:inline-block;width:14px;color:#8a929c;user-select:none;}
+  .paste-ta{width:100%;min-height:150px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:"Pretendard",monospace;font-size:12px;line-height:1.6;resize:vertical;outline:none;}
+  .paste-ta:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  .hint-line{font-size:12px;color:#7a828d;margin:0 0 10px;line-height:1.6;}
+
+  body.preview .cell-ctrl,body.preview .col-hd .cell-ctrl{display:none!important;}
+  body.preview .lbl-input,body.preview .col-input,body.preview .grp-input{border-color:transparent!important;background:transparent!important;cursor:default;pointer-events:none;}
+  body.preview .title-input{pointer-events:none;}
+  body.preview table.grid tbody td .cell-input{pointer-events:none;border-color:transparent;}
+</style>
+</head>
+<body class="edit">
+<div class="wrap">
+
+  <!-- ============ BUILDER ============ -->
+  <div class="builder">
+    <div class="builder-top">
+      🧩 조회화면 구성기
+      <span class="hint">버튼을 누르면 아래 화면에 조회조건·컬럼이 순서대로 추가됩니다.</span>
+    </div>
+
+    <!-- 조회조건 추가 -->
+    <div class="builder-sec">
+      <span class="sec-title">조회조건 추가</span>
+      <input class="b-txt" id="condName" placeholder="조회조건명 (예: 조회일자)" style="width:180px;">
+      <label class="b-chk"><input type="checkbox" id="condRange"> 기간(~)</label>
+      <label class="b-chk"><input type="checkbox" id="condReq"> 필수(*)</label>
+      <label class="b-chk"><input type="checkbox" id="condExt"> 확장조회</label>
+      <span class="divider-v"></span>
+      <button class="type-btn" data-add="date">📅 일자달력</button>
+      <button class="type-btn" data-add="month">🗓️ 월달력</button>
+      <button class="type-btn" data-add="year">📆 년도</button>
+      <button class="type-btn" data-add="quarter">🕒 분기</button>
+      <button class="type-btn" data-add="text">🔤 텍스트박스</button>
+      <button class="type-btn" data-add="number">🔢 숫자범위</button>
+      <button class="type-btn" data-add="cat">🗂️ 분류조회</button>
+      <button class="type-btn" data-add="store">🏬 매장선택</button>
+      <button class="type-btn" data-add="prod">📦 상품선택</button>
+      <button class="type-btn ghost" data-add="blank">▫️ 빈칸</button>
+    </div>
+
+    <!-- 선택형 조건 -->
+    <div class="builder-sec">
+      <span class="sec-title">선택형 조건</span>
+      <input class="b-txt" id="comboName" placeholder="조건명 (예: 매장브랜드)" style="width:180px;">
+      <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표 구분: 전체,미스터피자,BBQ)" style="width:300px;">
+      <button class="type-btn accent" data-selkind="combo">＋ 콤보박스</button>
+      <button class="type-btn" data-selkind="radio">⭕ 라디오</button>
+      <button class="type-btn" data-selkind="checkbox">☑️ 체크박스</button>
+    </div>
+
+    <!-- 팝업 구성 -->
+    <div class="builder-sec">
+      <span class="sec-title">팝업 구성</span>
+      <button class="type-btn accent" id="newPopupBtn">🪟 팝업 만들기</button>
+      <span class="divider-v"></span>
+      <div class="pop-chips" id="popChips"><span class="pop-none">만든 팝업이 없습니다. ‘팝업 만들기’로 팝업명·조회조건을 정의하세요.</span></div>
+    </div>
+
+    <!-- 결과 컬럼 추가 -->
+    <div class="builder-sec">
+      <span class="sec-title">결과 컬럼 추가</span>
+      <input class="b-txt" id="colName" placeholder="컬럼명 (예: 매장명)" style="width:160px;">
+      <input class="b-txt" id="colGroup" placeholder="그룹명 (2줄헤더, 선택)" style="width:150px;">
+      <select class="b-sel" id="colAlign">
+        <option value="c">가운데</option>
+        <option value="l">왼쪽</option>
+        <option value="r">오른쪽(숫자)</option>
+      </select>
+      <select class="b-sel" id="colFormat">
+        <option value="none">일반</option>
+        <option value="comma">1,000 콤마</option>
+        <option value="won">₩ 금액</option>
+        <option value="percent">% 비율</option>
+      </select>
+      <button class="type-btn accent" id="addCol">＋ 컬럼 추가</button>
+      <span class="hint" style="margin-left:2px;">같은 그룹명을 연달아 주면 상단 헤더가 병합되어 2줄이 됩니다.</span>
+    </div>
+
+    <!-- 조회결과 데이터 -->
+    <div class="builder-sec">
+      <span class="sec-title">조회결과 데이터</span>
+      <button class="type-btn" id="addRow">＋ 행 추가</button>
+      <button class="type-btn" id="pasteData">📋 데이터 붙여넣기</button>
+      <button class="type-btn" id="genSample">🎲 샘플 자동생성</button>
+      <button class="type-btn ghost" id="clearRows">데이터 비우기</button>
+      <span class="divider-v"></span>
+      <label class="b-chk"><input type="checkbox" id="chkSum" checked> 합계행 표시</label>
+      <span class="hint" style="margin-left:2px;">편집 모드에서 셀을 직접 입력할 수 있습니다.</span>
+    </div>
+
+    <!-- 화면 설정 -->
+    <div class="builder-sec">
+      <span class="sec-title">화면 설정</span>
+      <button class="btn" id="modeBtn">👁 미리보기 모드</button>
+      <button class="btn" id="clearAll">전체 초기화</button>
+      <span class="divider-v"></span>
+      <button class="btn" id="saveCfg">💾 설정 저장(JSON)</button>
+      <button class="btn" id="loadCfg">📂 불러오기</button>
+      <input type="file" id="loadFile" accept=".json" style="display:none;">
+      <button class="btn" id="exportHtml">🌐 HTML 내보내기</button>
+      <button class="btn" id="sampleBtn">예시 채우기</button>
+    </div>
+  </div>
+
+  <!-- ============ PREVIEW SCREEN ============ -->
+  <div class="panel">
+    <div class="panel-head" id="panelHead">
+      <span class="caret" id="caret">▼</span>
+      <input class="title-input" id="titleInput" value="화면 제목을 입력하세요">
+      <div class="actions">
+        <button class="btn btn-primary" id="btnExt">확장조회</button>
+        <button class="btn btn-primary" id="btnSearch">조회</button>
+      </div>
+    </div>
+    <div class="search-body" id="searchBody">
+      <table class="search">
+        <colgroup><col class="c-lbl"><col><col class="c-lbl"><col></colgroup>
+        <tbody id="condBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="excel-bar">
+    <span class="count" id="rowCount"></span>
+    <button class="btn" id="btnExcel">현재화면 엑셀다운로드</button>
+  </div>
+
+  <div class="grid-outer">
+    <div class="grid-scroll" id="gridScroll"></div>
+  </div>
+
+  <div class="desc-box">
+    <label for="descArea">화면 설명</label>
+    <textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea>
+  </div>
+</div>
+
+<!-- calendar -->
+<div class="cal" id="calPop">
+  <div class="cal-hd"><button class="nav" id="calPrev">‹</button><span class="ym" id="calYm"></span><button class="nav" id="calNext">›</button></div>
+  <table><thead><tr><th style="color:#d9534f">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th style="color:#3a6fb0">토</th></tr></thead><tbody id="calBody"></tbody></table>
+  <div class="cal-ft"><button id="calToday">오늘</button><button id="calClose">닫기</button></div>
+</div>
+<!-- month -->
+<div class="cal month-pop" id="monthPop">
+  <div class="cal-hd"><button class="nav" id="monthPrev">‹</button><span class="ym" id="monthYr"></span><button class="nav" id="monthNext">›</button></div>
+  <div class="month-grid" id="monthGrid"></div>
+  <div class="cal-ft" style="justify-content:flex-end;"><button id="monthClose">닫기</button></div>
+</div>
+<!-- modal -->
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+
+<script>
+/* ================= 상태 ================= */
+let seq = 1;
+const state = {
+  title:'화면 제목을 입력하세요',
+  conditions:[],   // {id,type,label,range,ext,required,options,popupId}
+  columns:[],      // {id,name,align,group,format}
+  rows:[],         // [{k1:'',k2:''}]
+  popups:[],       // {id,name,fields:[{label,type,options}],columns:[str],data:[[...]]}
+  desc:'', extShown:false, queried:true, showSum:true,
+  sort:{kid:null,dir:1}
+};
+
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const findCond = id => state.conditions.find(c=>c.id===id);
+const findCol  = id => state.columns.find(k=>k.id===id);
+const findPopup= id => state.popups.find(p=>p.id===id);
+const isEdit   = () => !document.body.classList.contains('preview');
+function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayStr(){return fmt(new Date());}
+function monthNowStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+const CAL_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5" stroke="#5b6470"/><path d="M1.5 5.5h13M5 1v3M11 1v3" stroke="#5b6470"/></svg>';
+const CARET_ICON = '<svg width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="#6b7684"/></svg>';
+const NUMERIC = k => k.align==='r' || ['comma','won','percent'].includes(k.format);
+
+/* ================= 추가 핸들러 ================= */
+const $ = id => document.getElementById(id);
+document.querySelectorAll('[data-add]').forEach(b=>{ b.onclick=()=>addCondition(b.dataset.add); });
+function addCondition(type){
+  const name = $('condName').value.trim();
+  if(type!=='blank' && !name){ alert('조회조건명을 입력하세요.'); $('condName').focus(); return; }
+  state.conditions.push({
+    id:'c'+(seq++), type, label:type==='blank'?'':name,
+    range:$('condRange').checked, ext:$('condExt').checked, required:$('condReq').checked, options:[]
+  });
+  $('condName').value=''; render();
+}
+/* 선택형(콤보/라디오/체크박스) */
+document.querySelectorAll('[data-selkind]').forEach(b=>{
+  b.onclick=()=>{
+    const name=$('comboName').value.trim();
+    const opts=$('comboOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(!name){ alert('조건명을 입력하세요.'); $('comboName').focus(); return; }
+    if(!opts.length){ alert('옵션을 입력하세요. (쉼표로 구분)'); $('comboOpts').focus(); return; }
+    state.conditions.push({id:'c'+(seq++), type:b.dataset.selkind, label:name, range:false, ext:$('condExt').checked, required:$('condReq').checked, options:opts});
+    $('comboName').value=''; $('comboOpts').value=''; render();
+  };
+});
+$('addCol').onclick=()=>{
+  const name=$('colName').value.trim();
+  if(!name){ alert('컬럼명을 입력하세요.'); $('colName').focus(); return; }
+  state.columns.push({id:'k'+(seq++), name, align:$('colAlign').value, group:$('colGroup').value.trim(), format:$('colFormat').value});
+  state.rows.forEach(r=>{}); // 기존 행은 새 컬럼값 비어있음
+  $('colName').value=''; $('colGroup').value=''; render();
+};
+
+/* ================= 조건 필드 렌더 ================= */
+function packRows(conds){
+  const normal=conds.filter(c=>!c.ext), ext=conds.filter(c=>c.ext), rows=[];
+  for(let i=0;i<normal.length;i+=2) rows.push({ext:false, cells:[normal[i], normal[i+1]||null]});
+  for(let i=0;i<ext.length;i+=2)    rows.push({ext:true,  cells:[ext[i], ext[i+1]||null]});
+  return rows;
+}
+function fieldHTML(c){
+  switch(c.type){
+    case 'date':   return rangeWrap(c,'date');
+    case 'month':  return rangeWrap(c,'month');
+    case 'year':   return yearField(c);
+    case 'quarter':return quarterField(c);
+    case 'text':   return `<div class="fld-row"><input class="txt" placeholder=""></div>`;
+    case 'number': return numberField(c);
+    case 'combo':  return `<div class="fld-row"><select class="cmb">${c.options.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>`;
+    case 'radio':  return optRow(c,'radio');
+    case 'checkbox':return optRow(c,'checkbox');
+    case 'cat':    return popupField(c,'cat','분류조회 선택');
+    case 'store':  return popupField(c,'store','전체');
+    case 'prod':   return popupField(c,'prod','전체');
+    case 'custompopup': return customPopupField(c);
+    case 'blank':  return '';
+  }
+  return '';
+}
+function rangeWrap(c,kind){
+  const cls = kind==='date'?'date-wrap':'month-wrap';
+  const jcls= kind==='date'?'js-date':'js-month';
+  const jbtn= kind==='date'?'js-date-btn':'js-month-btn';
+  const val = kind==='date'?todayStr():monthNowStr();
+  const icon= kind==='date'?CAL_ICON:CARET_ICON;
+  const one = `<div class="${cls}"><input class="txt ${jcls}" readonly value="${val}"><button class="pick-btn ${jbtn}" type="button">${icon}</button></div>`;
+  return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;
+}
+function yearField(c){
+  const y=new Date().getFullYear();let o='';
+  for(let i=y+1;i>=y-6;i--)o+=`<option ${i===y?'selected':''}>${i}년</option>`;
+  const one=`<select class="cmb" style="width:120px">${o}</select>`;
+  return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;
+}
+function quarterField(c){
+  const one=`<select class="cmb" style="width:110px"><option>1분기</option><option>2분기</option><option>3분기</option><option>4분기</option></select>`;
+  return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;
+}
+function numberField(c){
+  const one=`<input class="txt num-in" type="text" inputmode="numeric" placeholder="0">`;
+  return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;
+}
+function optRow(c,kind){
+  const nm = kind==='radio'?`name="${c.id}"`:'';
+  return `<div class="opt-row">${c.options.map((o,i)=>`<label class="opt"><input type="${kind}" ${nm} ${kind==='radio'&&i===0?'checked':''}>${esc(o)}</label>`).join('')}</div>`;
+}
+function popupField(c,type,ph){
+  return `<div class="fld-row">
+    <div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div>
+    <button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button>
+  </div>`;
+}
+function customPopupField(c){
+  const p=findPopup(c.popupId);
+  const ph = p? '전체' : '(삭제된 팝업)';
+  return `<div class="fld-row">
+    <div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div>
+    <button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button>
+  </div>`;
+}
+function condCtrl(c){
+  return `<div class="cell-ctrl">
+    <button data-act="up" data-cid="${c.id}" title="위로">▲</button>
+    <button data-act="down" data-cid="${c.id}" title="아래로">▼</button>
+    <button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}" title="필수">*</button>
+    <button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}" title="확장조회 항목">확</button>
+    <button data-act="del" data-cid="${c.id}" class="del" title="삭제">✕</button>
+  </div>`;
+}
+function cellHTML(c){
+  if(!c) return `<th></th><td></td>`;
+  const star = c.required?'<span class="req-star">*</span>':'';
+  const th = isEdit()
+    ? `<th><input class="lbl-input" data-cid="${c.id}" value="${esc(c.label)}" placeholder="${c.type==='blank'?'(빈칸)':'조건명'}">${star}</th>`
+    : `<th>${esc(c.label)}${star}${c.ext?'<span class="ext-badge">확장</span>':''}</th>`;
+  const td = `<td class="has-ctrl">${fieldHTML(c)}${isEdit()?condCtrl(c):''}</td>`;
+  return th+td;
+}
+function renderConditions(){
+  const body=$('condBody');
+  if(state.conditions.length===0){ body.innerHTML=`<tr><td class="empty-cond" colspan="4">상단 버튼으로 조회조건을 추가하세요.</td></tr>`; return; }
+  let html='';
+  packRows(state.conditions).forEach(row=>{
+    html+=`<tr class="${row.ext?'ext-row':''}">${cellHTML(row.cells[0])}${cellHTML(row.cells[1])}</tr>`;
+  });
+  body.innerHTML=html;
+  applyExt();
+}
+function applyExt(){
+  const hide = !isEdit() && !state.extShown;
+  document.querySelectorAll('#condBody .ext-row').forEach(r=>r.classList.toggle('ext-hidden', hide));
+}
+
+/* ================= 컬럼 컨트롤 ================= */
+function colCtrl(k){
+  return `<div class="cell-ctrl" style="position:static;margin-left:2px;">
+    <button data-act="cleft" data-kid="${k.id}" title="왼쪽">◀</button>
+    <button data-act="cright" data-kid="${k.id}" title="오른쪽">▶</button>
+    <button data-act="cdel" data-kid="${k.id}" class="del" title="삭제">✕</button>
+  </div>`;
+}
+/* 그룹 병합 계산 */
+function headerRuns(){
+  const runs=[], cols=state.columns; let i=0;
+  while(i<cols.length){
+    const g=cols[i].group||'';
+    if(!g){ runs.push({group:'',cols:[cols[i]]}); i++; }
+    else{ let j=i; const run=[]; while(j<cols.length && (cols[j].group||'')===g){ run.push(cols[j]); j++; } runs.push({group:g,cols:run}); i=j; }
+  }
+  return runs;
+}
+
+/* ================= 데이터 포맷/합계 ================= */
+function fmtCell(val,k){
+  if(val==null||val==='') return '';
+  const num=Number(String(val).replace(/,/g,''));
+  switch(k.format){
+    case 'comma':   return isNaN(num)?esc(val):num.toLocaleString('ko-KR');
+    case 'won':     return isNaN(num)?esc(val):'₩'+num.toLocaleString('ko-KR');
+    case 'percent': return isNaN(num)?esc(val):num.toLocaleString('ko-KR')+'%';
+    default:        return esc(String(val));
+  }
+}
+function sumCol(k){
+  let s=0,has=false;
+  state.rows.forEach(r=>{ const v=r[k.id]; if(v!=null&&v!==''){ const n=Number(String(v).replace(/,/g,'')); if(!isNaN(n)){s+=n;has=true;} } });
+  return has? s : null;
+}
+function displayRows(){
+  if(isEdit()||!state.sort.kid) return state.rows.map((r,i)=>({r,i}));
+  const k=findCol(state.sort.kid); if(!k) return state.rows.map((r,i)=>({r,i}));
+  const arr=state.rows.map((r,i)=>({r,i}));
+  const numeric=NUMERIC(k);
+  arr.sort((a,b)=>{
+    let x=a.r[k.id]??'', y=b.r[k.id]??'';
+    if(numeric){ x=Number(String(x).replace(/,/g,''))||0; y=Number(String(y).replace(/,/g,''))||0; return (x-y)*state.sort.dir; }
+    return String(x).localeCompare(String(y),'ko')*state.sort.dir;
+  });
+  return arr;
+}
+
+/* ================= 결과 그리드 렌더 ================= */
+function renderGrid(){
+  const box=$('gridScroll');
+  if(state.columns.length===0){ box.innerHTML=`<div class="empty-grid">‘결과 컬럼 추가’로 표 컬럼을 만들어 주세요.</div>`; updateCount(); return; }
+  const runs=headerRuns(), hasGrp=runs.some(r=>r.group), edit=isEdit();
+  let h='<table class="grid"><thead>';
+  /* header row1 */
+  h+=`<tr><th class="col-gear" ${hasGrp?'rowspan="2"':''}>⚙</th>`;
+  runs.forEach(run=>{
+    if(run.group){
+      const ids=run.cols.map(c=>c.id).join(',');
+      const inner = edit
+        ? `<input class="grp-input" data-run="${ids}" value="${esc(run.group)}">`
+        : `<span>${esc(run.group)}</span>`;
+      h+=`<th class="grp" colspan="${run.cols.length}"><div class="col-hd">${inner}</div></th>`;
+    }else{
+      const k=run.cols[0];
+      h+=`<th ${hasGrp?'rowspan="2"':''}>${colHeadCell(k,edit)}</th>`;
+    }
+  });
+  h+='</tr>';
+  /* header row2 (grouped children) */
+  if(hasGrp){
+    h+='<tr>';
+    runs.forEach(run=>{ if(run.group){ run.cols.forEach(k=>{ h+=`<th class="grp2">${colHeadCell(k,edit)}</th>`; }); } });
+    h+='</tr>';
+  }
+  h+='</thead><tbody>';
+  const rows=displayRows();
+  if(!state.queried){
+    h+=`<tr><td class="rownum">&nbsp;</td><td colspan="${state.columns.length}" style="color:#9aa2ac;">조회 버튼을 눌러 조회하세요.</td></tr>`;
+  }else if(rows.length===0){
+    h+=`<tr><td class="rownum">&nbsp;</td><td colspan="${state.columns.length}" style="color:#9aa2ac;">데이터가 없습니다. ‘＋ 행 추가’ 또는 ‘샘플 자동생성’으로 채워보세요.</td></tr>`;
+  }else{
+    rows.forEach((it,vi)=>{
+      h+=`<tr><td class="rownum"><span>${vi+1}</span>${edit?`<button class="row-del" data-rdel="${it.i}" title="행삭제">✕</button>`:''}</td>`;
+      state.columns.forEach(k=>{
+        const cls=k.align==='l'?'l':k.align==='r'?'r':'';
+        const raw=it.r[k.id]??'';
+        h+= edit
+          ? `<td class="${cls}"><input class="cell-input" data-ri="${it.i}" data-kid="${k.id}" value="${esc(String(raw))}"></td>`
+          : `<td class="${cls}">${fmtCell(raw,k)||'&nbsp;'}</td>`;
+      });
+      h+='</tr>';
+    });
+  }
+  h+='</tbody>';
+  /* footer 합계 */
+  if(state.showSum){
+    h+='<tfoot><tr><td>합계</td>';
+    state.columns.forEach(k=>{
+      const cls=k.align==='r'?'r':'';
+      if(NUMERIC(k)){ const s=sumCol(k); h+=`<td class="${cls}">${s==null?'&nbsp;':fmtCell(s,k)}</td>`; }
+      else h+=`<td class="${cls}">&nbsp;</td>`;
+    });
+    h+='</tr></tfoot>';
+  }
+  h+='</table>';
+  box.innerHTML=h;
+  updateCount();
+}
+function colHeadCell(k,edit){
+  if(edit) return `<div class="col-hd"><input class="col-input" data-kid="${k.id}" value="${esc(k.name)}">${colCtrl(k)}</div>`;
+  const ar = state.sort.kid===k.id ? (state.sort.dir>0?'▲':'▼') : '↕';
+  return `<div class="col-hd sortable" data-sort="${k.id}"><span>${esc(k.name)}</span><span class="sort-ar">${ar}</span></div>`;
+}
+function updateCount(){
+  const el=$('rowCount');
+  if(!state.queried){ el.textContent=''; return; }
+  el.innerHTML = state.columns.length? `총 <b>${state.rows.length.toLocaleString('ko-KR')}</b>건` : '';
+}
+function render(){ renderConditions(); renderGrid(); renderPopChips(); }
+
+/* ================= 인라인 편집(포커스 유지) ================= */
+document.addEventListener('input', e=>{
+  const t=e.target;
+  if(t.classList.contains('lbl-input')){ const c=findCond(t.dataset.cid); if(c) c.label=t.value; }
+  else if(t.classList.contains('col-input')){ const k=findCol(t.dataset.kid); if(k) k.name=t.value; }
+  else if(t.classList.contains('grp-input')){ const ids=t.dataset.run.split(','); ids.forEach(id=>{const k=findCol(id); if(k)k.group=t.value;}); }
+  else if(t.classList.contains('cell-input')){ const k=findCol(t.dataset.kid); const r=state.rows[+t.dataset.ri]; if(r&&k) r[k.id]=t.value; }
+  else if(t.id==='descArea'){ state.desc=t.value; }
+  else if(t.id==='titleInput'){ state.title=t.value; }
+});
+/* 그룹명 변경 후 병합 반영은 blur에서 한 번 리렌더 */
+document.addEventListener('change', e=>{ if(e.target.classList.contains('grp-input')) render(); });
+
+/* ================= 액션(이동/삭제/확장/필수/정렬/행삭제) ================= */
+document.addEventListener('click', e=>{
+  const rdel=e.target.closest('[data-rdel]');
+  if(rdel){ state.rows.splice(+rdel.dataset.rdel,1); renderGrid(); return; }
+  const sortHit=e.target.closest('[data-sort]');
+  if(sortHit && !isEdit()){ const kid=sortHit.dataset.sort; if(state.sort.kid===kid) state.sort.dir*=-1; else {state.sort.kid=kid; state.sort.dir=1;} renderGrid(); return; }
+  const act=e.target.closest('[data-act]'); if(!act) return;
+  const {act:a, cid, kid}=act.dataset;
+  if(cid){
+    const arr=state.conditions, i=arr.findIndex(c=>c.id===cid);
+    if(a==='up'&&i>0){ [arr[i-1],arr[i]]=[arr[i],arr[i-1]]; }
+    else if(a==='down'&&i<arr.length-1){ [arr[i+1],arr[i]]=[arr[i],arr[i+1]]; }
+    else if(a==='del'){ arr.splice(i,1); }
+    else if(a==='ext'){ arr[i].ext=!arr[i].ext; }
+    else if(a==='req'){ arr[i].required=!arr[i].required; }
+    render();
+  } else if(kid){
+    const arr=state.columns, i=arr.findIndex(k=>k.id===kid);
+    if(a==='cleft'&&i>0){ [arr[i-1],arr[i]]=[arr[i],arr[i-1]]; }
+    else if(a==='cright'&&i<arr.length-1){ [arr[i+1],arr[i]]=[arr[i],arr[i+1]]; }
+    else if(a==='cdel'){ const rm=arr.splice(i,1)[0]; state.rows.forEach(r=>delete r[rm.id]); }
+    render();
+  }
+});
+
+/* ================= 조회결과 데이터 조작 ================= */
+$('addRow').onclick=()=>{ if(!state.columns.length){alert('결과 컬럼을 먼저 추가하세요.');return;} state.queried=true; state.rows.push({}); renderGrid(); };
+$('clearRows').onclick=()=>{ if(!state.rows.length)return; if(confirm('입력한 조회결과 데이터를 모두 비울까요?')){ state.rows=[]; renderGrid(); } };
+$('chkSum').onchange=e=>{ state.showSum=e.target.checked; renderGrid(); };
+$('genSample').onclick=()=>{
+  if(!state.columns.length){ alert('결과 컬럼을 먼저 추가하세요.'); return; }
+  state.queried=true;
+  const N=8; state.rows=[];
+  const stores=['미스터피자 야탑점','미스터피자 신흥점','미스터피자 산본점','피자앤치킨 서초점','미스터피자 잠실점'];
+  const prods=['쉬림프골드','포테이토골드','하프앤하프','새우천왕','스페셜콰트로','트리플 올인원'];
+  for(let r=0;r<N;r++){
+    const row={};
+    state.columns.forEach((k,ci)=>{
+      const nm=k.name;
+      if(NUMERIC(k)){ row[k.id]= k.format==='percent'? (Math.random()*100).toFixed(1) : String(Math.floor(Math.random()*90000)+1000); }
+      else if(/일자|날짜|date/i.test(nm)){ const d=new Date(); d.setDate(d.getDate()-r); row[k.id]=fmt(d); }
+      else if(/매장명|점포/.test(nm)) row[k.id]=stores[r%stores.length];
+      else if(/상품명|제품/.test(nm)) row[k.id]=prods[r%prods.length];
+      else if(/코드/.test(nm)) row[k.id]=String(1001+r*7);
+      else row[k.id]=nm+' '+(r+1);
+    });
+    state.rows.push(row);
+  }
+  renderGrid();
+};
+
+/* ================= 상단 화면 설정 버튼 ================= */
+$('modeBtn').onclick=()=>{
+  document.body.classList.toggle('preview');
+  const pv=document.body.classList.contains('preview');
+  $('modeBtn').textContent = pv ? '✏ 편집 모드' : '👁 미리보기 모드';
+  if(pv) state.sort={kid:null,dir:1};
+  render();
+};
+$('clearAll').onclick=()=>{
+  if(!confirm('구성한 모든 조회조건·컬럼·데이터·팝업·설명을 초기화할까요?')) return;
+  state.conditions=[]; state.columns=[]; state.rows=[]; state.popups=[]; state.desc=''; state.title='화면 제목을 입력하세요';
+  $('descArea').value=''; $('titleInput').value=state.title; render();
+};
+$('titleInput').addEventListener('change',()=>{ state.title=$('titleInput').value; });
+
+/* 확장조회 / 조회 */
+$('btnExt').onclick=()=>{ state.extShown=!state.extShown; applyExt(); };
+$('btnSearch').onclick=()=>{ state.queried=true; renderGrid(); };
+$('panelHead').addEventListener('click',e=>{
+  if(e.target.closest('button')||e.target.closest('input')) return;
+  const head=$('panelHead'), body=$('searchBody');
+  head.classList.toggle('collapsed');
+  body.style.maxHeight=head.classList.contains('collapsed')?'0px':'1200px';
+});
+$('searchBody').style.maxHeight='1200px';
+
+/* ================= 엑셀 ================= */
+$('btnExcel').onclick=()=>{
+  if(state.columns.length===0){ alert('결과 컬럼을 먼저 추가하세요.'); return; }
+  const runs=headerRuns(), hasGrp=runs.some(r=>r.group);
+  const aoa=[], merges=[];
+  if(hasGrp){
+    const h1=['No'], h2=[''];
+    let col=1; // No 다음 컬럼 인덱스
+    runs.forEach(run=>{
+      if(run.group){
+        h1.push(run.group); for(let i=1;i<run.cols.length;i++) h1.push('');
+        run.cols.forEach(k=>h2.push(k.name));
+        merges.push({s:{r:0,c:col},e:{r:0,c:col+run.cols.length-1}});
+        col+=run.cols.length;
+      }else{
+        h1.push(run.cols[0].name); h2.push('');
+        merges.push({s:{r:0,c:col},e:{r:1,c:col}});
+        col++;
+      }
+    });
+    merges.push({s:{r:0,c:0},e:{r:1,c:0}}); // No
+    aoa.push(h1,h2);
+  }else{
+    aoa.push(['No', ...state.columns.map(k=>k.name)]);
+  }
+  state.rows.forEach((r,i)=>aoa.push([i+1, ...state.columns.map(k=>{
+    const v=r[k.id]??''; const n=Number(String(v).replace(/,/g,'')); return (v!=='' && !isNaN(n))? n : v;
+  })]));
+  if(state.showSum){
+    aoa.push(['합계', ...state.columns.map(k=> NUMERIC(k)&&sumCol(k)!=null? sumCol(k):'')]);
+  }
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  if(merges.length) ws['!merges']=merges;
+  ws['!cols']=[{wch:5},...state.columns.map(k=>({wch:Math.max(10,k.name.length*2)}))];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, (state.title||'화면').substring(0,28));
+  XLSX.writeFile(wb, (state.title||'조회화면')+'.xlsx');
+};
+
+/* ================= 설정 저장/불러오기 ================= */
+$('saveCfg').onclick=()=>{
+  const data=JSON.stringify({title:state.title,conditions:state.conditions,columns:state.columns,rows:state.rows,popups:state.popups,desc:state.desc,showSum:state.showSum},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(state.title||'화면구성')+'.json'; a.click();
+};
+$('loadCfg').onclick=()=>$('loadFile').click();
+$('loadFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const o=JSON.parse(rd.result);
+    state.title=o.title||''; state.conditions=o.conditions||[]; state.columns=o.columns||[];
+    state.rows=o.rows||[]; state.popups=o.popups||[]; state.desc=o.desc||''; state.showSum=o.showSum!==false;
+    state.conditions.forEach(c=>{ if(!c.id)c.id='c'+(seq++); }); state.columns.forEach(k=>{ if(!k.id)k.id='k'+(seq++); });
+    state.popups.forEach(p=>{ if(!p.id)p.id='p'+(seq++); });
+    $('titleInput').value=state.title; $('descArea').value=state.desc; $('chkSum').checked=state.showSum; render();
+  }catch(err){ alert('불러오기 실패: 올바른 설정 파일이 아닙니다.'); } };
+  rd.readAsText(f); e.target.value='';
+};
+
+/* ================= HTML 내보내기 (완성 화면 스냅샷) =================
+   미리보기 상태로 렌더한 뒤, 사용자가 실제로 고른 값(제목·달력 날짜·콤보·라디오·체크박스)을
+   attribute로 고정해 통째로 정적 HTML 1파일로 저장한다. */
+function cloneWithValues(sel){
+  const orig=document.querySelector(sel); if(!orig) return '';
+  const clone=orig.cloneNode(true);
+  const oI=orig.querySelectorAll('input,select,textarea');
+  const cI=clone.querySelectorAll('input,select,textarea');
+  oI.forEach((el,i)=>{
+    const c=cI[i]; if(!c) return;
+    if(el.tagName==='SELECT'){ [...c.options].forEach((o,oi)=>{ oi===el.selectedIndex?o.setAttribute('selected','selected'):o.removeAttribute('selected'); }); }
+    else if(el.type==='checkbox'||el.type==='radio'){ el.checked?c.setAttribute('checked','checked'):c.removeAttribute('checked'); }
+    else { c.setAttribute('value', el.value); if(el.tagName==='TEXTAREA') c.textContent=el.value; }
+  });
+  return clone.outerHTML;
+}
+$('exportHtml').onclick=()=>{
+  if(!state.columns.length && !state.conditions.length){ alert('내보낼 화면 구성이 없습니다. 조회조건이나 결과 컬럼을 먼저 추가하세요.'); return; }
+  const wasEdit=isEdit(), prevExt=state.extShown;
+  document.body.classList.add('preview');
+  state.extShown=true;                     // 확장조회 항목까지 모두 펼쳐서 통으로 담기
+  render();
+
+  const head=document.querySelector('style').outerHTML;
+  let panel=cloneWithValues('.panel');
+  let grid =cloneWithValues('.grid-outer');
+
+  /* 제목 input → 정적 텍스트 */
+  panel=panel.replace(/<input class="title-input"[^>]*?value="([^"]*)"[^>]*>/,
+    '<span class="title">$1</span>');
+  /* 편집기 전용 크롬 제거: ⚙ 코너 → No, 정렬표시(↕) 제거, 정렬 커서 해제 */
+  grid=grid.replace(/>⚙</g,'>No<')
+           .replace(/<span class="sort-ar">[^<]*<\/span>/g,'')
+           .replace(/col-hd sortable/g,'col-hd');
+
+  const cnt = state.queried ? `<div class="excel-bar"><span class="count">총 <b>${state.rows.length.toLocaleString('ko-KR')}</b>건</span></div>` : '';
+  const desc=state.desc? `<div class="desc-box"><label>화면 설명</label><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div></div>`:'';
+  const extra=`<style>
+    body.export{background:#f4f6f9;}
+    body.export .col-hd.sortable{cursor:default;}
+    body.export table.grid thead th .sort-ar{display:none;}
+    body.export .wrap{padding:24px 16px;}
+  </style>`;
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
+    `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
+    `<body class="preview export"><div class="wrap">${panel}${cnt}${grid}${desc}</div></body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(state.title||'조회화면')+'.html'; a.click();
+
+  state.extShown=prevExt;
+  if(wasEdit){ document.body.classList.remove('preview'); }
+  render();
+};
+
+/* ================= 예시 채우기 ================= */
+$('sampleBtn').onclick=()=>{
+  state.title='일별상품매출현황(매장별)';
+  state.conditions=[
+    {id:'c'+(seq++),type:'date',label:'조회일자',range:true,ext:false,required:true,options:[]},
+    {id:'c'+(seq++),type:'cat',label:'분류조회',range:false,ext:false,required:false,options:[]},
+    {id:'c'+(seq++),type:'combo',label:'일자표시옵션',range:false,ext:false,required:false,options:['일자별','주별','월별']},
+    {id:'c'+(seq++),type:'radio',label:'매출구분',range:false,ext:false,required:false,options:['총매출','순매출']},
+    {id:'c'+(seq++),type:'text',label:'상품명',range:false,ext:false,required:false,options:[]},
+    {id:'c'+(seq++),type:'combo',label:'매장브랜드',range:false,ext:false,required:false,options:['전체','미스터피자','피자앤치킨','BBQ']},
+    {id:'c'+(seq++),type:'store',label:'매장선택',range:false,ext:false,required:false,options:[]},
+    {id:'c'+(seq++),type:'number',label:'매출액범위',range:true,ext:true,required:false,options:[]},
+    {id:'c'+(seq++),type:'prod',label:'상품선택',range:false,ext:true,required:false,options:[]},
+  ];
+  state.columns=[
+    {id:'k'+(seq++),name:'매출일자',align:'c',group:'',format:'none'},
+    {id:'k'+(seq++),name:'매장코드',align:'c',group:'매장정보',format:'none'},
+    {id:'k'+(seq++),name:'매장명',align:'l',group:'매장정보',format:'none'},
+    {id:'k'+(seq++),name:'상품명',align:'l',group:'',format:'none'},
+    {id:'k'+(seq++),name:'수량',align:'r',group:'매출',format:'comma'},
+    {id:'k'+(seq++),name:'매출액',align:'r',group:'매출',format:'won'},
+    {id:'k'+(seq++),name:'구성비',align:'r',group:'매출',format:'percent'},
+  ];
+  const K=state.columns;
+  const stores=[['001060MP','미스터피자 야탑점'],['001070MP','미스터피자 신흥점'],['C00023','피자앤치킨 서초점']];
+  const prods=['쉬림프골드','포테이토골드','스페셜콰트로'];
+  state.rows=[];
+  for(let r=0;r<8;r++){
+    const d=new Date(); d.setDate(d.getDate()-Math.floor(r/2));
+    const s=stores[r%3], amt=Math.floor(Math.random()*400000)+50000;
+    state.rows.push({[K[0].id]:fmt(d),[K[1].id]:s[0],[K[2].id]:s[1],[K[3].id]:prods[r%3],[K[4].id]:String(Math.floor(Math.random()*40)+1),[K[5].id]:String(amt),[K[6].id]:(Math.random()*20+2).toFixed(1)});
+  }
+  state.popups=[{id:'p'+(seq++),name:'사원선택',fields:[{label:'사원번호',type:'text',options:[]},{label:'사원명',type:'text',options:[]},{label:'부서',type:'combo',options:['전체','영업팀','물류팀','관리팀']}],columns:['사원번호','사원명','부서'],data:[['E1001','홍길동','영업팀'],['E1002','김철수','물류팀'],['E1003','이영희','관리팀']]}];
+  state.desc='매장별 일자/월 단위 상품 매출 현황을 조회하는 화면입니다.\n· 매출액범위·상품선택은 확장조회로 추가 사용\n· 결과표 상단 헤더는 매장정보/매출 2줄 그룹으로 구성\n· 사원선택 커스텀 팝업 예시 포함';
+  state.queried=true; state.showSum=true;
+  $('titleInput').value=state.title; $('descArea').value=state.desc; $('chkSum').checked=true; render();
+};
+
+/* ================= 달력 ================= */
+const cal={pop:$('calPop'),body:$('calBody'),ym:$('calYm'),target:null,view:new Date()};
+function parseDate(s){const p=(s||'').split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date();}
+function drawCal(){
+  const y=cal.view.getFullYear(),m=cal.view.getMonth();
+  cal.ym.textContent=`${y}년 ${m+1}월`;
+  const start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
+  const today=todayStr(),sel=cal.target?cal.target.value:'';
+  let cells=[];
+  for(let i=start-1;i>=0;i--)cells.push({d:prev-i,mo:m-1,mute:true});
+  for(let d=1;d<=days;d++)cells.push({d,mo:m});
+  while(cells.length%7!==0)cells.push({d:cells.length-(start+days)+1,mo:m+1,mute:true});
+  let html='';
+  cells.forEach((c,i)=>{ if(i%7===0)html+='<tr>';
+    const ds=fmt(new Date(y,c.mo,c.d)),dow=i%7;let cls='';
+    if(c.mute)cls+=' mute';else{if(dow===0)cls+=' sun';if(dow===6)cls+=' sat';}
+    if(ds===today)cls+=' today';if(ds===sel)cls+=' on';
+    html+=`<td><button class="${cls.trim()}" data-date="${ds}">${c.d}</button></td>`; if(i%7===6)html+='</tr>';});
+  cal.body.innerHTML=html;
+  cal.body.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(cal.target)cal.target.value=b.dataset.date; closeCal();});
+}
+function openCalFor(input){ cal.target=input; cal.view=parseDate(input.value);
+  const r=input.closest('.date-wrap').getBoundingClientRect();
+  cal.pop.style.left=(window.scrollX+r.left)+'px'; cal.pop.style.top=(window.scrollY+r.bottom+4)+'px';
+  cal.pop.classList.add('open'); drawCal(); }
+function closeCal(){cal.pop.classList.remove('open');}
+$('calPrev').onclick=()=>{cal.view.setMonth(cal.view.getMonth()-1);drawCal();};
+$('calNext').onclick=()=>{cal.view.setMonth(cal.view.getMonth()+1);drawCal();};
+$('calToday').onclick=()=>{if(cal.target)cal.target.value=todayStr();closeCal();};
+$('calClose').onclick=closeCal;
+
+/* ================= 월 선택 ================= */
+const mon={pop:$('monthPop'),grid:$('monthGrid'),yr:$('monthYr'),target:null,year:new Date().getFullYear()};
+function parseMonth(s){const p=(s||'').split('-');return{y:+p[0],m:+p[1]};}
+function drawMonth(){
+  mon.yr.textContent=mon.year+'년';
+  const cur=mon.target?parseMonth(mon.target.value):{};let html='';
+  for(let m=1;m<=12;m++){const on=(cur.y===mon.year&&cur.m===m)?'on':'';html+=`<button class="${on}" data-m="${m}">${m}월</button>`;}
+  mon.grid.innerHTML=html;
+  mon.grid.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(mon.target)mon.target.value=mon.year+'-'+String(+b.dataset.m).padStart(2,'0'); closeMonth();});
+}
+function openMonthFor(input){ mon.target=input; const cur=parseMonth(input.value); mon.year=cur.y||new Date().getFullYear();
+  const r=input.closest('.month-wrap').getBoundingClientRect();
+  mon.pop.style.left=(window.scrollX+r.right-212)+'px'; mon.pop.style.top=(window.scrollY+r.bottom+4)+'px';
+  mon.pop.classList.add('open'); drawMonth(); }
+function closeMonth(){mon.pop.classList.remove('open');}
+$('monthPrev').onclick=()=>{mon.year--;drawMonth();};
+$('monthNext').onclick=()=>{mon.year++;drawMonth();};
+$('monthClose').onclick=closeMonth;
+
+/* ================= 통합 click 위임 (달력/월/팝업/선택취소/외부닫기) ================= */
+document.addEventListener('click', e=>{
+  const dateHit=e.target.closest('.js-date, .js-date-btn');
+  const monHit =e.target.closest('.js-month, .js-month-btn');
+  const box    =e.target.closest('.select-box[data-popup]');
+  const clr    =e.target.closest('[data-clear]');
+  if(dateHit){ openCalFor(dateHit.closest('.date-wrap').querySelector('.js-date')); closeMonth(); e.stopPropagation(); return; }
+  if(monHit){ openMonthFor(monHit.closest('.month-wrap').querySelector('.js-month')); closeCal(); e.stopPropagation(); return; }
+  if(box){ openPopup(box.dataset.popup, box.id, box.dataset.pid); return; }
+  if(clr){ clearBox(clr.dataset.clear); return; }
+  if(!e.target.closest('#calPop')) closeCal();
+  if(!e.target.closest('#monthPop')) closeMonth();
+});
+
+/* ================= 팝업(매장/상품/분류/커스텀) ================= */
+const STORE_DATA=[['001060MP','미스터피자 야탑점','오픈',''],['001070MP','미스터피자 신흥점','오픈',''],['001130MP','미스터피자 산본점','오픈',''],['001190MP','미스터피자 부평점','오픈',''],['001200MP','미스터피자 중동점','오픈',''],['001290MP','미스터피자 상계점','오픈',''],['001340MP','미스터피자 잠실점','오픈',''],['001370MP','미스터피자 의정부금오점','오픈',''],['001430MP','미스터피자 명일점','오픈',''],['001470MP','미스터피자 수지점','폐점',''],['001560MP','미스터피자 강릉옥천점','오픈',''],['001690MP','미스터피자 밀양점','오픈',''],['C00023','피자앤치킨 서초점','오픈','제한']];
+const PROD_DATA=[['0101000740','쉬림프골드'],['0101000760','포테이토골드'],['0101000770','하프앤하프'],['0101001070','새우천왕'],['0101001120','치즈블라썸스테이크'],['0101001170','미스터트리오 골드'],['0101001400','레전드바질마스카포네 골드'],['0101001470','콰트로치즈 골드'],['0101001480','스페셜콰트로'],['0101001490','트리플 올인원'],['0101001500','멕시칸 치폴레']];
+const CAT_TREE=[{name:'사이드',children:['감자류','소스','치킨류']},{name:'옵션',children:['옵션','토핑','사이즈']},{name:'기타',children:['추가금액','포장','배달']},{name:'맘스세트',children:['피치세트','콤보세트']},{name:'피자',children:['프리미엄','스테디','신제품']}];
+
+const mask=$('modalMask'),modalBox=$('modalBox');
+function openModal(wide){mask.classList.add('open');modalBox.classList.toggle('wide',!!wide);}
+function closeModal(){mask.classList.remove('open');}
+mask.addEventListener('click',e=>{if(e.target===mask)closeModal();});
+function bindX(){const x=modalBox.querySelector('[data-x]');if(x)x.onclick=closeModal;}
+function setBoxValue(boxId,text){const b=$(boxId);if(!b)return;b.querySelector('.val').textContent=text;b.classList.toggle('empty',!text||text==='전체'||text==='분류조회 선택');}
+function clearBox(boxId){ const b=$(boxId); const ph = b&&b.dataset.popup==='cat' ? '분류조회 선택':'전체'; setBoxValue(boxId, ph); }
+
+function openPopup(type,boxId,pid){
+  if(type==='store')buildStore(boxId);
+  else if(type==='prod')buildProd(boxId);
+  else if(type==='cat')buildCat(boxId);
+  else if(type==='custom'){ const p=findPopup(pid); if(!p){alert('삭제된 팝업입니다.');return;} buildCustomModal(p,boxId); }
+  openModal();
+}
+
+function buildStore(boxId){
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">매장선택</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <table class="m-search">
+      <tr><td class="ml">매장코드</td><td><input id="fsc"></td><td class="ml">매장명</td><td><input id="fsn"></td></tr>
+      <tr><td class="ml">매장상태</td><td><select><option>전체</option><option>오픈</option><option>폐점</option></select></td><td class="ml">지역구분</td><td><select><option>전체</option><option>수도권</option><option>영남</option><option>호남</option></select></td></tr>
+      <tr><td class="ml">매장</td><td colspan="3"><div style="display:flex;gap:6px;"><input id="fsk" style="flex:1"><button class="filter-btn" id="sf">필터</button></div></td></tr>
+    </table>
+    <div class="m-btns"><button class="btn btn-primary btn-sm" id="sap">선택</button><button class="btn btn-sm" id="srl">조회</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="sall"></th><th>매장코드</th><th>매장명</th><th>상태</th><th>판매가제한</th></tr></thead><tbody id="sbody"></tbody></table></div>
+  </div>`;
+  bindX();const body=modalBox.querySelector('#sbody');let cur=STORE_DATA.slice();
+  const draw=l=>{ body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="sc" value="${i}"></td><td>${r[0]}</td><td>${r[1]}</td><td><span class="badge ${r[2]==='오픈'?'open':'close'}">${r[2]}</span></td><td>${r[3]}</td></tr>`).join('');
+    body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.sc');c.checked=!c.checked;}}); };
+  draw(cur);
+  modalBox.querySelector('#sall').onchange=e=>body.querySelectorAll('.sc').forEach(c=>c.checked=e.target.checked);
+  const flt=()=>{const kw=(modalBox.querySelector('#fsk').value+modalBox.querySelector('#fsc').value+modalBox.querySelector('#fsn').value).trim();cur=kw?STORE_DATA.filter(r=>(r[0]+r[1]).includes(kw)):STORE_DATA.slice();draw(cur);};
+  modalBox.querySelector('#sf').onclick=flt;modalBox.querySelector('#srl').onclick=flt;
+  modalBox.querySelector('#sap').onclick=()=>{const p=[...body.querySelectorAll('.sc:checked')].map(c=>cur[+c.value]);if(!p.length){alert('매장을 선택하세요.');return;}setBoxValue(boxId,p.length===1?p[0][1]:`${p[0][1]} 외 ${p.length-1}건`);closeModal();};
+}
+function buildProd(boxId){
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">상품선택</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <table class="m-search">
+      <tr><td class="ml">상품코드</td><td><input id="fpc"></td><td class="ml">상품명</td><td><input id="fpn"></td></tr>
+      <tr><td class="ml">상품브랜드</td><td><select><option>전체</option><option>미스터피자</option></select></td><td class="ml">상품</td><td><div style="display:flex;gap:6px;"><input id="fpk" style="flex:1"><button class="filter-btn" id="pf">필터</button></div></td></tr>
+    </table>
+    <div class="m-btns"><button class="btn btn-sm" id="prl">조회</button><button class="btn btn-primary btn-sm" id="pap">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="pall"></th><th>상품코드</th><th>상품명</th></tr></thead><tbody id="pbody"></tbody></table></div>
+  </div>`;
+  bindX();const body=modalBox.querySelector('#pbody');let cur=PROD_DATA.slice();
+  const draw=l=>{ body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="pc" value="${i}"></td><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+    body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.pc');c.checked=!c.checked;}}); };
+  draw(cur);
+  modalBox.querySelector('#pall').onchange=e=>body.querySelectorAll('.pc').forEach(c=>c.checked=e.target.checked);
+  const flt=()=>{const kw=(modalBox.querySelector('#fpk').value+modalBox.querySelector('#fpc').value+modalBox.querySelector('#fpn').value).trim();cur=kw?PROD_DATA.filter(r=>(r[0]+r[1]).includes(kw)):PROD_DATA.slice();draw(cur);};
+  modalBox.querySelector('#pf').onclick=flt;modalBox.querySelector('#prl').onclick=flt;
+  modalBox.querySelector('#pap').onclick=()=>{const p=[...body.querySelectorAll('.pc:checked')].map(c=>cur[+c.value]);if(!p.length){alert('상품을 선택하세요.');return;}setBoxValue(boxId,p.length===1?p[0][1]:`${p[0][1]} 외 ${p.length-1}건`);closeModal();};
+}
+function buildCat(boxId){
+  let tree='<div class="tree"><ul>';
+  CAT_TREE.forEach((g,gi)=>{tree+=`<li><span class="tw" data-tw="${gi}">▾</span><label><input type="checkbox" class="cp" data-g="${gi}"> <b>${g.name}</b></label><ul data-ul="${gi}">${g.children.map(c=>`<li><label><input type="checkbox" class="cc" data-g="${gi}"> ${c}</label></li>`).join('')}</ul></li>`;});
+  tree+='</ul></div>';
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">분류조회</span><button class="x" data-x>&times;</button></div><div class="modal-body">${tree}<div class="m-btns" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="cap">선택</button><button class="btn btn-sm" id="ccl">취소</button></div></div>`;
+  bindX();
+  modalBox.querySelectorAll('[data-tw]').forEach(tw=>tw.onclick=()=>{const ul=modalBox.querySelector(`[data-ul="${tw.dataset.tw}"]`);const h=ul.style.display==='none';ul.style.display=h?'':'none';tw.textContent=h?'▾':'▸';});
+  modalBox.querySelectorAll('.cp').forEach(p=>p.onchange=()=>modalBox.querySelectorAll(`.cc[data-g="${p.dataset.g}"]`).forEach(c=>c.checked=p.checked));
+  modalBox.querySelector('#ccl').onclick=closeModal;
+  modalBox.querySelector('#cap').onclick=()=>{const names=[];CAT_TREE.forEach((g,gi)=>{const parent=modalBox.querySelector(`.cp[data-g="${gi}"]`);const kids=[...modalBox.querySelectorAll(`.cc[data-g="${gi}"]`)];if(parent.checked&&kids.every(k=>k.checked))names.push(g.name);else kids.forEach((k,ki)=>{if(k.checked)names.push(g.name+'>'+g.children[ki]);});});if(!names.length){alert('분류를 선택하세요.');return;}setBoxValue(boxId,names.length===1?names[0]:`${names[0]} 외 ${names.length-1}건`);closeModal();};
+}
+
+/* ===== 커스텀 팝업(사용자 정의) 조회 모달 ===== */
+function buildCustomModal(p,boxId){
+  const searchRows=[]; for(let i=0;i<p.fields.length;i+=2){ searchRows.push([p.fields[i],p.fields[i+1]||null]); }
+  const fieldCtrl=f=>{
+    if(!f) return '<td class="ml"></td><td></td>';
+    let ctrl;
+    if(f.type==='combo') ctrl=`<select>${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')||'<option>전체</option>'}</select>`;
+    else if(f.type==='date') ctrl=`<input value="${todayStr()}" readonly>`;
+    else ctrl='<input>';
+    return `<td class="ml">${esc(f.label)}</td><td>${ctrl}</td>`;
+  };
+  const cols=p.columns.length?p.columns:['코드','명칭'];
+  const data=p.data&&p.data.length?p.data:[cols.map((c,i)=>c+' 예시')];
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(p.name)}</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <table class="m-search">${searchRows.map(r=>`<tr>${fieldCtrl(r[0])}${fieldCtrl(r[1])}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input></td><td></td><td></td></tr>'}</table>
+    <div class="m-btns"><button class="btn btn-sm" id="crl">조회</button><button class="btn btn-primary btn-sm" id="cap2">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="call"></th>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="cpbody"></tbody></table></div>
+  </div>`;
+  bindX();const body=modalBox.querySelector('#cpbody');
+  const draw=l=>{ body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="cpc" value="${i}"></td>${cols.map((c,ci)=>`<td>${esc(String(r[ci]??''))}</td>`).join('')}</tr>`).join('');
+    body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.cpc');c.checked=!c.checked;}}); };
+  draw(data);
+  modalBox.querySelector('#call').onchange=e=>body.querySelectorAll('.cpc').forEach(c=>c.checked=e.target.checked);
+  modalBox.querySelector('#crl').onclick=()=>draw(data);
+  modalBox.querySelector('#cap2').onclick=()=>{const sel=[...body.querySelectorAll('.cpc:checked')].map(c=>data[+c.value]);if(!sel.length){alert('항목을 선택하세요.');return;}
+    const label=r=>String(r[1]??r[0]??''); setBoxValue(boxId,sel.length===1?label(sel[0]):`${label(sel[0])} 외 ${sel.length-1}건`);closeModal();};
+}
+
+/* ================= 팝업 만들기(빌더) ================= */
+$('newPopupBtn').onclick=()=>openPopupBuilder();
+function openPopupBuilder(existing){
+  const draft = existing ? JSON.parse(JSON.stringify(existing)) : {id:null,name:'',fields:[],columns:[],data:[]};
+  const renderFields=()=>modalBox.querySelector('#pbFields').innerHTML =
+    draft.fields.length? draft.fields.map((f,i)=>`<div class="pf-item"><span class="t">${f.type==='combo'?'콤보':f.type==='date'?'일자':'텍스트'}</span><span class="nm">${esc(f.label)}${f.type==='combo'&&f.options.length?` <span style="color:#8794a6">(${esc(f.options.join(', '))})</span>`:''}</span><button class="rm" data-fi="${i}">✕</button></div>`).join('') : '<div class="pop-none">조회조건을 추가하세요.</div>';
+  const renderCols=()=>modalBox.querySelector('#pbCols').innerHTML =
+    draft.columns.length? draft.columns.map((c,i)=>`<div class="pf-item"><span class="nm">${esc(c)}</span><button class="rm" data-ci="${i}">✕</button></div>`).join('') : '<div class="pop-none">결과 컬럼을 추가하세요.</div>';
+
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">🪟 팝업 만들기</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <div class="pb-row"><label>팝업명</label><input class="b-txt" id="pbName" style="flex:1" placeholder="예: 사원선택, 거래처선택" value="${esc(draft.name)}"></div>
+
+    <div class="pb-sub">① 팝업 조회조건</div>
+    <div class="pb-row">
+      <input class="b-txt" id="pbFieldLbl" style="width:150px" placeholder="조건명 (예: 사원명)">
+      <select class="b-sel" id="pbFieldType"><option value="text">텍스트</option><option value="combo">콤보박스</option><option value="date">일자</option></select>
+      <input class="b-txt" id="pbFieldOpts" style="flex:1" placeholder="콤보 옵션 (쉼표 구분, 콤보일 때만)">
+      <button class="type-btn accent" id="pbAddField">＋ 조건</button>
+    </div>
+    <div class="pf-list" id="pbFields"></div>
+
+    <div class="pb-sub">② 팝업 결과 컬럼</div>
+    <div class="pb-row">
+      <input class="b-txt" id="pbColName" style="flex:1" placeholder="컬럼명 (예: 사원번호)">
+      <button class="type-btn accent" id="pbAddCol">＋ 컬럼</button>
+    </div>
+    <div class="pf-list" id="pbCols"></div>
+
+    <div class="pb-sub">③ 팝업 데이터 (선택)</div>
+    <p class="hint-line">한 줄에 한 행, 컬럼은 <b>탭 또는 쉼표</b>로 구분해 붙여넣으세요. 비워두면 예시 1행이 자동 생성됩니다.</p>
+    <textarea class="paste-ta" id="pbData" style="min-height:90px" placeholder="E1001, 홍길동, 영업팀&#10;E1002, 김철수, 물류팀">${(draft.data||[]).map(r=>r.join(', ')).join('\n')}</textarea>
+
+    <div class="m-btns" style="margin-top:14px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="pbSave">${existing?'수정 저장':'팝업 저장'}</button></div>
+  </div>`;
+  openModal(true); bindX();
+  modalBox.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  renderFields(); renderCols();
+
+  modalBox.querySelector('#pbAddField').onclick=()=>{
+    const lbl=modalBox.querySelector('#pbFieldLbl').value.trim();
+    const type=modalBox.querySelector('#pbFieldType').value;
+    const opts=modalBox.querySelector('#pbFieldOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(!lbl){alert('조건명을 입력하세요.');return;}
+    draft.fields.push({label:lbl,type,options:opts});
+    modalBox.querySelector('#pbFieldLbl').value=''; modalBox.querySelector('#pbFieldOpts').value=''; renderFields();
+  };
+  modalBox.querySelector('#pbAddCol').onclick=()=>{
+    const nm=modalBox.querySelector('#pbColName').value.trim(); if(!nm){alert('컬럼명을 입력하세요.');return;}
+    draft.columns.push(nm); modalBox.querySelector('#pbColName').value=''; renderCols();
+  };
+  modalBox.querySelector('#pbFields').onclick=e=>{const b=e.target.closest('[data-fi]');if(b){draft.fields.splice(+b.dataset.fi,1);renderFields();}};
+  modalBox.querySelector('#pbCols').onclick=e=>{const b=e.target.closest('[data-ci]');if(b){draft.columns.splice(+b.dataset.ci,1);renderCols();}};
+  modalBox.querySelector('#pbSave').onclick=()=>{
+    const name=modalBox.querySelector('#pbName').value.trim();
+    if(!name){alert('팝업명을 입력하세요.');return;}
+    if(!draft.columns.length){alert('결과 컬럼을 1개 이상 추가하세요.');return;}
+    const raw=modalBox.querySelector('#pbData').value.trim();
+    draft.data = raw? raw.split(/\r?\n/).filter(Boolean).map(line=>line.split(/\t|,/).map(s=>s.trim())) : [];
+    draft.name=name;
+    if(existing){ const idx=state.popups.findIndex(p=>p.id===existing.id); state.popups[idx]=Object.assign(existing,draft); }
+    else { draft.id='p'+(seq++); state.popups.push(draft); }
+    closeModal(); renderPopChips(); render();
+  };
+}
+/* 저장된 팝업 칩 렌더 */
+function renderPopChips(){
+  const box=$('popChips');
+  if(!state.popups.length){ box.innerHTML='<span class="pop-none">만든 팝업이 없습니다. ‘팝업 만들기’로 팝업명·조회조건을 정의하세요.</span>'; return; }
+  box.innerHTML=state.popups.map(p=>`<span class="pop-chip">🪟 ${esc(p.name)}
+    <button class="mini add" data-padd="${p.id}" title="조회조건으로 추가">＋</button>
+    <button class="mini edit" data-pedit="${p.id}" title="수정">✎</button>
+    <button class="mini x" data-pdel="${p.id}" title="삭제">✕</button></span>`).join('');
+}
+$('popChips').addEventListener('click',e=>{
+  const add=e.target.closest('[data-padd]'), ed=e.target.closest('[data-pedit]'), del=e.target.closest('[data-pdel]');
+  if(add){ const p=findPopup(add.dataset.padd); state.conditions.push({id:'c'+(seq++),type:'custompopup',label:p.name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:[],popupId:p.id}); render(); }
+  else if(ed){ openPopupBuilder(findPopup(ed.dataset.pedit)); }
+  else if(del){ const p=findPopup(del.dataset.pdel); if(confirm(`‘${p.name}’ 팝업을 삭제할까요? (이 팝업을 쓰는 조회조건도 함께 삭제됩니다)`)){ state.conditions=state.conditions.filter(c=>c.popupId!==p.id); state.popups=state.popups.filter(x=>x.id!==p.id); render(); } }
+});
+
+/* ================= 조회결과 데이터 붙여넣기 모달 ================= */
+$('pasteData').onclick=()=>{
+  if(!state.columns.length){ alert('결과 컬럼을 먼저 추가하세요.'); return; }
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📋 데이터 붙여넣기</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <p class="hint-line">현재 컬럼 순서: <b>${state.columns.map(k=>esc(k.name)).join(' · ')}</b><br>
+    엑셀에서 복사한 표를 그대로 붙여넣으세요. 한 줄=한 행, 셀 구분은 <b>탭 또는 쉼표</b>입니다.</p>
+    <textarea class="paste-ta" id="pdArea" placeholder="2025-05-01\t001060MP\t미스터피자 야탑점\t120\t350000&#10;2025-05-01\t001070MP\t미스터피자 신흥점\t95\t280000"></textarea>
+    <div class="pb-row" style="margin-top:10px;"><label style="width:auto;">붙여넣기 방식</label>
+      <label class="b-chk"><input type="radio" name="pdmode" value="replace" checked> 기존 데이터 대체</label>
+      <label class="b-chk"><input type="radio" name="pdmode" value="append"> 아래에 추가</label>
+    </div>
+    <div class="m-btns" style="margin-top:12px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="pdApply">적용</button></div>
+  </div>`;
+  openModal(true); bindX(); modalBox.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  modalBox.querySelector('#pdApply').onclick=()=>{
+    const raw=modalBox.querySelector('#pdArea').value.trim();
+    if(!raw){ alert('데이터를 붙여넣으세요.'); return; }
+    const mode=modalBox.querySelector('input[name="pdmode"]:checked').value;
+    const parsed=raw.split(/\r?\n/).filter(Boolean).map(line=>{
+      const cells=line.split(/\t|,/).map(s=>s.trim()); const row={};
+      state.columns.forEach((k,i)=>row[k.id]=cells[i]??''); return row;
+    });
+    state.queried=true;
+    state.rows = mode==='append'? state.rows.concat(parsed) : parsed;
+    closeModal(); renderGrid();
+  };
+};
+
+/* ================= 초기 렌더 ================= */
+render();
+</script>
+</body>
+</html>

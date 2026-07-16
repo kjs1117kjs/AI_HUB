@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>조회화면 구성기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --blue:#2f89ee; --blue-dark:#2278df; --blue-soft:#e9f2fd;
+    --head-bg:#e9f1fa; --grid-head:#edf3fa; --grid-grp:#dbe7f6; --label-bg:#f6f9fc;
+    --border:#d3dce8; --border-soft:#e1e8f1; --sel:#cfe0f5;
+    --text:#333a44; --text-sub:#69707a; --white:#fff; --danger:#e0554e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:12.5px;color:var(--text);background:#eef1f5;-webkit-font-smoothing:antialiased;}
+  .wrap{padding:16px;max-width:1720px;margin:0 auto;}
+  .builder{background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .builder-top{background:#eef4fb;border-bottom:1px solid #c9dcf1;padding:10px 14px;font-weight:700;color:#2c3742;font-size:13px;display:flex;align-items:center;gap:8px;border-radius:6px 6px 0 0;}
+  .builder-top .hint{margin-left:auto;font-weight:500;color:#7a828d;font-size:11.5px;}
+  .builder-sec{padding:11px 14px;border-bottom:1px solid var(--border-soft);display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .builder-sec:last-child{border-bottom:none;}
+  .builder-sec.target-sec{background:#fafcff;}
+  .sec-title{font-weight:700;color:#3a4551;font-size:12px;width:96px;flex-shrink:0;}
+  .b-txt{height:30px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:inherit;font-size:12.5px;color:var(--text);outline:none;}
+  .b-txt:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.14);}
+  .b-sel{height:30px;border:1px solid var(--border);border-radius:4px;padding:0 26px 0 10px;font-family:inherit;font-size:12.5px;background:#fff;appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;}
+  .b-chk{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#4a5563;cursor:pointer;user-select:none;}
+  .type-btn{border:1px solid var(--border);background:#f7fafd;color:#2c3742;padding:7px 12px;border-radius:5px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit;white-space:nowrap;}
+  .type-btn:hover{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-dark);}
+  .type-btn.accent{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .type-btn.accent:hover{background:var(--blue-dark);}
+  .type-btn.ghost{background:#fff;color:#5a6472;}
+  .divider-v{width:1px;height:22px;background:var(--border-soft);margin:0 2px;}
+  .btn{border:1px solid var(--border);background:#fff;color:#42505f;padding:5px 12px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;line-height:1.4;white-space:nowrap;}
+  .btn:hover{background:#f4f6f9;}
+  .btn-primary{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .btn-primary:hover{background:var(--blue-dark);}
+  .btn-sm{padding:4px 9px;font-size:11.5px;}
+  .btn-ghost{background:#f7f9fb;color:#5a6472;}
+  .panel{background:var(--white);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:14px;}
+  .panel-head{display:flex;align-items:center;gap:8px;background:#e9f1fa;border-bottom:1px solid #c9dcf1;padding:9px 14px;border-radius:4px 4px 0 0;}
+  .panel-head .caret{cursor:pointer;color:#3f5670;font-size:12px;line-height:1;user-select:none;transition:transform .2s;display:inline-block;}
+  .panel-head.collapsed .caret{transform:rotate(-90deg);}
+  .panel-head .title-input{font-weight:700;font-size:13px;color:#2c3742;border:1px dashed transparent;background:transparent;font-family:inherit;padding:2px 6px;border-radius:3px;min-width:220px;}
+  .panel-head .title-input:hover,.panel-head .title-input:focus{border-color:#b7cbe6;background:#fff;outline:none;}
+  .panel-head .actions{margin-left:auto;display:flex;gap:6px;}
+  .search-body{padding:0;overflow:hidden;transition:max-height .25s ease;}
+  table.search{width:100%;border-collapse:collapse;table-layout:fixed;}
+  table.search th,table.search td{border:1px solid var(--border-soft);padding:0;height:38px;vertical-align:middle;}
+  table.search th{background:var(--label-bg);color:#495260;font-weight:600;text-align:left;padding:0 14px;width:130px;font-size:12px;}
+  table.search td{padding:5px 10px;background:#fff;}
+  table.search colgroup col.c-lbl{width:130px;}
+  table.search td.has-ctrl{position:relative;}
+  .empty-cond{text-align:center;color:#9aa2ac;height:60px;background:#fafbfc;}
+  .fld-row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
+  .ext-row.ext-hidden{display:none;}
+  .ext-badge{display:inline-block;margin-left:6px;font-size:10px;color:#fff;background:#f0a020;border-radius:8px;padding:1px 6px;font-weight:700;vertical-align:middle;}
+  .req-star{color:var(--danger);font-weight:800;margin-left:3px;}
+  input.txt,select.cmb{height:28px;border:1px solid var(--border);border-radius:3px;padding:0 8px;font-family:inherit;font-size:12px;color:var(--text);background:#fff;width:100%;outline:none;}
+  input.txt:focus,select.cmb:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  input.txt[readonly]{background:#fff;cursor:pointer;}
+  select.cmb{appearance:none;-webkit-appearance:none;background:#fff;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;padding-right:24px;cursor:pointer;}
+  .grow{flex:1;min-width:0;}
+  .date-wrap,.month-wrap{position:relative;width:150px;}
+  .date-wrap input,.month-wrap input{padding-right:26px;cursor:pointer;}
+  .pick-btn{position:absolute;right:1px;top:1px;bottom:1px;width:24px;border:none;background:transparent;cursor:pointer;color:#5b6470;display:flex;align-items:center;justify-content:center;}
+  .tilde{color:#8b939d;padding:0 2px;}
+  .num-in{width:120px;text-align:right;font-feature-settings:"tnum";}
+  .select-box{height:28px;border:1px solid var(--border);border-radius:3px;background:#fff;display:flex;align-items:center;padding:0 8px;font-size:12px;cursor:pointer;flex:1;min-width:0;color:var(--text);}
+  .select-box.empty{color:#9aa2ac;}
+  .select-box:hover{border-color:var(--blue);}
+  .select-box .val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lbl-input{width:100%;height:26px;border:1px dashed #c1cddd;border-radius:3px;padding:0 6px;font-family:inherit;font-size:12px;background:#fff;color:#2c3742;font-weight:600;outline:none;}
+  .lbl-input:focus{border-color:var(--blue);border-style:solid;}
+  .opt-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:2px 0;}
+  .opt{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#48515c;cursor:pointer;user-select:none;}
+  .opt input{margin:0;}
+  .cell-ctrl{position:absolute;top:3px;right:4px;display:flex;gap:2px;z-index:3;}
+  .cell-ctrl button{width:20px;height:20px;border:1px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;color:#5a6472;padding:0;display:flex;align-items:center;justify-content:center;}
+  .cell-ctrl button:hover{background:#eef4fb;}
+  .cell-ctrl button.on{background:#f0a020;color:#fff;border-color:#dc8f14;}
+  .cell-ctrl button.req.on{background:var(--danger);border-color:#c9463f;}
+  .cell-ctrl button.del:hover{background:#fdecec;color:#d0433c;border-color:#f0b4b1;}
+  .excel-bar{display:flex;align-items:center;gap:6px;padding:10px 2px;}
+  .excel-bar .count{margin-right:auto;font-size:12px;color:#5a6472;font-weight:600;}
+  .excel-bar .count b{color:var(--blue-dark);font-feature-settings:"tnum";}
+  .tabbar{display:flex;gap:3px;border-bottom:2px solid var(--blue);margin-bottom:14px;}
+  .tab{padding:8px 18px;font-size:12.5px;font-weight:700;color:#5a6472;background:#eef2f7;border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;cursor:pointer;}
+  .tab.active{background:#fff;color:var(--blue-dark);border-color:var(--blue);position:relative;top:1px;}
+  .toolbar-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#eef4fb;border:1px solid #c9dcf1;border-radius:6px;padding:9px 12px;margin-bottom:14px;}
+  .toolbar-strip .tsl{font-weight:700;color:#3a4551;font-size:12px;}
+  .toolbar-strip select{height:28px;border:1px solid var(--border);border-radius:4px;padding:0 24px 0 8px;font-family:inherit;font-size:12px;background:#fff;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 8px center;}
+  .toolbar-strip .tb{border:1px solid #bcd6f4;background:#fff;color:#2f6bc0;border-radius:4px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .toolbar-strip .tb:hover{background:#eaf3fe;}
+  .result-area{display:flex;gap:14px;align-items:flex-start;}
+  .res-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .gpanel{min-width:0;}
+  .gp-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-height:26px;}
+  .gp-head .gp-title{font-weight:700;font-size:14px;color:#2c3742;}
+  .gp-head .gp-title-input{font-weight:700;font-size:14px;color:#2c3742;border:1px dashed transparent;background:transparent;font-family:inherit;padding:2px 4px;border-radius:3px;min-width:100px;max-width:280px;}
+  .gp-head .gp-title-input:hover,.gp-head .gp-title-input:focus{border-color:#b7cbe6;background:#fff;outline:none;}
+  .gp-head .gp-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .gp-btn{position:relative;border:1px solid #bcd6f4;background:#f4f9ff;color:#2f6bc0;border-radius:4px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .gp-btn:hover{background:#e7f1fd;}
+  .gp-btn.primary{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .gp-btn .pbtn-x{margin-left:5px;color:#c0403a;cursor:pointer;font-weight:800;}
+  body.preview .gp-btn .pbtn-x{display:none;}
+  .grid-outer{background:#fff;border:1px solid var(--border);border-radius:4px;overflow:hidden;width:max-content;max-width:100%;}
+  .grid-scroll{overflow-x:auto;overflow-y:auto;max-height:480px;}
+  table.grid{border-collapse:collapse;font-size:12px;white-space:nowrap;table-layout:fixed;}
+  table.grid thead th{position:sticky;top:0;z-index:2;background:var(--grid-head);color:#34404d;font-weight:700;border:1px solid #cdd7e2;border-top:none;padding:0;text-align:center;height:36px;overflow:hidden;}
+  table.grid thead th.grp{background:var(--grid-grp);}
+  table.grid thead th.grp2{top:37px;}
+  table.grid thead th .col-hd{display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 8px;position:relative;overflow:hidden;}
+  table.grid thead th .col-hd.sortable>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+  table.grid thead th .col-hd.sortable{cursor:pointer;}
+  table.grid thead th .col-hd.sortable:hover{color:var(--blue-dark);}
+  table.grid thead th .sort-ar{font-size:9px;color:#8794a6;}
+  table.grid thead th .col-input{width:100%;min-width:60px;height:24px;border:1px dashed #c1cddd;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#fff;font-weight:700;color:#34404d;outline:none;}
+  table.grid thead th .col-input:focus{border-color:var(--blue);border-style:solid;}
+  table.grid thead th .grp-input{width:100%;min-width:70px;height:22px;border:1px dashed #b3c5de;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#eef5fd;font-weight:700;color:#2f5488;outline:none;}
+  table.grid thead th .grp-input:focus{border-color:var(--blue);border-style:solid;background:#fff;}
+  table.grid thead th.chkcol,table.grid td.chkcol{width:32px;padding:0;text-align:center;}
+  table.grid tbody td{border:1px solid #e6e9ee;padding:6px 8px;color:#3d4550;text-align:center;height:31px;overflow:hidden;text-overflow:ellipsis;}
+  table.grid tbody td.l{text-align:left;}
+  table.grid tbody td.r{text-align:right;font-feature-settings:"tnum";}
+  table.grid tbody tr:nth-child(even) td{background:#fafbfc;}
+  table.grid tbody tr:hover td{background:#eef5fd;}
+  table.grid tbody tr.sel td{background:#dbeafe!important;}
+  table.grid td.rownum{background:#f2f4f7;color:#6b7480;font-weight:600;width:40px;position:relative;}
+  table.grid td.rownum .row-del{display:none;position:absolute;inset:0;margin:auto;width:18px;height:18px;border:1px solid #f0b4b1;background:#fff;color:#d0433c;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:0;}
+  body.edit table.grid td.rownum:hover .row-del{display:flex;align-items:center;justify-content:center;}
+  body.edit table.grid td.rownum:hover span{visibility:hidden;}
+  table.grid tbody td .cell-input{width:100%;height:23px;border:1px solid transparent;border-radius:3px;padding:0 5px;font-family:inherit;font-size:12px;background:transparent;color:#3d4550;outline:none;text-align:inherit;}
+  table.grid tbody td.l .cell-input{text-align:left;}
+  table.grid tbody td.r .cell-input{text-align:right;font-feature-settings:"tnum";}
+  table.grid tbody td .cell-input:hover{border-color:#dce3ec;}
+  table.grid tbody td .cell-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  table.grid tbody td .cell-sel{min-width:64px;height:23px;border:1px solid #d3dce8;border-radius:3px;background:#fff;font-size:11.5px;font-family:inherit;color:#3d4550;padding:0 18px 0 6px;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path d='M0 0l4 5 4-5z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 6px center;cursor:pointer;}
+  table.grid tbody td .cell-link{color:var(--blue-dark);text-decoration:underline;cursor:pointer;font-weight:600;}
+  table.grid tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1f5;border:1px solid #cdd7e2;padding:6px 8px;font-weight:700;color:#2c3742;text-align:center;}
+  table.grid tfoot td.r{text-align:right;font-feature-settings:"tnum";}
+  .col-gear{width:36px;background:var(--grid-head);}
+  .empty-grid{padding:44px 0;text-align:center;color:#9aa2ac;font-size:13px;}
+  .pager{display:flex;justify-content:center;align-items:center;gap:4px;padding:9px;background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;}
+  .pager button{min-width:28px;height:28px;border:1px solid var(--border);background:#fff;border-radius:4px;cursor:pointer;font-size:12px;color:#4a5563;font-family:inherit;}
+  .pager button.on{background:var(--blue);border-color:var(--blue-dark);color:#fff;font-weight:700;}
+  .pop-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .pop-chip{display:inline-flex;align-items:center;gap:6px;background:#eef5fd;border:1px solid #cfe0f5;border-radius:14px;padding:4px 6px 4px 11px;font-size:12px;color:#2f5488;font-weight:600;}
+  .pop-chip .mini{border:none;background:#d8e6f7;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;color:#2f5488;line-height:1;padding:0;}
+  .pop-chip .mini:hover{background:#c3d8f0;}
+  .pop-chip .mini.x:hover{background:#f6d4d1;color:#c0403a;}
+  .pop-none{color:#9aa2ac;font-size:12px;}
+  .pf-list{display:flex;flex-direction:column;gap:6px;margin:8px 0;}
+  .pf-item{display:flex;align-items:center;gap:8px;background:#f6f9fc;border:1px solid var(--border-soft);border-radius:4px;padding:6px 10px;font-size:12px;}
+  .pf-item .t{background:#e4edf8;color:#3f6193;border-radius:3px;padding:1px 7px;font-size:11px;font-weight:700;}
+  .pf-item .nm{flex:1;color:#3d4550;}
+  .pf-item .rm{border:none;background:transparent;color:#b0343c;cursor:pointer;font-size:13px;}
+  .pb-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .pb-row label{font-size:12px;color:#5a6472;font-weight:600;width:64px;}
+  .pb-sub{font-weight:700;color:#3a4551;font-size:12.5px;margin:14px 0 6px;border-top:1px solid #eef0f3;padding-top:12px;}
+  .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .preset-card{border:1px solid var(--border);border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff;}
+  .preset-card:hover{border-color:var(--blue);background:#f5faff;}
+  .preset-card .pt{font-weight:700;color:#2c3742;font-size:13px;margin-bottom:3px;}
+  .preset-card .pd{font-size:11.5px;color:#7a828d;line-height:1.5;}
+  .desc-box{background:#fff;border:1px solid var(--border);border-radius:4px;margin-top:14px;padding:14px 16px;}
+  .desc-box label{display:block;font-weight:700;color:#3a4551;font-size:12.5px;margin-bottom:8px;}
+  .desc-box textarea{width:100%;min-height:80px;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.6;color:var(--text);resize:vertical;outline:none;}
+  .desc-box textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  .cal{position:absolute;z-index:9999;background:#fff;border:1px solid #b9c2ce;border-radius:6px;box-shadow:0 8px 26px rgba(30,45,70,.22);padding:10px;width:240px;font-size:12px;display:none;}
+  .cal.open{display:block;}
+  .cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .cal-hd .nav{border:none;background:#f1f4f8;width:26px;height:26px;border-radius:4px;cursor:pointer;color:#4a5563;font-size:14px;}
+  .cal-hd .nav:hover{background:#e4e9f0;}
+  .cal-hd .ym{font-weight:700;color:#2c3742;}
+  .cal table{width:100%;border-collapse:collapse;}
+  .cal th{color:#8a929c;font-weight:600;padding:4px 0;font-size:11px;}
+  .cal td{text-align:center;padding:0;}
+  .cal td button{width:100%;height:28px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:12px;color:#3d4550;font-family:inherit;}
+  .cal td button:hover{background:var(--blue-soft);}
+  .cal td button.today{color:var(--blue);font-weight:700;}
+  .cal td button.on{background:var(--blue);color:#fff;font-weight:700;}
+  .cal td button.mute{color:#c3c9d1;}
+  .cal td button.sun{color:#d9534f;}
+  .cal td button.sat{color:#3a6fb0;}
+  .cal-ft{display:flex;justify-content:space-between;margin-top:8px;}
+  .cal-ft button{border:none;background:transparent;color:var(--blue);cursor:pointer;font-size:12px;font-weight:600;}
+  .month-pop{width:212px;}
+  .month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .month-grid button{height:34px;border:1px solid var(--border-soft);background:#fff;border-radius:4px;cursor:pointer;font-size:12px;color:#3d4550;font-family:inherit;}
+  .month-grid button:hover{background:var(--blue-soft);border-color:var(--blue);}
+  .month-grid button.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700;}
+  .modal-mask{position:fixed;inset:0;background:rgba(20,28,40,.4);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:60px 16px;}
+  .modal-mask.open{display:flex;}
+  .modal{background:#fff;border-radius:6px;box-shadow:0 14px 44px rgba(0,0,0,.3);width:660px;max-width:100%;max-height:calc(100vh - 120px);display:flex;flex-direction:column;}
+  .modal.wide{width:720px;}
+  .modal-hd{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #e6e9ee;}
+  .modal-hd .mt{font-size:15px;font-weight:700;color:#2c3742;}
+  .modal-hd .x{margin-left:auto;border:none;background:transparent;cursor:pointer;font-size:20px;color:#8a929c;line-height:1;}
+  .modal-hd .x:hover{color:#333;}
+  .modal-body{padding:16px 18px;overflow:auto;}
+  .m-search{width:100%;border-collapse:collapse;margin-bottom:12px;}
+  .m-search td{padding:4px 6px;}
+  .m-search td.ml{width:80px;color:#5a6472;font-size:12px;font-weight:600;}
+  .m-search input,.m-search select{height:28px;border:1px solid var(--border);border-radius:3px;padding:0 8px;width:100%;font-family:inherit;font-size:12px;}
+  .m-search select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 9px center;padding-right:24px;}
+  .m-btns{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;}
+  .m-grid-wrap{border:1px solid var(--border);border-radius:3px;max-height:340px;overflow:auto;}
+  table.m-grid{width:100%;border-collapse:collapse;font-size:12px;}
+  table.m-grid thead th{position:sticky;top:0;background:var(--grid-head);border-bottom:1px solid #cdd7e2;padding:7px 8px;color:#34404d;font-weight:700;text-align:left;}
+  table.m-grid tbody td{border-bottom:1px solid #eef0f3;padding:6px 8px;color:#3d4550;}
+  table.m-grid tbody tr{cursor:pointer;}
+  table.m-grid tbody tr:hover td{background:#eef5fd;}
+  table.m-grid td.chk{text-align:center;width:34px;}
+  .badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+  .badge.open{background:#e5f4ec;color:#1c8a52;}
+  .badge.close{background:#fdecec;color:#d0433c;}
+  .filter-btn{border:1px solid var(--blue);color:var(--blue);background:#fff;height:28px;border-radius:3px;padding:0 12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;}
+  .tree{border:1px solid var(--border);border-radius:3px;max-height:360px;overflow:auto;padding:8px 4px;}
+  .tree ul{list-style:none;margin:0;padding-left:18px;}
+  .tree>ul{padding-left:4px;}
+  .tree li{padding:2px 0;}
+  .tree label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;color:#3d4550;padding:2px 4px;border-radius:3px;}
+  .tree label:hover{background:#f2f6fb;}
+  .tree .tw{cursor:pointer;display:inline-block;width:14px;color:#8a929c;user-select:none;}
+  .paste-ta{width:100%;min-height:150px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:"Pretendard",monospace;font-size:12px;line-height:1.6;resize:vertical;outline:none;}
+  .paste-ta:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+  .hint-line{font-size:12px;color:#7a828d;margin:0 0 10px;line-height:1.6;}
+  body.preview .cell-ctrl,body.preview .col-hd .cell-ctrl{display:none!important;}
+  body.preview .lbl-input,body.preview .col-input,body.preview .grp-input,body.preview .gp-title-input{border-color:transparent!important;background:transparent!important;cursor:default;pointer-events:none;}
+  body.preview .title-input{pointer-events:none;}
+  body.preview table.grid tbody td .cell-input{pointer-events:none;border-color:transparent;}
+</style>
+</head>
+<body class="edit">
+<div class="wrap">
+  <div class="builder">
+    <div class="builder-top">🧩 조회화면 구성기<span class="hint">단일 조회부터 마스터-디테일(다중 패널)·탭·툴바 화면까지 구성합니다.</span></div>
+    <div class="builder-sec">
+      <span class="sec-title">조회조건 추가</span>
+      <input class="b-txt" id="condName" value="조회조건" placeholder="조회조건명 (예: 조회일자)" style="width:170px;">
+      <label class="b-chk"><input type="checkbox" id="condRange"> 기간(~)</label>
+      <label class="b-chk"><input type="checkbox" id="condReq"> 필수(*)</label>
+      <label class="b-chk"><input type="checkbox" id="condExt"> 확장</label>
+      <span class="divider-v"></span>
+      <button class="type-btn" data-add="date">📅 일자</button>
+      <button class="type-btn" data-add="month">🗓️ 월</button>
+      <button class="type-btn" data-add="year">📆 년도</button>
+      <button class="type-btn" data-add="quarter">🕒 분기</button>
+      <button class="type-btn" data-add="text">🔤 텍스트</button>
+      <button class="type-btn" data-add="number">🔢 숫자</button>
+      <button class="type-btn" data-add="cat">🗂️ 분류</button>
+      <button class="type-btn" data-add="store">🏬 매장</button>
+      <button class="type-btn" data-add="prod">📦 상품</button>
+      <button class="type-btn ghost" data-add="blank">▫️ 빈칸</button>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">선택형 조건</span>
+      <input class="b-txt" id="comboName" value="조건" placeholder="조건명" style="width:150px;">
+      <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표: 전체,미스터피자,BBQ)" style="width:280px;">
+      <button class="type-btn accent" data-selkind="combo">＋ 콤보</button>
+      <button class="type-btn" data-selkind="radio">⭕ 라디오</button>
+      <button class="type-btn" data-selkind="checkbox">☑️ 체크박스</button>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">팝업 구성</span>
+      <button class="type-btn accent" id="newPopupBtn">🪟 팝업 만들기</button>
+      <span class="divider-v"></span>
+      <div class="pop-chips" id="popChips"></div>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">레이아웃 · 패널</span>
+      <span style="font-size:12px;color:#5a6472;font-weight:600;">컬럼수</span>
+      <button class="type-btn" data-cols="1">1단</button>
+      <button class="type-btn" data-cols="2">2단</button>
+      <button class="type-btn" data-cols="3">3단</button>
+      <span class="divider-v"></span>
+      <input class="b-txt" id="newPanelName" placeholder="패널명 (예: 대표명칭)" style="width:150px;">
+      <select class="b-sel" id="newPanelCol"></select>
+      <button class="type-btn accent" id="addPanel">＋ 패널 추가</button>
+    </div>
+    <div class="builder-sec target-sec">
+      <span class="sec-title">대상 패널</span>
+      <select class="b-sel" id="curPanel" style="min-width:150px;"></select>
+      <label class="b-chk"><input type="checkbox" id="pOptCheck"> 체크박스열</label>
+      <label class="b-chk"><input type="checkbox" id="pOptRownum"> 행번호</label>
+      <label class="b-chk"><input type="checkbox" id="pOptSum"> 합계행</label>
+      <label class="b-chk"><input type="checkbox" id="pOptPager"> 페이지</label>
+      <span class="divider-v"></span>
+      <input class="b-txt" id="pBtnName" placeholder="패널 버튼 (예: 저장)" style="width:130px;">
+      <label class="b-chk"><input type="checkbox" id="pBtnPrimary"> 강조</label>
+      <button class="type-btn" id="pBtnAdd">＋ 버튼</button>
+      <span class="divider-v"></span>
+      <button class="type-btn ghost" id="pDelPanel">패널 삭제</button>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">컬럼 추가</span>
+      <input class="b-txt" id="colName" value="컬럼" placeholder="컬럼명" style="width:120px;">
+      <input class="b-txt" id="colGroup" placeholder="그룹명(2줄,선택)" style="width:120px;">
+      <select class="b-sel" id="colType">
+        <option value="text">텍스트</option>
+        <option value="link">링크(코드)</option>
+        <option value="dropdown">드롭다운</option>
+        <option value="checkbox">체크박스</option>
+        <option value="number">숫자</option>
+      </select>
+      <input class="b-txt" id="colDropOpts" placeholder="드롭다운 옵션(쉼표)" style="width:150px;">
+      <select class="b-sel" id="colAlign"><option value="c">가운데</option><option value="l">왼쪽</option><option value="r">오른쪽</option></select>
+      <select class="b-sel" id="colFormat"><option value="none">일반</option><option value="comma">1,000</option><option value="won">₩</option><option value="percent">%</option></select>
+      <span style="font-size:11.5px;color:#7a828d;">너비</span><input class="b-txt" id="colWidth" type="number" min="1" value="20" style="width:64px;" title="컬럼 너비(글자수)">
+      <button class="type-btn accent" id="addCol">＋ 컬럼</button>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">결과 데이터</span>
+      <button class="type-btn" id="addRow">＋ 행</button>
+      <button class="type-btn" id="pasteData">📋 붙여넣기</button>
+      <button class="type-btn" id="genSample">🎲 샘플</button>
+      <button class="type-btn ghost" id="clearRows">비우기</button>
+      <span class="hint">‘대상 패널’ 기준으로 적용됩니다.</span>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">화면 옵션</span>
+      <label class="b-chk"><input type="checkbox" id="optSearch" checked> 조회조건 패널</label>
+      <span class="divider-v"></span>
+      <input class="b-txt" id="tabsInput" placeholder="상단 탭 (쉼표: 등록,복사)" style="width:190px;">
+      <button class="type-btn" id="applyTabs">탭 적용</button>
+      <span class="divider-v"></span>
+      <input class="b-txt" id="toolbarBtns" placeholder="상단 툴바 버튼 (쉼표)" style="width:200px;">
+      <button class="type-btn" id="applyToolbar">툴바 적용</button>
+      <button class="type-btn ghost" id="clearToolbar">툴바 제거</button>
+    </div>
+    <div class="builder-sec">
+      <span class="sec-title">화면 설정</span>
+      <button class="btn" id="modeBtn">👁 미리보기 모드</button>
+      <button class="btn" id="clearAll">전체 초기화</button>
+      <span class="divider-v"></span>
+      <button class="btn" id="saveCfg">💾 저장(JSON)</button>
+      <button class="btn" id="loadCfg">📂 불러오기</button>
+      <input type="file" id="loadFile" accept=".json" style="display:none;">
+      <button class="btn" id="exportHtml">🌐 HTML 내보내기</button>
+      <button class="btn btn-primary" id="sampleBtn">📚 예시 화면</button>
+    </div>
+  </div>
+
+  <div class="panel" id="searchPanel">
+    <div class="panel-head" id="panelHead">
+      <span class="caret" id="caret">▼</span>
+      <input class="title-input" id="titleInput" value="화면 제목을 입력하세요">
+      <div class="actions">
+        <button class="btn btn-primary" id="btnExt">확장조회</button>
+        <button class="btn btn-primary" id="btnSearch">조회</button>
+      </div>
+    </div>
+    <div class="search-body" id="searchBody">
+      <table class="search"><colgroup><col class="c-lbl"><col><col class="c-lbl"><col></colgroup><tbody id="condBody"></tbody></table>
+    </div>
+  </div>
+
+  <div class="excel-bar"><span class="count" id="rowCount"></span><button class="btn" id="btnExcel">현재 패널 엑셀다운로드</button></div>
+  <div id="resultArea"></div>
+  <div class="desc-box"><label for="descArea">화면 설명</label><textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea></div>
+</div>
+
+<div class="cal" id="calPop">
+  <div class="cal-hd"><button class="nav" id="calPrev">‹</button><span class="ym" id="calYm"></span><button class="nav" id="calNext">›</button></div>
+  <table><thead><tr><th style="color:#d9534f">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th style="color:#3a6fb0">토</th></tr></thead><tbody id="calBody"></tbody></table>
+  <div class="cal-ft"><button id="calToday">오늘</button><button id="calClose">닫기</button></div>
+</div>
+<div class="cal month-pop" id="monthPop">
+  <div class="cal-hd"><button class="nav" id="monthPrev">‹</button><span class="ym" id="monthYr"></span><button class="nav" id="monthNext">›</button></div>
+  <div class="month-grid" id="monthGrid"></div>
+  <div class="cal-ft" style="justify-content:flex-end;"><button id="monthClose">닫기</button></div>
+</div>
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+
+<script>
+/* ================= 상태 ================= */
+let seq = 1;
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayStr(){return fmt(new Date());}
+function monthNowStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+const CAL_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5" stroke="#5b6470"/><path d="M1.5 5.5h13M5 1v3M11 1v3" stroke="#5b6470"/></svg>';
+const CARET_ICON = '<svg width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="#6b7684"/></svg>';
+
+function newPanel(title,colIndex){
+  return {id:'P'+(seq++), title:title||'조회결과', colIndex:colIndex||0, buttons:[],
+    check:false, rownum:true, gear:true, showSum:false, pager:false, selRow:-1,
+    columns:[], rows:[], sort:{kid:null,dir:1}};
+}
+const state = {
+  title:'화면 제목을 입력하세요', desc:'', extShown:false, queried:true,
+  conditions:[], popups:[],
+  tabs:[], activeTab:0, toolbar:null, searchOn:true,
+  cols:[{flex:1}], panels:[newPanel('조회결과',0)], curPanel:null
+};
+state.curPanel = state.panels[0].id;
+
+const isEdit  = () => !document.body.classList.contains('preview');
+const findCond= id => state.conditions.find(c=>c.id===id);
+const findPopup=id => state.popups.find(p=>p.id===id);
+const findP   = id => state.panels.find(p=>p.id===id);
+const curP    = () => state.panels.find(p=>p.id===state.curPanel) || state.panels[0];
+const NUMERIC = k => k.cellType==='number' || k.align==='r' || ['comma','won','percent'].includes(k.format);
+const truthy  = v => v===true||['1','y','Y','true','O','o','사용','체크','예'].includes(String(v));
+
+/* ================= 조회조건 추가 ================= */
+document.querySelectorAll('[data-add]').forEach(b=>{ b.onclick=()=>addCondition(b.dataset.add); });
+function addCondition(type){
+  const name=$('condName').value.trim();
+  if(type!=='blank' && !name){ alert('조회조건명을 입력하세요.'); $('condName').focus(); return; }
+  state.conditions.push({id:'c'+(seq++),type,label:type==='blank'?'':name,range:$('condRange').checked,ext:$('condExt').checked,required:$('condReq').checked,options:[]});
+  render();
+}
+document.querySelectorAll('[data-selkind]').forEach(b=>{
+  b.onclick=()=>{
+    const name=$('comboName').value.trim();
+    const opts=$('comboOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(!name){ alert('조건명을 입력하세요.'); $('comboName').focus(); return; }
+    if(!opts.length){ alert('옵션을 입력하세요.'); $('comboOpts').focus(); return; }
+    state.conditions.push({id:'c'+(seq++),type:b.dataset.selkind,label:name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:opts});
+    $('comboOpts').value=''; render();
+  };
+});
+
+/* ================= 조건 필드 렌더 ================= */
+function packRows(conds){
+  const normal=conds.filter(c=>!c.ext), ext=conds.filter(c=>c.ext), rows=[];
+  for(let i=0;i<normal.length;i+=2) rows.push({ext:false, cells:[normal[i], normal[i+1]||null]});
+  for(let i=0;i<ext.length;i+=2)    rows.push({ext:true,  cells:[ext[i], ext[i+1]||null]});
+  return rows;
+}
+function condFieldHTML(c){
+  switch(c.type){
+    case 'date':   return rangeWrap(c,'date');
+    case 'month':  return rangeWrap(c,'month');
+    case 'year':   return yearField(c);
+    case 'quarter':return quarterField(c);
+    case 'text':   return `<div class="fld-row"><input class="txt"></div>`;
+    case 'number': return numberField(c);
+    case 'combo':  return `<div class="fld-row"><select class="cmb">${c.options.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>`;
+    case 'radio':  return optRow(c,'radio');
+    case 'checkbox':return optRow(c,'checkbox');
+    case 'cat':    return popupField(c,'cat','분류조회 선택');
+    case 'store':  return popupField(c,'store','전체');
+    case 'prod':   return popupField(c,'prod','전체');
+    case 'custompopup': return customPopupField(c);
+    case 'blank':  return '';
+  }
+  return '';
+}
+function rangeWrap(c,kind){
+  const cls=kind==='date'?'date-wrap':'month-wrap', jcls=kind==='date'?'js-date':'js-month', jbtn=kind==='date'?'js-date-btn':'js-month-btn';
+  const val=kind==='date'?todayStr():monthNowStr(), icon=kind==='date'?CAL_ICON:CARET_ICON;
+  const one=`<div class="${cls}"><input class="txt ${jcls}" readonly value="${val}"><button class="pick-btn ${jbtn}" type="button">${icon}</button></div>`;
+  return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;
+}
+function yearField(c){const y=new Date().getFullYear();let o='';for(let i=y+1;i>=y-6;i--)o+=`<option ${i===y?'selected':''}>${i}년</option>`;const one=`<select class="cmb" style="width:120px">${o}</select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+function quarterField(c){const one=`<select class="cmb" style="width:110px"><option>1분기</option><option>2분기</option><option>3분기</option><option>4분기</option></select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+function numberField(c){const one=`<input class="txt num-in" type="text" inputmode="numeric" placeholder="0">`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+function optRow(c,kind){const nm=kind==='radio'?`name="${c.id}"`:'';return `<div class="opt-row">${c.options.map((o,i)=>`<label class="opt"><input type="${kind}" ${nm} ${kind==='radio'&&i===0?'checked':''}>${esc(o)}</label>`).join('')}</div>`;}
+function popupField(c,type,ph){return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button></div>`;}
+function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button></div>`;}
+function condCtrl(c){return `<div class="cell-ctrl"><button data-act="up" data-cid="${c.id}">▲</button><button data-act="down" data-cid="${c.id}">▼</button><button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}">*</button><button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}">확</button><button data-act="del" data-cid="${c.id}" class="del">✕</button></div>`;}
+function condCell(c){
+  if(!c) return `<th></th><td></td>`;
+  const star=c.required?'<span class="req-star">*</span>':'';
+  const th=isEdit()?`<th><input class="lbl-input" data-cid="${c.id}" value="${esc(c.label)}" placeholder="${c.type==='blank'?'(빈칸)':'조건명'}">${star}</th>`
+                   :`<th>${esc(c.label)}${star}${c.ext?'<span class="ext-badge">확장</span>':''}</th>`;
+  const td=`<td class="has-ctrl">${condFieldHTML(c)}${isEdit()?condCtrl(c):''}</td>`;
+  return th+td;
+}
+function renderConditions(){
+  const body=$('condBody');
+  if(!state.conditions.length){ body.innerHTML=`<tr><td class="empty-cond" colspan="4">상단 버튼으로 조회조건을 추가하세요.</td></tr>`; return; }
+  body.innerHTML=packRows(state.conditions).map(row=>`<tr class="${row.ext?'ext-row':''}">${condCell(row.cells[0])}${condCell(row.cells[1])}</tr>`).join('');
+  applyExt();
+}
+function applyExt(){ const hide=!isEdit()&&!state.extShown; document.querySelectorAll('#condBody .ext-row').forEach(r=>r.classList.toggle('ext-hidden',hide)); }
+
+/* ================= 포맷/합계/정렬 ================= */
+function fmtCell(val,k){
+  if(val==null||val==='') return '';
+  const num=Number(String(val).replace(/,/g,''));
+  switch(k.format){
+    case 'comma':   return isNaN(num)?esc(val):num.toLocaleString('ko-KR');
+    case 'won':     return isNaN(num)?esc(val):'₩'+num.toLocaleString('ko-KR');
+    case 'percent': return isNaN(num)?esc(val):num.toLocaleString('ko-KR')+'%';
+    default:        return esc(String(val));
+  }
+}
+function sumColP(p,k){let s=0,has=false;p.rows.forEach(r=>{const v=r[k.id];if(v!=null&&v!==''){const n=Number(String(v).replace(/,/g,''));if(!isNaN(n)){s+=n;has=true;}}});return has?s:null;}
+function headerRunsP(p){const runs=[],cols=p.columns;let i=0;while(i<cols.length){const g=cols[i].group||'';if(!g){runs.push({group:'',cols:[cols[i]]});i++;}else{let j=i;const run=[];while(j<cols.length&&(cols[j].group||'')===g){run.push(cols[j]);j++;}runs.push({group:g,cols:run});i=j;}}return runs;}
+function displayRowsP(p){
+  if(isEdit()||!p.sort.kid) return p.rows.map((r,i)=>({r,i}));
+  const k=p.columns.find(c=>c.id===p.sort.kid); if(!k) return p.rows.map((r,i)=>({r,i}));
+  const arr=p.rows.map((r,i)=>({r,i})), numeric=NUMERIC(k);
+  arr.sort((a,b)=>{let x=a.r[k.id]??'',y=b.r[k.id]??'';if(numeric){x=Number(String(x).replace(/,/g,''))||0;y=Number(String(y).replace(/,/g,''))||0;return (x-y)*p.sort.dir;}return String(x).localeCompare(String(y),'ko')*p.sort.dir;});
+  return arr;
+}
+
+/* ================= 패널 그리드 렌더 ================= */
+function colCtrlP(p,k){return `<div class="cell-ctrl" style="position:static;margin-left:2px;"><button data-act="cleft" data-pid="${p.id}" data-kid="${k.id}">◀</button><button data-act="cright" data-pid="${p.id}" data-kid="${k.id}">▶</button><button data-act="cdel" data-pid="${p.id}" data-kid="${k.id}" class="del">✕</button></div>`;}
+function colHeadCellP(p,k,edit){
+  if(edit) return `<div class="col-hd"><input class="col-input" data-pid="${p.id}" data-kid="${k.id}" value="${esc(k.name)}">${colCtrlP(p,k)}</div>`;
+  const ar=p.sort.kid===k.id?(p.sort.dir>0?'▲':'▼'):'↕';
+  return `<div class="col-hd sortable" data-pid="${p.id}" data-sort="${k.id}"><span>${esc(k.name)}</span><span class="sort-ar">${ar}</span></div>`;
+}
+function tdcls(k){return k.cellType==='number'||k.align==='r'?'r':k.align==='l'?'l':'';}
+function selHtml(p,k,raw,ri){const opts=(k.options&&k.options.length?k.options.slice():[String(raw||'')]);if(raw&&!opts.includes(String(raw)))opts.unshift(String(raw));return `<select class="cell-sel" data-pid="${p.id}" data-ri="${ri}" data-kid="${k.id}">${opts.map(o=>`<option ${String(o)===String(raw)?'selected':''}>${esc(o)}</option>`).join('')}</select>`;}
+function cellRender(p,k,row,ri,edit){
+  const raw=row[k.id]??'';
+  if(k.cellType==='checkbox') return `<input type="checkbox" class="cell-chk" data-pid="${p.id}" data-ri="${ri}" data-kid="${k.id}" ${truthy(raw)?'checked':''}>`;
+  if(k.cellType==='dropdown') return selHtml(p,k,raw,ri);
+  if(edit) return `<input class="cell-input" data-pid="${p.id}" data-ri="${ri}" data-kid="${k.id}" value="${esc(String(raw))}">`;
+  if(k.cellType==='link') return raw!==''?`<a class="cell-link">${esc(String(raw))}</a>`:'&nbsp;';
+  return fmtCell(raw,k)||'&nbsp;';
+}
+function renderPanelGrid(p){
+  if(!p.columns.length) return `<div class="empty-grid">‘컬럼 추가’로 이 패널의 컬럼을 만들어 주세요.</div>`;
+  const edit=isEdit(), runs=headerRunsP(p), hasGrp=runs.some(r=>r.group);
+  const lead=(p.rownum?1:0)+(p.check?1:0);
+  let cg='<colgroup>', leadPx=0, sumCh=0;
+  if(p.rownum){ cg+='<col style="width:40px">'; leadPx+=40; }
+  if(p.check){  cg+='<col style="width:32px">'; leadPx+=32; }
+  p.columns.forEach(k=>{const w=k.width||20; sumCh+=w; cg+=`<col style="width:${w}ch">`;});
+  cg+='</colgroup>';
+  const tw=`calc(${leadPx}px + ${sumCh}ch)`;
+  let h='<div class="grid-scroll"><table class="grid" style="width:'+tw+'">'+cg+'<thead><tr>';
+  if(p.rownum) h+=`<th class="col-gear" ${hasGrp?'rowspan="2"':''}>${edit?'⚙':'No'}</th>`;
+  if(p.check)  h+=`<th class="chkcol" ${hasGrp?'rowspan="2"':''}><input type="checkbox" class="chk-all" data-pid="${p.id}"></th>`;
+  runs.forEach(run=>{
+    if(run.group){const ids=run.cols.map(c=>c.id).join(',');const inner=edit?`<input class="grp-input" data-pid="${p.id}" data-run="${ids}" value="${esc(run.group)}">`:`<span>${esc(run.group)}</span>`;h+=`<th class="grp" colspan="${run.cols.length}"><div class="col-hd">${inner}</div></th>`;}
+    else{h+=`<th ${hasGrp?'rowspan="2"':''}>${colHeadCellP(p,run.cols[0],edit)}</th>`;}
+  });
+  h+='</tr>';
+  if(hasGrp){h+='<tr>';runs.forEach(run=>{if(run.group)run.cols.forEach(k=>h+=`<th class="grp2">${colHeadCellP(p,k,edit)}</th>`);});h+='</tr>';}
+  h+='</thead><tbody>';
+  const total=lead+p.columns.length, rows=displayRowsP(p);
+  if(!state.queried){ h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">조회 버튼을 눌러 조회하세요.</td></tr>`; }
+  else if(!rows.length){ h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">데이터가 없습니다. ‘＋ 행’·‘🎲 샘플’로 채워보세요.</td></tr>`; }
+  else rows.forEach((it,vi)=>{
+    h+=`<tr class="${p.selRow===it.i?'sel':''}">`;
+    if(p.rownum) h+=`<td class="rownum"><span>${vi+1}</span>${edit?`<button class="row-del" data-rpid="${p.id}" data-rdel="${it.i}">✕</button>`:''}</td>`;
+    if(p.check)  h+=`<td class="chkcol"><input type="checkbox" class="chk-row"></td>`;
+    p.columns.forEach(k=>{ h+=`<td class="${tdcls(k)}">${cellRender(p,k,it.r,it.i,edit)}</td>`; });
+    h+='</tr>';
+  });
+  h+='</tbody>';
+  if(p.showSum){
+    h+='<tfoot><tr>';
+    h+=`<td colspan="${lead||1}">합계</td>`;
+    const dataCols = lead>0? p.columns : p.columns.slice(1);
+    dataCols.forEach(k=>{const s=NUMERIC(k)?sumColP(p,k):null;h+=`<td class="${tdcls(k)}">${s==null?'&nbsp;':fmtCell(s,k)}</td>`;});
+    h+='</tr></tfoot>';
+  }
+  h+='</table></div>';
+  return h;
+}
+function renderPager(){ return `<div class="pager"><button>«</button><button class="on">1</button><button>2</button><button>3</button><button>»</button></div>`; }
+function renderPanel(p){
+  const edit=isEdit(); let head='';
+  if(p.title||p.buttons.length||edit){
+    head+='<div class="gp-head">';
+    head+= edit?`<input class="gp-title-input" data-ptitle="${p.id}" value="${esc(p.title)}" placeholder="패널명">`:(p.title?`<span class="gp-title">${esc(p.title)}</span>`:'');
+    head+='<div class="gp-btns">';
+    p.buttons.forEach((b,bi)=>head+=`<button class="gp-btn ${b.primary?'primary':''}">${esc(b.label)}${edit?`<span class="pbtn-x" data-pbtnx="${p.id}:${bi}">×</span>`:''}</button>`);
+    head+='</div></div>';
+  }
+  return `<div class="gpanel">${head}<div class="grid-outer">${renderPanelGrid(p)}</div>${p.pager?renderPager():''}</div>`;
+}
+function renderResult(){
+  const host=$('resultArea'); let html='';
+  if(state.tabs.length) html+=`<div class="tabbar">${state.tabs.map((t,i)=>`<div class="tab ${i===state.activeTab?'active':''}" data-tab="${i}">${esc(t)}</div>`).join('')}</div>`;
+  if(state.toolbar){const tb=state.toolbar;html+='<div class="toolbar-strip">';if(tb.label)html+=`<span class="tsl">${esc(tb.label)}</span>`;if(tb.combo&&tb.combo.length)html+=`<select>${tb.combo.map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;(tb.buttons||[]).forEach(b=>html+=`<button class="tb">${esc(b)}</button>`);html+='</div>';}
+  html+='<div class="result-area">';
+  state.cols.forEach((c,ci)=>{html+=`<div class="res-col" style="flex:${c.flex};">`;state.panels.filter(p=>p.colIndex===ci).forEach(p=>html+=renderPanel(p));html+='</div>';});
+  html+='</div>';
+  host.innerHTML=html;
+}
+function updateCount(){const p=curP();$('rowCount').innerHTML = (state.queried&&p&&p.columns.length)? `총 <b>${p.rows.length.toLocaleString('ko-KR')}</b>건` : '';}
+function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderConditions(); renderResult(); renderPopChips(); syncBuilder(); updateCount(); }
+
+/* ================= 빌더 동기화 ================= */
+function syncBuilder(){
+  $('newPanelCol').innerHTML = state.cols.map((c,i)=>`<option value="${i}">${i+1}단</option>`).join('');
+  const cp=$('curPanel'); cp.innerHTML = state.panels.map(p=>`<option value="${p.id}">${esc(p.title||'(제목없음)')}</option>`).join('');
+  if(!findP(state.curPanel)) state.curPanel=state.panels[0]?state.panels[0].id:null;
+  cp.value=state.curPanel;
+  const p=curP();
+  if(p){$('pOptCheck').checked=p.check;$('pOptRownum').checked=p.rownum;$('pOptSum').checked=p.showSum;$('pOptPager').checked=p.pager;}
+  $('optSearch').checked=state.searchOn;
+}
+
+/* ================= 인라인 편집 ================= */
+document.addEventListener('input', e=>{
+  const t=e.target;
+  if(t.classList.contains('lbl-input')){const c=findCond(t.dataset.cid);if(c)c.label=t.value;}
+  else if(t.classList.contains('col-input')){const p=findP(t.dataset.pid);const k=p&&p.columns.find(k=>k.id===t.dataset.kid);if(k)k.name=t.value;}
+  else if(t.classList.contains('grp-input')){const p=findP(t.dataset.pid);(t.dataset.run||'').split(',').forEach(id=>{const k=p&&p.columns.find(k=>k.id===id);if(k)k.group=t.value;});}
+  else if(t.classList.contains('cell-input')){const p=findP(t.dataset.pid);const r=p&&p.rows[+t.dataset.ri];if(r)r[t.dataset.kid]=t.value;}
+  else if(t.classList.contains('gp-title-input')){const p=findP(t.dataset.ptitle);if(p)p.title=t.value;}
+  else if(t.id==='descArea'){state.desc=t.value;}
+  else if(t.id==='titleInput'){state.title=t.value;}
+});
+document.addEventListener('change', e=>{
+  const t=e.target;
+  if(t.classList.contains('grp-input')){render();}
+  else if(t.classList.contains('gp-title-input')){syncBuilder();}
+  else if(t.classList.contains('cell-sel')){const p=findP(t.dataset.pid);const r=p&&p.rows[+t.dataset.ri];if(r)r[t.dataset.kid]=t.value;}
+  else if(t.classList.contains('cell-chk')){const p=findP(t.dataset.pid);const r=p&&p.rows[+t.dataset.ri];if(r)r[t.dataset.kid]=t.checked?'1':'';}
+});
+
+/* ================= 클릭 액션 ================= */
+document.addEventListener('click', e=>{
+  const rdel=e.target.closest('[data-rdel]');
+  if(rdel){const p=findP(rdel.dataset.rpid);if(p){p.rows.splice(+rdel.dataset.rdel,1);renderResult();updateCount();}return;}
+  const pbx=e.target.closest('[data-pbtnx]');
+  if(pbx){const parts=pbx.dataset.pbtnx.split(':');const p=findP(parts[0]);if(p){p.buttons.splice(+parts[1],1);renderResult();}e.stopPropagation();return;}
+  const tab=e.target.closest('[data-tab]');
+  if(tab){state.activeTab=+tab.dataset.tab;renderResult();return;}
+  const chkall=e.target.closest('.chk-all');
+  if(chkall){const tbl=chkall.closest('table');tbl.querySelectorAll('.chk-row').forEach(c=>c.checked=chkall.checked);return;}
+  const sortHit=e.target.closest('[data-sort]');
+  if(sortHit&&!isEdit()){const p=findP(sortHit.dataset.pid);const kid=sortHit.dataset.sort;if(p.sort.kid===kid)p.sort.dir*=-1;else{p.sort.kid=kid;p.sort.dir=1;}renderResult();return;}
+  const act=e.target.closest('[data-act]'); if(!act) return;
+  const a=act.dataset.act, cid=act.dataset.cid, kid=act.dataset.kid, pid=act.dataset.pid;
+  if(cid){
+    const arr=state.conditions,i=arr.findIndex(c=>c.id===cid);
+    if(a==='up'&&i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];}
+    else if(a==='down'&&i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];}
+    else if(a==='del'){arr.splice(i,1);}
+    else if(a==='ext'){arr[i].ext=!arr[i].ext;}
+    else if(a==='req'){arr[i].required=!arr[i].required;}
+    render();
+  }else if(pid&&kid){
+    const p=findP(pid),arr=p.columns,i=arr.findIndex(k=>k.id===kid);
+    if(a==='cleft'&&i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];}
+    else if(a==='cright'&&i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];}
+    else if(a==='cdel'){const rm=arr.splice(i,1)[0];p.rows.forEach(r=>delete r[rm.id]);}
+    renderResult();
+  }
+});
+
+/* ================= 레이아웃 · 패널 핸들러 ================= */
+document.querySelectorAll('[data-cols]').forEach(b=>b.onclick=()=>{
+  const n=+b.dataset.cols; state.cols=Array.from({length:n},()=>({flex:1}));
+  state.panels.forEach(p=>{if(p.colIndex>=n)p.colIndex=n-1;}); render();
+});
+$('addPanel').onclick=()=>{const name=$('newPanelName').value.trim()||'새 패널';const col=+$('newPanelCol').value||0;const p=newPanel(name,col);state.panels.push(p);state.curPanel=p.id;$('newPanelName').value='';render();};
+$('curPanel').onchange=e=>{state.curPanel=e.target.value;syncBuilder();};
+$('pOptCheck').onchange =e=>{const p=curP();if(p)p.check=e.target.checked;renderResult();};
+$('pOptRownum').onchange=e=>{const p=curP();if(p)p.rownum=e.target.checked;renderResult();};
+$('pOptSum').onchange   =e=>{const p=curP();if(p)p.showSum=e.target.checked;renderResult();};
+$('pOptPager').onchange =e=>{const p=curP();if(p)p.pager=e.target.checked;renderResult();};
+$('pBtnAdd').onclick=()=>{const p=curP();if(!p)return;const n=$('pBtnName').value.trim();if(!n){alert('버튼명을 입력하세요.');return;}p.buttons.push({label:n,primary:$('pBtnPrimary').checked});$('pBtnName').value='';renderResult();};
+$('pDelPanel').onclick=()=>{if(state.panels.length<=1){alert('최소 1개의 패널은 필요합니다.');return;}if(!confirm('이 패널을 삭제할까요?'))return;state.panels=state.panels.filter(p=>p.id!==state.curPanel);state.curPanel=state.panels[0].id;render();};
+
+/* ================= 컬럼 / 데이터 ================= */
+$('addCol').onclick=()=>{
+  const p=curP(); if(!p){alert('대상 패널이 없습니다.');return;}
+  const name=$('colName').value.trim(); if(!name){alert('컬럼명을 입력하세요.');$('colName').focus();return;}
+  const opts=$('colDropOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const w=Math.max(1, parseInt($('colWidth').value,10)||20);
+  p.columns.push({id:'k'+(seq++),name,align:$('colAlign').value,group:$('colGroup').value.trim(),format:$('colFormat').value,cellType:$('colType').value,options:opts,width:w});
+  $('colGroup').value='';$('colDropOpts').value=''; render();
+};
+$('addRow').onclick=()=>{const p=curP();if(!p||!p.columns.length){alert('대상 패널에 컬럼을 먼저 추가하세요.');return;}state.queried=true;p.rows.push({});renderResult();updateCount();};
+$('clearRows').onclick=()=>{const p=curP();if(!p||!p.rows.length)return;if(confirm('이 패널의 데이터를 비울까요?')){p.rows=[];renderResult();updateCount();}};
+function genRows(p,n){
+  const stores=[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨']];
+  const prods=['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원'];
+  const out=[];
+  for(let r=0;r<n;r++){const row={};p.columns.forEach(k=>{const nm=k.name;
+    if(k.cellType==='checkbox') row[k.id]=Math.random()>.5?'1':'';
+    else if(k.cellType==='dropdown') row[k.id]=(k.options&&k.options[0])||'선택';
+    else if(NUMERIC(k)) row[k.id]= k.format==='percent'?(Math.random()*100).toFixed(1):String(Math.floor(Math.random()*90000)+1000);
+    else if(/일자|날짜/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d);}
+    else if(/매장명|점포|그룹명/.test(nm)) row[k.id]=stores[r%stores.length][1];
+    else if(/매장코드|그룹코드|코드/.test(nm)) row[k.id]=stores[r%stores.length][0];
+    else if(/상품명|메뉴/.test(nm)) row[k.id]=prods[r%prods.length];
+    else row[k.id]=nm+' '+(r+1);});out.push(row);}
+  return out;
+}
+$('genSample').onclick=()=>{const p=curP();if(!p||!p.columns.length){alert('대상 패널에 컬럼을 먼저 추가하세요.');return;}state.queried=true;p.rows=genRows(p,8);renderResult();updateCount();};
+
+/* ================= 화면 옵션 ================= */
+$('optSearch').onchange=e=>{state.searchOn=e.target.checked;render();};
+$('applyTabs').onclick=()=>{state.tabs=$('tabsInput').value.split(',').map(s=>s.trim()).filter(Boolean);state.activeTab=0;render();};
+$('applyToolbar').onclick=()=>{const b=$('toolbarBtns').value.split(',').map(s=>s.trim()).filter(Boolean);if(!b.length){alert('툴바 버튼을 입력하세요.');return;}state.toolbar=Object.assign({label:'',combo:[]},state.toolbar||{},{buttons:b});render();};
+$('clearToolbar').onclick=()=>{state.toolbar=null;render();};
+
+/* ================= 화면 설정 ================= */
+$('modeBtn').onclick=()=>{document.body.classList.toggle('preview');const pv=document.body.classList.contains('preview');$('modeBtn').textContent=pv?'✏ 편집 모드':'👁 미리보기 모드';if(pv)state.panels.forEach(p=>p.sort={kid:null,dir:1});render();};
+$('clearAll').onclick=()=>{
+  if(!confirm('모든 구성을 초기화할까요?'))return;
+  state.conditions=[];state.popups=[];state.tabs=[];state.activeTab=0;state.toolbar=null;state.searchOn=true;
+  state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
+  state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;
+  $('descArea').value='';$('titleInput').value=state.title;render();
+};
+$('titleInput').addEventListener('change',()=>{state.title=$('titleInput').value;});
+$('btnExt').onclick=()=>{state.extShown=!state.extShown;applyExt();};
+$('btnSearch').onclick=()=>{state.queried=true;renderResult();updateCount();};
+$('panelHead').addEventListener('click',e=>{if(e.target.closest('button')||e.target.closest('input'))return;const head=$('panelHead'),body=$('searchBody');head.classList.toggle('collapsed');body.style.maxHeight=head.classList.contains('collapsed')?'0px':'1200px';});
+$('searchBody').style.maxHeight='1200px';
+
+/* ================= 엑셀(현재 패널) ================= */
+$('btnExcel').onclick=()=>{
+  const p=curP(); if(!p||!p.columns.length){alert('현재 패널에 컬럼이 없습니다.');return;}
+  const runs=headerRunsP(p),hasGrp=runs.some(r=>r.group);const aoa=[],merges=[];
+  if(hasGrp){const h1=['No'],h2=[''];let col=1;runs.forEach(run=>{if(run.group){h1.push(run.group);for(let i=1;i<run.cols.length;i++)h1.push('');run.cols.forEach(k=>h2.push(k.name));merges.push({s:{r:0,c:col},e:{r:0,c:col+run.cols.length-1}});col+=run.cols.length;}else{h1.push(run.cols[0].name);h2.push('');merges.push({s:{r:0,c:col},e:{r:1,c:col}});col++;}});merges.push({s:{r:0,c:0},e:{r:1,c:0}});aoa.push(h1,h2);}
+  else aoa.push(['No',...p.columns.map(k=>k.name)]);
+  p.rows.forEach((r,i)=>aoa.push([i+1,...p.columns.map(k=>{const v=r[k.id]??'';const n=Number(String(v).replace(/,/g,''));return (v!==''&&!isNaN(n))?n:v;})]));
+  if(p.showSum)aoa.push(['합계',...p.columns.map(k=>NUMERIC(k)&&sumColP(p,k)!=null?sumColP(p,k):'')]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa); if(merges.length)ws['!merges']=merges;
+  ws['!cols']=[{wch:5},...p.columns.map(k=>({wch:Math.max(10,k.name.length*2)}))];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,(p.title||state.title||'화면').substring(0,28).replace(/[\\/?*:\[\]]/g,'_'));
+  XLSX.writeFile(wb,(state.title||'조회화면')+'.xlsx');
+};
+
+/* ================= 저장/불러오기 ================= */
+$('saveCfg').onclick=()=>{
+  const data=JSON.stringify({title:state.title,conditions:state.conditions,popups:state.popups,tabs:state.tabs,toolbar:state.toolbar,searchOn:state.searchOn,cols:state.cols,panels:state.panels,desc:state.desc},null,2);
+  const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.title||'화면구성')+'.json';a.click();
+};
+$('loadCfg').onclick=()=>$('loadFile').click();
+$('loadFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const o=JSON.parse(rd.result);
+    state.title=o.title||'';state.conditions=o.conditions||[];state.popups=o.popups||[];state.desc=o.desc||'';
+    state.tabs=o.tabs||[];state.activeTab=0;state.toolbar=o.toolbar||null;state.searchOn=o.searchOn!==false;
+    if(o.panels){state.cols=o.cols||[{flex:1}];state.panels=o.panels;}
+    else{const p=newPanel('조회결과',0);p.columns=o.columns||[];p.rows=o.rows||[];p.showSum=o.showSum!==false;state.cols=[{flex:1}];state.panels=[p];}
+    state.panels.forEach(p=>{if(!p.id)p.id='P'+(seq++);if(!p.sort)p.sort={kid:null,dir:1};if(!p.buttons)p.buttons=[];(p.columns||[]).forEach(k=>{if(!k.id)k.id='k'+(seq++);if(!k.cellType)k.cellType='text';if(!k.options)k.options=[];});});
+    state.curPanel=state.panels[0].id;
+    $('titleInput').value=state.title;$('descArea').value=state.desc;render();
+  }catch(err){alert('불러오기 실패: 올바른 설정 파일이 아닙니다.');}};
+  rd.readAsText(f);e.target.value='';
+};
+
+/* ================= HTML 내보내기(완성 화면 스냅샷) ================= */
+function cloneWithValues(sel){
+  const orig=document.querySelector(sel); if(!orig) return '';
+  const clone=orig.cloneNode(true);
+  const oI=orig.querySelectorAll('input,select,textarea'), cI=clone.querySelectorAll('input,select,textarea');
+  oI.forEach((el,i)=>{const c=cI[i];if(!c)return;
+    if(el.tagName==='SELECT'){[...c.options].forEach((o,oi)=>{oi===el.selectedIndex?o.setAttribute('selected','selected'):o.removeAttribute('selected');});}
+    else if(el.type==='checkbox'||el.type==='radio'){el.checked?c.setAttribute('checked','checked'):c.removeAttribute('checked');}
+    else{c.setAttribute('value',el.value);if(el.tagName==='TEXTAREA')c.textContent=el.value;}});
+  return clone.outerHTML;
+}
+$('exportHtml').onclick=()=>{
+  const wasEdit=isEdit(), prevExt=state.extShown;
+  document.body.classList.add('preview'); state.extShown=true; render();
+  const head=document.querySelector('style').outerHTML;
+  let panel = state.searchOn ? cloneWithValues('#searchPanel') : '';
+  let result= cloneWithValues('#resultArea');
+  panel=panel.replace(/<input class="title-input"[^>]*?value="([^"]*)"[^>]*>/,'<span class="title" style="font-weight:700;font-size:13px;color:#2c3742">$1</span>');
+  result=result.replace(/>⚙</g,'>No<').replace(/<span class="sort-ar">[^<]*<\/span>/g,'').replace(/col-hd sortable/g,'col-hd');
+  const cnt = state.queried ? `<div class="excel-bar"><span class="count">총 <b>${curP().rows.length.toLocaleString('ko-KR')}</b>건</span></div>` : '';
+  const desc=state.desc? `<div class="desc-box"><label>화면 설명</label><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div></div>`:'';
+  const extra=`<style>body.export{background:#f4f6f9;}body.export .col-hd.sortable{cursor:default;}body.export table.grid thead th .sort-ar{display:none;}body.export .wrap{padding:24px 16px;}</style>`;
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
+    `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
+    `<body class="preview export"><div class="wrap">${panel}${cnt}${result}${desc}</div></body></html>`;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.title||'조회화면')+'.html';a.click();
+  state.extShown=prevExt; if(wasEdit)document.body.classList.remove('preview'); render();
+};
+
+/* ================= 예시 화면(프리셋) ================= */
+function autoW(name,t){
+  if(t==='checkbox') return 6;
+  if(t==='number') return 12;
+  if(t==='link') return 10;
+  if(/명|제목|REMARK|메모|파일명|과목|구분$/.test(name)) return 16;
+  if(/코드|번호|일자|날짜|기간|시작|종료/.test(name)) return 11;
+  return 12;
+}
+function C(name,o){o=o||{};const t=o.t||'text';return{id:'k'+(seq++),name,align:o.a||'c',group:o.g||'',format:o.f||'none',cellType:t,options:o.o||[],width:o.w||autoW(name,t)};}
+function rowsFor(cols,arr){return arr.map(r=>{const x={};cols.forEach((c,i)=>x[c.id]=(r[i]==null?'':String(r[i])));return x;});}
+function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,colIndex:o.col||0,buttons:(o.btns||[]).map(b=>typeof b==='string'?{label:b,primary:false}:b),check:!!o.check,rownum:o.rownum!==false,gear:o.gear!==false,showSum:!!o.sum,pager:!!o.pager,selRow:o.sel==null?-1:o.sel,columns:cols,rows:o.rows?rowsFor(cols,o.rows):[],sort:{kid:null,dir:1}};}
+function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null};}
+function applyPreset(fn){fn();state.queried=true;state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}
+
+const PRESETS={};
+PRESETS.sales=()=>{
+  state.title='매장-일별결제수단매출';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','조회일자',{range:true}),CD('combo','옵션',{opts:['매장별','일자별','결제수단별']}),CD('combo','매장브랜드',{opts:['전체','미스터피자','피자앤치킨','BBQ']}),CD('store','매장선택'),CD('combo','상품브랜드',{ext:true,opts:['전체','미스터피자','BBQ']})];
+  state.cols=[{flex:1}];
+  const G='매출현황',N='신용카드';
+  const cols=[C('일자'),C('요일'),C('그룹코드'),C('그룹명',{a:'l'}),C('매장코드'),C('매장명',{a:'l'}),
+    C('총매출',{a:'r',f:'comma',t:'number',g:G}),C('총할인',{a:'r',f:'comma',t:'number',g:G}),C('실매출',{a:'r',f:'comma',t:'number',g:G}),C('영수건수',{a:'r',f:'comma',t:'number',g:G}),C('영수단가',{a:'r',f:'comma',t:'number',g:G}),C('가액',{a:'r',f:'comma',t:'number',g:G}),C('부가세',{a:'r',f:'comma',t:'number',g:G}),
+    C('봉사료',{a:'r',f:'comma',t:'number'}),C('에누리',{a:'r',f:'comma',t:'number'}),C('컵보증금액',{a:'r',f:'comma',t:'number'}),C('결제합계',{a:'r',f:'comma',t:'number'}),
+    C('결제건수',{a:'r',f:'comma',t:'number',g:N}),C('실매출',{a:'r',f:'comma',t:'number',g:N})];
+  const d=todayStr();
+  const R=[['목','001','직영점','E09725','학동역점',5597430,2600,5594830,288,19426,5086347,508483,0,0,0,5594830,130,1353650],
+    ['목','001','직영점','E09748','맘스터치A',8608160,13100,8595060,579,14845,7814028,781032,0,0,0,8595060,273,2601790],
+    ['목','001','직영점','E09773','맘스터치B',7848520,158490,7690030,504,15258,6991224,698806,0,0,0,7690030,228,1969800],
+    ['목','001','직영점','E09814','동대문DD',5765840,17000,5748840,328,17527,5226450,522390,0,0,0,5748840,144,1854280],
+    ['목','002','가맹점','C00001','남양주오남',195300,0,195300,5,39060,177548,17752,0,0,0,195300,0,0],
+    ['목','002','가맹점','C00023','피자앤치킨',530900,0,530900,14,37921,482646,48254,0,0,0,530900,0,0]];
+  state.panels=[PNL('',{btns:['조회조건 엑셀다운로드'],sum:true,pager:true,sel:0,cols,rows:R.map(r=>[d,...r])})];
+  state.desc='매장별 일자/결제수단 매출 현황. 상단 매출현황·신용카드 2줄 그룹헤더 + 합계행 + 페이지네이션. 확장조회로 상품브랜드 조건 추가.';
+};
+PRESETS.syscode=()=>{
+  state.title='시스템명칭관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('text','코드'),CD('text','코드명'),CD('combo','사용대상',{opts:['전체','시스템전용','사용자']}),CD('combo','사용시스템',{opts:['전체','공통','외식','유통']})];
+  state.cols=[{flex:1.35},{flex:1}];
+  const UD=['시스템전용','사용자'],US=['공통','외식','유통'];
+  const c1=[C('코드',{t:'link'}),C('코드명',{a:'l'}),C('코드항목1'),C('코드항목2'),C('사용컬럼명'),C('사용대상',{t:'dropdown',o:UD}),C('사용시스템',{t:'dropdown',o:US})];
+  const r1=[['001','ASP 매장분류','1','','','시스템전용','공통'],['002','ASP 소속구분','2','','','시스템전용','공통'],['003','환경세팅구분','3','','','시스템전용','공통'],['004','환경설정그룹','','','','시스템전용','공통'],['005','매장상태구분','','','Y','시스템전용','공통'],['006','사원구분','','','Y','시스템전용','공통'],['007','재직구분','','','','시스템전용','공통'],['008','상품가격관리구분','','','','시스템전용','공통'],['009','세트상품구분','','','','시스템전용','공통'],['010','사이드메뉴구분','','','','시스템전용','공통'],['011','거래처구분','','','','시스템전용','공통'],['012','티켓분류구분','','','','시스템전용','공통'],['013','쿠폰할인구분','','','','시스템전용','공통'],['014','고객카드상태구분','','','','시스템전용','공통'],['015','고객카드발급구분','','','','시스템전용','공통']];
+  const c2=[C('코드'),C('코드명',{a:'l'}),C('코드항목1'),C('코드항목2'),C('사용대상',{t:'dropdown',o:UD}),C('사용시스템',{t:'dropdown',o:US})];
+  const r2=[['1','외식','1234','','시스템전용','공통'],['2','유통','','','시스템전용','공통']];
+  state.panels=[PNL('대표명칭',{col:0,check:true,btns:['추가','저장'],sel:0,cols:c1,rows:r1}),PNL('세부명칭',{col:1,check:true,btns:['추가','저장'],cols:c2,rows:r2})];
+  state.desc='코드 대표명칭/세부명칭 마스터-디테일 관리. 좌측 대표명칭 선택 시 우측 세부명칭 표시. 코드=링크, 사용대상/사용시스템=드롭다운, 체크박스 선택열.';
+};
+PRESETS.namemgr=()=>{
+  state.title='명칭관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('text','코드'),CD('text','코드명')];
+  state.cols=[{flex:1},{flex:1.4}];
+  const c1=[C('코드',{t:'link'}),C('코드명',{a:'l'}),C('코드자릿수',{a:'r',t:'number'})];
+  const r1=[['151','팀별','4'],['152','AC점포별','4'],['153','지역구분','4'],['154','상권','4'],['155','점포유형','4'],['156','매장관리타입','4'],['164','판매가변경제','4'],['167','매장그룹','4'],['168','간소화분할다','4'],['903','선불카드TID','4'],['998','반품처리구분','']];
+  const use=['사용','미사용'];
+  const c2=[C('코드'),C('코드명',{a:'l'}),C('코드항목1'),C('코드항목2'),C('사용여부',{t:'dropdown',o:use})];
+  const regs=['서울특별시','경기도','전라남도','전라북도','경상남도','경상북도','충청남도','충청북도','강원도','대구광역시','울산광역시','부산광역시','인천광역시','광주광역시','대전광역시','제주특별자치도','세종특별자치시'];
+  const r2=regs.map((n,i)=>[String(i+1).padStart(4,'0'),n,'','','사용']);
+  state.panels=[PNL('대표명칭',{col:0,btns:['엑셀다운로드'],sel:2,cols:c1,rows:r1}),PNL('세부명칭',{col:1,check:true,btns:['추가','삭제','저장'],sel:0,cols:c2,rows:r2})];
+  state.desc='명칭(코드) 대표/세부 관리. 대표명칭에서 지역구분(153) 선택 시 시·도 세부명칭 표시. 대표=엑셀다운로드, 세부=추가/삭제/저장.';
+};
+PRESETS.sidemenu=()=>{
+  state.title='사이드메뉴관리';state.searchOn=true;state.tabs=['선택메뉴(세트)','선택메뉴(싱글)','사이드메뉴관리','속성'];state.toolbar=null;
+  state.conditions=[CD('combo','그룹명',{opts:['전체','치킨옵션','맘스양념싸이순살']}),CD('combo','상품명',{opts:['전체']})];
+  state.cols=[{flex:1},{flex:1.15}];
+  const brand=['전체','미스터피자','맘스터치'],gubun=['선택','고정'],setg=['세트','싱글'];
+  const gc=[C('그룹코드',{t:'link'}),C('그룹명',{a:'l'}),C('브랜드',{t:'dropdown',o:brand}),C('상품코드'),C('구분',{t:'dropdown',o:gubun}),C('세트구분',{t:'dropdown',o:setg})];
+  const gr=[['000032','치킨옵션','전체','0000000002..','선택','세트'],['000033','맘스양념싸이','전체','0000000002..','선택','세트'],['000034','치파오싸이순살','전체','0000000002..','선택','세트'],['000035','간장마늘싸이','전체','0000000002..','선택','세트'],['000036','핫치즈싸이순살','전체','0000000002..','선택','세트'],['000037','치즈뿌치(체다)','전체','0000000000260','선택','세트'],['000038','구-치즈뿌치','전체','','선택','세트']];
+  const req=['선택안함','필수선택'];
+  const cc=[C('분류코드',{t:'link'}),C('분류명',{a:'l'}),C('필수선택여부',{t:'dropdown',o:req}),C('수량',{a:'r',t:'number'})];
+  const cr=[['000052','세트','선택안함','1'],['000053','추가','선택안함','1'],['000054','추가2','선택안함','1'],['000055','추가음료','선택안함','1']];
+  const out=['사용','미사용'];
+  const sc=[C('브랜드',{t:'dropdown',o:['맘스터치']}),C('상품코드'),C('상품명',{a:'l'}),C('단가',{a:'r',t:'number'}),C('수량',{a:'r',t:'number'}),C('구분',{t:'dropdown',o:['고정','선택']}),C('출력여부',{t:'dropdown',o:['미사용','사용']}),C('REMARK')];
+  const sr=[['맘스터치','0000000000060','소스 추가선택..','0','1','고정','미사용','BS277001'],['맘스터치','0000000000250','매콤치즈마요..','500','1','선택','사용','BD362001']];
+  state.panels=[
+    PNL('선택그룹',{col:0,check:true,btns:['추가','삭제','저장'],sel:1,cols:gc,rows:gr}),
+    PNL('선택분류 [000033]맘스양념싸이순살',{col:0,check:true,btns:['선택분류복사','추가','삭제','저장'],sel:1,cols:cc,rows:cr}),
+    PNL('선택상품 [000053]추가',{col:1,check:true,btns:['선택상품복사','추가','삭제','저장'],sel:0,cols:sc,rows:sr})
+  ];
+  state.desc='세트/사이드 메뉴 구성. 상단 4개 탭. 좌측=선택그룹+선택분류(스택), 우측=선택상품. 분류코드/그룹코드=링크, 구분·출력여부=드롭다운.';
+};
+PRESETS.kiosk=()=>{
+  state.title='키오스크키맵등록';state.searchOn=false;state.tabs=['키오스크키맵등록','키오스크키맵복사'];
+  state.toolbar={label:'키맵그룹',combo:['[04]봄바타','[03]오븐사이드','[02]샌드위치'],buttons:['신규그룹추가','그룹복제','키맵매장적용','키오스크키맵삭제','추천메뉴','매장수정허용카테고리','키맵그룹명','키오스크키맵 미리보기','[매장]키맵적용','[포장]키맵적용']};
+  state.cols=[{flex:0.85},{flex:1.1},{flex:1.25}];
+  const kc=[C('카테고리코드',{t:'link'}),C('카테고리명',{a:'l'}),C('메모'),C('KIOSK노출',{t:'checkbox'})];
+  const kr=[['01','피자','','1'],['02','샌드위치','','1'],['03','오븐사이드','','1'],['04','사이드','','1'],['05','드링크','','1'],['06','샐러드','','1'],['07','세트메뉴','','1']];
+  const oc=[C('터치키순번'),C('상품코드'),C('상품명',{a:'l'}),C('단품/세트선택'),C('REMARK')];
+  const or=[['001','0000000001235','토마토치즈파스타','선택','BS133'],['002','0000000001236','로제치즈파스타','선택','BS134'],['003','0000000001237','까르보치즈파스타','선택','BS135'],['004','0000000001238','토마토미트볼파스타','선택','BS299'],['005','0000000001239','까르보치킨파스타','선택','BS249'],['006','0000000001240','로제미트볼파스타','선택','BS300']];
+  const rc=[C('상품코드'),C('상품명',{a:'l'}),C('단품/세트선택'),C('판매단가',{a:'r',t:'number'}),C('등록여부'),C('REMARK')];
+  const rr=[['0000000000014','팝콘볼 오리지널','','2600','미등록','BS033001'],['0000000000016','케이준양념감자 중','','2000','미등록','BS034001'],['0000000000018','케이준양념감자 대','','2000','미등록','BS034004'],['0000000000027','펩시콜라(245ml)','','1000','미등록','BS089001'],['0000000000028','펩시콜라(500ml)','','2100','미등록','BS089003'],['0000000000030','사이다(245ml)','','1000','미등록','BS090001'],['0000000000031','사이다(500mL)','','2100','미등록','BS090003'],['0000000000033','아이시스 8.0','','1000','미등록','BS091001'],['0000000000038','펩시콜라','','1900','미등록','BS124001'],['0000000000039','펩시콜라','','1900','미등록','BS124002']];
+  state.panels=[
+    PNL('키맵그룹 : 04',{col:0,check:true,btns:['추가','삭제','저장'],sel:2,cols:kc,rows:kr}),
+    PNL('[03] 오븐사이드',{col:1,check:true,btns:['삭제','저장'],cols:oc,rows:or}),
+    PNL('상품목록',{col:2,check:true,btns:['조회','등록'],sel:0,cols:rc,rows:rr})
+  ];
+  state.desc='키오스크 키맵 등록(3단 마스터-디테일). 상단 탭 + 툴바(키맵그룹 선택 + 액션 버튼 다수). 좌:카테고리, 중:터치키 매핑, 우:등록 대상 상품. 실제 화면의 우측 상품검색 필드는 조회조건 패널을 켜서 별도 구성 가능.';
+};
+PRESETS.func=()=>{
+  state.title='사이드메뉴관리 - 기능';state.searchOn=false;state.tabs=[];state.toolbar=null;
+  state.cols=[{flex:0.55},{flex:1.7}];
+  const gc=[C('코드',{t:'link'}),C('기능구분',{a:'l'})];
+  const gr=[['1000','영업관리'],['2000','매출현황'],['3000','수발주'],['4000','환경설정'],['5010','테이블-일반'],['5020','테이블-배달'],['5021','테이블-배달(BBQ)'],['5030','테이블-KDS'],['5040','테이블-CATERING'],['5050','테이블업무-공통'],['5051','테이블업무-일반'],['5052','테이블업무-조회/..'],['5053','테이블업무-원격'],['5054','테이블업무-외부..'],['5055','테이블업무-기타'],['5056','테이블-온라인']];
+  const yn1=['전체'],pos=['주문+결제','주문','결제'];
+  const fc=[C('기능키번호',{t:'link'}),C('기능키명',{a:'l'}),C('매장종류',{t:'dropdown',o:yn1}),C('포스구분',{t:'dropdown',o:pos}),C('위치조정여부',{t:'checkbox'}),
+    C('사용',{t:'checkbox',g:'일반'}),C('이미지파일명',{g:'일반'}),C('사용',{t:'checkbox',g:'외식'}),C('이미지파일명',{g:'외식'}),C('사용',{t:'checkbox'})];
+  const fr=[['0329','슬비원격','전체','주문+결제','1','1','','1','','1'],['0330','본사원격','전체','주문+결제','1','1','','1',''],['0331','KS-NET','전체','주문+결제','1','1','','1','']];
+  state.panels=[PNL('기능구분',{col:0,sel:12,cols:gc,rows:gr}),PNL('기능 / [5053] 테이블업무-원격',{col:1,check:true,btns:['추가','삭제','저장'],sel:0,cols:fc,rows:fr})];
+  state.desc='기능구분 마스터 + 기능키 디테일. 우측 일반/외식 2줄 그룹헤더, 위치조정/사용=체크박스 셀, 매장종류/포스구분=드롭다운.';
+};
+
+PRESETS.product=()=>{
+  state.title='상품마스터관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('text','상품코드'),CD('text','상품명'),CD('combo','상품브랜드',{opts:['전체','미스터피자','피자앤치킨','BBQ']}),CD('cat','분류'),CD('combo','사용여부',{opts:['전체','사용','미사용']}),CD('combo','판매여부',{ext:true,opts:['전체','판매','중지']})];
+  state.cols=[{flex:1}];
+  const tax=['과세','면세'],use=['사용','미사용'],unit=['EA','BOX','KG'];
+  const cols=[C('상품코드',{t:'link',w:12}),C('상품명',{a:'l',w:20}),C('영문명',{a:'l',w:18}),C('분류명',{w:12}),C('브랜드',{t:'dropdown',o:['미스터피자','BBQ','맘스터치']}),C('규격',{w:9}),C('단위',{t:'dropdown',o:unit,w:8}),C('과세구분',{t:'dropdown',o:tax}),C('판매단가',{a:'r',f:'comma',t:'number'}),C('공급가',{a:'r',f:'comma',t:'number'}),C('원가',{a:'r',f:'comma',t:'number'}),C('바코드',{w:15}),C('사용여부',{t:'dropdown',o:use}),C('판매여부',{t:'checkbox'}),C('등록일',{w:11})];
+  const d=todayStr();
+  const R=[['0101000740','쉬림프골드','Shrimp Gold','프리미엄','미스터피자','L','EA','과세',32900,24000,15800,'8801234500740','사용','1',d],
+    ['0101000760','포테이토골드','Potato Gold','프리미엄','미스터피자','L','EA','과세',30900,22000,14200,'8801234500760','사용','1',d],
+    ['0101001070','새우천왕','King Shrimp','스테디','미스터피자','L','EA','과세',34900,25500,16900,'8801234501070','사용','1',d],
+    ['0101001480','스페셜콰트로','Special Quattro','신제품','미스터피자','L','EA','과세',33900,24800,16100,'8801234501480','사용','1',d],
+    ['0201000030','갈릭디핑소스','Garlic Dip','소스','미스터피자','60g','EA','과세',800,500,220,'8801234600030','사용','','2024-02-11'],
+    ['0301000010','콜라 1.25L','Cola 1.25L','드링크','미스터피자','1.25L','EA','과세',3000,1800,900,'8801234700010','미사용','','2023-08-02']];
+  state.panels=[PNL('',{check:true,btns:[{label:'신규',primary:true},'저장','삭제','엑셀다운로드'],pager:true,sel:0,cols,rows:R})];
+  state.desc='상품 마스터 단일 그리드. 컬럼이 많아 화면을 넘어가면 좌우 스크롤이 생깁니다. 상품코드=링크, 단위/과세/사용여부=드롭다운, 판매여부=체크박스.';
+};
+PRESETS.pnl=()=>{
+  state.title='월별 손익계산서';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('year','회계연도'),CD('combo','사업장',{opts:['전체','본사','1공장','2공장']}),CD('combo','단위',{opts:['원','천원','백만원']})];
+  state.cols=[{flex:1}];
+  const G='월별 금액',months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const cols=[C('계정과목',{t:'link',a:'l',w:16})].concat(months.map(m=>C(m,{a:'r',f:'comma',t:'number',g:G,w:12}))).concat([C('합계',{a:'r',f:'comma',t:'number',w:15})]);
+  function line(name,base){const arr=months.map(()=>Math.round(base*(0.85+Math.random()*0.3)));return [name,...arr,arr.reduce((a,b)=>a+b,0)];}
+  const R=[line('매출액',52000000),line('매출원가',31000000),line('매출총이익',21000000),line('판매관리비',12500000),line('영업이익',8500000),line('영업외수익',600000),line('영업외비용',900000),line('법인세차감전이익',8200000),line('당기순이익',6400000)];
+  state.panels=[PNL('',{btns:['엑셀다운로드'],sel:0,cols,rows:R})];
+  state.desc='계정과목 × 1~12월 피벗형 손익. 월 컬럼이 많아 좌우 스크롤. 상단 ‘월별 금액’ 그룹헤더 + 합계열.';
+};
+PRESETS.authz=()=>{
+  state.title='사용자 권한관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('combo','부서',{opts:['전체','영업팀','운영팀','전산팀']}),CD('text','사용자명')];
+  state.cols=[{flex:0.8},{flex:1.7}];
+  const uc=[C('사번',{t:'link',w:10}),C('성명',{a:'l',w:10}),C('부서',{w:10}),C('직급',{w:9})];
+  const ur=[['E1001','홍길동','영업팀','과장'],['E1002','김영희','영업팀','대리'],['E1003','이철수','운영팀','사원'],['E1004','박민수','전산팀','차장'],['E1005','최지은','전산팀','과장']];
+  const mc=[C('메뉴명',{a:'l',w:22}),C('조회',{t:'checkbox'}),C('등록',{t:'checkbox'}),C('수정',{t:'checkbox'}),C('삭제',{t:'checkbox'}),C('출력',{t:'checkbox'})];
+  const M=[['매출현황','1','','','','1'],['일별결제수단매출','1','1','1','','1'],['상품마스터관리','1','1','1','1','1'],['시스템명칭관리','1','1','1','','1'],['사용자 권한관리','1','','','','1'],['공지사항 관리','1','1','1','1','1']];
+  state.panels=[PNL('사용자 목록',{col:0,check:true,btns:['조회'],sel:0,cols:uc,rows:ur}),PNL('메뉴권한 [E1001] 홍길동',{col:1,check:true,btns:['전체선택','저장'],cols:mc,rows:M})];
+  state.desc='좌측 사용자 선택 → 우측 메뉴별 조회/등록/수정/삭제/출력 권한을 체크박스 매트릭스로 관리하는 형태.';
+};
+PRESETS.board=()=>{
+  state.title='공지사항 관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('combo','분류',{opts:['전체','일반','점검','이벤트']}),CD('text','제목'),CD('text','작성자'),CD('date','게시기간',{range:true})];
+  state.cols=[{flex:1}];
+  const cat=['일반','점검','이벤트'],st=['게시중','예약','종료'];
+  const cols=[C('번호',{w:7}),C('분류',{t:'dropdown',o:cat}),C('제목',{t:'link',a:'l',w:28}),C('작성자',{w:10}),C('게시시작',{w:11}),C('게시종료',{w:11}),C('상태',{t:'dropdown',o:st}),C('조회수',{a:'r',f:'comma',t:'number',w:9}),C('상단고정',{t:'checkbox'})];
+  const R=[['128','점검','[안내] 정기 시스템 점검 안내','관리자','2026-07-10','2026-07-20','게시중',1284,'1'],
+    ['127','이벤트','여름맞이 포인트 2배 적립 이벤트','마케팅','2026-07-01','2026-07-31','게시중',5230,'1'],
+    ['126','일반','개인정보처리방침 개정 안내','관리자','2026-06-20','2026-12-31','게시중',842,''],
+    ['125','일반','매장용 POS 업데이트 v3.2 배포','전산팀','2026-06-15','2026-07-15','종료',611,''],
+    ['124','점검','결제 모듈 긴급 패치 완료','전산팀','2026-06-10','2026-06-11','종료',430,'']];
+  state.panels=[PNL('',{btns:[{label:'글쓰기',primary:true},'삭제'],pager:true,sel:0,cols,rows:R})];
+  state.desc='게시판형 공지 목록. 제목=링크, 분류/상태=드롭다운, 상단고정=체크박스, 페이지네이션 포함.';
+};
+
+$('sampleBtn').onclick=()=>{
+  const items=[
+    ['sales','매장-일별결제수단매출','단일 조회 + 2줄 그룹헤더 + 합계/페이지'],
+    ['product','상품마스터관리','컬럼 많은 단일 그리드(가로 스크롤)'],
+    ['pnl','월별 손익계산서','계정과목 × 1~12월 피벗형'],
+    ['board','공지사항 관리','게시판형 목록 + 상태/상단고정'],
+    ['syscode','시스템명칭관리','대표/세부 2패널 · 드롭다운·링크·체크열'],
+    ['namemgr','명칭관리','대표/세부 2패널 · 지역 세부명칭'],
+    ['authz','사용자 권한관리','사용자 + 메뉴권한 체크박스 매트릭스'],
+    ['sidemenu','사이드메뉴관리','탭 + 좌측 스택 2패널 + 우측 1패널'],
+    ['kiosk','키오스크키맵등록','탭 + 툴바 + 3단 패널'],
+    ['func','기능/테이블업무','기능구분 + 기능키(일반/외식 그룹헤더)']
+  ];
+  modalBox.classList.remove('wide');
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📚 예시 화면 불러오기</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body"><p class="hint-line">불러올 화면을 선택하세요. 현재 구성은 대체됩니다.</p>
+  <div class="preset-grid">${items.map(it=>`<div class="preset-card" data-preset="${it[0]}"><div class="pt">${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div></div>`;
+  openModal(); bindX();
+  modalBox.querySelectorAll('[data-preset]').forEach(el=>el.onclick=()=>applyPreset(PRESETS[el.dataset.preset]));
+};
+
+/* ================= 달력 ================= */
+const cal={pop:$('calPop'),body:$('calBody'),ym:$('calYm'),target:null,view:new Date()};
+function parseDate(s){const p=(s||'').split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date();}
+function drawCal(){
+  const y=cal.view.getFullYear(),m=cal.view.getMonth();cal.ym.textContent=`${y}년 ${m+1}월`;
+  const start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
+  const today=todayStr(),sel=cal.target?cal.target.value:'';let cells=[];
+  for(let i=start-1;i>=0;i--)cells.push({d:prev-i,mo:m-1,mute:true});
+  for(let d=1;d<=days;d++)cells.push({d,mo:m});
+  while(cells.length%7!==0)cells.push({d:cells.length-(start+days)+1,mo:m+1,mute:true});
+  let html='';cells.forEach((c,i)=>{if(i%7===0)html+='<tr>';const ds=fmt(new Date(y,c.mo,c.d)),dow=i%7;let cls='';if(c.mute)cls+=' mute';else{if(dow===0)cls+=' sun';if(dow===6)cls+=' sat';}if(ds===today)cls+=' today';if(ds===sel)cls+=' on';html+=`<td><button class="${cls.trim()}" data-date="${ds}">${c.d}</button></td>`;if(i%7===6)html+='</tr>';});
+  cal.body.innerHTML=html;cal.body.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(cal.target)cal.target.value=b.dataset.date;closeCal();});
+}
+function openCalFor(input){cal.target=input;cal.view=parseDate(input.value);const r=input.closest('.date-wrap').getBoundingClientRect();cal.pop.style.left=(window.scrollX+r.left)+'px';cal.pop.style.top=(window.scrollY+r.bottom+4)+'px';cal.pop.classList.add('open');drawCal();}
+function closeCal(){cal.pop.classList.remove('open');}
+$('calPrev').onclick=()=>{cal.view.setMonth(cal.view.getMonth()-1);drawCal();};
+$('calNext').onclick=()=>{cal.view.setMonth(cal.view.getMonth()+1);drawCal();};
+$('calToday').onclick=()=>{if(cal.target)cal.target.value=todayStr();closeCal();};
+$('calClose').onclick=closeCal;
+const mon={pop:$('monthPop'),grid:$('monthGrid'),yr:$('monthYr'),target:null,year:new Date().getFullYear()};
+function parseMonth(s){const p=(s||'').split('-');return{y:+p[0],m:+p[1]};}
+function drawMonth(){mon.yr.textContent=mon.year+'년';const cur=mon.target?parseMonth(mon.target.value):{};let html='';for(let m=1;m<=12;m++){const on=(cur.y===mon.year&&cur.m===m)?'on':'';html+=`<button class="${on}" data-m="${m}">${m}월</button>`;}mon.grid.innerHTML=html;mon.grid.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(mon.target)mon.target.value=mon.year+'-'+String(+b.dataset.m).padStart(2,'0');closeMonth();});}
+function openMonthFor(input){mon.target=input;const cur=parseMonth(input.value);mon.year=cur.y||new Date().getFullYear();const r=input.closest('.month-wrap').getBoundingClientRect();mon.pop.style.left=(window.scrollX+r.right-212)+'px';mon.pop.style.top=(window.scrollY+r.bottom+4)+'px';mon.pop.classList.add('open');drawMonth();}
+function closeMonth(){mon.pop.classList.remove('open');}
+$('monthPrev').onclick=()=>{mon.year--;drawMonth();};
+$('monthNext').onclick=()=>{mon.year++;drawMonth();};
+$('monthClose').onclick=closeMonth;
+
+/* ================= 팝업 click 위임 ================= */
+document.addEventListener('click', e=>{
+  const dateHit=e.target.closest('.js-date, .js-date-btn');
+  const monHit =e.target.closest('.js-month, .js-month-btn');
+  const box    =e.target.closest('.select-box[data-popup]');
+  const clr    =e.target.closest('[data-clear]');
+  if(dateHit){openCalFor(dateHit.closest('.date-wrap').querySelector('.js-date'));closeMonth();e.stopPropagation();return;}
+  if(monHit){openMonthFor(monHit.closest('.month-wrap').querySelector('.js-month'));closeCal();e.stopPropagation();return;}
+  if(box){openPopup(box.dataset.popup,box.id,box.dataset.pid);return;}
+  if(clr){clearBox(clr.dataset.clear);return;}
+  if(!e.target.closest('#calPop'))closeCal();
+  if(!e.target.closest('#monthPop'))closeMonth();
+});
+
+/* ================= 팝업(매장/상품/분류/커스텀) ================= */
+const STORE_DATA=[['001060MP','미스터피자 야탑점','오픈',''],['001070MP','미스터피자 신흥점','오픈',''],['001130MP','미스터피자 산본점','오픈',''],['001190MP','미스터피자 부평점','오픈',''],['001200MP','미스터피자 중동점','오픈',''],['001290MP','미스터피자 상계점','오픈',''],['001340MP','미스터피자 잠실점','오픈',''],['001470MP','미스터피자 수지점','폐점',''],['C00023','피자앤치킨 서초점','오픈','제한']];
+const PROD_DATA=[['0101000740','쉬림프골드'],['0101000760','포테이토골드'],['0101000770','하프앤하프'],['0101001070','새우천왕'],['0101001480','스페셜콰트로'],['0101001490','트리플 올인원'],['0101001500','멕시칸 치폴레']];
+const CAT_TREE=[{name:'사이드',children:['감자류','소스','치킨류']},{name:'옵션',children:['옵션','토핑','사이즈']},{name:'피자',children:['프리미엄','스테디','신제품']}];
+const mask=$('modalMask'),modalBox=$('modalBox');
+function openModal(wide){mask.classList.add('open');modalBox.classList.toggle('wide',!!wide);}
+function closeModal(){mask.classList.remove('open');}
+mask.addEventListener('click',e=>{if(e.target===mask)closeModal();});
+function bindX(){modalBox.querySelectorAll('[data-x]').forEach(x=>x.onclick=closeModal);}
+function setBoxValue(boxId,text){const b=$(boxId);if(!b)return;b.querySelector('.val').textContent=text;b.classList.toggle('empty',!text||text==='전체'||text==='분류조회 선택');}
+function clearBox(boxId){const b=$(boxId);const ph=b&&b.dataset.popup==='cat'?'분류조회 선택':'전체';setBoxValue(boxId,ph);}
+function openPopup(type,boxId,pid){
+  if(type==='store')buildStore(boxId);else if(type==='prod')buildProd(boxId);else if(type==='cat')buildCat(boxId);
+  else if(type==='custom'){const p=findPopup(pid);if(!p){alert('삭제된 팝업입니다.');return;}buildCustomModal(p,boxId);}
+  openModal();
+}
+function buildStore(boxId){
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">매장선택</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <table class="m-search"><tr><td class="ml">매장코드</td><td><input id="fsc"></td><td class="ml">매장명</td><td><input id="fsn"></td></tr>
+    <tr><td class="ml">매장상태</td><td><select><option>전체</option><option>오픈</option><option>폐점</option></select></td><td class="ml">매장</td><td><div style="display:flex;gap:6px;"><input id="fsk" style="flex:1"><button class="filter-btn" id="sf">필터</button></div></td></tr></table>
+    <div class="m-btns"><button class="btn btn-sm" id="srl">조회</button><button class="btn btn-primary btn-sm" id="sap">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="sall"></th><th>매장코드</th><th>매장명</th><th>상태</th></tr></thead><tbody id="sbody"></tbody></table></div></div>`;
+  bindX();const body=modalBox.querySelector('#sbody');let cur=STORE_DATA.slice();
+  const draw=l=>{body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="sc" value="${i}"></td><td>${r[0]}</td><td>${r[1]}</td><td><span class="badge ${r[2]==='오픈'?'open':'close'}">${r[2]}</span></td></tr>`).join('');body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.sc');c.checked=!c.checked;}});};
+  draw(cur);
+  modalBox.querySelector('#sall').onchange=e=>body.querySelectorAll('.sc').forEach(c=>c.checked=e.target.checked);
+  const flt=()=>{const kw=(modalBox.querySelector('#fsk').value+modalBox.querySelector('#fsc').value+modalBox.querySelector('#fsn').value).trim();cur=kw?STORE_DATA.filter(r=>(r[0]+r[1]).includes(kw)):STORE_DATA.slice();draw(cur);};
+  modalBox.querySelector('#sf').onclick=flt;modalBox.querySelector('#srl').onclick=flt;
+  modalBox.querySelector('#sap').onclick=()=>{const p=[...body.querySelectorAll('.sc:checked')].map(c=>cur[+c.value]);if(!p.length){alert('매장을 선택하세요.');return;}setBoxValue(boxId,p.length===1?p[0][1]:`${p[0][1]} 외 ${p.length-1}건`);closeModal();};
+}
+function buildProd(boxId){
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">상품선택</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <table class="m-search"><tr><td class="ml">상품코드</td><td><input id="fpc"></td><td class="ml">상품명</td><td><input id="fpn"></td></tr></table>
+    <div class="m-btns"><button class="btn btn-sm" id="prl">조회</button><button class="btn btn-primary btn-sm" id="pap">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="pall"></th><th>상품코드</th><th>상품명</th></tr></thead><tbody id="pbody"></tbody></table></div></div>`;
+  bindX();const body=modalBox.querySelector('#pbody');let cur=PROD_DATA.slice();
+  const draw=l=>{body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="pc" value="${i}"></td><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.pc');c.checked=!c.checked;}});};
+  draw(cur);
+  modalBox.querySelector('#pall').onchange=e=>body.querySelectorAll('.pc').forEach(c=>c.checked=e.target.checked);
+  const flt=()=>{const kw=(modalBox.querySelector('#fpc').value+modalBox.querySelector('#fpn').value).trim();cur=kw?PROD_DATA.filter(r=>(r[0]+r[1]).includes(kw)):PROD_DATA.slice();draw(cur);};
+  modalBox.querySelector('#prl').onclick=flt;
+  modalBox.querySelector('#pap').onclick=()=>{const p=[...body.querySelectorAll('.pc:checked')].map(c=>cur[+c.value]);if(!p.length){alert('상품을 선택하세요.');return;}setBoxValue(boxId,p.length===1?p[0][1]:`${p[0][1]} 외 ${p.length-1}건`);closeModal();};
+}
+function buildCat(boxId){
+  let tree='<div class="tree"><ul>';
+  CAT_TREE.forEach((g,gi)=>{tree+=`<li><span class="tw" data-tw="${gi}">▾</span><label><input type="checkbox" class="cp" data-g="${gi}"> <b>${g.name}</b></label><ul data-ul="${gi}">${g.children.map(c=>`<li><label><input type="checkbox" class="cc" data-g="${gi}"> ${c}</label></li>`).join('')}</ul></li>`;});
+  tree+='</ul></div>';
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">분류조회</span><button class="x" data-x>&times;</button></div><div class="modal-body">${tree}<div class="m-btns" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="cap">선택</button><button class="btn btn-sm" data-x>취소</button></div></div>`;
+  bindX();
+  modalBox.querySelectorAll('[data-tw]').forEach(tw=>tw.onclick=()=>{const ul=modalBox.querySelector(`[data-ul="${tw.dataset.tw}"]`);const h=ul.style.display==='none';ul.style.display=h?'':'none';tw.textContent=h?'▾':'▸';});
+  modalBox.querySelectorAll('.cp').forEach(p=>p.onchange=()=>modalBox.querySelectorAll(`.cc[data-g="${p.dataset.g}"]`).forEach(c=>c.checked=p.checked));
+  modalBox.querySelector('#cap').onclick=()=>{const names=[];CAT_TREE.forEach((g,gi)=>{const parent=modalBox.querySelector(`.cp[data-g="${gi}"]`);const kids=[...modalBox.querySelectorAll(`.cc[data-g="${gi}"]`)];if(parent.checked&&kids.every(k=>k.checked))names.push(g.name);else kids.forEach((k,ki)=>{if(k.checked)names.push(g.name+'>'+g.children[ki]);});});if(!names.length){alert('분류를 선택하세요.');return;}setBoxValue(boxId,names.length===1?names[0]:`${names[0]} 외 ${names.length-1}건`);closeModal();};
+}
+function buildCustomModal(p,boxId){
+  const searchRows=[];for(let i=0;i<p.fields.length;i+=2)searchRows.push([p.fields[i],p.fields[i+1]||null]);
+  const fieldCtrl=f=>{if(!f)return '<td class="ml"></td><td></td>';let ctrl;if(f.type==='combo')ctrl=`<select>${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')||'<option>전체</option>'}</select>`;else if(f.type==='date')ctrl=`<input value="${todayStr()}" readonly>`;else ctrl='<input>';return `<td class="ml">${esc(f.label)}</td><td>${ctrl}</td>`;};
+  const cols=p.columns.length?p.columns:['코드','명칭'];
+  const data=p.data&&p.data.length?p.data:[cols.map(c=>c+' 예시')];
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(p.name)}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <table class="m-search">${searchRows.map(r=>`<tr>${fieldCtrl(r[0])}${fieldCtrl(r[1])}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input></td><td></td><td></td></tr>'}</table>
+    <div class="m-btns"><button class="btn btn-sm" id="crl">조회</button><button class="btn btn-primary btn-sm" id="cap2">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="call"></th>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="cpbody"></tbody></table></div></div>`;
+  bindX();const body=modalBox.querySelector('#cpbody');
+  const draw=l=>{body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="cpc" value="${i}"></td>${cols.map((c,ci)=>`<td>${esc(String(r[ci]==null?'':r[ci]))}</td>`).join('')}</tr>`).join('');body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.cpc');c.checked=!c.checked;}});};
+  draw(data);
+  modalBox.querySelector('#call').onchange=e=>body.querySelectorAll('.cpc').forEach(c=>c.checked=e.target.checked);
+  modalBox.querySelector('#crl').onclick=()=>draw(data);
+  modalBox.querySelector('#cap2').onclick=()=>{const sel=[...body.querySelectorAll('.cpc:checked')].map(c=>data[+c.value]);if(!sel.length){alert('항목을 선택하세요.');return;}const label=r=>String(r[1]==null?r[0]:r[1]);setBoxValue(boxId,sel.length===1?label(sel[0]):`${label(sel[0])} 외 ${sel.length-1}건`);closeModal();};
+}
+
+/* ================= 팝업 만들기(빌더) ================= */
+$('newPopupBtn').onclick=()=>openPopupBuilder();
+function openPopupBuilder(existing){
+  const draft=existing?JSON.parse(JSON.stringify(existing)):{id:null,name:'',fields:[],columns:[],data:[]};
+  const renderFields=()=>modalBox.querySelector('#pbFields').innerHTML=draft.fields.length?draft.fields.map((f,i)=>`<div class="pf-item"><span class="t">${f.type==='combo'?'콤보':f.type==='date'?'일자':'텍스트'}</span><span class="nm">${esc(f.label)}${f.type==='combo'&&f.options.length?` <span style="color:#8794a6">(${esc(f.options.join(', '))})</span>`:''}</span><button class="rm" data-fi="${i}">✕</button></div>`).join(''):'<div class="pop-none">조회조건을 추가하세요.</div>';
+  const renderCols=()=>modalBox.querySelector('#pbCols').innerHTML=draft.columns.length?draft.columns.map((c,i)=>`<div class="pf-item"><span class="nm">${esc(c)}</span><button class="rm" data-ci="${i}">✕</button></div>`).join(''):'<div class="pop-none">결과 컬럼을 추가하세요.</div>';
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">🪟 팝업 만들기</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <div class="pb-row"><label>팝업명</label><input class="b-txt" id="pbName" style="flex:1" placeholder="예: 사원선택, 거래처선택" value="${esc(draft.name)}"></div>
+    <div class="pb-sub">① 팝업 조회조건</div>
+    <div class="pb-row"><input class="b-txt" id="pbFieldLbl" style="width:150px" placeholder="조건명 (예: 사원명)"><select class="b-sel" id="pbFieldType"><option value="text">텍스트</option><option value="combo">콤보박스</option><option value="date">일자</option></select><input class="b-txt" id="pbFieldOpts" style="flex:1" placeholder="콤보 옵션(쉼표, 콤보일 때)"><button class="type-btn accent" id="pbAddField">＋ 조건</button></div>
+    <div class="pf-list" id="pbFields"></div>
+    <div class="pb-sub">② 팝업 결과 컬럼</div>
+    <div class="pb-row"><input class="b-txt" id="pbColName" style="flex:1" placeholder="컬럼명 (예: 사원번호)"><button class="type-btn accent" id="pbAddCol">＋ 컬럼</button></div>
+    <div class="pf-list" id="pbCols"></div>
+    <div class="pb-sub">③ 팝업 데이터 (선택)</div>
+    <p class="hint-line">한 줄=한 행, 셀은 탭 또는 쉼표로 구분. 비우면 예시 1행 자동 생성.</p>
+    <textarea class="paste-ta" id="pbData" style="min-height:80px" placeholder="E1001, 홍길동, 영업팀">${(draft.data||[]).map(r=>r.join(', ')).join('\n')}</textarea>
+    <div class="m-btns" style="margin-top:14px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="pbSave">${existing?'수정 저장':'팝업 저장'}</button></div></div>`;
+  openModal(true);bindX();renderFields();renderCols();
+  modalBox.querySelector('#pbAddField').onclick=()=>{const lbl=modalBox.querySelector('#pbFieldLbl').value.trim();const type=modalBox.querySelector('#pbFieldType').value;const opts=modalBox.querySelector('#pbFieldOpts').value.split(',').map(s=>s.trim()).filter(Boolean);if(!lbl){alert('조건명을 입력하세요.');return;}draft.fields.push({label:lbl,type,options:opts});modalBox.querySelector('#pbFieldLbl').value='';modalBox.querySelector('#pbFieldOpts').value='';renderFields();};
+  modalBox.querySelector('#pbAddCol').onclick=()=>{const nm=modalBox.querySelector('#pbColName').value.trim();if(!nm){alert('컬럼명을 입력하세요.');return;}draft.columns.push(nm);modalBox.querySelector('#pbColName').value='';renderCols();};
+  modalBox.querySelector('#pbFields').onclick=e=>{const b=e.target.closest('[data-fi]');if(b){draft.fields.splice(+b.dataset.fi,1);renderFields();}};
+  modalBox.querySelector('#pbCols').onclick=e=>{const b=e.target.closest('[data-ci]');if(b){draft.columns.splice(+b.dataset.ci,1);renderCols();}};
+  modalBox.querySelector('#pbSave').onclick=()=>{const name=modalBox.querySelector('#pbName').value.trim();if(!name){alert('팝업명을 입력하세요.');return;}if(!draft.columns.length){alert('결과 컬럼을 1개 이상 추가하세요.');return;}const raw=modalBox.querySelector('#pbData').value.trim();draft.data=raw?raw.split(/\r?\n/).filter(Boolean).map(line=>line.split(/\t|,/).map(s=>s.trim())):[];draft.name=name;if(existing){const idx=state.popups.findIndex(p=>p.id===existing.id);state.popups[idx]=Object.assign(existing,draft);}else{draft.id='p'+(seq++);state.popups.push(draft);}closeModal();render();};
+}
+function renderPopChips(){
+  const box=$('popChips');
+  if(!state.popups.length){box.innerHTML='<span class="pop-none">만든 팝업이 없습니다. ‘팝업 만들기’로 팝업명·조회조건을 정의하세요.</span>';return;}
+  box.innerHTML=state.popups.map(p=>`<span class="pop-chip">🪟 ${esc(p.name)}<button class="mini add" data-padd="${p.id}" title="조회조건으로 추가">＋</button><button class="mini edit" data-pedit="${p.id}" title="수정">✎</button><button class="mini x" data-pdel="${p.id}" title="삭제">✕</button></span>`).join('');
+}
+$('popChips').addEventListener('click',e=>{
+  const add=e.target.closest('[data-padd]'),ed=e.target.closest('[data-pedit]'),del=e.target.closest('[data-pdel]');
+  if(add){const p=findPopup(add.dataset.padd);state.conditions.push({id:'c'+(seq++),type:'custompopup',label:p.name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:[],popupId:p.id});render();}
+  else if(ed){openPopupBuilder(findPopup(ed.dataset.pedit));}
+  else if(del){const p=findPopup(del.dataset.pdel);if(confirm(`‘${p.name}’ 팝업을 삭제할까요? (이 팝업을 쓰는 조회조건도 함께 삭제됩니다)`)){state.conditions=state.conditions.filter(c=>c.popupId!==p.id);state.popups=state.popups.filter(x=>x.id!==p.id);render();}}
+});
+
+/* ================= 데이터 붙여넣기 ================= */
+$('pasteData').onclick=()=>{
+  const p=curP(); if(!p||!p.columns.length){alert('대상 패널에 컬럼을 먼저 추가하세요.');return;}
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📋 데이터 붙여넣기 — ${esc(p.title||'패널')}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <p class="hint-line">컬럼 순서: <b>${p.columns.map(k=>esc(k.name)).join(' · ')}</b><br>엑셀에서 복사한 표를 붙여넣으세요. 한 줄=한 행, 셀 구분=탭 또는 쉼표.</p>
+    <textarea class="paste-ta" id="pdArea" placeholder="값1&#9;값2&#9;값3"></textarea>
+    <div class="pb-row" style="margin-top:10px;"><label style="width:auto;">방식</label><label class="b-chk"><input type="radio" name="pdmode" value="replace" checked> 대체</label><label class="b-chk"><input type="radio" name="pdmode" value="append"> 추가</label></div>
+    <div class="m-btns" style="margin-top:12px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="pdApply">적용</button></div></div>`;
+  openModal(true);bindX();
+  modalBox.querySelector('#pdApply').onclick=()=>{const raw=modalBox.querySelector('#pdArea').value.trim();if(!raw){alert('데이터를 붙여넣으세요.');return;}const mode=modalBox.querySelector('input[name="pdmode"]:checked').value;const parsed=raw.split(/\r?\n/).filter(Boolean).map(line=>{const cells=line.split(/\t|,/).map(s=>s.trim());const row={};p.columns.forEach((k,i)=>row[k.id]=cells[i]==null?'':cells[i]);return row;});state.queried=true;p.rows=mode==='append'?p.rows.concat(parsed):parsed;closeModal();renderResult();updateCount();};
+};
+
+/* ================= 초기 렌더 ================= */
+render();
+</script>
+</body>
+</html>

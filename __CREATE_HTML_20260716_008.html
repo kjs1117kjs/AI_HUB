@@ -248,6 +248,21 @@
   /* 정보 팝업(폼형) */
   .modal.iform-modal{width:840px;}
   .modal.iform-modal.narrow{width:470px;}
+  .modal.iform-modal.wide-grid{width:940px;}
+  .if-grid-wrap{border:1px solid var(--border);background:#fff;overflow-x:auto;}
+  table.if-grid{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap;}
+  table.if-grid thead th{background:var(--grid-head);border:1px solid var(--border-soft);border-top:none;
+    padding:7px 10px;font-size:12px;font-weight:700;color:var(--text);text-align:center;}
+  table.if-grid th.gcol{width:34px;color:var(--blue-dark);}
+  table.if-grid tbody td{border:1px solid var(--border-soft);padding:6px 10px;color:var(--text);text-align:center;}
+  table.if-grid tbody td.l{text-align:left;} table.if-grid tbody td.r{text-align:right;}
+  table.if-grid tbody td.no{background:var(--label-bg);color:var(--text-sub);width:34px;}
+  table.if-grid tbody tr.sel td{background:#eaf3fd;}
+  table.if-grid tbody tr.sel td.hi{background:var(--sel);font-weight:600;}
+  table.if-grid tfoot td{border:1px solid var(--border-soft);background:var(--label-bg);padding:6px 10px;
+    font-weight:700;color:var(--text);text-align:right;}
+  table.if-grid tfoot td.lbl{text-align:center;color:var(--text-sub);}
+  .if-grid-empty{padding:26px 0;text-align:center;color:var(--text-mute);font-size:12.5px;}
   .iform-tabs{display:flex;gap:0;border-bottom:2px solid #3a4551;margin-bottom:14px;}
   .iform-tab{padding:8px 22px;font-weight:700;font-size:13px;color:#6b7480;background:#eef1f5;border:1px solid #d3dce8;border-bottom:none;cursor:pointer;}
   .iform-tab.active{background:#fff;color:#2c3742;border-top:2px solid #3a4551;position:relative;top:1px;}
@@ -1276,7 +1291,35 @@ function ifField(f){
     default: return `<input class="if-input" value="${esc(v)}">`;
   }
 }
+function renderInfoGrid(sec){
+  const cols=sec.columns||[], rows=sec.rows||[];
+  const cls=c=>c.align==='l'?'l':(c.align==='r'?'r':'');
+  const isNum=c=>!c.nosum&&(c.align==='r'||['comma','won','percent'].includes(c.format));
+  const sum=ci=>{let s=0,has=false;rows.forEach(r=>{const n=Number(String(r[ci]==null?'':r[ci]).replace(/,/g,''));if(!isNaN(n)&&String(r[ci]).trim()!==''){s+=n;has=true;}});return has?s:null;};
+  let h=`<div class="iform-sec">${sec.title?`<div class="iform-sec-hd">${esc(sec.title)}</div>`:''}<div class="if-grid-wrap"><table class="if-grid">`;
+  h+='<thead><tr>';
+  if(sec.rownum!==false) h+='<th class="gcol">⚙</th>';
+  cols.forEach(c=>h+=`<th${c.width?` style="min-width:${c.width}px"`:''}>${esc(c.name)}</th>`);
+  h+='</tr></thead><tbody>';
+  if(!rows.length) h+=`<tr><td class="l" colspan="${cols.length+(sec.rownum!==false?1:0)}"><div class="if-grid-empty">조회된 내역이 없습니다.</div></td></tr>`;
+  rows.forEach((r,ri)=>{
+    h+=`<tr class="${sec.sel===ri?'sel':''}">`;
+    if(sec.rownum!==false) h+=`<td class="no">${ri+1}</td>`;
+    cols.forEach((c,ci)=>h+=`<td class="${cls(c)}${sec.sel===ri&&ci===0?' hi':''}">${fmtCell(r[ci],c)||'&nbsp;'}</td>`);
+    h+='</tr>';
+  });
+  h+='</tbody>';
+  if(sec.sum){
+    h+='<tfoot><tr>';
+    if(sec.rownum!==false) h+='<td class="lbl">합계</td>';
+    cols.forEach((c,ci)=>{const s=isNum(c)?sum(ci):null;h+=`<td class="${cls(c)}">${s==null?'&nbsp;':fmtCell(s,c)}</td>`;});
+    h+='</tr></tfoot>';
+  }
+  h+='</table></div></div>';
+  return h;
+}
 function renderInfoSection(sec){
+  if(sec.kind==='grid') return renderInfoGrid(sec);
   const one=(sec.cols||2)===1, rows=[]; let buf=[];
   (sec.fields||[]).forEach(f=>{
     if(f.span===2||one){ if(buf.length){rows.push(buf);buf=[];} rows.push([f]); }
@@ -1301,11 +1344,10 @@ function openInfoPopup(id){
   let body='';
   if(ip.tabs&&ip.tabs.length) body+=`<div class="iform-tabs">${ip.tabs.map((t,i)=>`<div class="iform-tab ${i===0?'active':''}" data-itab="${i}">${esc(t)}</div>`).join('')}</div>`;
   body+=(ip.sections||[]).map(renderInfoSection).join('');
-  modalBox.className='modal iform-modal'+(ip.narrow?' narrow':'');
-  const foot=(ip.footer&&ip.footer.length)
-    ? ip.footer.map(b=>`<button class="btn ${b.primary?'btn-primary':''}" data-x>${esc(b.label||b)}</button>`).join('')
-    : `<button class="btn btn-primary" data-x>저장</button><button class="btn" data-x>닫기</button>`;
-  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(ip.name)}${ip.subtitle?` <span style="color:#8a929c;font-weight:500;font-size:13px;">${esc(ip.subtitle)}</span>`:''}</span><button class="x" data-x>&times;</button></div><div class="modal-body">${body}</div><div class="iform-foot">${foot}</div>`;
+  modalBox.className='modal iform-modal'+(ip.narrow?' narrow':'')+(ip.wide?' wide-grid':'');
+  const fb=ip.footer||[{label:'저장',primary:true},{label:'닫기'}];
+  const foot=fb.length?`<div class="iform-foot">${fb.map(b=>`<button class="btn ${b.primary?'btn-primary':''}" data-x>${esc(b.label||b)}</button>`).join('')}</div>`:'';
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(ip.name)}${ip.subtitle?` <span style="color:#8a929c;font-weight:500;font-size:13px;">${esc(ip.subtitle)}</span>`:''}</span><button class="x" data-x>&times;</button></div><div class="modal-body">${body}</div>${foot}`;
   mask.classList.add('open'); bindX();
   modalBox.querySelectorAll('[data-itab]').forEach(t=>t.onclick=()=>{modalBox.querySelectorAll('.iform-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');});
 }
@@ -1335,7 +1377,12 @@ const findInfo=id=>state.infoPopups.find(p=>p.id===id);
 function openInfoBuilder(existing){
   const draft=existing?JSON.parse(JSON.stringify(existing)):{id:null,name:'',subtitle:'',tabs:[],sections:[]};
   function drawIB(){
-    modalBox.querySelector('#ibSecs').innerHTML = draft.sections.length?draft.sections.map((s,si)=>`
+    modalBox.querySelector('#ibSecs').innerHTML = draft.sections.length?draft.sections.map((s,si)=>
+      s.kind==='grid'?`
+      <div class="ib-sec">
+        <div class="ib-sec-hd"><b>${esc(s.title||'(제목없음)')}</b><span class="ib-cols">그리드</span><button class="rm" data-secdel="${si}">✕ 섹션삭제</button></div>
+        <div class="ib-fields"><div class="pop-none">그리드 섹션 — 컬럼 ${(s.columns||[]).length}개 · 행 ${(s.rows||[]).length}개${s.sum?' · 합계행':''} (여기서는 편집할 수 없으며 저장 시 그대로 유지됩니다)</div></div>
+      </div>`:`
       <div class="ib-sec">
         <div class="ib-sec-hd"><b>${esc(s.title)}</b><span class="ib-cols">${s.cols===1?'1단':'2단'}</span><button class="rm" data-secdel="${si}">✕ 섹션삭제</button></div>
         <div class="ib-fields">${s.fields.length?s.fields.map((f,fi)=>`<div class="pf-item"><span class="t">${ftLabel(f.type)}</span><span class="nm">${esc(f.label||'(라벨없음)')}${f.span===2?' <span style="color:#8794a6">[전체너비]</span>':''}${f.options&&f.options.length?` <span style="color:#8794a6">(${esc(f.options.join(', '))})</span>`:''}${f.value?` <span style="color:#8794a6">= ${esc(f.value)}</span>`:''}</span><button class="rm" data-flddel="${si}:${fi}">✕</button></div>`).join(''):'<div class="pop-none">필드를 추가하세요.</div>'}</div>
@@ -1372,6 +1419,10 @@ function openInfoBuilder(existing){
 /* 정보 팝업 예시 */
 function F(label,o){o=o||{};return{id:'f'+(seq++),label:label,type:o.t||'text',value:o.v||'',options:o.o||[],span:o.span||1};}
 function SEC(title,o){o=o||{};return{title,cols:o.cols||2,fields:o.fields||[]};}
+/* 그리드형 섹션 — 표 그대로를 담는 정보 팝업 */
+function GC(name,o){o=o||{};return{name,align:o.a||'c',format:o.f||'none',width:o.w||0,nosum:!!o.nosum};}
+function SECG(title,o){o=o||{};return{title:title||'',kind:'grid',cols:1,fields:[],
+  columns:o.cols||[],rows:o.rows||[],sum:!!o.sum,rownum:o.rownum!==false,sel:o.sel==null?-1:o.sel};}
 const INFO_PRESETS={};
 INFO_PRESETS.product=()=>({name:'상품정보',subtitle:'',tabs:[],sections:[
   SEC('상품기본정보',{cols:2,fields:[
@@ -1651,7 +1702,14 @@ const INFO_SAMPLES=[
   ['pointadj','포인트 조정','작업형 · 초기화/조정저장'],
   ['stockadj','재고 조정','작업형 · 실사이력/조정저장'],
   ['smsresend','알림 재발송','작업형 · 테스트발송/재발송'],
-  ['posauth','단말 인증 초기화','작업형 · 인증해제/초기화 적용']
+  ['posauth','단말 인증 초기화','작업형 · 인증해제/초기화 적용'],
+  ['cardpay','신용카드 결제내역','그리드형 · 컬럼 12개 가로스크롤 + 합계 · 버튼 없음'],
+  ['orderitems','주문 상품내역','그리드형 · 요약 폼 + 상품 표 + 합계'],
+  ['pointhist','포인트 적립·사용 내역','그리드형 · 증감/잔액 이력 + 합계'],
+  ['stockhist','재고 입출고 이력','그리드형 · 탭(전체/입고/출고/조정) + 합계'],
+  ['loginhist','로그인 이력','그리드형 · 계정 요약 폼 + 접속 이력 표'],
+  ['settledetail','정산 상세내역','그리드형 · 표 2개(매출/공제) 각각 합계'],
+  ['couponuse','쿠폰 사용내역','그리드형 · 표 + 하단 안내문']
 ];
 function applyPopupPreset(key){
   const p=POPUP_PRESETS[key](); p.id='p'+(seq++); state.popups.push(p);
@@ -1848,6 +1906,87 @@ PRESETS.posauth=()=>{
   state.panels=[PNL('',{check:true,btns:[{label:'인증키 일괄재발급',primary:true},'엑셀다운로드'],pager:true,sel:0,cols,rows:R})];
   state.desc='단말 목록에서 단말번호(링크)를 클릭하면 인증 초기화 팝업이 열립니다. 인증키 재발급·만료일 변경을 처리하는 유형입니다.';
 };
+
+/* ================= 그리드형 팝업(내역 조회) 예시 7종 ================= */
+/* 폼이 아니라 표 자체를 보여주는 유형. 컬럼이 많으면 가로 스크롤로 처리 */
+INFO_PRESETS.cardpay=()=>({name:'신용카드 결제내역',subtitle:'',tabs:[],wide:true,footer:[],sections:[
+  SECG('',{sum:true,sel:0,
+    cols:[GC('코너명',{w:90}),GC('승인구분',{w:70}),GC('카드구분',{w:70}),GC('카드번호',{w:150}),GC('할부',{a:'r',w:50,nosum:true}),
+      GC('승인금액',{a:'r',f:'comma',w:90}),GC('승인일자',{w:95}),GC('승인시각',{w:80}),GC('승인번호',{w:90}),
+      GC('밴사',{w:70}),GC('발급사',{w:80}),GC('매입사',{w:80})],
+    rows:[['기본코너','POS','일반','94654444********','0',5000,'2026-07-19','15:25:00','38700001','KCP','비씨카드','비씨카드']]})
+]});
+INFO_PRESETS.orderitems=()=>({name:'주문 상품내역',subtitle:'20260716-000128',tabs:[],wide:true,
+  footer:[{label:'영수증 출력'},{label:'닫기',primary:true}],sections:[
+  SEC('주문 요약',{cols:2,fields:[
+    F('주문번호',{t:'readonly',v:'20260716-000128'}),F('주문일시',{t:'readonly',v:'2026-07-16 12:34'}),
+    F('매장',{t:'readonly',v:'학동역점'}),F('주문유형',{t:'readonly',v:'배달'})
+  ]}),
+  SECG('상품 내역',{sum:true,
+    cols:[GC('상품코드',{w:130}),GC('상품명',{a:'l',w:150}),GC('수량',{a:'r',w:60}),GC('단가',{a:'r',f:'comma',w:80,nosum:true}),
+      GC('금액',{a:'r',f:'comma',w:90}),GC('할인',{a:'r',f:'comma',w:80}),GC('실판매가',{a:'r',f:'comma',w:90})],
+    rows:[['0000000000112','쉬림프골드',1,6300,6300,0,6300],
+      ['0000000000205','포테이토 프라이',2,2500,5000,1000,4000],
+      ['0000000000038','펩시콜라 355ml',2,1900,3800,0,3800]]})
+]});
+INFO_PRESETS.pointhist=()=>({name:'포인트 적립·사용 내역',subtitle:'홍길동 (M0001024)',tabs:[],wide:true,
+  footer:[{label:'닫기'}],sections:[
+  SECG('',{sum:true,
+    cols:[GC('발생일시',{w:130}),GC('구분',{w:70}),GC('사유',{a:'l',w:150}),GC('매장',{a:'l',w:100}),
+      GC('증감',{a:'r',f:'comma',w:80}),GC('잔액',{a:'r',f:'comma',w:90,nosum:true}),GC('처리자',{w:80})],
+    rows:[['2026-07-14 19:22','적립','주문 적립 (0.5%)','학동역점',105,12500,'시스템'],
+      ['2026-07-08 12:05','사용','쿠폰 교환','강남본점',-3000,12395,'시스템'],
+      ['2026-06-30 20:41','적립','이벤트 보너스','-',2000,15395,'관리자'],
+      ['2026-06-21 13:10','적립','주문 적립 (0.5%)','학동역점',88,13395,'시스템']]})
+]});
+INFO_PRESETS.stockhist=()=>({name:'재고 입출고 이력',subtitle:'펩시콜라 355ml',tabs:['전체','입고','출고','조정'],wide:true,
+  footer:[{label:'닫기'}],sections:[
+  SECG('',{sum:true,
+    cols:[GC('일자',{w:95}),GC('유형',{w:70}),GC('수량',{a:'r',w:70}),GC('단가',{a:'r',f:'comma',w:80,nosum:true}),
+      GC('금액',{a:'r',f:'comma',w:90}),GC('조정후 재고',{a:'r',w:90,nosum:true}),GC('담당자',{w:80}),GC('비고',{a:'l',w:130})],
+    rows:[['2026-07-15','입고',100,1200,120000,128,'김학동','정기 발주'],
+      ['2026-07-12','출고',-40,1200,-48000,28,'시스템','판매 차감'],
+      ['2026-07-09','조정',-2,1200,-2400,68,'이맘스','실사 보정'],
+      ['2026-07-02','입고',50,1200,60000,70,'김학동','추가 발주']]})
+]});
+INFO_PRESETS.loginhist=()=>({name:'로그인 이력',subtitle:'suok5245',tabs:[],wide:true,footer:[{label:'닫기'}],sections:[
+  SEC('계정 요약',{cols:2,fields:[
+    F('사용자ID',{t:'readonly',v:'suok5245'}),F('사용자명',{t:'readonly',v:'(주)지엔앤'}),
+    F('최근 로그인',{t:'readonly',v:'2026-07-16 09:18'}),F('연속 실패',{t:'readonly',v:'5회'})
+  ]}),
+  SECG('최근 접속 이력',{
+    cols:[GC('접속일시',{w:130}),GC('구분',{w:70}),GC('결과',{w:70}),GC('IP',{w:110}),
+      GC('단말',{w:90}),GC('브라우저',{a:'l',w:130}),GC('비고',{a:'l',w:120})],
+    rows:[['2026-07-16 09:21','웹','실패','211.34.10.22','PC','Chrome 126','비밀번호 오류'],
+      ['2026-07-16 09:20','웹','실패','211.34.10.22','PC','Chrome 126','비밀번호 오류'],
+      ['2026-07-16 09:18','웹','성공','211.34.10.22','PC','Chrome 126',''],
+      ['2026-07-15 18:02','포스','성공','192.168.0.31','POS-01','POS Client','']]})
+]});
+INFO_PRESETS.settledetail=()=>({name:'정산 상세내역',subtitle:'ST2606-9725 · 학동역점',tabs:[],wide:true,
+  footer:[{label:'정산서 출력'},{label:'닫기',primary:true}],sections:[
+  SECG('결제수단별 매출',{sum:true,
+    cols:[GC('결제수단',{a:'l',w:110}),GC('건수',{a:'r',f:'comma',w:70}),GC('매출액',{a:'r',f:'comma',w:100}),
+      GC('수수료율',{a:'r',w:80}),GC('수수료',{a:'r',f:'comma',w:90}),GC('정산액',{a:'r',f:'comma',w:100})],
+    rows:[['신용카드',612,28400000,'2.3%',653200,27746800],
+      ['간편결제',238,9800000,'2.0%',196000,9604000],
+      ['현금영수증',94,3200000,'0.0%',0,3200000],
+      ['상품권',12,900000,'5.0%',45000,855000]]}),
+  SECG('공제 내역',{sum:true,
+    cols:[GC('공제항목',{a:'l',w:140}),GC('기준',{a:'l',w:140}),GC('금액',{a:'r',f:'comma',w:110})],
+    rows:[['로열티','실매출 3%',1269000],['광고분담금','정액',300000],['POS 유지보수','정액',55000]]})
+]});
+INFO_PRESETS.couponuse=()=>({name:'쿠폰 사용내역',subtitle:'CPN-2026-0042 · 여름맞이 2천원 할인',tabs:[],wide:true,
+  footer:[{label:'닫기'}],sections:[
+  SECG('',{sum:true,sel:0,
+    cols:[GC('사용일시',{w:130}),GC('주문번호',{w:150}),GC('매장',{a:'l',w:110}),GC('회원',{a:'l',w:90}),
+      GC('주문금액',{a:'r',f:'comma',w:90,nosum:true}),GC('할인금액',{a:'r',f:'comma',w:90}),GC('상태',{w:70})],
+    rows:[['2026-07-16 12:34','20260716-000128','학동역점','홍길동',23000,2000,'사용'],
+      ['2026-07-15 19:11','20260715-000091','강남본점','김수민',18500,2000,'사용'],
+      ['2026-07-14 13:02','20260714-000044','학동역점','박지훈',15000,2000,'취소']]}),
+  SEC('',{cols:1,fields:[
+    F('',{t:'note',span:2,v:'※ 취소된 주문의 쿠폰은 자동으로 재발급되어 회원에게 반환됩니다.\n발급수량 10,000장 중 현재 3장이 사용되었습니다.'})
+  ]})
+]});
 
 /* ================= 초기 렌더 ================= */
 render();

@@ -247,6 +247,7 @@
   body.preview table.grid tbody td .cell-input{pointer-events:none;border-color:transparent;}
   /* 정보 팝업(폼형) */
   .modal.iform-modal{width:840px;}
+  .modal.iform-modal.narrow{width:470px;}
   .iform-tabs{display:flex;gap:0;border-bottom:2px solid #3a4551;margin-bottom:14px;}
   .iform-tab{padding:8px 22px;font-weight:700;font-size:13px;color:#6b7480;background:#eef1f5;border:1px solid #d3dce8;border-bottom:none;cursor:pointer;}
   .iform-tab.active{background:#fff;color:#2c3742;border-top:2px solid #3a4551;position:relative;top:1px;}
@@ -268,7 +269,7 @@
   .if-popupsel .box.empty{color:#9aa2ac;background:#f6f8fb;}
   .if-btn{border:1px solid var(--blue-dark);background:var(--blue);color:#fff;border-radius:3px;padding:0 12px;height:30px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
   .if-img{width:100%;height:120px;border:1px dashed #cdd4dd;background:#f7f8fa;display:flex;align-items:center;justify-content:center;color:#aab1bb;font-size:12px;border-radius:3px;}
-  .if-note{color:#8a929c;font-size:12px;padding:2px 0;}
+  .if-note{color:#8a929c;font-size:12px;padding:2px 0;white-space:pre-line;line-height:1.55;}
   .iform-foot{display:flex;justify-content:center;gap:8px;padding:14px;border-top:1px solid #e6e9ee;background:#fafbfc;}
   .iform-foot .btn{padding:8px 26px;font-size:13px;}
   .ib-sec{border:1px solid #e0e5ec;border-radius:5px;margin-bottom:10px;overflow:hidden;}
@@ -1059,21 +1060,32 @@ $('sampleBtn').onclick=()=>{
     ['authz','사용자 권한관리','사용자 + 메뉴권한 체크박스 매트릭스'],
     ['sidemenu','사이드메뉴관리','탭 + 좌측 스택 2패널 + 우측 1패널'],
     ['kiosk','키오스크키맵등록','탭 + 툴바 + 3단 패널'],
-    ['func','기능/테이블업무','기능구분 + 기능키(일반/외식 그룹헤더)']
+    ['func','기능/테이블업무','기능구분 + 기능키(일반/외식 그룹헤더)'],
+    ['pwchange','비밀번호 임의변경','사용자ID→비밀번호 변경 / 사용자명→로그인 잠금해제'],
+    ['pointadj','회원 포인트 조정','회원번호→포인트 조정(적립·차감) 팝업'],
+    ['stockadj','매장 재고조정','상품코드→재고 조정(입고·폐기) 팝업'],
+    ['smsresend','알림 발송이력','발송번호→알림 재발송 팝업'],
+    ['posauth','포스 단말 인증관리','단말번호→단말 인증 초기화 팝업']
   ];
   const infos=[
     ['product','상품정보','기본/부가/기타/할인·적립 섹션, 다양한 필드'],
     ['store','매장정보','탭형(매장정보/매장환경/메뉴권한) 상세'],
     ['member','회원정보','기본/적립/마케팅동의 섹션'],
     ['order','주문상세','주문/금액/비고 섹션'],
-    ['coupon','쿠폰정보','기본/기간/대상 섹션']
+    ['coupon','쿠폰정보','기본/기간/대상 섹션'],
+    ['pwchange','비밀번호 변경','작업형 · 패스워드초기화/변경하기'],
+    ['unlock','로그인 잠금해제','작업형 · 잠금해제/닫기'],
+    ['pointadj','포인트 조정','작업형 · 초기화/조정저장'],
+    ['stockadj','재고 조정','작업형 · 실사이력/조정저장'],
+    ['smsresend','알림 재발송','작업형 · 테스트발송/재발송'],
+    ['posauth','단말 인증 초기화','작업형 · 인증해제/초기화 적용']
   ];
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📚 예시 불러오기</span><button class="x" data-x>&times;</button></div>
   <div class="modal-body">
     <p class="hint-line">조회 화면을 고르면 현재 구성이 대체됩니다. 정보 팝업은 현재 구성에 추가되어 미리보기로 열립니다.</p>
-    <div class="pb-sub" style="margin-top:0;border-top:none;padding-top:0;">조회 화면 (15)</div>
+    <div class="pb-sub" style="margin-top:0;border-top:none;padding-top:0;">조회 화면 (${items.length})</div>
     <div class="preset-grid">${items.map(it=>`<div class="preset-card" data-preset="${it[0]}"><div class="pt">${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div>
-    <div class="pb-sub">정보 팝업 (5)</div>
+    <div class="pb-sub">정보 팝업 (${infos.length})</div>
     <div class="preset-grid">${infos.map(it=>`<div class="preset-card" data-infopreset="${it[0]}"><div class="pt">🗂️ ${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div>
   </div>`;
   openModal(true); bindX();
@@ -1271,10 +1283,12 @@ function renderInfoSection(sec){
   });
   if(buf.length)rows.push(buf);
   const cg=one?'<colgroup><col style="width:130px"><col></colgroup>':'<colgroup><col style="width:130px"><col><col style="width:130px"><col></colgroup>';
-  let h=`<div class="iform-sec"><div class="iform-sec-hd">${esc(sec.title)}</div><table class="iform-tbl">${cg}`;
+  let h=`<div class="iform-sec">${sec.title?`<div class="iform-sec-hd">${esc(sec.title)}</div>`:''}<table class="iform-tbl">${cg}`;
   rows.forEach(r=>{
     h+='<tr>';
-    if(r.length===1){const f=r[0];h+=`<th>${esc(f.label)}</th><td colspan="${one?1:3}">${ifField(f)}</td>`;}
+    if(r.length===1){const f=r[0];
+      if(f.type==='note'&&!f.label){h+=`<td class="if-note-cell" colspan="${one?2:4}">${ifField(f)}</td>`;}
+      else h+=`<th>${esc(f.label)}</th><td colspan="${one?1:3}">${ifField(f)}</td>`;}
     else r.forEach(f=>h+=`<th>${esc(f.label)}</th><td>${ifField(f)}</td>`);
     h+='</tr>';
   });
@@ -1286,8 +1300,11 @@ function openInfoPopup(id){
   let body='';
   if(ip.tabs&&ip.tabs.length) body+=`<div class="iform-tabs">${ip.tabs.map((t,i)=>`<div class="iform-tab ${i===0?'active':''}" data-itab="${i}">${esc(t)}</div>`).join('')}</div>`;
   body+=(ip.sections||[]).map(renderInfoSection).join('');
-  modalBox.className='modal iform-modal';
-  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(ip.name)}${ip.subtitle?` <span style="color:#8a929c;font-weight:500;font-size:13px;">${esc(ip.subtitle)}</span>`:''}</span><button class="x" data-x>&times;</button></div><div class="modal-body">${body}</div><div class="iform-foot"><button class="btn btn-primary" data-x>저장</button><button class="btn" data-x>닫기</button></div>`;
+  modalBox.className='modal iform-modal'+(ip.narrow?' narrow':'');
+  const foot=(ip.footer&&ip.footer.length)
+    ? ip.footer.map(b=>`<button class="btn ${b.primary?'btn-primary':''}" data-x>${esc(b.label||b)}</button>`).join('')
+    : `<button class="btn btn-primary" data-x>저장</button><button class="btn" data-x>닫기</button>`;
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(ip.name)}${ip.subtitle?` <span style="color:#8a929c;font-weight:500;font-size:13px;">${esc(ip.subtitle)}</span>`:''}</span><button class="x" data-x>&times;</button></div><div class="modal-body">${body}</div><div class="iform-foot">${foot}</div>`;
   mask.classList.add('open'); bindX();
   modalBox.querySelectorAll('[data-itab]').forEach(t=>t.onclick=()=>{modalBox.querySelectorAll('.iform-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');});
 }
@@ -1532,6 +1549,178 @@ PRESETS.settle=()=>{
     ['ST2606-0063','2026-06','E10063','강남본점',51200000,1536000,410000,49254000,'정산대기']];
   state.panels=[PNL('',{check:true,btns:[{label:'정산확정',primary:true},'엑셀다운로드'],sum:true,pager:true,sel:0,cols,rows:R})];
   state.desc='매장별 월 정산 내역 + 합계/페이지. 매출→수수료·공제→정산액 흐름.';
+};
+
+/* ================= 작업형 팝업(입력·처리) 예시 ================= */
+/* 목록의 링크 컬럼을 클릭 → 그 건에 대한 처리를 수행하는 좁은 폼 팝업 유형 */
+INFO_PRESETS.pwchange=()=>({name:'비밀번호 변경',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'패스워드초기화'},{label:'변경하기',primary:true}],sections:[
+  SEC('',{cols:1,fields:[
+    F('비밀번호 구분',{t:'dropdown',o:['웹(WEB) 비밀번호','포스(POS) 비밀번호'],v:'웹(WEB) 비밀번호'}),
+    F('사용자ID',{t:'readonly',v:'suok5245'}),
+    F('사용자명',{t:'readonly',v:'(주)지엔앤'}),
+    F('새비밀번호'),
+    F('새비밀번호 확인'),
+    F('',{t:'note',span:2,v:'※ 비밀번호 규칙\n사용가능문자 - 숫자, 영문자\n비밀번호길이 - 10자 ~ 20자\n필수포함문자 - 숫자, 영문자\n\n포스(POS) 비밀번호는 숫자 4자리만 허용됩니다.\n\n※ 패스워드초기화\n웹(WEB) 비밀번호: 123456, 포스(POS) 비밀번호: 1234'})
+  ]})
+]});
+INFO_PRESETS.unlock=()=>({name:'로그인 잠금해제',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'잠금해제',primary:true},{label:'닫기'}],sections:[
+  SEC('',{cols:1,fields:[
+    F('사용자ID',{t:'readonly',v:'suok5245'}),
+    F('사용자명',{t:'readonly',v:'(주)지엔앤'}),
+    F('계정상태',{t:'dropdown',o:['잠금','정상'],v:'잠금'}),
+    F('로그인 실패횟수',{t:'readonly',v:'5회'}),
+    F('최근 잠금일시',{t:'readonly',v:'2026-07-16 09:21'}),
+    F('처리사유',{t:'dropdown',o:['본인확인 완료','관리자 직권','기타'],v:'본인확인 완료'}),
+    F('',{t:'note',span:2,v:'※ 로그인 잠금 안내\n비밀번호 5회 연속 오류 시 계정이 잠깁니다.\n잠금해제 시 실패횟수는 0으로 초기화됩니다.'})
+  ]})
+]});
+INFO_PRESETS.pointadj=()=>({name:'포인트 조정',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'초기화'},{label:'조정저장',primary:true}],sections:[
+  SEC('',{cols:1,fields:[
+    F('회원번호',{t:'readonly',v:'M0001024'}),
+    F('회원명',{t:'readonly',v:'홍길동'}),
+    F('보유포인트',{t:'readonly',v:'12,500'}),
+    F('조정구분',{t:'dropdown',o:['적립','차감'],v:'적립'}),
+    F('조정수량'),
+    F('조정사유',{t:'dropdown',o:['민원보상','이벤트','오적립 정정','기타'],v:'민원보상'}),
+    F('비고',{t:'textarea',span:2}),
+    F('',{t:'note',span:2,v:'※ 포인트 조정 안내\n조정 즉시 회원 보유포인트에 반영되며 취소는 반대 조정으로만 가능합니다.\n1회 조정 한도 - 50,000점 (초과 시 승인 필요)'})
+  ]})
+]});
+INFO_PRESETS.stockadj=()=>({name:'재고 조정',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'실사이력'},{label:'조정저장',primary:true}],sections:[
+  SEC('',{cols:1,fields:[
+    F('상품코드',{t:'readonly',v:'0000000000038'}),
+    F('상품명',{t:'readonly',v:'펩시콜라 355ml'}),
+    F('현재재고',{t:'readonly',v:'128'}),
+    F('조정유형',{t:'dropdown',o:['입고','출고','실사보정','폐기'],v:'실사보정'}),
+    F('조정수량'),
+    F('조정후 재고',{t:'readonly',v:'128'}),
+    F('사유',{t:'textarea',span:2}),
+    F('',{t:'note',span:2,v:'※ 재고 조정 안내\n조정 결과는 당일 마감 재고에 즉시 반영됩니다.\n폐기 조정은 사유 입력이 필수입니다.'})
+  ]})
+]});
+INFO_PRESETS.smsresend=()=>({name:'알림 재발송',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'테스트발송'},{label:'재발송',primary:true}],sections:[
+  SEC('',{cols:1,fields:[
+    F('발송번호',{t:'readonly',v:'MSG-20260716-0311'}),
+    F('채널',{t:'dropdown',o:['SMS','LMS','알림톡','앱푸시'],v:'알림톡'}),
+    F('템플릿',{t:'dropdown',o:['주문완료 안내','포인트 적립','쿠폰 발급','휴면 전환 안내'],v:'주문완료 안내'}),
+    F('수신번호',{v:'010-9163-4988'}),
+    F('발송내용',{t:'textarea',span:2,v:'[학동역점] 주문이 정상 접수되었습니다.'}),
+    F('예약발송',{t:'date'}),
+    F('',{t:'note',span:2,v:'※ 재발송 안내\n동일 건은 1일 3회까지 재발송할 수 있습니다.\n알림톡 실패 시 SMS로 자동 대체 발송됩니다.'})
+  ]})
+]});
+INFO_PRESETS.posauth=()=>({name:'단말 인증 초기화',subtitle:'',tabs:[],narrow:true,
+  footer:[{label:'인증해제'},{label:'초기화 적용',primary:true}],sections:[
+  SEC('',{cols:1,fields:[
+    F('단말번호',{t:'readonly',v:'POS-E09725-01'}),
+    F('매장명',{t:'readonly',v:'학동역점'}),
+    F('단말구분',{t:'readonly',v:'포스'}),
+    F('인증상태',{t:'dropdown',o:['정상','잠금','만료'],v:'잠금'}),
+    F('신규 인증키',{t:'withButton',o:['재발급']}),
+    F('인증 만료일',{t:'date',v:'2026-12-31'}),
+    F('처리사유',{t:'textarea',span:2}),
+    F('',{t:'note',span:2,v:'※ 단말 인증 안내\n초기화 적용 시 해당 단말은 다음 접속에서 재인증이 필요합니다.\n인증키는 발급 후 24시간 동안만 유효합니다.'})
+  ]})
+]});
+
+/* ================= 링크 클릭 → 처리 팝업 유형 조회화면 5종 ================= */
+PRESETS.pwchange=()=>{
+  state.title='비밀번호 임의변경';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.excelBtns=[];
+  state.conditions=[CD('combo','사원구분',{opts:['전체','총판/대리점','본사','매장']}),CD('blank',''),
+    CD('text','총판/대리점코드'),CD('text','총판/대리점명'),
+    CD('text','본사코드'),CD('text','본사명'),
+    CD('text','매장코드'),CD('text','매장명'),
+    CD('text','사용자ID'),CD('text','사용자명')];
+  state.cols=[{flex:1}];
+  const cols=[C('사원구분',{w:11}),C('총판/대리점코드',{w:13}),C('총판/대리점명',{a:'l',w:16}),C('본사코드',{w:10}),C('본사명',{a:'l',w:12}),
+    C('매장코드',{w:10}),C('매장명',{a:'l',w:12}),C('사원번호',{w:9}),C('사용자ID',{t:'link',w:12}),C('사용자명',{t:'link',w:14}),
+    C('재직구분',{w:9}),C('웹사용여부',{w:10}),C('휴대폰번호',{w:13})];
+  const R=[['총판/대리점','00352','(주)KBM고봉민김밥','','','','','0400','aaa74550','(주)KBM고봉민김밥','재직','사용','01012341234'],
+    ['총판/대리점','00633','(주)세아정보','','','','','0755','shin2024','(주)세아정보','재직','사용','010-9163-4988'],
+    ['총판/대리점','00366','(주)스마트플렛','','','','','0413','aaa00018','(주)스마트플렛','재직','사용','010111122222'],
+    ['총판/대리점','00640','(주)아바트','','','','','0762','abart123','(주)아바트','재직','사용','01062554863'],
+    ['총판/대리점','00628','(주)제페코','','','','','0751','jefeko00297','(주)제페코','재직','사용','1544-3085'],
+    ['총판/대리점','00627','(주)지엔앤','','','','','0748','suok5245','(주)지엔앤','재직','사용','1544-5902'],
+    ['총판/대리점','00299','(주)하나포스','','','','','0351','hanaposs','(주)하나포스','재직','사용','01012341234'],
+    ['총판/대리점','00629','(주)한국한마음결재','','','','','0752','koma1182','(주)한국한마음결재','재직','사용','1661-0182'],
+    ['총판/대리점','00520','주식회사 평행','','','','','0601','','1','재직','미사용','01082099247'],
+    ['총판/대리점','00430','케이알포스시스템','','','','','0492','7170100202a','1','재직','사용','010-2827-0989']];
+  const ipPw=INFO_PRESETS.pwchange(); ipPw.id='ip'+(seq++); state.infoPopups.push(ipPw); cols[8].infoPopupId=ipPw.id;
+  const ipUl=INFO_PRESETS.unlock();   ipUl.id='ip'+(seq++); state.infoPopups.push(ipUl); cols[9].infoPopupId=ipUl.id;
+  state.panels=[PNL('',{pager:true,sel:3,cols,rows:R})];
+  state.desc="- '사용자ID' 클릭 시 '비밀번호 변경' 가능합니다.\n- '사용자명' 클릭 시 '로그인 잠금해제' 가능합니다.\n한 화면에서 링크 컬럼 2개가 서로 다른 처리 팝업으로 연결되는 유형입니다.";
+};
+PRESETS.pointadj=()=>{
+  state.title='회원 포인트 조정';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','가입일자',{range:true}),CD('combo','회원등급',{opts:['전체','일반','실버','골드','VIP']}),
+    CD('text','회원명'),CD('text','휴대폰'),CD('combo','회원상태',{ext:true,opts:['전체','정상','휴면','탈퇴']})];
+  state.cols=[{flex:1}];
+  const cols=[C('회원번호',{t:'link',w:12}),C('회원명',{a:'l',w:10}),C('휴대폰',{w:14}),C('등급',{t:'dropdown',o:['일반','실버','골드','VIP']}),
+    C('보유포인트',{a:'r',f:'comma',t:'number'}),C('누적적립',{a:'r',f:'comma',t:'number'}),C('최근적립일',{w:11}),C('상태',{t:'dropdown',o:['정상','휴면','탈퇴']})];
+  const R=[['M0001024','홍길동','010-1234-5678','골드',12500,85300,'2026-07-14','정상'],
+    ['M0001025','김수민','010-2222-3333','일반',3200,9800,'2026-07-11','정상'],
+    ['M0001026','박지훈','010-4444-5555','실버',7400,32100,'2026-06-28','정상'],
+    ['M0001027','이서연','010-6666-7777','VIP',48200,153000,'2026-07-15','정상'],
+    ['M0001028','최민호','010-8888-9999','일반',0,1200,'2025-12-02','휴면']];
+  const ip=INFO_PRESETS.pointadj(); ip.id='ip'+(seq++); state.infoPopups.push(ip); cols[0].infoPopupId=ip.id;
+  state.panels=[PNL('',{check:true,btns:['엑셀다운로드'],sum:true,pager:true,sel:0,cols,rows:R})];
+  state.desc='회원 목록에서 회원번호(링크)를 클릭하면 포인트 조정 팝업이 열립니다. 조정구분·수량·사유를 입력해 처리하는 유형입니다.';
+};
+PRESETS.stockadj=()=>{
+  state.title='매장 재고조정';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('combo','매장',{opts:['학동역점','강남본점','맘스터치 A점']}),CD('text','상품명'),
+    CD('cat','분류조회'),CD('combo','재고상태',{opts:['전체','정상','부족','과다']})];
+  state.cols=[{flex:1}];
+  const cols=[C('상품코드',{t:'link',w:15}),C('상품명',{a:'l',w:18}),C('분류',{a:'l',w:14}),C('단위',{w:7}),
+    C('현재재고',{a:'r',f:'comma',t:'number'}),C('안전재고',{a:'r',f:'comma',t:'number'}),C('재고상태',{t:'dropdown',o:['정상','부족','과다']}),C('최종조정일',{w:11})];
+  const R=[['0000000000038','펩시콜라 355ml','음료 > 탄산',' EA',128,50,'정상','2026-07-15'],
+    ['0000000000112','쉬림프골드 패티','원재료 > 냉동','EA',18,40,'부족','2026-07-16'],
+    ['0000000000205','포테이토 프라이','원재료 > 냉동','BOX',62,30,'정상','2026-07-12'],
+    ['0000000000317','포장용기 대','부자재 > 포장','EA',940,200,'과다','2026-07-09'],
+    ['0000000000421','치킨무 90g','부재료 > 반찬','EA',24,60,'부족','2026-07-16']];
+  const ip=INFO_PRESETS.stockadj(); ip.id='ip'+(seq++); state.infoPopups.push(ip); cols[0].infoPopupId=ip.id;
+  state.panels=[PNL('',{check:true,btns:[{label:'일괄조정',primary:true},'엑셀다운로드'],sum:true,pager:true,sel:1,cols,rows:R})];
+  state.desc='재고 목록에서 상품코드(링크)를 클릭하면 재고 조정 팝업이 열립니다. 조정유형·수량 입력 후 저장하는 유형입니다.';
+};
+PRESETS.smsresend=()=>{
+  state.title='알림 발송이력';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','발송일자',{range:true}),CD('combo','채널',{opts:['전체','SMS','LMS','알림톡','앱푸시']}),
+    CD('text','수신번호'),CD('combo','발송상태',{opts:['전체','성공','실패','대기']}),
+    CD('combo','템플릿',{ext:true,opts:['전체','주문완료 안내','포인트 적립','쿠폰 발급','휴면 전환 안내']})];
+  state.cols=[{flex:1}];
+  const cols=[C('발송번호',{t:'link',w:18}),C('발송일시',{w:16}),C('채널',{t:'dropdown',o:['SMS','LMS','알림톡','앱푸시']}),
+    C('템플릿',{a:'l',w:16}),C('수신번호',{w:14}),C('발송상태',{t:'dropdown',o:['성공','실패','대기']}),C('재발송횟수',{a:'r',t:'number',w:9}),C('실패사유',{a:'l',w:14})];
+  const R=[['MSG-20260716-0311','2026-07-16 12:34','알림톡','주문완료 안내','010-9163-4988','성공',0,''],
+    ['MSG-20260716-0310','2026-07-16 12:30','SMS','포인트 적립','010-1234-5678','실패',2,'수신거부'],
+    ['MSG-20260716-0309','2026-07-16 12:22','앱푸시','쿠폰 발급','010-2222-3333','성공',0,''],
+    ['MSG-20260716-0308','2026-07-16 12:11','알림톡','휴면 전환 안내','010-8888-9999','실패',1,'미등록 번호'],
+    ['MSG-20260716-0307','2026-07-16 12:02','LMS','주문완료 안내','010-4444-5555','대기',0,'']];
+  const ip=INFO_PRESETS.smsresend(); ip.id='ip'+(seq++); state.infoPopups.push(ip); cols[0].infoPopupId=ip.id;
+  state.panels=[PNL('',{check:true,btns:['엑셀다운로드'],pager:true,sel:1,cols,rows:R})];
+  state.desc='발송 이력에서 발송번호(링크)를 클릭하면 재발송 팝업이 열립니다. 내용 수정 후 테스트발송·재발송을 수행하는 유형입니다.';
+};
+PRESETS.posauth=()=>{
+  state.title='포스 단말 인증관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('text','매장코드'),CD('text','매장명'),
+    CD('combo','단말구분',{opts:['전체','포스','키오스크','태블릿']}),CD('combo','인증상태',{opts:['전체','정상','잠금','만료']}),
+    CD('combo','만료임박',{ext:true,opts:['전체','30일 이내','7일 이내']})];
+  state.cols=[{flex:1}];
+  const cols=[C('단말번호',{t:'link',w:15}),C('매장코드',{w:10}),C('매장명',{a:'l',w:14}),C('단말구분',{t:'dropdown',o:['포스','키오스크','태블릿']}),
+    C('인증상태',{t:'dropdown',o:['정상','잠금','만료']}),C('최종접속일시',{w:16}),C('인증만료일',{w:11}),C('접속실패',{a:'r',t:'number',w:8})];
+  const R=[['POS-E09725-01','E09725','학동역점','포스','잠금','2026-07-16 09:21','2026-12-31',5],
+    ['POS-E09725-02','E09725','학동역점','포스','정상','2026-07-16 12:40','2026-12-31',0],
+    ['KIO-E10063-01','E10063','강남본점','키오스크','정상','2026-07-16 12:38','2026-09-30',0],
+    ['POS-E09748-01','E09748','맘스터치 A점','포스','만료','2026-06-30 21:02','2026-06-30',1],
+    ['TAB-C00023-01','C00023','피자앤치킨 서초','태블릿','정상','2026-07-15 18:55','2027-03-31',0]];
+  const ip=INFO_PRESETS.posauth(); ip.id='ip'+(seq++); state.infoPopups.push(ip); cols[0].infoPopupId=ip.id;
+  state.panels=[PNL('',{check:true,btns:[{label:'인증키 일괄재발급',primary:true},'엑셀다운로드'],pager:true,sel:0,cols,rows:R})];
+  state.desc='단말 목록에서 단말번호(링크)를 클릭하면 인증 초기화 팝업이 열립니다. 인증키 재발급·만료일 변경을 처리하는 유형입니다.';
 };
 
 /* ================= 초기 렌더 ================= */

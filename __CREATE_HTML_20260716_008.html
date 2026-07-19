@@ -313,12 +313,14 @@
     <div class="builder-sec">
       <span class="sec-title">팝업 구성</span>
       <button class="type-btn accent" id="newPopupBtn">🪟 팝업 만들기</button>
+      <button class="type-btn" id="popupSampleBtn">📚 팝업예시</button>
       <span class="divider-v"></span>
       <div class="pop-chips" id="popChips"></div>
     </div>
     <div class="builder-sec">
       <span class="sec-title">정보 팝업</span>
       <button class="type-btn accent" id="newInfoBtn">🗂️ 정보팝업 만들기</button>
+      <button class="type-btn" id="infoSampleBtn">📚 팝업예시</button>
       <span class="divider-v"></span>
       <div class="pop-chips" id="infoChips"></div>
     </div>
@@ -407,6 +409,7 @@
       <input type="file" id="loadFile" accept=".json" style="display:none;">
       <button class="btn" id="exportHtml">🌐 HTML 내보내기</button>
       <button class="btn btn-primary" id="sampleBtn">📚 예시 화면</button>
+      <button class="btn" id="guideBtn" title="구성기 사용설명서 열기">📖 사용설명</button>
     </div>
   </div>
 
@@ -1067,30 +1070,27 @@ $('sampleBtn').onclick=()=>{
     ['smsresend','알림 발송이력','발송번호→알림 재발송 팝업'],
     ['posauth','포스 단말 인증관리','단말번호→단말 인증 초기화 팝업']
   ];
-  const infos=[
-    ['product','상품정보','기본/부가/기타/할인·적립 섹션, 다양한 필드'],
-    ['store','매장정보','탭형(매장정보/매장환경/메뉴권한) 상세'],
-    ['member','회원정보','기본/적립/마케팅동의 섹션'],
-    ['order','주문상세','주문/금액/비고 섹션'],
-    ['coupon','쿠폰정보','기본/기간/대상 섹션'],
-    ['pwchange','비밀번호 변경','작업형 · 패스워드초기화/변경하기'],
-    ['unlock','로그인 잠금해제','작업형 · 잠금해제/닫기'],
-    ['pointadj','포인트 조정','작업형 · 초기화/조정저장'],
-    ['stockadj','재고 조정','작업형 · 실사이력/조정저장'],
-    ['smsresend','알림 재발송','작업형 · 테스트발송/재발송'],
-    ['posauth','단말 인증 초기화','작업형 · 인증해제/초기화 적용']
-  ];
+  const infos=INFO_SAMPLES;
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📚 예시 불러오기</span><button class="x" data-x>&times;</button></div>
   <div class="modal-body">
-    <p class="hint-line">조회 화면을 고르면 현재 구성이 대체됩니다. 정보 팝업은 현재 구성에 추가되어 미리보기로 열립니다.</p>
+    <p class="hint-line">조회 화면을 고르면 현재 구성이 대체됩니다. 팝업은 현재 구성에 추가되어 미리보기로 열립니다.</p>
     <div class="pb-sub" style="margin-top:0;border-top:none;padding-top:0;">조회 화면 (${items.length})</div>
     <div class="preset-grid">${items.map(it=>`<div class="preset-card" data-preset="${it[0]}"><div class="pt">${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div>
-    <div class="pb-sub">정보 팝업 (${infos.length})</div>
-    <div class="preset-grid">${infos.map(it=>`<div class="preset-card" data-infopreset="${it[0]}"><div class="pt">🗂️ ${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div>
+    <div class="pb-sub">🪟 조회조건 팝업 (${POPUP_SAMPLES.length})</div>
+    ${sampleCards(POPUP_SAMPLES,'poppreset','🪟')}
+    <div class="pb-sub">🗂️ 정보·작업 팝업 (${infos.length})</div>
+    ${sampleCards(infos,'infopreset','🗂️')}
   </div>`;
   openModal(true); bindX();
   modalBox.querySelectorAll('[data-preset]').forEach(el=>el.onclick=()=>applyPreset(PRESETS[el.dataset.preset]));
+  modalBox.querySelectorAll('[data-poppreset]').forEach(el=>el.onclick=()=>applyPopupPreset(el.dataset.poppreset));
   modalBox.querySelectorAll('[data-infopreset]').forEach(el=>el.onclick=()=>applyInfoPreset(el.dataset.infopreset));
+};
+
+/* 사용설명서 열기 (같은 폴더의 __CREATE_HTML_GUIDE.html) */
+$('guideBtn').onclick=()=>{
+  const w=window.open('__CREATE_HTML_GUIDE.html','_blank','noopener');
+  if(!w) alert('팝업이 차단되었습니다. 같은 폴더의 __CREATE_HTML_GUIDE.html 파일을 직접 열어주세요.');
 };
 
 /* ================= 달력 ================= */
@@ -1233,11 +1233,12 @@ function openPopupBuilder(existing){
 function renderPopChips(){
   const box=$('popChips');
   if(!state.popups.length){box.innerHTML='<span class="pop-none">만든 팝업이 없습니다. ‘팝업 만들기’로 팝업명·조회조건을 정의하세요.</span>';return;}
-  box.innerHTML=state.popups.map(p=>`<span class="pop-chip">🪟 ${esc(p.name)}<button class="mini add" data-padd="${p.id}" title="조회조건으로 추가">＋</button><button class="mini edit" data-pedit="${p.id}" title="수정">✎</button><button class="mini x" data-pdel="${p.id}" title="삭제">✕</button></span>`).join('');
+  box.innerHTML=state.popups.map(p=>`<span class="pop-chip">🪟 ${esc(p.name)}<button class="mini view" data-pview="${p.id}" title="미리보기">👁</button><button class="mini add" data-padd="${p.id}" title="조회조건으로 추가">＋</button><button class="mini edit" data-pedit="${p.id}" title="수정">✎</button><button class="mini x" data-pdel="${p.id}" title="삭제">✕</button></span>`).join('');
 }
 $('popChips').addEventListener('click',e=>{
-  const add=e.target.closest('[data-padd]'),ed=e.target.closest('[data-pedit]'),del=e.target.closest('[data-pdel]');
-  if(add){const p=findPopup(add.dataset.padd);state.conditions.push({id:'c'+(seq++),type:'custompopup',label:p.name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:[],popupId:p.id});render();}
+  const add=e.target.closest('[data-padd]'),ed=e.target.closest('[data-pedit]'),del=e.target.closest('[data-pdel]'),vw=e.target.closest('[data-pview]');
+  if(vw){const p=findPopup(vw.dataset.pview);if(p){buildCustomModal(p,'__preview__');openModal(true);}}
+  else if(add){const p=findPopup(add.dataset.padd);state.conditions.push({id:'c'+(seq++),type:'custompopup',label:p.name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:[],popupId:p.id});render();}
   else if(ed){openPopupBuilder(findPopup(ed.dataset.pedit));}
   else if(del){const p=findPopup(del.dataset.pdel);if(confirm(`‘${p.name}’ 팝업을 삭제할까요? (이 팝업을 쓰는 조회조건도 함께 삭제됩니다)`)){state.conditions=state.conditions.filter(c=>c.popupId!==p.id);state.popups=state.popups.filter(x=>x.id!==p.id);render();}}
 });
@@ -1550,6 +1551,131 @@ PRESETS.settle=()=>{
   state.panels=[PNL('',{check:true,btns:[{label:'정산확정',primary:true},'엑셀다운로드'],sum:true,pager:true,sel:0,cols,rows:R})];
   state.desc='매장별 월 정산 내역 + 합계/페이지. 매출→수수료·공제→정산액 흐름.';
 };
+
+/* ================= 조회조건 팝업 예시 9종 ================= */
+const POPUP_PRESETS={};
+const PP=(name,fields,columns,data)=>({name,fields,columns,data});
+const PF=(label,type,options)=>({label,type:type||'text',options:options||[]});
+POPUP_PRESETS.store=()=>PP('매장선택',
+  [PF('매장코드'),PF('매장명'),PF('브랜드','combo',['전체','맘스터치','미스터피자','BBQ']),PF('매장상태','combo',['전체','오픈','휴점','폐점'])],
+  ['매장코드','매장명','브랜드','대표자','전화번호','상태'],
+  [['000004','맘스 QA전용','맘스터치','홍길동','02-000-0000','오픈'],
+   ['E09725','학동역점','맘스터치','김학동','02-511-1234','오픈'],
+   ['E09748','맘스터치 A점','맘스터치','이맘스','031-777-0000','오픈'],
+   ['C00023','피자앤치킨 서초','미스터피자','박서초','02-333-2222','휴점'],
+   ['E10063','강남본점','맘스터치','최강남','02-555-9999','오픈']]);
+POPUP_PRESETS.product=()=>PP('상품선택',
+  [PF('상품코드'),PF('상품명'),PF('브랜드','combo',['전체','맘스터치','미스터피자']),PF('판매여부','combo',['전체','판매','미판매'])],
+  ['상품코드','상품명','분류','판매단가','과세여부'],
+  [['0000000000038','펩시콜라 355ml','음료 > 탄산','1,900','과세'],
+   ['0000000000112','쉬림프골드','버거 > 프리미엄','6,300','과세'],
+   ['0000000000205','포테이토 프라이','사이드 > 튀김','2,500','과세'],
+   ['0000000000317','스페셜콰트로','피자 > 콤비네이션','24,900','과세'],
+   ['0000000000421','치킨무 90g','사이드 > 반찬','500','면세']]);
+POPUP_PRESETS.emp=()=>PP('사원선택',
+  [PF('사원번호'),PF('사원명'),PF('부서','combo',['전체','영업팀','운영팀','전산팀','재무팀']),PF('재직구분','combo',['전체','재직','퇴사'])],
+  ['사원번호','사원명','부서','직급','재직구분','내선'],
+  [['0400','홍길동','영업팀','과장','재직','1201'],
+   ['0413','김수민','운영팀','대리','재직','1305'],
+   ['0492','박지훈','전산팀','차장','재직','1410'],
+   ['0748','이서연','재무팀','사원','재직','1502'],
+   ['0755','최민호','영업팀','부장','퇴사','1210']]);
+POPUP_PRESETS.vendor=()=>PP('거래처선택',
+  [PF('거래처코드'),PF('거래처명'),PF('거래유형','combo',['전체','매입','매출','매입/매출'])],
+  ['거래처코드','거래처명','사업자번호','대표자','거래유형','전화번호'],
+  [['V00101','(주)세아정보','123-45-67890','김세아','매입','02-1234-5678'],
+   ['V00102','(주)스마트플렛','234-56-78901','이스마','매입','031-222-3333'],
+   ['V00103','(주)하나포스','345-67-89012','박하나','매입/매출','02-777-8888'],
+   ['V00104','(주)제페코','456-78-90123','정제페','매출','051-333-4444'],
+   ['V00105','케이알포스시스템','567-89-01234','최케이','매입','02-999-0000']]);
+POPUP_PRESETS.member=()=>PP('회원선택',
+  [PF('회원번호'),PF('회원명'),PF('휴대폰'),PF('등급','combo',['전체','일반','실버','골드','VIP'])],
+  ['회원번호','회원명','휴대폰','등급','보유포인트','상태'],
+  [['M0001024','홍길동','010-1234-5678','골드','12,500','정상'],
+   ['M0001025','김수민','010-2222-3333','일반','3,200','정상'],
+   ['M0001026','박지훈','010-4444-5555','실버','7,400','정상'],
+   ['M0001027','이서연','010-6666-7777','VIP','48,200','정상'],
+   ['M0001028','최민호','010-8888-9999','일반','0','휴면']]);
+POPUP_PRESETS.dept=()=>PP('부서선택',
+  [PF('부서코드'),PF('부서명'),PF('사용여부','combo',['전체','사용','미사용'])],
+  ['부서코드','부서명','상위부서','사원수','사용여부'],
+  [['D100','경영지원본부','-','12','사용'],
+   ['D110','재무팀','경영지원본부','5','사용'],
+   ['D200','영업본부','-','24','사용'],
+   ['D210','영업1팀','영업본부','9','사용'],
+   ['D300','전산팀','-','7','사용']]);
+POPUP_PRESETS.coupon=()=>PP('쿠폰선택',
+  [PF('쿠폰코드'),PF('쿠폰명'),PF('쿠폰유형','combo',['전체','금액할인','비율할인']),PF('발급일','date')],
+  ['쿠폰코드','쿠폰명','유형','할인값','사용기한','상태'],
+  [['CPN-2026-0042','여름맞이 2천원 할인','금액할인','2,000','2026-08-31','사용중'],
+   ['CPN-2026-0041','신규가입 10%','비율할인','10%','2026-12-31','사용중'],
+   ['CPN-2026-0038','재방문 1천원','금액할인','1,000','2026-07-31','종료'],
+   ['CPN-2026-0035','앱전용 15%','비율할인','15%','2026-09-30','사용중'],
+   ['CPN-2026-0030','휴면회원 3천원','금액할인','3,000','2026-07-15','종료']]);
+POPUP_PRESETS.acct=()=>PP('계정과목선택',
+  [PF('계정코드'),PF('계정명'),PF('계정구분','combo',['전체','자산','부채','자본','수익','비용'])],
+  ['계정코드','계정명','계정구분','차대구분','사용여부'],
+  [['40100','상품매출','수익','대변','사용'],
+   ['40200','용역매출','수익','대변','사용'],
+   ['51100','상품매출원가','비용','차변','사용'],
+   ['81100','급여','비용','차변','사용'],
+   ['81300','지급수수료','비용','차변','사용']]);
+POPUP_PRESETS.device=()=>PP('단말선택',
+  [PF('단말번호'),PF('매장명'),PF('단말구분','combo',['전체','포스','키오스크','태블릿'])],
+  ['단말번호','매장코드','매장명','단말구분','인증상태'],
+  [['POS-E09725-01','E09725','학동역점','포스','잠금'],
+   ['POS-E09725-02','E09725','학동역점','포스','정상'],
+   ['KIO-E10063-01','E10063','강남본점','키오스크','정상'],
+   ['POS-E09748-01','E09748','맘스터치 A점','포스','만료'],
+   ['TAB-C00023-01','C00023','피자앤치킨 서초','태블릿','정상']]);
+
+const POPUP_SAMPLES=[
+  ['store','매장선택','매장코드·매장명·브랜드 조건 + 6컬럼'],
+  ['product','상품선택','상품코드·상품명·판매여부 조건 + 5컬럼'],
+  ['emp','사원선택','사원번호·부서·재직구분 조건 + 6컬럼'],
+  ['vendor','거래처선택','거래처코드·거래유형 조건 + 사업자번호'],
+  ['member','회원선택','회원번호·등급 조건 + 보유포인트'],
+  ['dept','부서선택','부서코드·상위부서·사원수'],
+  ['coupon','쿠폰선택','쿠폰유형·발급일(일자) 조건 + 사용기한'],
+  ['acct','계정과목선택','계정구분·차대구분'],
+  ['device','단말선택','단말구분 조건 + 인증상태']
+];
+const INFO_SAMPLES=[
+  ['product','상품정보','상세형 · 기본/부가/기타/할인·적립 섹션'],
+  ['store','매장정보','상세형 · 탭(매장정보/매장환경/메뉴권한)'],
+  ['member','회원정보','상세형 · 기본/적립/마케팅동의'],
+  ['order','주문상세','상세형 · 주문/금액/비고'],
+  ['coupon','쿠폰정보','상세형 · 기본/기간/대상'],
+  ['pwchange','비밀번호 변경','작업형 · 패스워드초기화/변경하기'],
+  ['unlock','로그인 잠금해제','작업형 · 잠금해제/닫기'],
+  ['pointadj','포인트 조정','작업형 · 초기화/조정저장'],
+  ['stockadj','재고 조정','작업형 · 실사이력/조정저장'],
+  ['smsresend','알림 재발송','작업형 · 테스트발송/재발송'],
+  ['posauth','단말 인증 초기화','작업형 · 인증해제/초기화 적용']
+];
+function applyPopupPreset(key){
+  const p=POPUP_PRESETS[key](); p.id='p'+(seq++); state.popups.push(p);
+  closeModal(); render(); buildCustomModal(p,'__preview__'); openModal(true);
+}
+function sampleCards(list,attr,icon){
+  return `<div class="preset-grid">${list.map(it=>`<div class="preset-card" data-${attr}="${it[0]}"><div class="pt">${icon} ${esc(it[1])}</div><div class="pd">${esc(it[2])}</div></div>`).join('')}</div>`;
+}
+function openPopupSamples(kind){
+  const secPop=`<div class="pb-sub" data-s0>🪟 조회조건 팝업 (${POPUP_SAMPLES.length}) · 조회조건에 붙여 코드/명칭을 선택</div>${sampleCards(POPUP_SAMPLES,'poppreset','🪟')}`;
+  const secInfo=`<div class="pb-sub" data-s0>🗂️ 정보·작업 팝업 (${INFO_SAMPLES.length}) · 결과 그리드의 링크 컬럼에 연결</div>${sampleCards(INFO_SAMPLES,'infopreset','🗂️')}`;
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📚 팝업예시 (총 ${POPUP_SAMPLES.length+INFO_SAMPLES.length})</span><button class="x" data-x>&times;</button></div>
+  <div class="modal-body">
+    <p class="hint-line">카드를 누르면 현재 구성에 팝업이 바로 생성되고 미리보기로 열립니다. 생성된 팝업은 아래 칩에서 연결·수정·삭제할 수 있습니다.</p>
+    ${kind==='info'?secInfo+secPop:secPop+secInfo}
+  </div>`;
+  openModal(true); bindX();
+  const first=modalBox.querySelector('[data-s0]');
+  if(first) first.style.cssText='margin-top:0;border-top:none;padding-top:0;';
+  modalBox.querySelectorAll('[data-poppreset]').forEach(el=>el.onclick=()=>applyPopupPreset(el.dataset.poppreset));
+  modalBox.querySelectorAll('[data-infopreset]').forEach(el=>el.onclick=()=>applyInfoPreset(el.dataset.infopreset));
+}
+$('popupSampleBtn').onclick=()=>openPopupSamples('popup');
+$('infoSampleBtn').onclick =()=>openPopupSamples('info');
 
 /* ================= 작업형 팝업(입력·처리) 예시 ================= */
 /* 목록의 링크 컬럼을 클릭 → 그 건에 대한 처리를 수행하는 좁은 폼 팝업 유형 */

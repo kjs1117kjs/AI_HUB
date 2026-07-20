@@ -9,7 +9,12 @@
 <style>
   :root{
     --blue:#2f89ee; --blue-dark:#2278df; --blue-soft:#e9f2fd;
-    --head-bg:#e9f1fa; --grid-head:#edf3fa; --grid-grp:#dbe7f6; --label-bg:#f6f9fc;
+    --head-bg:#e9f1fa; --grid-head:#e8e8e8; --grid-grp:#dcdcdc; --label-bg:#f6f9fc;
+    --grid-line:#c4c4c4; --grid-head-tx:#333333;
+    /* 연파랑(soft) : 333.jpg 의 [조회조건 엑셀다운로드] / [선택취소] 버튼 색 */
+    --soft-bg:#ebf5ff; --soft-bg-h:#dbebfd; --soft-bd:#a8c0d8; --soft-bd-h:#7fa6cc; --soft-tx:#3f6ba8;
+    /* 회색(gray) */
+    --gray-bg:#e8e8e8; --gray-bg-h:#dcdcdc; --gray-bd:#c9c9c9; --gray-bd-h:#b5b5b5; --gray-tx:#333333;
     --border:#d3dce8; --border-soft:#e1e8f1; --sel:#cfe0f5;
     --text:#333a44; --text-sub:#69707a; --white:#fff; --danger:#e0554e;
   }
@@ -45,8 +50,9 @@
   .panel-head{display:flex;align-items:center;gap:8px;background:#e9f1fa;border-bottom:1px solid #c9dcf1;padding:9px 14px;border-radius:4px 4px 0 0;}
   .panel-head .caret{cursor:pointer;color:#3f5670;font-size:12px;line-height:1;user-select:none;transition:transform .2s;display:inline-block;}
   .panel-head.collapsed .caret{transform:rotate(-90deg);}
-  .panel-head .title-input{font-weight:700;font-size:13px;color:#2c3742;border:1px dashed transparent;background:transparent;font-family:inherit;padding:2px 6px;border-radius:3px;min-width:220px;}
-  .panel-head .title-input:hover,.panel-head .title-input:focus{border-color:#b7cbe6;background:#fff;outline:none;}
+  .panel-head .title-input{font-weight:700;font-size:13px;color:#2c3742;border:1px solid var(--blue);background:#fff;font-family:inherit;padding:2px 6px;border-radius:3px;min-width:220px;}
+  .panel-head .title-input:hover{border-color:var(--blue-dark);}
+  .panel-head .title-input:focus{border-color:var(--blue-dark);background:#fff;outline:none;box-shadow:0 0 0 2px rgba(47,137,238,.16);}
   .panel-head .actions{margin-left:auto;display:flex;gap:6px;}
   .search-body{padding:0;overflow:hidden;transition:max-height .25s ease;}
   table.search{width:100%;border-collapse:collapse;table-layout:fixed;}
@@ -88,6 +94,43 @@
   .excel-bar{display:flex;align-items:center;gap:6px;padding:10px 2px;}
   .excel-bar .count{margin-right:auto;font-size:12px;color:#5a6472;font-weight:600;}
   .excel-bar .count b{color:var(--blue-dark);font-feature-settings:"tnum";}
+  /* ===== 버튼 톤(색) 공통 : 조회영역 / 엑셀영역 / 패널 버튼에 모두 적용 ===== */
+  .btn.tone-blue,.gp-btn.tone-blue{background:var(--blue);border:1px solid var(--blue-dark);color:#fff;}
+  .btn.tone-blue:hover,.gp-btn.tone-blue:hover{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
+  .btn.tone-soft,.gp-btn.tone-soft{background:var(--soft-bg);border:1px solid var(--soft-bd);color:var(--soft-tx);}
+  .btn.tone-soft:hover,.gp-btn.tone-soft:hover{background:var(--soft-bg-h);border-color:var(--soft-bd-h);color:var(--soft-tx);}
+  .btn.tone-gray,.gp-btn.tone-gray{background:var(--gray-bg);border:1px solid var(--gray-bd);color:var(--gray-tx);}
+  .btn.tone-gray:hover,.gp-btn.tone-gray:hover{background:var(--gray-bg-h);border-color:var(--gray-bd-h);color:var(--gray-tx);}
+  .btn.tone-white,.gp-btn.tone-white{background:#fff;border:1px solid var(--border);color:#42505f;}
+  .btn.tone-white:hover,.gp-btn.tone-white:hover{background:#f4f6f9;border-color:#c2ccd9;color:#42505f;}
+  .btn.tone-blue .pbtn-x,.gp-btn.tone-blue .pbtn-x{color:#ffd9d6;}
+  /* ===== 추가 버튼 톤 ===== */
+  .btn.tone-red,.gp-btn.tone-red{background:#e0554e;border:1px solid #c9463f;color:#ffffff;}
+  .btn.tone-red:hover,.gp-btn.tone-red:hover{background:#cf4740;border-color:#b83c36;color:#ffffff;}
+  .btn.tone-softred,.gp-btn.tone-softred{background:#fdecec;border:1px solid #f0b4b1;color:#c0403a;}
+  .btn.tone-softred:hover,.gp-btn.tone-softred:hover{background:#fbdedd;border-color:#e59b97;color:#c0403a;}
+  .btn.tone-green,.gp-btn.tone-green{background:#1f9d55;border:1px solid #17854a;color:#ffffff;}
+  .btn.tone-green:hover,.gp-btn.tone-green:hover{background:#17854a;border-color:#12703d;color:#ffffff;}
+  .btn.tone-softgreen,.gp-btn.tone-softgreen{background:#e8f7ee;border:1px solid #a8d8bd;color:#1f7a4a;}
+  .btn.tone-softgreen:hover,.gp-btn.tone-softgreen:hover{background:#d8f0e2;border-color:#87c8a3;color:#1f7a4a;}
+  .btn.tone-orange,.gp-btn.tone-orange{background:#f0a020;border:1px solid #dc8f14;color:#ffffff;}
+  .btn.tone-orange:hover,.gp-btn.tone-orange:hover{background:#dc8f14;border-color:#c47c0d;color:#ffffff;}
+  .btn.tone-softorange,.gp-btn.tone-softorange{background:#fff5e3;border:1px solid #f0cf9a;color:#a86a12;}
+  .btn.tone-softorange:hover,.gp-btn.tone-softorange:hover{background:#ffedd0;border-color:#e5bb78;color:#a86a12;}
+  .btn.tone-teal,.gp-btn.tone-teal{background:#148f8c;border:1px solid #0f7a77;color:#ffffff;}
+  .btn.tone-teal:hover,.gp-btn.tone-teal:hover{background:#0f7a77;border-color:#0b6462;color:#ffffff;}
+  .btn.tone-purple,.gp-btn.tone-purple{background:#7a5cd0;border:1px solid #6a4cc0;color:#ffffff;}
+  .btn.tone-purple:hover,.gp-btn.tone-purple:hover{background:#6a4cc0;border-color:#5a3fa8;color:#ffffff;}
+  .btn.tone-navy,.gp-btn.tone-navy{background:#2c4a7c;border:1px solid #233d68;color:#ffffff;}
+  .btn.tone-navy:hover,.gp-btn.tone-navy:hover{background:#233d68;border-color:#1a3054;color:#ffffff;}
+  .btn.tone-dark,.gp-btn.tone-dark{background:#3a4551;border:1px solid #2c3742;color:#ffffff;}
+  .btn.tone-dark:hover,.gp-btn.tone-dark:hover{background:#2c3742;border-color:#202932;color:#ffffff;}
+  .btn.tone-red .pbtn-x,.gp-btn.tone-red .pbtn-x,.btn.tone-green .pbtn-x,.gp-btn.tone-green .pbtn-x,.btn.tone-orange .pbtn-x,.gp-btn.tone-orange .pbtn-x,.btn.tone-teal .pbtn-x,.gp-btn.tone-teal .pbtn-x,.btn.tone-purple .pbtn-x,.gp-btn.tone-purple .pbtn-x,.btn.tone-navy .pbtn-x,.gp-btn.tone-navy .pbtn-x,.btn.tone-dark .pbtn-x,.gp-btn.tone-dark .pbtn-x{color:#ffe0dd;}
+  /* 선택취소 버튼 : 연파랑 톤 (333.jpg 기준) */
+  .btn.btn-selcancel{background:var(--soft-bg);border:1px solid var(--soft-bd);color:var(--soft-tx);border-radius:3px;font-weight:600;}
+  .btn.btn-selcancel:hover{background:var(--soft-bg-h);border-color:var(--soft-bd-h);color:var(--soft-tx);}
+  /* 톤 미리보기 셀렉트 */
+  .b-sel.tone-sel{width:112px;}
   .tabbar{display:flex;gap:3px;border-bottom:2px solid var(--blue);margin-bottom:14px;}
   .tab{padding:8px 18px;font-size:12.5px;font-weight:700;color:#5a6472;background:#eef2f7;border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;cursor:pointer;}
   .tab.active{background:#fff;color:var(--blue-dark);border-color:var(--blue);position:relative;top:1px;}
@@ -118,7 +161,7 @@
   .grid-scroll{overflow-x:auto;overflow-y:auto;max-height:480px;}
   table.grid{border-collapse:collapse;font-size:12px;white-space:nowrap;}
   body.preview table.grid{table-layout:fixed;}
-  table.grid thead th{position:sticky;top:0;z-index:2;background:var(--grid-head);color:#34404d;font-weight:700;border:1px solid #cdd7e2;border-top:none;padding:0;text-align:center;height:36px;}
+  table.grid thead th{position:sticky;top:0;z-index:2;background:var(--grid-head);color:var(--grid-head-tx);font-weight:700;border:1px solid var(--grid-line);border-top:none;padding:0;text-align:center;height:36px;}
   table.grid thead th.grp{background:var(--grid-grp);}
   table.grid thead th.grp2{top:37px;}
   table.grid thead th .col-hd{display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 8px;position:relative;}
@@ -127,11 +170,11 @@
   body.preview table.grid tbody td{overflow:hidden;text-overflow:ellipsis;}
   table.grid thead th .col-hd.sortable>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
   table.grid thead th .col-hd.sortable{cursor:pointer;}
-  table.grid thead th .col-hd.sortable:hover{color:var(--blue-dark);}
-  table.grid thead th .sort-ar{font-size:9px;color:#8794a6;}
-  table.grid thead th .col-input{width:100%;min-width:60px;height:24px;border:1px dashed #c1cddd;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#fff;font-weight:700;color:#34404d;outline:none;}
+  table.grid thead th .col-hd.sortable:hover{color:#000;}
+  table.grid thead th .sort-ar{font-size:9px;color:#8a8a8a;}
+  table.grid thead th .col-input{width:100%;min-width:60px;height:24px;border:1px dashed #bdbdbd;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#fff;font-weight:700;color:var(--grid-head-tx);outline:none;}
   table.grid thead th .col-input:focus{border-color:var(--blue);border-style:solid;}
-  table.grid thead th .grp-input{width:100%;min-width:70px;height:22px;border:1px dashed #b3c5de;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#eef5fd;font-weight:700;color:#2f5488;outline:none;}
+  table.grid thead th .grp-input{width:100%;min-width:70px;height:22px;border:1px dashed #b5b5b5;border-radius:3px;padding:0 4px;font-family:inherit;font-size:12px;text-align:center;background:#f0f0f0;font-weight:700;color:#2f2f2f;outline:none;}
   table.grid thead th .grp-input:focus{border-color:var(--blue);border-style:solid;background:#fff;}
   table.grid thead th.chkcol,table.grid td.chkcol{width:32px;padding:0;text-align:center;}
   table.grid tbody td{border:1px solid #e6e9ee;padding:6px 8px;color:#3d4550;text-align:center;height:31px;}
@@ -152,7 +195,7 @@
   table.grid tbody td .cell-sel{min-width:64px;height:23px;border:1px solid #d3dce8;border-radius:3px;background:#fff;font-size:11.5px;font-family:inherit;color:#3d4550;padding:0 18px 0 6px;appearance:none;-webkit-appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path d='M0 0l4 5 4-5z' fill='%236b7684'/></svg>");background-repeat:no-repeat;background-position:right 6px center;cursor:pointer;}
   table.grid tbody td .cell-link{color:var(--blue-dark);text-decoration:underline;cursor:pointer;font-weight:600;}
-  table.grid tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1f5;border:1px solid #cdd7e2;padding:6px 8px;font-weight:700;color:#2c3742;text-align:center;}
+  table.grid tfoot td{position:sticky;bottom:0;z-index:2;background:#eef1f5;border:1px solid var(--grid-line);padding:6px 8px;font-weight:700;color:#2c3742;text-align:center;}
   table.grid tfoot td.r{text-align:right;font-feature-settings:"tnum";}
   .col-gear{width:36px;background:var(--grid-head);}
   .empty-grid{padding:44px 0;text-align:center;color:#9aa2ac;font-size:13px;}
@@ -359,7 +402,7 @@
       <label class="b-chk"><input type="checkbox" id="pOptPager"> 페이지</label>
       <span class="divider-v"></span>
       <input class="b-txt" id="pBtnName" placeholder="패널 버튼 (예: 저장)" style="width:130px;">
-      <label class="b-chk"><input type="checkbox" id="pBtnPrimary"> 강조</label>
+      <select class="b-sel tone-sel" id="pBtnTone" title="버튼 색"><optgroup label="진한 색"><option value="blue">파랑</option><option value="navy">남색</option><option value="teal">청록</option><option value="green">초록</option><option value="orange">주황</option><option value="red">빨강</option><option value="purple">보라</option><option value="dark">검정</option></optgroup><optgroup label="연한 색"><option value="soft" selected>연파랑</option><option value="softgreen">연초록</option><option value="softorange">연주황</option><option value="softred">연빨강</option><option value="gray">회색</option><option value="white">흰색</option></optgroup></select>
       <button class="type-btn" id="pBtnAdd">＋ 버튼</button>
       <span class="divider-v"></span>
       <button class="type-btn ghost" id="pDelPanel">패널 삭제</button>
@@ -404,12 +447,12 @@
     <div class="builder-sec">
       <span class="sec-title">조회/엑셀 버튼</span>
       <input class="b-txt" id="schBtnName" placeholder="조회영역 버튼명 (쉼표)" style="width:170px;">
-      <label class="b-chk"><input type="checkbox" id="schBtnPrimary" checked> 강조</label>
+      <select class="b-sel tone-sel" id="schBtnTone" title="버튼 색"><optgroup label="진한 색"><option value="blue" selected>파랑</option><option value="navy">남색</option><option value="teal">청록</option><option value="green">초록</option><option value="orange">주황</option><option value="red">빨강</option><option value="purple">보라</option><option value="dark">검정</option></optgroup><optgroup label="연한 색"><option value="soft">연파랑</option><option value="softgreen">연초록</option><option value="softorange">연주황</option><option value="softred">연빨강</option><option value="gray">회색</option><option value="white">흰색</option></optgroup></select>
       <button class="type-btn" id="schBtnAdd">＋ 조회영역</button>
       <button class="type-btn ghost" id="schBtnReset">기본값</button>
       <span class="divider-v"></span>
       <input class="b-txt" id="xlsBtnName" placeholder="엑셀영역 버튼명 (쉼표)" style="width:170px;">
-      <label class="b-chk"><input type="checkbox" id="xlsBtnPrimary"> 강조</label>
+      <select class="b-sel tone-sel" id="xlsBtnTone" title="버튼 색"><optgroup label="진한 색"><option value="blue">파랑</option><option value="navy">남색</option><option value="teal">청록</option><option value="green">초록</option><option value="orange">주황</option><option value="red">빨강</option><option value="purple">보라</option><option value="dark">검정</option></optgroup><optgroup label="연한 색"><option value="soft" selected>연파랑</option><option value="softgreen">연초록</option><option value="softorange">연주황</option><option value="softred">연빨강</option><option value="gray">회색</option><option value="white">흰색</option></optgroup></select>
       <button class="type-btn" id="xlsBtnAdd">＋ 엑셀영역</button>
       <button class="type-btn ghost" id="xlsBtnReset">기본값</button>
       <span class="hint">버튼명에 ‘확장’이 들어가면 확장조건 토글로 동작합니다. × 로 삭제.</span>
@@ -441,7 +484,7 @@
 
   <div class="excel-bar"><span class="count" id="rowCount"></span><span class="xls-actions" id="excelActions"></span></div>
   <div id="resultArea"></div>
-  <div class="desc-box"><label for="descArea">화면 설명</label><textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea></div>
+  <div class="desc-box"><label for="descArea">화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label><textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea></div>
 </div>
 
 <div class="cal" id="calPop">
@@ -472,8 +515,11 @@ function newPanel(title,colIndex){
     check:false, rownum:true, gear:true, showSum:false, pager:false, selRow:-1,
     columns:[], rows:[], sort:{kid:null,dir:1}};
 }
-const defSearchBtns = () => [{label:'조회',primary:true}];
-const defExcelBtns  = () => [{label:'엑셀다운로드',primary:false}];
+const defSearchBtns = () => [{label:'확장조회',primary:true,tone:'blue'},{label:'조회',primary:true,tone:'blue'}];
+const defExcelBtns  = () => [{label:'현재화면 엑셀다운로드',primary:false,tone:'soft'},{label:'조회조건 엑셀다운로드',primary:false,tone:'soft'},{label:'분할 엑셀다운로드',primary:false,tone:'soft'}];
+/* 버튼 톤 결정 : 저장된 tone > 강조(primary) > 라벨에 '엑셀' 포함 시 연파랑 > 흰색 */
+const TONES = [['blue','파랑'],['soft','연파랑'],['gray','회색'],['white','흰색']];
+const btnTone = (b,def) => b.tone || (b.primary ? 'blue' : (/엑셀/.test(b.label||'') ? 'soft' : (def||'white')));
 const state = {
   title:'화면 제목을 입력하세요', desc:'', extShown:false, queried:true,
   conditions:[], popups:[], infoPopups:[],
@@ -546,8 +592,8 @@ function yearField(c){const y=new Date().getFullYear();let o='';for(let i=y+1;i>
 function quarterField(c){const one=`<select class="cmb" style="width:110px"><option>1분기</option><option>2분기</option><option>3분기</option><option>4분기</option></select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
 function numberField(c){const one=`<input class="txt num-in" type="text" inputmode="numeric" placeholder="0">`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
 function optRow(c,kind){const nm=kind==='radio'?`name="${c.id}"`:'';return `<div class="opt-row">${c.options.map((o,i)=>`<label class="opt"><input type="${kind}" ${nm} ${kind==='radio'&&i===0?'checked':''}>${esc(o)}</label>`).join('')}</div>`;}
-function popupField(c,type,ph){return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button></div>`;}
-function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-ghost" data-clear="${c.id}_box">선택취소</button></div>`;}
+function popupField(c,type,ph){return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
+function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
 function condCtrl(c){return `<div class="cell-ctrl"><button data-act="up" data-cid="${c.id}">▲</button><button data-act="down" data-cid="${c.id}">▼</button><button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}">*</button><button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}">확</button><button data-act="del" data-cid="${c.id}" class="del">✕</button></div>`;}
 function condCell(c){
   if(!c) return `<th></th><td></td>`;
@@ -570,12 +616,12 @@ function applyExt(){ const hide=!isEdit()&&hasExtBtn()&&!state.extShown; documen
 function renderSearchBtns(){
   const box=$('searchActions'); if(!box) return; const edit=isEdit();
   box.innerHTML=(state.searchBtns||[]).map((b,i)=>
-    `<button class="btn ${b.primary===false?'':'btn-primary'}" data-sbtn="${i}">${esc(b.label)}${edit?`<span class="pbtn-x" data-sbtnx="${i}">×</span>`:''}</button>`).join('');
+    `<button class="btn tone-${btnTone(b)}" data-sbtn="${i}">${esc(b.label)}${edit?`<span class="pbtn-x" data-sbtnx="${i}">×</span>`:''}</button>`).join('');
 }
 function renderExcelBtns(){
   const box=$('excelActions'); if(!box) return; const edit=isEdit();
   box.innerHTML=(state.excelBtns||[]).map((b,i)=>
-    `<button class="btn ${b.primary?'btn-primary':''}" data-xbtn="${i}">${esc(b.label)}${edit?`<span class="pbtn-x" data-xbtnx="${i}">×</span>`:''}</button>`).join('');
+    `<button class="btn tone-${btnTone(b)}" data-xbtn="${i}">${esc(b.label)}${edit?`<span class="pbtn-x" data-xbtnx="${i}">×</span>`:''}</button>`).join('');
 }
 
 /* ================= 포맷/합계/정렬 ================= */
@@ -664,7 +710,7 @@ function renderPanel(p){
     head+='<div class="gp-head">';
     head+= edit?`<input class="gp-title-input" data-ptitle="${p.id}" value="${esc(p.title)}" placeholder="패널명">`:(p.title?`<span class="gp-title">${esc(p.title)}</span>`:'');
     head+='<div class="gp-btns">';
-    p.buttons.forEach((b,bi)=>head+=`<button class="gp-btn ${b.primary?'primary':''}">${esc(b.label)}${edit?`<span class="pbtn-x" data-pbtnx="${p.id}:${bi}">×</span>`:''}</button>`);
+    p.buttons.forEach((b,bi)=>head+=`<button class="gp-btn tone-${btnTone(b,'soft')}">${esc(b.label)}${edit?`<span class="pbtn-x" data-pbtnx="${p.id}:${bi}">×</span>`:''}</button>`);
     head+='</div></div>';
   }
   return `<div class="gpanel">${head}<div class="grid-outer">${renderPanelGrid(p)}</div>${p.pager?renderPager():''}</div>`;
@@ -764,7 +810,7 @@ $('pOptCheck').onchange =e=>{const p=curP();if(p)p.check=e.target.checked;render
 $('pOptRownum').onchange=e=>{const p=curP();if(p)p.rownum=e.target.checked;renderResult();};
 $('pOptSum').onchange   =e=>{const p=curP();if(p)p.showSum=e.target.checked;renderResult();};
 $('pOptPager').onchange =e=>{const p=curP();if(p)p.pager=e.target.checked;renderResult();};
-$('pBtnAdd').onclick=()=>{const p=curP();if(!p)return;const n=$('pBtnName').value.trim();if(!n){alert('버튼명을 입력하세요.');return;}p.buttons.push({label:n,primary:$('pBtnPrimary').checked});$('pBtnName').value='';renderResult();};
+$('pBtnAdd').onclick=()=>{const p=curP();if(!p)return;const n=$('pBtnName').value.trim();if(!n){alert('버튼명을 입력하세요.');return;}const t=$('pBtnTone').value;p.buttons.push({label:n,primary:t==='blue',tone:t});$('pBtnName').value='';renderResult();};
 $('pDelPanel').onclick=()=>{if(state.panels.length<=1){alert('최소 1개의 패널은 필요합니다.');return;}if(!confirm('이 패널을 삭제할까요?'))return;state.panels=state.panels.filter(p=>p.id!==state.curPanel);state.curPanel=state.panels[0].id;render();};
 
 /* ================= 컬럼 / 데이터 ================= */
@@ -814,15 +860,15 @@ $('clearAll').onclick=()=>{
 };
 $('titleInput').addEventListener('change',()=>{state.title=$('titleInput').value;});
 /* 조회영역 / 엑셀영역 버튼 구성 */
-function addBtns(inputId,arr,primary,after){
+function addBtns(inputId,arr,tone,after){
   const v=$(inputId).value.split(',').map(s=>s.trim()).filter(Boolean);
   if(!v.length){alert('버튼명을 입력하세요.');$(inputId).focus();return;}
-  v.forEach(l=>arr.push({label:l,primary:primary}));
+  v.forEach(l=>arr.push({label:l,primary:tone==='blue',tone:tone}));
   $(inputId).value=''; after();
 }
-$('schBtnAdd').onclick  =()=>addBtns('schBtnName',state.searchBtns,$('schBtnPrimary').checked,()=>{renderSearchBtns();applyExt();});
+$('schBtnAdd').onclick  =()=>addBtns('schBtnName',state.searchBtns,$('schBtnTone').value,()=>{renderSearchBtns();applyExt();});
 $('schBtnReset').onclick=()=>{state.searchBtns=defSearchBtns();renderSearchBtns();applyExt();};
-$('xlsBtnAdd').onclick  =()=>addBtns('xlsBtnName',state.excelBtns,$('xlsBtnPrimary').checked,renderExcelBtns);
+$('xlsBtnAdd').onclick  =()=>addBtns('xlsBtnName',state.excelBtns,$('xlsBtnTone').value,renderExcelBtns);
 $('xlsBtnReset').onclick=()=>{state.excelBtns=defExcelBtns();renderExcelBtns();};
 $('panelHead').addEventListener('click',e=>{if(e.target.closest('button')||e.target.closest('input'))return;const head=$('panelHead'),body=$('searchBody');head.classList.toggle('collapsed');body.style.maxHeight=head.classList.contains('collapsed')?'0px':'1200px';});
 $('searchBody').style.maxHeight='1200px';
@@ -882,7 +928,7 @@ $('exportHtml').onclick=()=>{
   let result= cloneWithValues('#resultArea');
   panel=panel.replace(/<input class="title-input"[^>]*?value="([^"]*)"[^>]*>/,'<span class="title" style="font-weight:700;font-size:13px;color:#2c3742">$1</span>');
   result=result.replace(/>⚙</g,'>No<').replace(/<span class="sort-ar">[^<]*<\/span>/g,'').replace(/col-hd sortable/g,'col-hd');
-  const xlsBtns=(state.excelBtns||[]).map(b=>`<button class="btn ${b.primary?'btn-primary':''}">${esc(b.label)}</button>`).join('');
+  const xlsBtns=(state.excelBtns||[]).map(b=>`<button class="btn tone-${btnTone(b)}">${esc(b.label)}</button>`).join('');
   const cntTxt = state.queried ? `총 <b>${curP().rows.length.toLocaleString('ko-KR')}</b>건` : '';
   const cnt = (state.queried||xlsBtns) ? `<div class="excel-bar"><span class="count">${cntTxt}</span><span class="xls-actions">${xlsBtns}</span></div>` : '';
   const desc=state.desc? `<div class="desc-box"><label>화면 설명</label><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div></div>`:'';
@@ -910,7 +956,7 @@ function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,
 function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null};}
 function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
-  if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true});
+  if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});
   state.extShown=false;state.queried=true;state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}
 
 const PRESETS={};
@@ -1284,7 +1330,7 @@ function ifField(f){
     case 'checkboxGroup': {const chk=v?String(v).split(',').map(s=>s.trim()):[];return `<div class="if-chk-group">${(f.options||[]).map(x=>`<label class="if-chk"><input type="checkbox" ${chk.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div>`;}
     case 'checkbox': return `<label class="if-chk"><input type="checkbox" ${truthy(v)?'checked':''}></label>`;
     case 'breadcrumb': return `<div class="if-breadcrumb">${esc(v||'-')}</div>`;
-    case 'popupSelect': return `<div class="if-popupsel"><div class="box ${v?'':'empty'}">${esc(v||(f.label+' 선택'))}</div><button class="btn btn-sm btn-ghost" type="button">선택취소</button></div>`;
+    case 'popupSelect': return `<div class="if-popupsel"><div class="box ${v?'':'empty'}">${esc(v||(f.label+' 선택'))}</div><button class="btn btn-sm btn-selcancel" type="button">선택취소</button></div>`;
     case 'withButton': return `<div class="if-popupsel"><input class="if-input" value="${esc(v)}"><button class="if-btn" type="button">${esc((f.options&&f.options[0])||'생성')}</button></div>`;
     case 'image': return `<div class="if-img">이미지 등록 준비중 입니다</div>`;
     case 'note': return `<div class="if-note">${esc(v||'준비중 입니다.')}</div>`;

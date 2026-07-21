@@ -381,6 +381,21 @@
   .annot-list .al-t.mut{color:#9aa2ac;}
   .annot-list .al-del{border:none;background:transparent;color:#c0403a;cursor:pointer;font-size:12px;padding:2px 4px;}
   body.preview .annot-list .al-del{display:none;}
+  /* ===== 추가 기능 : 텍스트 메모(화면 위 문구) ===== */
+  .txt-note{position:absolute;pointer-events:auto;white-space:pre-wrap;font-weight:600;line-height:1.5;max-width:420px;padding:1px 4px;border-radius:3px;z-index:490;}
+  .txt-note.hl{background:rgba(252,240,150,.85);}
+  body.text-mode .txt-note{cursor:grab;outline:1px dashed rgba(224,85,78,.5);outline-offset:2px;}
+  body.text-mode .txt-note:active{cursor:grabbing;}
+  body.text-mode #screenArea{cursor:text;outline:2px dashed #2f6bc0;outline-offset:5px;border-radius:4px;}
+  .btn.text-on{background:#2f6bc0;border-color:#245a9e;color:#fff;}
+  .txt-editor{position:absolute;z-index:600;pointer-events:auto;background:#fff;border:1px solid #a9c4e8;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.22);padding:10px;width:290px;}
+  .txt-editor textarea{width:100%;min-height:58px;border:1px solid var(--border);border-radius:4px;padding:8px;font-family:inherit;font-size:12px;line-height:1.55;resize:vertical;outline:none;color:var(--text);}
+  .txt-editor textarea:focus{border-color:#2f6bc0;box-shadow:0 0 0 2px rgba(47,107,192,.14);}
+  .txt-editor .te-row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .txt-editor .te-row select{height:26px;border:1px solid var(--border);border-radius:3px;font-family:inherit;font-size:11.5px;padding:0 4px;}
+  .txt-editor .te-row label{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#48515c;cursor:pointer;}
+  .txt-editor .te-btns{display:flex;align-items:center;gap:6px;margin-top:8px;}
+  .txt-editor .te-btns .sp{flex:1;}
 </style>
 </head>
 <body class="edit">
@@ -528,6 +543,7 @@
       <button class="btn" id="redoBtn" title="다시실행 (Ctrl+Y)">↪ 다시실행</button>
       <span class="divider-v"></span>
       <button class="btn" id="annotBtn" title="화면 위를 클릭해 번호 핀과 설명(스펙)을 답니다. HTML·화면정의서에 함께 내보내집니다">📌 주석 모드</button>
+      <button class="btn" id="textBtn" title="화면 위를 클릭해 주의사항·안내 문구를 직접 표시합니다. 색상·크기·형광펜 지정 가능">📝 텍스트 모드</button>
       <span class="divider-v"></span>
       <button class="btn" id="saveCfg">💾 저장(JSON)</button>
       <button class="btn" id="loadCfg">📂 불러오기</button>
@@ -599,7 +615,7 @@ const state = {
   searchBtns: defSearchBtns(), excelBtns: defExcelBtns(),
   tabs:[], activeTab:0, toolbar:null, searchOn:true,
   cols:[{flex:1}], panels:[newPanel('조회결과',0)], curPanel:null,
-  meta:{sid:'',author:'',ver:''}, annots:[]
+  meta:{sid:'',author:'',ver:''}, annots:[], texts:[]
 };
 state.curPanel = state.panels[0].id;
 /* 다중 화면 관리 : 현재 화면은 state에, 나머지는 screens[i].data에 보관 */
@@ -862,7 +878,7 @@ function renderResult(){
 function updateCount(){const p=curP();if(!(state.queried&&p&&p.columns.length)){$('rowCount').innerHTML='';return;}
   const shown=displayRowsP(p).length, tot=p.rows.length;
   $('rowCount').innerHTML = shown<tot ? `총 <b>${shown.toLocaleString('ko-KR')}</b>건 <span style="font-weight:500;color:#8a929c;">/ 전체 ${tot.toLocaleString('ko-KR')}건</span>` : `총 <b>${tot.toLocaleString('ko-KR')}</b>건`;}
-function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); }
+function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); renderTexts(); }
 
 
 /* ================= 빌더 동기화 ================= */
@@ -1127,7 +1143,7 @@ $('clearAll').onclick=()=>{
   state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
   state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
   state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;
-  state.meta={sid:'',author:'',ver:''};state.annots=[];closeAnnotEditor();
+  state.meta={sid:'',author:'',ver:''};state.annots=[];state.texts=[];closeAnnotEditor();closeTextEditor();
   $('descArea').value='';$('titleInput').value=state.title;render();
 };
 $('titleInput').addEventListener('change',()=>{state.title=$('titleInput').value;});
@@ -1169,7 +1185,7 @@ function normalizeScreenObj(o){
   o.cols=o.cols||[{flex:1}];
   o.panels.forEach(p=>{if(!p.id)p.id='P'+(seq++);if(!p.sort)p.sort={kid:null,dir:1};if(!p.buttons)p.buttons=[];if(p.fixedCols==null)p.fixedCols=0;if(p.filterRow==null)p.filterRow=false;if(!p.filters)p.filters={};(p.columns||[]).forEach(k=>{if(!k.id)k.id='k'+(seq++);if(!k.cellType)k.cellType='text';if(!k.options)k.options=[];});});
   if(!findByIdIn(o.panels,o.curPanel)) o.curPanel=o.panels[0].id;
-  o.meta=o.meta||{sid:'',author:'',ver:''};o.annots=o.annots||[];
+  o.meta=o.meta||{sid:'',author:'',ver:''};o.annots=o.annots||[];o.texts=o.texts||[];
   o.queried=o.queried!==false;o.extShown=!!o.extShown;
   return o;
 }
@@ -1203,7 +1219,7 @@ function snapState(){
   return JSON.stringify({title:state.title,desc:state.desc,conditions:state.conditions,popups:state.popups,infoPopups:state.infoPopups,
     searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabs:state.tabs,activeTab:state.activeTab,toolbar:state.toolbar,
     searchOn:state.searchOn,cols:state.cols,panels:state.panels,curPanel:state.curPanel,queried:state.queried,extShown:state.extShown,
-    meta:state.meta,annots:state.annots});
+    meta:state.meta,annots:state.annots,texts:state.texts});
 }
 function pushHist(){
   if(hist.lock) return;
@@ -1226,7 +1242,7 @@ function applySnap(s){
   state.cols=o.cols||[{flex:1}];state.panels=o.panels||[newPanel('조회결과',0)];
   state.curPanel=findP(o.curPanel)?o.curPanel:(state.panels[0]&&state.panels[0].id);
   state.queried=o.queried!==false;state.extShown=!!o.extShown;
-  state.meta=o.meta||{sid:'',author:'',ver:''};state.annots=o.annots||[];
+  state.meta=o.meta||{sid:'',author:'',ver:''};state.annots=o.annots||[];state.texts=o.texts||[];
   $('titleInput').value=state.title;$('descArea').value=state.desc;
   render();
   hist.lock=false;
@@ -1261,25 +1277,25 @@ function freshScreenData(){
   return {title:'화면 제목을 입력하세요',desc:'',conditions:[],popups:[],infoPopups:[],
     searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabs:[],activeTab:0,toolbar:null,searchOn:true,
     cols:[{flex:1}],panels:[p],curPanel:p.id,queried:true,extShown:false,
-    meta:{sid:'',author:'',ver:''},annots:[]};
+    meta:{sid:'',author:'',ver:''},annots:[],texts:[]};
 }
 function switchScreen(i){
   if(i===curScreen||!screens[i]) return;
-  syncCurScreen(); closeAnnotEditor();
+  syncCurScreen(); closeAnnotEditor(); closeTextEditor();
   curScreen=i;
   applySnap(JSON.stringify(screens[i].data||freshScreenData()));
   resetHist();
 }
 $('screenSel').onchange=e=>switchScreen(+e.target.value);
 $('scrAdd').onclick=()=>{
-  syncCurScreen(); closeAnnotEditor();
+  syncCurScreen(); closeAnnotEditor(); closeTextEditor();
   screens.push({data:freshScreenData()});
   curScreen=screens.length-1;
   applySnap(JSON.stringify(screens[curScreen].data));
   resetHist();
 };
 $('scrDup').onclick=()=>{
-  syncCurScreen(); closeAnnotEditor();
+  syncCurScreen(); closeAnnotEditor(); closeTextEditor();
   const cp=captureScreen();
   cp.title=(cp.title||'화면')+' 복사';
   screens.splice(curScreen+1,0,{data:cp});
@@ -1290,7 +1306,7 @@ $('scrDup').onclick=()=>{
 $('scrDel').onclick=()=>{
   if(screens.length<=1){alert('최소 1개의 화면은 필요합니다.');return;}
   if(!confirm(`화면 "${state.title||'(제목없음)'}"을(를) 삭제할까요?`))return;
-  closeAnnotEditor();
+  closeAnnotEditor(); closeTextEditor();
   screens.splice(curScreen,1);
   if(curScreen>=screens.length) curScreen=screens.length-1;
   applySnap(JSON.stringify(screens[curScreen].data||freshScreenData()));
@@ -1300,6 +1316,7 @@ $('scrDel').onclick=()=>{
 /* ================= 주석(어노테이션) 모드 ================= */
 let annotDrag=null, annotMoved=false, annotEditorEl=null, annotEditingId=null;
 $('annotBtn').onclick=()=>{
+  setTextMode(false);
   document.body.classList.toggle('annot-mode');
   const on=document.body.classList.contains('annot-mode');
   $('annotBtn').classList.toggle('annot-on',on);
@@ -1383,6 +1400,115 @@ document.addEventListener('click', e=>{
   renderAnnots(); schedulePush();
 });
 
+/* ================= 텍스트 메모 모드 (화면 위 문구) ================= */
+const TXT_COLORS=[['#e0554e','빨강'],['#2f6bc0','파랑'],['#1f7a4a','초록'],['#69707a','회색'],['#333a44','검정']];
+let textDrag=null, textMoved=false, textEditorEl=null, textEditingId=null;
+function setTextMode(on){
+  document.body.classList.toggle('text-mode',on);
+  $('textBtn').classList.toggle('text-on',on);
+  $('textBtn').textContent=on?'📝 텍스트 모드 종료':'📝 텍스트 모드';
+  if(!on) closeTextEditor();
+}
+function setAnnotModeOff(){
+  document.body.classList.remove('annot-mode');
+  $('annotBtn').classList.remove('annot-on');
+  $('annotBtn').textContent='📌 주석 모드';
+  closeAnnotEditor();
+}
+$('textBtn').onclick=()=>{
+  setAnnotModeOff();
+  setTextMode(!document.body.classList.contains('text-mode'));
+};
+function renderTexts(){
+  const layer=$('annotLayer'); if(!layer) return;
+  layer.querySelectorAll('.txt-note').forEach(el=>el.remove());
+  (state.texts||[]).forEach(t=>{
+    const d=document.createElement('div');
+    d.className='txt-note'+(t.hl?' hl':'');
+    d.textContent=t.text||'(내용 없음)';
+    d.style.left=t.x+'px'; d.style.top=t.y+'px';
+    d.style.color=t.color||'#e0554e';
+    d.style.fontSize=(t.size||13)+'px';
+    d.dataset.tid=t.id;
+    layer.appendChild(d);
+  });
+}
+function openTextEditor(t){
+  closeTextEditor(); closeAnnotEditor();
+  textEditingId=t.id;
+  textEditorEl=document.createElement('div');
+  textEditorEl.className='txt-editor';
+  const layer=$('annotLayer');
+  const lw=layer.offsetWidth||800;
+  textEditorEl.style.left=Math.max(4,Math.min(t.x,lw-300))+'px';
+  textEditorEl.style.top=(t.y+22)+'px';
+  const colorOpts=TXT_COLORS.map(([c,n])=>`<option value="${c}" ${((t.color||'#e0554e')===c)?'selected':''}>${n}</option>`).join('');
+  const sizeOpts=[12,13,15,17].map(s=>`<option value="${s}" ${((t.size||13)===s)?'selected':''}>${s}px</option>`).join('');
+  textEditorEl.innerHTML=`<textarea class="te-ta" placeholder="화면에 표시할 문구를 적어주세요. 예: ※ 마감 후에는 수정이 불가합니다">${esc(t.text||'')}</textarea>
+    <div class="te-row"><select class="te-color" title="글자 색">${colorOpts}</select><select class="te-size" title="글자 크기">${sizeOpts}</select><label><input type="checkbox" class="te-hl" ${t.hl?'checked':''}> 형광펜</label></div>
+    <div class="te-btns"><button class="btn btn-sm" data-te="del" style="color:#c0403a;">삭제</button><span class="sp"></span><button class="btn btn-sm" data-te="close">닫기</button><button class="btn btn-primary btn-sm" data-te="save">저장</button></div>`;
+  layer.appendChild(textEditorEl);
+  textEditorEl.querySelector('.te-ta').focus();
+  /* 색·크기·형광펜은 즉시 미리보기 */
+  const live=()=>{
+    const el=layer.querySelector(`.txt-note[data-tid="${t.id}"]`); if(!el) return;
+    el.style.color=textEditorEl.querySelector('.te-color').value;
+    el.style.fontSize=textEditorEl.querySelector('.te-size').value+'px';
+    el.classList.toggle('hl',textEditorEl.querySelector('.te-hl').checked);
+    el.textContent=textEditorEl.querySelector('.te-ta').value||'(내용 없음)';
+  };
+  textEditorEl.querySelectorAll('.te-color,.te-size,.te-hl').forEach(x=>x.addEventListener('change',live));
+  textEditorEl.querySelector('.te-ta').addEventListener('input',live);
+  textEditorEl.addEventListener('click',e=>{
+    const b=e.target.closest('[data-te]'); if(!b) return;
+    e.stopPropagation();
+    const t2=state.texts.find(x=>x.id===textEditingId);
+    if(b.dataset.te==='save'){
+      if(t2){
+        t2.text=textEditorEl.querySelector('.te-ta').value.trim();
+        t2.color=textEditorEl.querySelector('.te-color').value;
+        t2.size=+textEditorEl.querySelector('.te-size').value;
+        t2.hl=textEditorEl.querySelector('.te-hl').checked;
+        if(!t2.text){ state.texts=state.texts.filter(x=>x.id!==textEditingId); } /* 빈 문구는 자동 삭제 */
+      }
+      closeTextEditor(); renderTexts(); schedulePush();
+    }
+    else if(b.dataset.te==='del'){ state.texts=state.texts.filter(x=>x.id!==textEditingId); closeTextEditor(); renderTexts(); schedulePush(); }
+    else { closeTextEditor(); renderTexts(); }
+  });
+}
+function closeTextEditor(){ if(textEditorEl){textEditorEl.remove();textEditorEl=null;} textEditingId=null; }
+/* 텍스트 모드 : 화면 클릭 가로채기 (capture) */
+$('screenArea').addEventListener('click', e=>{
+  if(!document.body.classList.contains('text-mode')) return;
+  if(e.target.closest('.txt-editor')) return;
+  if(e.target.closest('#annotList')) return;
+  e.preventDefault(); e.stopPropagation();
+  if(textMoved){ textMoved=false; return; }
+  const noteEl=e.target.closest('.txt-note');
+  if(noteEl){ const t=state.texts.find(x=>x.id===noteEl.dataset.tid); if(t)openTextEditor(t); return; }
+  const rect=$('screenArea').getBoundingClientRect();
+  const t={id:'t'+(seq++), x:Math.round(e.clientX-rect.left), y:Math.round(e.clientY-rect.top), text:'', color:'#e0554e', size:13, hl:false};
+  state.texts.push(t); renderTexts(); openTextEditor(t); schedulePush();
+}, true);
+/* 텍스트 모드 : 메모 드래그 이동 */
+$('screenArea').addEventListener('mousedown', e=>{
+  if(!document.body.classList.contains('text-mode')) return;
+  const noteEl=e.target.closest('.txt-note'); if(!noteEl) return;
+  const t=state.texts.find(x=>x.id===noteEl.dataset.tid); if(!t) return;
+  e.preventDefault();
+  textDrag={t,noteEl,sx:e.clientX,sy:e.clientY,ox:t.x,oy:t.y}; textMoved=false;
+}, true);
+document.addEventListener('mousemove', e=>{
+  if(!textDrag) return;
+  const dx=e.clientX-textDrag.sx, dy=e.clientY-textDrag.sy;
+  if(Math.abs(dx)+Math.abs(dy)>3) textMoved=true;
+  textDrag.t.x=textDrag.ox+dx; textDrag.t.y=textDrag.oy+dy;
+  textDrag.noteEl.style.left=textDrag.t.x+'px';
+  textDrag.noteEl.style.top=textDrag.t.y+'px';
+});
+document.addEventListener('mouseup', ()=>{ if(textDrag){textDrag=null; if(textMoved)schedulePush();} });
+
 /* ================= HTML 내보내기(완성 화면 스냅샷) ================= */
 function cloneWithValues(sel){
   const orig=document.querySelector(sel); if(!orig) return '';
@@ -1405,11 +1531,12 @@ $('exportHtml').onclick=()=>{
   const xlsBtns=(state.excelBtns||[]).map(b=>`<button class="btn tone-${btnTone(b)}">${esc(b.label)}</button>`).join('');
   const cntTxt = state.queried ? `총 <b>${curP().rows.length.toLocaleString('ko-KR')}</b>건` : '';
   const cnt = (state.queried||xlsBtns) ? `<div class="excel-bar"><span class="count">${cntTxt}</span><span class="xls-actions">${xlsBtns}</span></div>` : '';
-  const desc=state.desc? `<div class="desc-box"><label>화면 설명</label><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div></div>`:'';
+  const desc=`<div class="desc-box"><label>화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label>${state.desc?`<div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div>`:''}</div>`;
   const m=state.meta||{};
   const metaBits=[m.sid&&('화면ID '+esc(m.sid)), m.author&&('작성자 '+esc(m.author)), m.ver&&('버전 '+esc(m.ver))].filter(Boolean);
   const metaLine=metaBits.length?`<div style="font-size:12px;color:#7a828d;margin-bottom:10px;font-weight:600;">${metaBits.join(' · ')}</div>`:'';
-  const pins=(state.annots||[]).map((a,i)=>`<div class="annot-pin" style="left:${a.x}px;top:${a.y}px;" title="${esc(a.text||'')}">${i+1}</div>`).join('');
+  const pins=(state.annots||[]).map((a,i)=>`<div class="annot-pin" style="left:${a.x}px;top:${a.y}px;" title="${esc(a.text||'')}">${i+1}</div>`).join('')
+    +(state.texts||[]).map(t=>`<div class="txt-note${t.hl?' hl':''}" style="left:${t.x}px;top:${t.y}px;color:${esc(t.color||'#e0554e')};font-size:${t.size||13}px;">${esc(t.text||'')}</div>`).join('');
   const annotList=(state.annots||[]).length?`<div class="annot-list"><div class="al-title">📌 주석 목록</div>${state.annots.map((a,i)=>`<div class="al-row"><span class="al-n">${i+1}</span><span class="al-t">${esc(a.text||'(내용 없음)')}</span></div>`).join('')}</div>`:'';
   const extra=`<style>body.export{background:#f4f6f9;}body.export .col-hd.sortable{cursor:default;}body.export table.grid thead th .sort-ar{display:none;}body.export .wrap{padding:24px 16px;}body.export .flt-in{pointer-events:none;}</style>`;
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
@@ -1476,6 +1603,7 @@ $('exportSpec').onclick=()=>{
       return `<tr><td class="c">${i+1}</td><td>${esc(ip.name)}</td><td>${(ip.tabs&&ip.tabs.length?'탭: '+ip.tabs.map(esc).join('·')+' / ':'')+secs}</td></tr>`;}).join('')+`</tbody></table>`;
   }
   const descSec=state.desc?`<h2>5. 화면 설명</h2><div class="descbx">${esc(state.desc)}</div>`:'';
+  const textSec=(state.texts||[]).length?`<h2>7. 화면 표시 문구 (${state.texts.length}건)</h2><p class="mut" style="margin:0 0 8px;">화면 위에 직접 표시되는 주의사항·안내 문구입니다.</p><table><thead><tr><th style="width:36px">No</th><th>문구</th></tr></thead><tbody>${state.texts.map((t,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;color:${esc(t.color||'#e0554e')};font-weight:600;">${esc(t.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const annotSec=(state.annots||[]).length?`<h2>6. 화면 주석 (${state.annots.length}건)</h2><p class="mut" style="margin:0 0 8px;">번호는 화면(HTML 내보내기)의 빨간 핀 번호와 일치합니다.</p><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${state.annots.map((a,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const mm=state.meta||{};
   const metaBits2=[mm.sid&&('화면ID '+esc(mm.sid)), mm.author&&('작성자 '+esc(mm.author)), mm.ver&&('버전 '+esc(mm.ver))].filter(Boolean);
@@ -1502,7 +1630,7 @@ td.c{text-align:center;}
 </style></head><body><div class="doc">
 <h1>${esc(state.title||'조회화면')}</h1>
 <div class="meta">화면정의서${metaBits2.length?' · '+metaBits2.join(' · '):''} · 작성일 ${specDateStr()} · 조회조건 ${state.conditions.length}건 · 패널 ${state.panels.length}개</div>
-${condTbl}${btnTbl}<h2>3. 결과 그리드 (패널 ${state.panels.length}개${state.cols.length>1?' · '+state.cols.length+'단 레이아웃':''})</h2>${panelSecs}${popSec}${descSec}${annotSec}
+${condTbl}${btnTbl}<h2>3. 결과 그리드 (패널 ${state.panels.length}개${state.cols.length>1?' · '+state.cols.length+'단 레이아웃':''})</h2>${panelSecs}${popSec}${descSec}${annotSec}${textSec}
 </div></body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((mm.sid?mm.sid+'_':'')+(state.title||'조회화면'))+'_화면정의서.html';a.click();

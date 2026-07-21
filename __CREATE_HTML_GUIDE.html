@@ -115,9 +115,9 @@
   <div class="hero-in">
     <div class="eyebrow">User Guide</div>
     <h1>조회화면 구성기 사용설명서</h1>
-    <p>코딩 없이 조회조건 · 결과 그리드 · 팝업으로 구성된 업무 화면을 만들고, 미리보기 · HTML · 엑셀로 내보내는 도구입니다. 화면 상단의 회색 바(빌더)에서 구성하고, 아래 흰 영역에서 결과를 바로 확인합니다.</p>
+    <p>코딩 없이 조회조건 · 결과 그리드 · 팝업으로 구성된 업무 화면을 만들고, 미리보기 · HTML · 엑셀 · 화면정의서로 내보내는 도구입니다. 화면 상단의 회색 바(빌더)에서 구성하고, 아래 흰 영역에서 결과를 바로 확인합니다. 최신 009 버전은 여러 화면 관리와 주석(📌) 기능을 지원합니다.</p>
     <div class="hero-actions">
-      <a class="lnk primary" href="__CREATE_HTML_20260716_008.html" target="_blank" rel="noopener">구성기 열기 →</a>
+      <a class="lnk primary" href="__CREATE_HTML_20260716_009.html" target="_blank" rel="noopener">구성기 열기 →</a>
       <a class="lnk" href="index.html">← 허브로</a>
     </div>
   </div>
@@ -141,6 +141,8 @@
       <li><a href="#sample">12 예시 불러오기</a></li>
       <li><a href="#recipe">13 자주 쓰는 구성 레시피</a></li>
       <li><a href="#faq">14 자주 묻는 질문</a></li>
+      <li><a href="#edit009">15 편집 도우미 (009)</a></li>
+      <li><a href="#proj009">16 다중 화면 · 주석 · 정의서 (009)</a></li>
     </ul>
   </nav>
 
@@ -386,9 +388,10 @@
         <table>
           <thead><tr><th style="width:180px">기능</th><th>내용</th></tr></thead>
           <tbody>
-            <tr><td><span class="btnx">💾 저장(JSON)</span></td><td>구성 전체(조건 · 팝업 · 패널 · 컬럼 · 데이터 · 버튼 · 설명)를 <code>.json</code> 파일로 저장. <b>이어서 작업하려면 이 파일을 보관하세요.</b></td></tr>
+            <tr><td><span class="btnx">💾 저장(JSON)</span></td><td>구성 전체(조건 · 팝업 · 패널 · 컬럼 · 데이터 · 버튼 · 설명)를 <code>.json</code> 파일로 저장. <b>이어서 작업하려면 이 파일을 보관하세요.</b> 009부터는 <b>화면 목록의 모든 화면이 한 파일(프로젝트)로 저장</b>되며, 이전 버전에서 저장한 단일 화면 JSON도 그대로 불러올 수 있습니다.</td></tr>
             <tr><td><span class="btnx">📂 불러오기</span></td><td>저장한 JSON을 열어 구성을 그대로 복원</td></tr>
-            <tr><td><span class="btnx">🌐 HTML 내보내기</span></td><td>완성된 화면을 단일 <code>.html</code> 파일로 저장 (공유 · 첨부용)</td></tr>
+            <tr><td><span class="btnx">🌐 HTML 내보내기</span></td><td>완성된 화면을 단일 <code>.html</code> 파일로 저장 (공유 · 첨부용). 009부터 화면ID · 작성자 · 버전 메타와 주석 핀 · 주석 목록이 함께 담깁니다.</td></tr>
+            <tr><td><span class="btnx">📑 화면정의서</span></td><td><b>(009)</b> 조회조건 표(타입 · 기간 · 필수 · 확장 · 옵션), 버튼 구성, 패널별 컬럼 정의 표(그룹 · 타입 · 정렬 · 포맷 · 너비 · 연결팝업), 팝업 목록, 화면 설명, 주석 목록을 정리한 <b>인쇄용 정의서 HTML</b>을 내려받습니다. 기획 산출물로 그대로 사용할 수 있습니다.</td></tr>
             <tr><td>엑셀영역 버튼</td><td>대상 패널을 <code>.xlsx</code>로 저장 (2줄 그룹헤더 병합 · 합계행 포함)</td></tr>
             <tr><td><span class="btnx">전체 초기화</span></td><td>모든 구성을 처음 상태로 되돌림 (되돌리기 불가)</td></tr>
           </tbody>
@@ -460,6 +463,50 @@
 
         <h3>화면이 좁아 빌더가 잘립니다.</h3>
         <p>빌더 영역은 가로로 접히므로 브라우저 폭을 넓히거나 확대 배율을 낮추면 편합니다.</p>
+      </div>
+    </section>
+
+    <section id="edit009">
+      <h2><span class="n">15</span>편집 도우미 기능 (009)</h2>
+      <p class="lede">009 버전에 추가된, 구성 작업을 빠르게 해 주는 기능들입니다.</p>
+      <div class="card">
+        <table>
+          <thead><tr><th style="width:190px">기능</th><th>사용 방법</th></tr></thead>
+          <tbody>
+            <tr><td>드래그 정렬</td><td>조건 · 컬럼의 컨트롤에 있는 <code>⠿</code> 핸들을 잡고 원하는 위치로 끌어다 놓습니다. 파란 점선이 표시된 곳으로 이동합니다. (컬럼은 같은 패널 안에서만)</td></tr>
+            <tr><td>실행취소 · 다시실행</td><td><code>Ctrl+Z</code> / <code>Ctrl+Y</code> 또는 <span class="btnx">↩ 실행취소</span> <span class="btnx">↪ 다시실행</span> 버튼. 최대 80단계까지 되돌릴 수 있습니다.</td></tr>
+            <tr><td>조건 · 컬럼 복제</td><td>컨트롤의 <code>⧉</code> 버튼. 컬럼 복제는 <b>행 데이터 값까지</b> 함께 복사됩니다.</td></tr>
+            <tr><td>패널 복제</td><td>대상 패널 줄의 <span class="btnx">⧉ 패널 복제</span>. 컬럼 · 데이터 · 버튼 · 옵션을 그대로 가진 독립 사본을 만듭니다.</td></tr>
+            <tr><td>컬럼 너비 리사이즈</td><td>편집 모드에서 컬럼 헤더의 <b>오른쪽 가장자리</b>를 잡고 좌우로 드래그합니다.</td></tr>
+            <tr><td>고정 컬럼</td><td>대상 패널의 <b>고정</b>(1~3열) 선택. 가로 스크롤 시 행번호 · 체크박스열과 함께 왼쪽에 고정됩니다.</td></tr>
+            <tr><td>필터행</td><td>대상 패널의 <b>필터행</b> 체크. 헤더 아래 필터 입력 행이 생기고 실제로 걸러집니다. 합계행과 건수도 필터 결과 기준으로 바뀝니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="proj009">
+      <h2><span class="n">16</span>다중 화면 · 화면 정보 · 주석 · 정의서 (009)</h2>
+      <p class="lede">화면 하나짜리 데모 도구를 넘어, 프로젝트 화면정의 도구로 쓰기 위한 기능입니다.</p>
+      <div class="card">
+        <h3>화면 목록 — 한 파일에서 여러 화면 관리</h3>
+        <p>빌더 맨 위 <b>화면 목록</b>에서 <span class="btnx">＋ 새 화면</span> · <span class="btnx">⧉ 화면 복제</span> · <span class="btnx">화면 삭제</span>로 화면을 여러 개 만들고 선택 상자로 전환합니다. 전환하면 현재 작업이 자동 보관되고, <span class="btnx">💾 저장(JSON)</span> 한 번으로 모든 화면이 프로젝트 파일 하나에 저장됩니다.</p>
+
+        <h3>화면 정보 — 화면ID · 작성자 · 버전</h3>
+        <p>화면 목록 옆에 화면ID(예: <code>SCR-POS-001</code>) · 작성자 · 버전을 입력하면 JSON · HTML 내보내기 · 화면정의서 · 파일명에 함께 기록됩니다. 화면이 많아질수록 화면ID를 붙여 두는 것을 권합니다.</p>
+
+        <h3>주석(📌) 모드 — 화면 위에 스펙 달기</h3>
+        <ol class="steps">
+          <li><span class="btnx">📌 주석 모드</span>를 눌러 켭니다. (화면 영역에 빨간 점선 테두리 표시)</li>
+          <li>화면 아무 곳이나 클릭하면 <b>번호 핀</b>이 찍히고 설명 입력 창이 열립니다. 예: <code>클릭 시 인증 초기화 팝업 호출</code></li>
+          <li>핀은 드래그로 옮기고, 클릭해서 수정 · 삭제합니다. 화면 아래 <b>주석 목록</b>에 전체가 정리됩니다.</li>
+          <li>주석 모드를 끄면 화면이 다시 정상 동작합니다. 핀은 계속 표시됩니다.</li>
+        </ol>
+        <div class="tip"><b>주석은 산출물에 함께 나갑니다</b>
+          🌐 HTML 내보내기에는 핀과 주석 목록이, 📑 화면정의서에는 번호별 주석 표가 포함됩니다. "이 버튼 클릭 시 ○○ 처리" 같은 개발 전달 스펙을 화면 위에 직접 적어 두세요.</div>
+
+        <h3>📑 화면정의서</h3>
+        <p>조회조건 · 버튼 · 패널별 컬럼 정의 · 팝업 · 주석을 표로 정리한 인쇄용 문서를 내려받습니다. 자세한 구성은 <a href="#save">11장</a> 표를 참고하세요.</p>
       </div>
     </section>
 

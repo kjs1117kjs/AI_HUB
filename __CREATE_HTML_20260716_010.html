@@ -435,6 +435,33 @@
   .st-badge.g{background:#e5f4ec;color:#1c8a52;} .st-badge.r{background:#fdecec;color:#d0433c;}
   .st-badge.o{background:#fff3e0;color:#c07a10;} .st-badge.b{background:#e7f0fc;color:#2f6bc0;}
   .st-badge.gy{background:#eef0f3;color:#5f6874;}
+  /* ===== 추가 기능(010) : 조회조건 뒤 버튼 ===== */
+  .cond-fld-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .cond-fld-row>.fld-main{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0;}
+  .cf-btn{position:relative;height:26px;padding:0 12px;border:1px solid #c1cddd;background:#f4f7fb;color:#3a4a60;border-radius:3px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .cf-btn:hover{background:#e8eef7;border-color:#a9bcd6;}
+  .cf-btn .cf-x{display:none;position:absolute;top:-7px;right:-7px;width:15px;height:15px;border-radius:50%;background:#e0554e;color:#fff;font-size:10px;line-height:15px;text-align:center;cursor:pointer;}
+  body.edit .cf-btn:hover .cf-x{display:block;}
+  /* ===== 추가 기능(010) : 선택형 조건 신규 유형 ===== */
+  .seg-group{display:inline-flex;}
+  .seg-btn{height:26px;padding:0 14px;border:1px solid #c1cddd;background:#fff;color:#5a6472;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-left:-1px;white-space:nowrap;}
+  .seg-btn:first-child{border-radius:3px 0 0 3px;margin-left:0;}
+  .seg-btn:last-child{border-radius:0 3px 3px 0;}
+  .seg-btn.on{background:var(--blue);border-color:var(--blue);color:#fff;position:relative;z-index:1;}
+  .seg-btn:hover:not(.on){background:#f0f5fc;}
+  .tgl{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+  .tgl-track{width:38px;height:20px;border-radius:10px;background:#c8cfd9;position:relative;transition:background 160ms;flex-shrink:0;}
+  .tgl.on .tgl-track{background:var(--blue);}
+  .tgl-knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left 160ms;}
+  .tgl.on .tgl-knob{left:20px;}
+  .tgl-tx{font-size:12.5px;color:#3d4550;font-weight:600;}
+  .ms-wrap{position:relative;display:inline-block;}
+  .ms-btn{height:26px;min-width:130px;padding:0 24px 0 10px;border:1px solid #c1cddd;background:#fff;border-radius:3px;font-family:inherit;font-size:12.5px;color:#3d4550;text-align:left;cursor:pointer;position:relative;}
+  .ms-btn::after{content:"▾";position:absolute;right:8px;color:#8a929c;font-size:10px;}
+  .ms-pop{display:none;position:absolute;top:28px;left:0;z-index:300;background:#fff;border:1px solid #c1cddd;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:6px 4px;min-width:150px;max-height:190px;overflow-y:auto;}
+  .ms-wrap.open .ms-pop{display:block;}
+  .ms-pop label{display:flex;align-items:center;gap:7px;padding:4px 10px;font-size:12.5px;color:#3d4550;cursor:pointer;white-space:nowrap;border-radius:3px;}
+  .ms-pop label:hover{background:#f0f5fc;}
 </style>
 </head>
 <body class="edit">
@@ -460,6 +487,7 @@
       <label class="b-chk"><input type="checkbox" id="condRange"> 기간(~)</label>
       <label class="b-chk"><input type="checkbox" id="condReq"> 필수(*)</label>
       <label class="b-chk"><input type="checkbox" id="condExt"> 확장</label>
+      <input class="b-txt" id="condBtns" placeholder="뒤 버튼 (쉼표: 중복확인,초기화)" style="width:170px;" title="조건 입력칸 뒤에 붙는 버튼. 쉼표로 여러 개">
       <span class="divider-v"></span>
       <button class="type-btn" data-add="date">📅 일자</button>
       <button class="type-btn" data-add="month">🗓️ 월</button>
@@ -475,10 +503,14 @@
     <div class="builder-sec">
       <span class="sec-title">선택형 조건</span>
       <input class="b-txt" id="comboName" value="조건" placeholder="조건명" style="width:150px;">
-      <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표: 전체,미스터피자,BBQ)" style="width:280px;">
+      <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표: 전체,미스터피자,BBQ)" style="width:250px;">
+      <input class="b-txt" id="comboBtns" placeholder="뒤 버튼 (쉼표)" style="width:110px;" title="조건 뒤에 붙는 버튼. 쉼표로 여러 개">
       <button class="type-btn accent" data-selkind="combo">＋ 콤보</button>
       <button class="type-btn" data-selkind="radio">⭕ 라디오</button>
       <button class="type-btn" data-selkind="checkbox">☑️ 체크박스</button>
+      <button class="type-btn" data-selkind="segment" title="일별/주별/월별처럼 붙어 있는 버튼 중 하나를 선택">🔳 버튼그룹</button>
+      <button class="type-btn" data-selkind="toggle" title="사용/미사용 같은 On·Off 스위치. 옵션 비우면 사용,미사용">🎚️ 토글</button>
+      <button class="type-btn" data-selkind="multi" title="드롭다운을 열어 여러 항목을 체크로 선택">☑ 다중선택</button>
     </div>
     <div class="builder-sec">
       <span class="sec-title">팝업 구성</span>
@@ -699,16 +731,22 @@ document.querySelectorAll('[data-add]').forEach(b=>{ b.onclick=()=>addCondition(
 function addCondition(type){
   const name=$('condName').value.trim();
   if(type!=='blank' && !name){ alert('조회조건명을 입력하세요.'); $('condName').focus(); return; }
-  state.conditions.push({id:'c'+(seq++),type,label:type==='blank'?'':name,range:$('condRange').checked,ext:$('condExt').checked,required:$('condReq').checked,options:[]});
+  state.conditions.push({id:'c'+(seq++),type,label:type==='blank'?'':name,range:$('condRange').checked,ext:$('condExt').checked,required:$('condReq').checked,options:[],btns:condBtnsInput()});
   render();
 }
+function condBtnsInput(){const v=$('condBtns').value.split(',').map(s=>s.trim()).filter(Boolean);$('condBtns').value='';return v;}
 document.querySelectorAll('[data-selkind]').forEach(b=>{
   b.onclick=()=>{
+    const kind=b.dataset.selkind;
     const name=$('comboName').value.trim();
-    const opts=$('comboOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
+    let opts=$('comboOpts').value.split(',').map(s=>s.trim()).filter(Boolean);
     if(!name){ alert('조건명을 입력하세요.'); $('comboName').focus(); return; }
-    if(!opts.length){ alert('옵션을 입력하세요.'); $('comboOpts').focus(); return; }
-    state.conditions.push({id:'c'+(seq++),type:b.dataset.selkind,label:name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:opts});
+    if(!opts.length){
+      if(kind==='toggle') opts=['사용','미사용'];
+      else { alert('옵션을 입력하세요.'); $('comboOpts').focus(); return; }
+    }
+    const btns=$('comboBtns').value.split(',').map(s=>s.trim()).filter(Boolean); $('comboBtns').value='';
+    state.conditions.push({id:'c'+(seq++),type:kind,label:name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:opts,btns});
     $('comboOpts').value=''; render();
   };
 });
@@ -731,6 +769,10 @@ function condFieldHTML(c){
     case 'combo':  return `<div class="fld-row"><select class="cmb">${c.options.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>`;
     case 'radio':  return optRow(c,'radio');
     case 'checkbox':return optRow(c,'checkbox');
+    case 'segment':return `<div class="seg-group">${c.options.map((o,i)=>`<button type="button" class="seg-btn ${i===0?'on':''}">${esc(o)}</button>`).join('')}</div>`;
+    case 'toggle': {const on=c.options[0]||'사용', off=c.options[1]||'미사용';
+      return `<label class="tgl on" data-opts="${esc(on)}|${esc(off)}"><span class="tgl-track"><span class="tgl-knob"></span></span><span class="tgl-tx">${esc(on)}</span></label>`;}
+    case 'multi':  return `<div class="ms-wrap"><button type="button" class="ms-btn"><span class="ms-tx">전체</span></button><div class="ms-pop">${c.options.map(o=>`<label><input type="checkbox">${esc(o)}</label>`).join('')}</div></div>`;
     case 'cat':    return popupField(c,'cat','분류조회 선택');
     case 'store':  return popupField(c,'store','전체');
     case 'prod':   return popupField(c,'prod','전체');
@@ -751,13 +793,18 @@ function numberField(c){const one=`<input class="txt num-in" type="text" inputmo
 function optRow(c,kind){const nm=kind==='radio'?`name="${c.id}"`:'';return `<div class="opt-row">${c.options.map((o,i)=>`<label class="opt"><input type="${kind}" ${nm} ${kind==='radio'&&i===0?'checked':''}>${esc(o)}</label>`).join('')}</div>`;}
 function popupField(c,type,ph){return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
 function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
-function condCtrl(c){return `<div class="cell-ctrl"><button class="drag-handle" draggable="true" data-drag="cond" data-cid="${c.id}" title="드래그하여 순서 이동">⠿</button><button data-act="up" data-cid="${c.id}">▲</button><button data-act="down" data-cid="${c.id}">▼</button><button data-act="dup" data-cid="${c.id}" title="조건 복제">⧉</button><button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}">*</button><button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}">확</button><button data-act="del" data-cid="${c.id}" class="del">✕</button></div>`;}
+function condCtrl(c){return `<div class="cell-ctrl"><button class="drag-handle" draggable="true" data-drag="cond" data-cid="${c.id}" title="드래그하여 순서 이동">⠿</button><button data-act="up" data-cid="${c.id}">▲</button><button data-act="down" data-cid="${c.id}">▼</button><button data-act="dup" data-cid="${c.id}" title="조건 복제">⧉</button><button data-act="cbtn" data-cid="${c.id}" title="이 조건 뒤에 버튼 추가">B＋</button><button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}">*</button><button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}">확</button><button data-act="del" data-cid="${c.id}" class="del">✕</button></div>`;}
+function condBtnsHTML(c){
+  return (c.btns||[]).map((b,i)=>`<button class="cf-btn" type="button">${esc(b)}${isEdit()?`<span class="cf-x" data-cfx="${c.id}:${i}" title="버튼 제거">×</span>`:''}</button>`).join('');
+}
 function condCell(c){
   if(!c) return `<th></th><td></td>`;
   const star=c.required?'<span class="req-star">*</span>':'';
   const th=isEdit()?`<th><input class="lbl-input" data-cid="${c.id}" value="${esc(c.label)}" placeholder="${c.type==='blank'?'(빈칸)':'조건명'}">${star}</th>`
                    :`<th>${esc(c.label)}${star}${c.ext?'<span class="ext-badge">확장</span>':''}</th>`;
-  const td=`<td class="has-ctrl" data-cellcid="${c.id}">${condFieldHTML(c)}${isEdit()?condCtrl(c):''}</td>`;
+  const hasBtns=(c.btns||[]).length>0;
+  const inner=hasBtns?`<div class="cond-fld-row"><div class="fld-main">${condFieldHTML(c)}</div>${condBtnsHTML(c)}</div>`:condFieldHTML(c);
+  const td=`<td class="has-ctrl" data-cellcid="${c.id}">${inner}${isEdit()?condCtrl(c):''}</td>`;
   return th+td;
 }
 function renderConditions(){
@@ -1154,6 +1201,7 @@ document.addEventListener('click', e=>{
     else if(a==='ext'){arr[i].ext=!arr[i].ext;}
     else if(a==='req'){arr[i].required=!arr[i].required;}
     else if(a==='dup'){const cp=JSON.parse(JSON.stringify(arr[i]));cp.id='c'+(seq++);arr.splice(i+1,0,cp);}
+    else if(a==='cbtn'){const nm=prompt('조건 뒤에 붙일 버튼명을 입력하세요.\n예: 중복확인, 인증요청, 초기화');if(nm&&nm.trim()){(arr[i].btns=arr[i].btns||[]).push(nm.trim());}}
     render();
   }else if(pid&&kid){
     const p=findP(pid),arr=p.columns,i=arr.findIndex(k=>k.id===kid);
@@ -1627,6 +1675,29 @@ document.addEventListener('click', e=>{
   state.annots=state.annots.filter(x=>x.id!==b.dataset.aid);
   renderAnnots(); schedulePush();
 });
+/* 조회조건 뒤 버튼 제거 */
+document.addEventListener('click', e=>{
+  const x=e.target.closest('.cf-x'); if(!x) return;
+  e.stopPropagation();
+  const parts=x.dataset.cfx.split(':');
+  const c=state.conditions.find(cc=>cc.id===parts[0]);
+  if(c&&c.btns){ c.btns.splice(+parts[1],1); render(); }
+});
+/* 선택형 신규 유형 상호작용 : 버튼그룹·토글·다중선택 (표시 전용, 상태 저장 없음) */
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'));
+  const sb=e.target.closest('.seg-btn');
+  if(sb){ sb.parentElement.querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('on')); sb.classList.add('on'); return; }
+  const tg=e.target.closest('.tgl');
+  if(tg){ tg.classList.toggle('on'); const tx=tg.querySelector('.tgl-tx'); const o=(tg.dataset.opts||'').split('|'); if(tx&&o.length>1) tx.textContent=tg.classList.contains('on')?o[0]:o[1]; return; }
+  const mb=e.target.closest('.ms-btn');
+  if(mb){ mb.closest('.ms-wrap').classList.toggle('open'); return; }
+});
+document.addEventListener('change', e=>{
+  const pop=e.target.closest('.ms-pop'); if(!pop) return;
+  const w=pop.closest('.ms-wrap'), n=pop.querySelectorAll('input:checked').length;
+  const tx=w.querySelector('.ms-tx'); if(tx) tx.textContent=n?n+'개 선택':'전체';
+});
 
 /* ================= 텍스트 메모 모드 (화면 위 문구) ================= */
 const TXT_COLORS=[['#e0554e','빨강'],['#2f6bc0','파랑'],['#1f7a4a','초록'],['#69707a','회색'],['#333a44','검정']];
@@ -1789,6 +1860,21 @@ document.addEventListener('click',function(e){
   document.querySelectorAll('.tabpane').forEach(function(p){ p.style.display = p.getAttribute('data-pane')===i ? '' : 'none'; });
   document.querySelectorAll('.tab').forEach(function(tb){ tb.classList.toggle('active', tb.getAttribute('data-tab')===i); });
 });
+/* ===== 내보낸 화면 : 버튼그룹·토글·다중선택 ===== */
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-wrap.open').forEach(function(w){w.classList.remove('open');});
+  var sb=e.target.closest('.seg-btn');
+  if(sb){ Array.prototype.forEach.call(sb.parentElement.querySelectorAll('.seg-btn'),function(x){x.classList.remove('on');}); sb.classList.add('on'); return; }
+  var tg=e.target.closest('.tgl');
+  if(tg){ tg.classList.toggle('on'); var tx=tg.querySelector('.tgl-tx'); var o=(tg.getAttribute('data-opts')||'').split('|'); if(tx&&o.length>1) tx.textContent=tg.classList.contains('on')?o[0]:o[1]; return; }
+  var mb=e.target.closest('.ms-btn');
+  if(mb){ mb.closest('.ms-wrap').classList.toggle('open'); return; }
+});
+document.addEventListener('change',function(e){
+  var pop=e.target.closest('.ms-pop'); if(!pop) return;
+  var w=pop.closest('.ms-wrap'), n=pop.querySelectorAll('input:checked').length;
+  var tx=w.querySelector('.ms-tx'); if(tx) tx.textContent=n?n+'개 선택':'전체';
+});
 /* ===== 내보낸 화면 : 컬럼 너비 마우스 조절 ===== */
 (function(){
   function leafCells(tbl){
@@ -1840,7 +1926,7 @@ document.addEventListener('click',function(e){
 };
 
 /* ================= 화면정의서(스펙 문서) 내보내기 ================= */
-const COND_TYPE_KO={date:'일자',month:'월',year:'년도',quarter:'분기',text:'텍스트',number:'숫자',combo:'콤보',radio:'라디오',checkbox:'체크박스',cat:'분류 팝업',store:'매장 팝업',prod:'상품 팝업',custompopup:'사용자 팝업',blank:'(빈칸)'};
+const COND_TYPE_KO={date:'일자',month:'월',year:'년도',quarter:'분기',text:'텍스트',number:'숫자',combo:'콤보',radio:'라디오',checkbox:'체크박스',segment:'버튼그룹',toggle:'토글',multi:'다중선택',cat:'분류 팝업',store:'매장 팝업',prod:'상품 팝업',custompopup:'사용자 팝업',blank:'(빈칸)'};
 const COL_TYPE_KO={text:'텍스트',link:'링크(코드)',dropdown:'드롭다운',checkbox:'체크박스',number:'숫자',badge:'상태 뱃지'};
 const PTYPE_KO={grid:'그리드(표)',form:'폼(입력·상세)',stat:'요약카드(KPI)',notice:'안내문'};
 const FTYPE_KO={text:'텍스트',combo:'콤보',date:'일자',textarea:'여러줄',readonly:'읽기전용',checkbox:'체크박스',note:'안내문구'};
@@ -1860,6 +1946,7 @@ $('exportSpec').onclick=()=>{
         if(c.options&&c.options.length) extra=c.options.join(', ');
         else if(c.type==='custompopup') extra='팝업: '+popName(c.popupId);
         else if(['cat','store','prod'].includes(c.type)) extra=COND_TYPE_KO[c.type];
+        if(c.btns&&c.btns.length) extra=(extra?extra+' / ':'')+'뒤 버튼: '+c.btns.join(', ');
         return `<tr><td class="c">${i+1}</td><td>${esc(c.label)||'<span class="mut">(빈칸)</span>'}</td><td class="c">${COND_TYPE_KO[c.type]||c.type}</td><td class="c">${c.range?O:X}</td><td class="c">${c.required?'<b class="rd">'+O+'</b>':X}</td><td class="c">${c.ext?O:X}</td><td>${esc(extra)||'<span class="mut">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
   }else condTbl=`<h2>1. 조회조건</h2><p class="mut">조회조건 없음${state.searchOn?'':' (조회조건 패널 사용 안 함)'}</p>`;
@@ -1963,7 +2050,7 @@ function rowsFor(cols,arr){return arr.map(r=>{const x={};cols.forEach((c,i)=>x[c
 function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,colIndex:o.col||0,tab:o.tab||0,ptype:o.ptype||'grid',buttons:(o.btns||[]).map(b=>typeof b==='string'?{label:b,primary:false}:b),check:!!o.check,rownum:o.rownum!==false,gear:o.gear!==false,showSum:!!o.sum,pager:!!o.pager,selRow:o.sel==null?-1:o.sel,fields:o.fields||[],stats:o.stats||[],notice:o.notice||'',noticeTone:o.noticeTone||'',columns:cols,rows:o.rows?rowsFor(cols,o.rows):[],sort:{kid:null,dir:1}};}
 function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',required:!!o.req,span:!!o.span||o.t==='textarea'||o.t==='note',options:o.opts||[],value:o.v||''};}
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
-function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null};}
+function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:o.btns||[]};}
 function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});

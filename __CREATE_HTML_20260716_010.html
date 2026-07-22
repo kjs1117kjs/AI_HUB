@@ -663,7 +663,7 @@ const CAL_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><r
 const CARET_ICON = '<svg width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="#6b7684"/></svg>';
 
 function newPanel(title,colIndex,ptype){
-  return {id:'P'+(seq++), title:title||'조회결과', colIndex:colIndex||0, ptype:ptype||'grid', buttons:[],
+  return {id:'P'+(seq++), title:title||'조회결과', colIndex:colIndex||0, tab:0, ptype:ptype||'grid', buttons:[],
     check:false, rownum:true, gear:true, showSum:false, pager:false, selRow:-1,
     fixedCols:0, filterRow:false, filters:{},
     fields:[], stats:[], notice:'', noticeTone:'',
@@ -1022,7 +1022,12 @@ function renderResult(){
   if(state.tabs.length) html+=`<div class="tabbar">${state.tabs.map((t,i)=>`<div class="tab ${i===state.activeTab?'active':''}" data-tab="${i}">${esc(t)}</div>`).join('')}</div>`;
   if(state.toolbar){const tb=state.toolbar;html+='<div class="toolbar-strip">';if(tb.label)html+=`<span class="tsl">${esc(tb.label)}</span>`;if(tb.combo&&tb.combo.length)html+=`<select>${tb.combo.map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;(tb.buttons||[]).forEach(b=>html+=`<button class="tb">${esc(b)}</button>`);html+='</div>';}
   html+='<div class="result-area">';
-  state.cols.forEach((c,ci)=>{html+=`<div class="res-col" style="flex:${c.flex};">`;state.panels.filter(p=>p.colIndex===ci).forEach(p=>html+=renderPanel(p));html+='</div>';});
+  const tabPanels = state.tabs.length ? state.panels.filter(p=>(p.tab||0)===state.activeTab) : state.panels;
+  if(state.tabs.length && !tabPanels.length){
+    html+=`<div style="flex:1;padding:40px 0;text-align:center;color:#9aa2ac;font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:4px;">이 탭에는 아직 패널이 없습니다.${isEdit()?'<br>이 탭이 선택된 상태에서 ‘＋ 패널 추가’를 누르면 이 탭에 추가됩니다.':''}</div>`;
+  }else{
+    state.cols.forEach((c,ci)=>{html+=`<div class="res-col" style="flex:${c.flex};">`;tabPanels.filter(p=>p.colIndex===ci).forEach(p=>html+=renderPanel(p));html+='</div>';});
+  }
   html+='</div>';
   host.innerHTML=html;
   if(typeof schedulePush==='function') schedulePush();
@@ -1038,7 +1043,8 @@ function syncBuilder(){
   $('colLink').innerHTML = '<option value="">(링크팝업 없음)</option>'+state.infoPopups.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
   $('newPanelCol').innerHTML = state.cols.map((c,i)=>`<option value="${i}">${i+1}단</option>`).join('');
   const PT_ICON={grid:'',form:'[폼] ',stat:'[카드] ',notice:'[안내] '};
-  const cp=$('curPanel'); cp.innerHTML = state.panels.map(p=>`<option value="${p.id}">${PT_ICON[p.ptype||'grid']||''}${esc(p.title||'(제목없음)')}</option>`).join('');
+  const tabPre=p=>state.tabs.length?('['+esc(state.tabs[p.tab||0]||'탭'+((p.tab||0)+1))+'] '):'';
+  const cp=$('curPanel'); cp.innerHTML = state.panels.map(p=>`<option value="${p.id}">${tabPre(p)}${PT_ICON[p.ptype||'grid']||''}${esc(p.title||'(제목없음)')}</option>`).join('');
   if(!findP(state.curPanel)) state.curPanel=state.panels[0]?state.panels[0].id:null;
   cp.value=state.curPanel;
   const p=curP();
@@ -1110,7 +1116,15 @@ document.addEventListener('click', e=>{
   const pbx=e.target.closest('[data-pbtnx]');
   if(pbx){const parts=pbx.dataset.pbtnx.split(':');const p=findP(parts[0]);if(p){p.buttons.splice(+parts[1],1);renderResult();}e.stopPropagation();return;}
   const tab=e.target.closest('[data-tab]');
-  if(tab){state.activeTab=+tab.dataset.tab;renderResult();return;}
+  if(tab){
+    state.activeTab=+tab.dataset.tab;
+    const cur=curP();
+    if(state.tabs.length && (!cur || (cur.tab||0)!==state.activeTab)){
+      const first=state.panels.find(p=>(p.tab||0)===state.activeTab);
+      if(first) state.curPanel=first.id;
+    }
+    renderResult(); syncBuilder(); updateCount(); return;
+  }
   const sdel=e.target.closest('[data-sdel]');
   if(sdel){const parts=sdel.dataset.sdel.split(':');const p=findP(parts[0]);if(p){p.stats=(p.stats||[]).filter(s=>s.id!==parts[1]);renderResult();}return;}
   const fact=e.target.closest('[data-fact]');
@@ -1247,8 +1261,13 @@ document.querySelectorAll('[data-cols]').forEach(b=>b.onclick=()=>{
   const n=+b.dataset.cols; state.cols=Array.from({length:n},()=>({flex:1}));
   state.panels.forEach(p=>{if(p.colIndex>=n)p.colIndex=n-1;}); render();
 });
-$('addPanel').onclick=()=>{const name=$('newPanelName').value.trim()||({grid:'새 패널',form:'상세 정보',stat:'요약',notice:'안내'})[$('newPanelType').value];const col=+$('newPanelCol').value||0;const p=newPanel(name,col,$('newPanelType').value);state.panels.push(p);state.curPanel=p.id;$('newPanelName').value='';render();};
-$('curPanel').onchange=e=>{state.curPanel=e.target.value;syncBuilder();};
+$('addPanel').onclick=()=>{const name=$('newPanelName').value.trim()||({grid:'새 패널',form:'상세 정보',stat:'요약',notice:'안내'})[$('newPanelType').value];const col=+$('newPanelCol').value||0;const p=newPanel(name,col,$('newPanelType').value);p.tab=state.tabs.length?state.activeTab:0;state.panels.push(p);state.curPanel=p.id;$('newPanelName').value='';render();};
+$('curPanel').onchange=e=>{
+  state.curPanel=e.target.value;
+  const p=curP();
+  if(p && state.tabs.length && (p.tab||0)!==state.activeTab){ state.activeTab=p.tab||0; renderResult(); updateCount(); }
+  syncBuilder();
+};
 $('pOptCheck').onchange =e=>{const p=curP();if(p)p.check=e.target.checked;renderResult();};
 $('pOptRownum').onchange=e=>{const p=curP();if(p)p.rownum=e.target.checked;renderResult();};
 $('pOptSum').onchange   =e=>{const p=curP();if(p)p.showSum=e.target.checked;renderResult();};
@@ -1333,7 +1352,12 @@ $('statAdd').onclick=()=>{
 
 /* ================= 화면 옵션 ================= */
 $('optSearch').onchange=e=>{state.searchOn=e.target.checked;render();};
-$('applyTabs').onclick=()=>{state.tabs=$('tabsInput').value.split(',').map(s=>s.trim()).filter(Boolean);state.activeTab=0;render();};
+$('applyTabs').onclick=()=>{
+  state.tabs=$('tabsInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  state.activeTab=0;
+  state.panels.forEach(p=>{ if((p.tab||0)>=state.tabs.length) p.tab=0; });
+  render();
+};
 $('applyToolbar').onclick=()=>{const b=$('toolbarBtns').value.split(',').map(s=>s.trim()).filter(Boolean);if(!b.length){alert('툴바 버튼을 입력하세요.');return;}state.toolbar=Object.assign({label:'',combo:[]},state.toolbar||{},{buttons:b});render();};
 $('clearToolbar').onclick=()=>{state.toolbar=null;render();};
 
@@ -1387,7 +1411,7 @@ function normalizeScreenObj(o){
   o.excelBtns =(o.excelBtns &&o.excelBtns.length )?o.excelBtns :defExcelBtns();
   if(!o.panels){const p=newPanel('조회결과',0);p.columns=o.columns||[];p.rows=o.rows||[];p.showSum=o.showSum!==false;o.cols=[{flex:1}];o.panels=[p];}
   o.cols=o.cols||[{flex:1}];
-  o.panels.forEach(p=>{if(!p.id)p.id='P'+(seq++);if(!p.sort)p.sort={kid:null,dir:1};if(!p.buttons)p.buttons=[];if(p.fixedCols==null)p.fixedCols=0;if(p.filterRow==null)p.filterRow=false;if(!p.filters)p.filters={};if(!p.ptype)p.ptype='grid';if(!p.fields)p.fields=[];if(!p.stats)p.stats=[];if(p.notice==null)p.notice='';if(p.noticeTone==null)p.noticeTone='';(p.columns||[]).forEach(k=>{if(!k.id)k.id='k'+(seq++);if(!k.cellType)k.cellType='text';if(!k.options)k.options=[];});});
+  o.panels.forEach(p=>{if(!p.id)p.id='P'+(seq++);if(!(p.tab>=0))p.tab=0;if(o.tabs&&o.tabs.length&&p.tab>=o.tabs.length)p.tab=0;if(!p.sort)p.sort={kid:null,dir:1};if(!p.buttons)p.buttons=[];if(p.fixedCols==null)p.fixedCols=0;if(p.filterRow==null)p.filterRow=false;if(!p.filters)p.filters={};if(!p.ptype)p.ptype='grid';if(!p.fields)p.fields=[];if(!p.stats)p.stats=[];if(p.notice==null)p.notice='';if(p.noticeTone==null)p.noticeTone='';(p.columns||[]).forEach(k=>{if(!k.id)k.id='k'+(seq++);if(!k.cellType)k.cellType='text';if(!k.options)k.options=[];});});
   if(!findByIdIn(o.panels,o.curPanel)) o.curPanel=o.panels[0].id;
   o.meta=o.meta||{sid:'',author:'',ver:''};o.annots=o.annots||[];o.texts=o.texts||[];
   o.queried=o.queried!==false;o.extShown=!!o.extShown;
@@ -1729,9 +1753,21 @@ $('exportHtml').onclick=()=>{
   document.body.classList.add('preview'); state.extShown=true; render();
   const head=document.querySelector('style').outerHTML;
   let panel = state.searchOn ? cloneWithValues('#searchPanel') : '';
-  let result= cloneWithValues('#resultArea');
+  const cleanResult=s=>s.replace(/>⚙</g,'>No<').replace(/<span class="sort-ar">[^<]*<\/span>/g,'').replace(/col-hd sortable/g,'col-hd');
+  let result;
+  if(state.tabs.length>1){
+    /* 탭별 화면을 각각 캡처해 pane으로 담고, 내보낸 HTML에서 탭 클릭으로 전환 */
+    const savedTab=state.activeTab, panes=[];
+    for(let ti=0; ti<state.tabs.length; ti++){
+      state.activeTab=ti; renderResult();
+      panes.push(`<div class="tabpane" data-pane="${ti}" style="${ti===savedTab?'':'display:none;'}">${cleanResult(cloneWithValues('#resultArea'))}</div>`);
+    }
+    state.activeTab=savedTab; renderResult();
+    result=panes.join('');
+  }else{
+    result=cleanResult(cloneWithValues('#resultArea'));
+  }
   panel=panel.replace(/<input class="title-input"[^>]*?value="([^"]*)"[^>]*>/,'<span class="title" style="font-weight:700;font-size:13px;color:#2c3742">$1</span>');
-  result=result.replace(/>⚙</g,'>No<').replace(/<span class="sort-ar">[^<]*<\/span>/g,'').replace(/col-hd sortable/g,'col-hd');
   const xlsBtns=(state.excelBtns||[]).map(b=>`<button class="btn tone-${btnTone(b)}">${esc(b.label)}</button>`).join('');
   const cntTxt = state.queried ? `총 <b>${curP().rows.length.toLocaleString('ko-KR')}</b>건` : '';
   const cnt = (state.queried||xlsBtns) ? `<div class="excel-bar"><span class="count">${cntTxt}</span><span class="xls-actions">${xlsBtns}</span></div>` : '';
@@ -1742,10 +1778,62 @@ $('exportHtml').onclick=()=>{
   const pins=(state.annots||[]).map((a,i)=>`<div class="annot-pin" style="left:${a.x}px;top:${a.y}px;" title="${esc(a.text||'')}">${i+1}</div>`).join('')
     +(state.texts||[]).map(t=>`<div class="txt-note${t.hl?' hl':''}" style="left:${t.x}px;top:${t.y}px;color:${esc(t.color||'#e0554e')};font-size:${t.size||13}px;">${esc(t.text||'')}</div>`).join('');
   const annotList=(state.annots||[]).length?`<div class="annot-list"><div class="al-title">📌 주석 목록</div>${state.annots.map((a,i)=>`<div class="al-row"><span class="al-n">${i+1}</span><span class="al-t">${esc(a.text||'(내용 없음)')}</span></div>`).join('')}</div>`:'';
-  const extra=`<style>body.export{background:#f4f6f9;}body.export .col-hd.sortable{cursor:default;}body.export table.grid thead th .sort-ar{display:none;}body.export .wrap{padding:24px 16px;}body.export .flt-in{pointer-events:none;}</style>`;
+  const extra=`<style>body.export{background:#f4f6f9;}body.export .col-hd.sortable{cursor:default;}body.export table.grid thead th .sort-ar{display:none;}body.export .wrap{padding:24px 16px;}body.export .flt-in{pointer-events:none;}
+.xrz{position:absolute;right:-5px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:9;}.xrz:hover,.xrz.on{background:rgba(47,137,238,.3);}body.xrz-drag{cursor:col-resize;user-select:none;}
+.tab{cursor:pointer;}</style>`;
+  const exportScript=`<scr`+`ipt>
+/* ===== 내보낸 화면 : 탭 전환 ===== */
+document.addEventListener('click',function(e){
+  var t=e.target.closest?e.target.closest('.tab'):null; if(!t) return;
+  var i=t.getAttribute('data-tab'); if(i==null) return;
+  document.querySelectorAll('.tabpane').forEach(function(p){ p.style.display = p.getAttribute('data-pane')===i ? '' : 'none'; });
+  document.querySelectorAll('.tab').forEach(function(tb){ tb.classList.toggle('active', tb.getAttribute('data-tab')===i); });
+});
+/* ===== 내보낸 화면 : 컬럼 너비 마우스 조절 ===== */
+(function(){
+  function leafCells(tbl){
+    var thead=tbl.tHead; if(!thead) return [];
+    var rows=Array.prototype.slice.call(thead.rows).filter(function(r){
+      return !(r.cells[0]&&r.cells[0].classList.contains('fltcell'));
+    });
+    var r1=rows[0], r2=rows[1]||null, leaf=[], r2i=0;
+    if(!r1) return [];
+    Array.prototype.forEach.call(r1.cells,function(c){
+      var span=c.colSpan||1;
+      if(span>1&&r2){ for(var j=0;j<span;j++){ leaf.push(r2.cells[r2i++]||null); } }
+      else leaf.push(c);
+    });
+    return leaf;
+  }
+  function setup(tbl){
+    var cols=tbl.querySelectorAll('colgroup col'); if(!cols.length) return;
+    leafCells(tbl).forEach(function(c,i){
+      if(!c||c.querySelector('.xrz')) return;
+      var g=document.createElement('span'); g.className='xrz'; g.title='드래그하여 너비 조절';
+      c.appendChild(g);
+      g.addEventListener('mousedown',function(e){
+        e.preventDefault(); e.stopPropagation();
+        /* 모든 col 너비를 px로 고정 후 대상만 조절 */
+        var widths=Array.prototype.map.call(cols,function(cl){ return cl.getBoundingClientRect().width; });
+        Array.prototype.forEach.call(cols,function(cl,ci){ cl.style.width=widths[ci]+'px'; });
+        var startX=e.clientX, startW=widths[i];
+        g.classList.add('on'); document.body.classList.add('xrz-drag');
+        function mv(ev){
+          var w=Math.max(30,startW+ev.clientX-startX);
+          widths[i]=w; cols[i].style.width=w+'px';
+          tbl.style.width=widths.reduce(function(a,b){return a+b;},0)+'px';
+        }
+        function up(){ g.classList.remove('on'); document.body.classList.remove('xrz-drag'); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
+        document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+      });
+    });
+  }
+  document.querySelectorAll('table.grid').forEach(setup);
+})();
+</scr`+`ipt>`;
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
     `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
-    `<body class="preview export"><div class="wrap">${metaLine}<div style="position:relative;">${panel}${cnt}${result}${desc}${pins}</div>${annotList}</div></body></html>`;
+    `<body class="preview export"><div class="wrap">${metaLine}<div style="position:relative;">${panel}${cnt}${result}${desc}${pins}</div>${annotList}</div>${exportScript}</body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((m.sid?m.sid+'_':'')+(state.title||'조회화면'))+'.html';a.click();
   state.extShown=prevExt; if(wasEdit)document.body.classList.remove('preview'); render();
@@ -1790,7 +1878,8 @@ $('exportSpec').onclick=()=>{
     if(p.check)opts.push('체크박스열');if(p.rownum)opts.push('행번호');if(p.showSum)opts.push('합계행');if(p.pager)opts.push('페이지네이션');
     if(p.filterRow)opts.push('필터행');if(p.fixedCols)opts.push('고정컬럼 '+p.fixedCols+'열');
     const pt=p.ptype||'grid';
-    panelSecs+=`<h3>패널 ${pi+1}. ${esc(p.title||'(제목없음)')} <span class="mut">— ${PTYPE_KO[pt]||pt}${state.cols.length>1?', '+(p.colIndex+1)+'단 배치':''}${pt==='grid'?', 옵션: '+(opts.join(', ')||'없음'):''}${p.buttons.length?' / 버튼: '+p.buttons.map(b=>esc(b.label)).join(' · '):''}</span></h3>`;
+    const tabNm=state.tabs.length?('[탭: '+esc(state.tabs[p.tab||0]||'')+'] '):'';
+    panelSecs+=`<h3>패널 ${pi+1}. ${tabNm}${esc(p.title||'(제목없음)')} <span class="mut">— ${PTYPE_KO[pt]||pt}${state.cols.length>1?', '+(p.colIndex+1)+'단 배치':''}${pt==='grid'?', 옵션: '+(opts.join(', ')||'없음'):''}${p.buttons.length?' / 버튼: '+p.buttons.map(b=>esc(b.label)).join(' · '):''}</span></h3>`;
     if(pt==='form'){
       if(!(p.fields||[]).length){panelSecs+=`<p class="mut">필드 없음</p>`;return;}
       panelSecs+=`<table><thead><tr><th style="width:36px">No</th><th>필드명</th><th style="width:90px">유형</th><th style="width:52px">필수</th><th style="width:76px">한 줄 차지</th><th>옵션 / 표시값</th></tr></thead><tbody>`+
@@ -1871,7 +1960,7 @@ function autoW(name,t){
 }
 function C(name,o){o=o||{};const t=o.t||'text';return{id:'k'+(seq++),name,align:o.a||'c',group:o.g||'',format:o.f||'none',cellType:t,options:o.o||[],width:o.w||autoW(name,t)};}
 function rowsFor(cols,arr){return arr.map(r=>{const x={};cols.forEach((c,i)=>x[c.id]=(r[i]==null?'':String(r[i])));return x;});}
-function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,colIndex:o.col||0,ptype:o.ptype||'grid',buttons:(o.btns||[]).map(b=>typeof b==='string'?{label:b,primary:false}:b),check:!!o.check,rownum:o.rownum!==false,gear:o.gear!==false,showSum:!!o.sum,pager:!!o.pager,selRow:o.sel==null?-1:o.sel,fields:o.fields||[],stats:o.stats||[],notice:o.notice||'',noticeTone:o.noticeTone||'',columns:cols,rows:o.rows?rowsFor(cols,o.rows):[],sort:{kid:null,dir:1}};}
+function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,colIndex:o.col||0,tab:o.tab||0,ptype:o.ptype||'grid',buttons:(o.btns||[]).map(b=>typeof b==='string'?{label:b,primary:false}:b),check:!!o.check,rownum:o.rownum!==false,gear:o.gear!==false,showSum:!!o.sum,pager:!!o.pager,selRow:o.sel==null?-1:o.sel,fields:o.fields||[],stats:o.stats||[],notice:o.notice||'',noticeTone:o.noticeTone||'',columns:cols,rows:o.rows?rowsFor(cols,o.rows):[],sort:{kid:null,dir:1}};}
 function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',required:!!o.req,span:!!o.span||o.t==='textarea'||o.t==='note',options:o.opts||[],value:o.v||''};}
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
 function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null};}

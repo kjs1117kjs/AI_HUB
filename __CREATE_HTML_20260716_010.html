@@ -442,6 +442,16 @@
   .cf-btn:hover{background:#e8eef7;border-color:#a9bcd6;}
   .cf-btn .cf-x{display:none;position:absolute;top:-7px;right:-7px;width:15px;height:15px;border-radius:50%;background:#e0554e;color:#fff;font-size:10px;line-height:15px;text-align:center;cursor:pointer;}
   body.edit .cf-btn:hover .cf-x{display:block;}
+  .cf-btn.tone-blue{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .cf-btn.tone-blue:hover{background:var(--blue-dark);}
+  .cf-btn.tone-red{background:#e0554e;border-color:#c9463f;color:#fff;}
+  .cf-btn.tone-red:hover{background:#cf4740;}
+  .cf-btn.tone-green{background:#1f9d55;border-color:#17854a;color:#fff;}
+  .cf-btn.tone-green:hover{background:#17854a;}
+  .cf-btn.tone-orange{background:#f0a020;border-color:#dc8f14;color:#fff;}
+  .cf-btn.tone-orange:hover{background:#dc8f14;}
+  .cf-btn.tone-white{background:#fff;border-color:var(--border);color:#42505f;}
+  .cf-btn.tone-white:hover{background:#f4f6f9;}
   /* ===== 추가 기능(010) : 선택형 조건 신규 유형 ===== */
   .seg-group{display:inline-flex;}
   .seg-btn{height:26px;padding:0 14px;border:1px solid #c1cddd;background:#fff;color:#5a6472;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-left:-1px;white-space:nowrap;}
@@ -487,7 +497,7 @@
       <label class="b-chk"><input type="checkbox" id="condRange"> 기간(~)</label>
       <label class="b-chk"><input type="checkbox" id="condReq"> 필수(*)</label>
       <label class="b-chk"><input type="checkbox" id="condExt"> 확장</label>
-      <input class="b-txt" id="condBtns" placeholder="뒤 버튼 (쉼표: 중복확인,초기화)" style="width:170px;" title="조건 입력칸 뒤에 붙는 버튼. 쉼표로 여러 개">
+      <input class="b-txt" id="condBtns" placeholder="뒤 버튼 (쉼표, 이름=색)" style="width:150px;" title="조건 입력칸 뒤에 붙는 버튼. 쉼표로 여러 개. [이름=색]으로 색 지정 — 파랑·빨강·초록·주황·흰색 (예: 중복확인=파랑,초기화)">
       <span class="divider-v"></span>
       <button class="type-btn" data-add="date">📅 일자</button>
       <button class="type-btn" data-add="month">🗓️ 월</button>
@@ -504,7 +514,7 @@
       <span class="sec-title">선택형 조건</span>
       <input class="b-txt" id="comboName" value="조건" placeholder="조건명" style="width:150px;">
       <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표: 전체,미스터피자,BBQ)" style="width:250px;">
-      <input class="b-txt" id="comboBtns" placeholder="뒤 버튼 (쉼표)" style="width:110px;" title="조건 뒤에 붙는 버튼. 쉼표로 여러 개">
+      <input class="b-txt" id="comboBtns" placeholder="뒤 버튼 (쉼표, 이름=색)" style="width:130px;" title="조건 뒤에 붙는 버튼. 쉼표로 여러 개. [이름=색]으로 색 지정 — 파랑·빨강·초록·주황·흰색 (예: 적용=파랑)">
       <button class="type-btn accent" data-selkind="combo">＋ 콤보</button>
       <button class="type-btn" data-selkind="radio">⭕ 라디오</button>
       <button class="type-btn" data-selkind="checkbox">☑️ 체크박스</button>
@@ -734,7 +744,18 @@ function addCondition(type){
   state.conditions.push({id:'c'+(seq++),type,label:type==='blank'?'':name,range:$('condRange').checked,ext:$('condExt').checked,required:$('condReq').checked,options:[],btns:condBtnsInput()});
   render();
 }
-function condBtnsInput(){const v=$('condBtns').value.split(',').map(s=>s.trim()).filter(Boolean);$('condBtns').value='';return v;}
+const CFBTN_TONE_ALIAS={'파랑':'blue','blue':'blue','빨강':'red','red':'red','초록':'green','green':'green','주황':'orange','orange':'orange','흰색':'white','white':'white','회색':'','gray':''};
+function parseCondBtn(s){
+  const m=String(s).split('=');
+  if(m.length===2 && CFBTN_TONE_ALIAS[m[1].trim().toLowerCase()]!==undefined){
+    const tone=CFBTN_TONE_ALIAS[m[1].trim().toLowerCase()];
+    return tone?{label:m[0].trim(),tone}:{label:m[0].trim()};
+  }
+  return {label:String(s).trim()};
+}
+function cfBtnLabel(b){return typeof b==='string'?b:(b.label||'');}
+function cfBtnTone(b){return typeof b==='object'&&b.tone?b.tone:'';}
+function condBtnsInput(){const v=$('condBtns').value.split(',').map(s=>s.trim()).filter(Boolean).map(parseCondBtn);$('condBtns').value='';return v;}
 document.querySelectorAll('[data-selkind]').forEach(b=>{
   b.onclick=()=>{
     const kind=b.dataset.selkind;
@@ -745,7 +766,7 @@ document.querySelectorAll('[data-selkind]').forEach(b=>{
       if(kind==='toggle') opts=['사용','미사용'];
       else { alert('옵션을 입력하세요.'); $('comboOpts').focus(); return; }
     }
-    const btns=$('comboBtns').value.split(',').map(s=>s.trim()).filter(Boolean); $('comboBtns').value='';
+    const btns=$('comboBtns').value.split(',').map(s=>s.trim()).filter(Boolean).map(parseCondBtn); $('comboBtns').value='';
     state.conditions.push({id:'c'+(seq++),type:kind,label:name,range:false,ext:$('condExt').checked,required:$('condReq').checked,options:opts,btns});
     $('comboOpts').value=''; render();
   };
@@ -795,7 +816,10 @@ function popupField(c,type,ph){return `<div class="fld-row"><div class="select-b
 function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
 function condCtrl(c){return `<div class="cell-ctrl"><button class="drag-handle" draggable="true" data-drag="cond" data-cid="${c.id}" title="드래그하여 순서 이동">⠿</button><button data-act="up" data-cid="${c.id}">▲</button><button data-act="down" data-cid="${c.id}">▼</button><button data-act="dup" data-cid="${c.id}" title="조건 복제">⧉</button><button data-act="cbtn" data-cid="${c.id}" title="이 조건 뒤에 버튼 추가">B＋</button><button data-act="req" data-cid="${c.id}" class="req ${c.required?'on':''}">*</button><button data-act="ext" data-cid="${c.id}" class="${c.ext?'on':''}">확</button><button data-act="del" data-cid="${c.id}" class="del">✕</button></div>`;}
 function condBtnsHTML(c){
-  return (c.btns||[]).map((b,i)=>`<button class="cf-btn" type="button">${esc(b)}${isEdit()?`<span class="cf-x" data-cfx="${c.id}:${i}" title="버튼 제거">×</span>`:''}</button>`).join('');
+  return (c.btns||[]).map((b,i)=>{
+    const tone=cfBtnTone(b);
+    return `<button class="cf-btn${tone?' tone-'+tone:''}" type="button">${esc(cfBtnLabel(b))}${isEdit()?`<span class="cf-x" data-cfx="${c.id}:${i}" title="버튼 제거">×</span>`:''}</button>`;
+  }).join('');
 }
 function condCell(c){
   if(!c) return `<th></th><td></td>`;
@@ -1201,7 +1225,7 @@ document.addEventListener('click', e=>{
     else if(a==='ext'){arr[i].ext=!arr[i].ext;}
     else if(a==='req'){arr[i].required=!arr[i].required;}
     else if(a==='dup'){const cp=JSON.parse(JSON.stringify(arr[i]));cp.id='c'+(seq++);arr.splice(i+1,0,cp);}
-    else if(a==='cbtn'){const nm=prompt('조건 뒤에 붙일 버튼명을 입력하세요.\n예: 중복확인, 인증요청, 초기화');if(nm&&nm.trim()){(arr[i].btns=arr[i].btns||[]).push(nm.trim());}}
+    else if(a==='cbtn'){const nm=prompt('조건 뒤에 붙일 버튼명을 입력하세요.\n색을 함께 지정하려면 [이름=색] — 색: 파랑·빨강·초록·주황·흰색\n예: 중복확인=파랑');if(nm&&nm.trim()){(arr[i].btns=arr[i].btns||[]).push(parseCondBtn(nm.trim()));}}
     render();
   }else if(pid&&kid){
     const p=findP(pid),arr=p.columns,i=arr.findIndex(k=>k.id===kid);
@@ -1946,7 +1970,10 @@ $('exportSpec').onclick=()=>{
         if(c.options&&c.options.length) extra=c.options.join(', ');
         else if(c.type==='custompopup') extra='팝업: '+popName(c.popupId);
         else if(['cat','store','prod'].includes(c.type)) extra=COND_TYPE_KO[c.type];
-        if(c.btns&&c.btns.length) extra=(extra?extra+' / ':'')+'뒤 버튼: '+c.btns.join(', ');
+        if(c.btns&&c.btns.length){
+          const TONE_KO={blue:'파랑',red:'빨강',green:'초록',orange:'주황',white:'흰색'};
+          extra=(extra?extra+' / ':'')+'뒤 버튼: '+c.btns.map(b=>cfBtnLabel(b)+(cfBtnTone(b)?'('+(TONE_KO[cfBtnTone(b)]||cfBtnTone(b))+')':'')).join(', ');
+        }
         return `<tr><td class="c">${i+1}</td><td>${esc(c.label)||'<span class="mut">(빈칸)</span>'}</td><td class="c">${COND_TYPE_KO[c.type]||c.type}</td><td class="c">${c.range?O:X}</td><td class="c">${c.required?'<b class="rd">'+O+'</b>':X}</td><td class="c">${c.ext?O:X}</td><td>${esc(extra)||'<span class="mut">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
   }else condTbl=`<h2>1. 조회조건</h2><p class="mut">조회조건 없음${state.searchOn?'':' (조회조건 패널 사용 안 함)'}</p>`;
@@ -2050,7 +2077,7 @@ function rowsFor(cols,arr){return arr.map(r=>{const x={};cols.forEach((c,i)=>x[c
 function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,colIndex:o.col||0,tab:o.tab||0,ptype:o.ptype||'grid',buttons:(o.btns||[]).map(b=>typeof b==='string'?{label:b,primary:false}:b),check:!!o.check,rownum:o.rownum!==false,gear:o.gear!==false,showSum:!!o.sum,pager:!!o.pager,selRow:o.sel==null?-1:o.sel,fields:o.fields||[],stats:o.stats||[],notice:o.notice||'',noticeTone:o.noticeTone||'',columns:cols,rows:o.rows?rowsFor(cols,o.rows):[],sort:{kid:null,dir:1}};}
 function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',required:!!o.req,span:!!o.span||o.t==='textarea'||o.t==='note',options:o.opts||[],value:o.v||''};}
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
-function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:o.btns||[]};}
+function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:(o.btns||[]).map(b=>typeof b==='string'?parseCondBtn(b):b)};}
 function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});

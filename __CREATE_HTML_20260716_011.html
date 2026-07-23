@@ -1188,7 +1188,6 @@ function syncBuilder(){
   const p=curP();
   if(p){$('pOptCheck').checked=p.check;$('pOptRownum').checked=p.rownum;$('pOptSum').checked=p.showSum;$('pOptPager').checked=p.pager;$('pOptFilter').checked=!!p.filterRow;$('pOptFixed').value=String(p.fixedCols||0);}
   $('optSearch').checked=state.searchOn;
-  $('tabPosSel').value=state.tabPos||'result';
   const m=state.meta||{};
   $('metaSid').value=m.sid||'';$('metaAuthor').value=m.author||'';$('metaVer').value=m.ver||'';
   renderScreenSel();

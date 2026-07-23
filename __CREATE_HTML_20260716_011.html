@@ -654,7 +654,7 @@
       <span class="divider-v"></span>
       <input class="b-txt" id="topTabsInput" placeholder="화면 맨 위 탭 (쉼표)" style="width:150px;" title="화면 제목·조회조건보다 위에 표시. 탭마다 조회조건·패널을 따로 구성">
       <button class="type-btn" id="applyTopTabs">맨위 탭 적용</button>
-      <input class="b-txt" id="tabsInput" placeholder="결과 위 탭 (쉼표)" style="width:150px;" title="엑셀영역과 결과 사이에 표시. 탭마다 패널을 따로 구성">
+      <input class="b-txt" id="tabsInput" placeholder="결과 위 탭 (쉼표)" style="width:150px;" title="엑셀영역과 결과 사이에 표시. 탭마다 패널을 따로 구성. 맨위 탭이 있으면 현재 선택된 맨위 탭에만 적용(맨위 탭별 독립 구성)">
       <button class="type-btn" id="applyTabs">결과 탭 적용</button>
       <span class="divider-v"></span>
       <input class="b-txt" id="toolbarBtns" placeholder="상단 툴바 버튼 (쉼표)" style="width:200px;">
@@ -756,11 +756,25 @@ const state = {
   title:'화면 제목을 입력하세요', desc:'', extShown:false, queried:true,
   conditions:[], popups:[], infoPopups:[],
   searchBtns: defSearchBtns(), excelBtns: defExcelBtns(),
-  tabs:[], activeTab:0, toolbar:null, searchOn:true,
+  tabsByTop:{}, activeTabByTop:{}, toolbar:null, searchOn:true,
   cols:[{flex:1}], panels:[newPanel('조회결과',0)], curPanel:null,
   meta:{sid:'',author:'',ver:''}, annots:[], texts:[], topTabs:[], activeTopTab:0
 };
 state.curPanel = state.panels[0].id;
+/* ===== 결과 탭을 맨위 탭별로 독립 저장 =====
+   state.tabs / state.activeTab 은 getter/setter — 현재 활성 맨위 탭의 결과 탭을 가리킨다.
+   맨위 탭이 없으면 key 0 사용. 기존 코드(state.tabs 참조)는 그대로 동작하되 자동으로 탭별 스코프가 된다. */
+function topKey(){ return (state.topTabs&&state.topTabs.length)?state.activeTopTab:0; }
+Object.defineProperty(state,'tabs',{
+  get(){ const k=topKey(); return state.tabsByTop[k]||(state.tabsByTop[k]=[]); },
+  set(v){ state.tabsByTop[topKey()]=v||[]; }
+});
+Object.defineProperty(state,'activeTab',{
+  get(){ return state.activeTabByTop[topKey()]||0; },
+  set(v){ state.activeTabByTop[topKey()]=v||0; }
+});
+/* 패널 p가 속한 맨위 탭의 결과 탭 목록 (topTab=null 공통 패널은 현재 맨위 탭 기준) */
+const tabsFor = p => state.tabsByTop[(state.topTabs&&state.topTabs.length)?(p&&p.topTab!=null?p.topTab:state.activeTopTab):0]||[];
 /* 다중 화면 관리 : 현재 화면은 state에, 나머지는 screens[i].data에 보관 */
 let screens=[{data:null}], curScreen=0;
 
@@ -784,7 +798,7 @@ function addCondition(type){
   (type==='blank'?['']:names).forEach(nm=>{
     const c={id:'c'+(seq++),type,label:type==='blank'?'':nm,range:$('condRange').checked,ext:pos==='top'&&$('condExt').checked,required:$('condReq').checked,options:[],btns:JSON.parse(JSON.stringify(btns)),pos};
     if(pos==='panel') c.panelId=targetPanel;
-    if(pos==='top'&&state.topTabs&&state.topTabs.length) c.topTab=state.activeTopTab;
+    if(pos!=='panel'&&state.topTabs&&state.topTabs.length) c.topTab=state.activeTopTab; /* 상단·엑셀아래 조건 모두 현재 맨위 탭 소속 */
     state.conditions.push(c);
   });
   render();
@@ -827,7 +841,7 @@ document.querySelectorAll('[data-selkind]').forEach(b=>{
     names.forEach(nm=>{
       const c={id:'c'+(seq++),type:kind,label:nm,range:false,ext:pos==='top'&&$('condExt').checked,required:$('condReq').checked,options:JSON.parse(JSON.stringify(opts)),btns:JSON.parse(JSON.stringify(btns)),pos};
       if(pos==='panel') c.panelId=targetPanel;
-      if(pos==='top'&&state.topTabs&&state.topTabs.length) c.topTab=state.activeTopTab;
+      if(pos!=='panel'&&state.topTabs&&state.topTabs.length) c.topTab=state.activeTopTab; /* 상단·엑셀아래 조건 모두 현재 맨위 탭 소속 */
       state.conditions.push(c);
     });
     $('comboOpts').value=''; render();
@@ -895,14 +909,12 @@ function condCell(c){
 }
 /* 조건 배치 : pos = 'top'(상단 조회영역, 기본) | 'mid'(엑셀 아래) | 'panel'(패널 안, panelId) */
 function condsFor(pos,panelId){
+  /* 조회조건도 맨위 탭별 분리 — topTab 미지정(null)은 첫 번째 맨위 탭(0) 소속으로 취급 (공통 없음) */
+  const tOK=c=>!(state.topTabs&&state.topTabs.length)||((c.topTab==null?0:c.topTab)===state.activeTopTab);
   return state.conditions.filter(c=>{
     const p=c.pos||'top';
-    if(pos==='top'){
-      if(p!=='top') return false;
-      if(state.topTabs&&state.topTabs.length) return c.topTab==null||c.topTab===state.activeTopTab; /* null=모든 탭 공통 */
-      return true;
-    }
-    if(pos==='mid') return p==='mid';
+    if(pos==='top') return p==='top'&&tOK(c);
+    if(pos==='mid') return p==='mid'&&tOK(c);
     if(pos==='panel') return p==='panel'&&c.panelId===panelId;
     return false;
   });
@@ -1190,7 +1202,7 @@ function renderResult(){
   html+='<div class="result-area">';
   const topPanels = state.panels.filter(p=>topTabOK(p.topTab));
   const tabPanels = state.tabs.length ? topPanels.filter(p=>(p.tab||0)===state.activeTab) : topPanels;
-  if(state.tabs.length && !tabPanels.length){
+  if(!tabPanels.length && (state.tabs.length || (state.topTabs&&state.topTabs.length))){
     if(isEdit()) html+=`<div style="flex:1;padding:40px 0;text-align:center;color:#9aa2ac;font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:4px;">이 탭에는 아직 패널이 없습니다.<br>이 탭이 선택된 상태에서 ‘＋ 패널 추가’를 누르면 이 탭에 추가됩니다.</div>`;
   }else{
     state.cols.forEach((c,ci)=>{html+=`<div class="res-col" style="flex:${c.flex};">`;tabPanels.filter(p=>p.colIndex===ci).forEach(p=>html+=renderPanel(p));html+='</div>';});
@@ -1211,7 +1223,10 @@ function syncBuilder(){
   $('newPanelCol').innerHTML = state.cols.map((c,i)=>`<option value="${i}">${i+1}단</option>`).join('');
   const PT_ICON={grid:'',form:'[폼] ',stat:'[카드] ',notice:'[안내] '};
   const topPre=p=>(state.topTabs&&state.topTabs.length&&p.topTab!=null)?('['+esc(state.topTabs[p.topTab]||'맨위탭')+'] '):'';
-  const tabPre=p=>state.tabs.length?('['+esc(state.tabs[p.tab||0]||'탭'+((p.tab||0)+1))+'] '):'';
+  const tabPre=p=>{const tl=tabsFor(p);return tl.length?('['+esc(tl[p.tab||0]||'탭'+((p.tab||0)+1))+'] '):'';};
+  /* 탭 입력창 동기화 — 결과 탭 입력창은 현재 활성 맨위 탭의 결과 탭을 보여준다 */
+  if(document.activeElement!==$('topTabsInput')) $('topTabsInput').value=(state.topTabs||[]).join(', ');
+  if(document.activeElement!==$('tabsInput')) $('tabsInput').value=state.tabs.join(', ');
   const cp=$('curPanel'); cp.innerHTML = state.panels.map(p=>`<option value="${p.id}">${topPre(p)}${tabPre(p)}${PT_ICON[p.ptype||'grid']||''}${esc(p.title||'(제목없음)')}</option>`).join('');
   const cps=$('condPanelSel');
   if(cps){
@@ -1553,14 +1568,30 @@ $('optSearch').onchange=e=>{state.searchOn=e.target.checked;render();};
 $('applyTopTabs').onclick=()=>{
   state.topTabs=$('topTabsInput').value.split(',').map(s=>s.trim()).filter(Boolean);
   state.activeTopTab=0;
-  state.panels.forEach(p=>{ if(p.topTab!=null&&p.topTab>=state.topTabs.length) p.topTab=null; });
-  state.conditions.forEach(c=>{ if(c.topTab!=null&&c.topTab>=state.topTabs.length) c.topTab=null; });
+  /* 패널은 항상 특정 맨위 탭에 소속 — 공통(null) 패널 없음.
+     맨위 탭 적용 전 만든 패널·삭제된 탭의 패널은 첫 번째 맨위 탭으로 이동 */
+  state.panels.forEach(p=>{
+    if(state.topTabs.length){ if(p.topTab==null||p.topTab>=state.topTabs.length) p.topTab=0; }
+    else p.topTab=null;
+  });
+  /* 조회조건도 공통(null) 없음 — 맨위 탭 적용 전 만든 조건·삭제된 탭의 조건은 첫 번째 맨위 탭으로 */
+  state.conditions.forEach(c=>{
+    if((c.pos||'top')==='panel') return;   /* 패널 안 조건은 패널을 따라감 */
+    if(state.topTabs.length){ if(c.topTab==null||c.topTab>=state.topTabs.length) c.topTab=0; }
+    else c.topTab=null;
+  });
+  /* 삭제된 맨위 탭의 결과 탭 데이터 정리 + 패널의 결과 탭 인덱스 검증 */
+  if(state.topTabs.length){
+    Object.keys(state.tabsByTop).forEach(k=>{ if(+k>=state.topTabs.length){ delete state.tabsByTop[k]; delete state.activeTabByTop[k]; } });
+  }
+  state.panels.forEach(p=>{ const tl=tabsFor(p); if(tl.length&&(p.tab||0)>=tl.length) p.tab=0; });
   render();
 };
 $('applyTabs').onclick=()=>{
+  /* 결과 탭은 현재 활성 '맨위 탭'에만 적용된다 (맨위 탭별 독립 구성) */
   state.tabs=$('tabsInput').value.split(',').map(s=>s.trim()).filter(Boolean);
   state.activeTab=0;
-  state.panels.forEach(p=>{ if((p.tab||0)>=state.tabs.length) p.tab=0; });
+  state.panels.forEach(p=>{ if(!topTabOK(p.topTab)) return; if((p.tab||0)>=state.tabs.length) p.tab=0; });
   render();
 };
 $('applyToolbar').onclick=()=>{const b=$('toolbarBtns').value.split(',').map(s=>s.trim()).filter(Boolean);if(!b.length){alert('툴바 버튼을 입력하세요.');return;}state.toolbar=Object.assign({label:'',combo:[]},state.toolbar||{},{buttons:b});render();};
@@ -1570,7 +1601,7 @@ $('clearToolbar').onclick=()=>{state.toolbar=null;render();};
 $('modeBtn').onclick=()=>{document.body.classList.toggle('preview');const pv=document.body.classList.contains('preview');$('modeBtn').textContent=pv?'✏ 편집 모드':'👁 미리보기 모드';if(pv)state.panels.forEach(p=>p.sort={kid:null,dir:1});render();};
 $('clearAll').onclick=()=>{
   if(!confirm('모든 구성을 초기화할까요?'))return;
-  state.conditions=[];state.popups=[];state.infoPopups=[];state.tabs=[];state.activeTab=0;state.toolbar=null;state.searchOn=true;
+  state.conditions=[];state.popups=[];state.infoPopups=[];state.tabsByTop={};state.activeTabByTop={};state.toolbar=null;state.searchOn=true;
   state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
   state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
   state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;
@@ -1631,9 +1662,21 @@ function normalizeScreenObj(o){
     if(!c.pos) c.pos='top';
     if(c.pos==='panel'&&!findByIdIn(o.panels,c.panelId)) c.pos='top';
     if(c.topTab===undefined) c.topTab=null;
-    if(c.topTab!=null&&c.topTab>=o.topTabs.length) c.topTab=null;
+    if((c.pos||'top')!=='panel'){
+      if(o.topTabs.length){ if(c.topTab==null||c.topTab>=o.topTabs.length) c.topTab=0; }   /* 조회조건도 공통 없음 */
+      else c.topTab=null;
+    }
   });
-  o.panels.forEach(p=>{ if(p.topTab===undefined) p.topTab=null; if(p.topTab!=null&&p.topTab>=o.topTabs.length) p.topTab=null; });
+  o.panels.forEach(p=>{ if(p.topTab===undefined) p.topTab=null;
+    if(o.topTabs.length){ if(p.topTab==null||p.topTab>=o.topTabs.length) p.topTab=0; }   /* 패널은 공통 없음 — 항상 특정 맨위 탭 소속 */
+    else p.topTab=null; });
+  /* 결과 탭 : 맨위 탭별 저장(tabsByTop) 정규화 — 구버전 전역 tabs 는 모든 맨위 탭에 복사 */
+  if(!o.tabsByTop){
+    o.tabsByTop={};
+    if(o.tabs&&o.tabs.length){ const tt=o.topTabs.length||1; for(let i=0;i<tt;i++) o.tabsByTop[i]=o.tabs.slice(); }
+  }
+  o.activeTabByTop={};
+  o.panels.forEach(p=>{ const tl=o.tabsByTop[(o.topTabs.length&&p.topTab!=null)?p.topTab:0]||[]; if(tl.length&&p.tab>=tl.length) p.tab=0; });
   o.queried=o.queried!==false;o.extShown=!!o.extShown;
   return o;
 }
@@ -1665,7 +1708,7 @@ $('loadFile').onchange=e=>{
 const hist={stack:[],pos:-1,lock:false,timer:null,MAX:80};
 function snapState(){
   return JSON.stringify({title:state.title,desc:state.desc,conditions:state.conditions,popups:state.popups,infoPopups:state.infoPopups,
-    searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabs:state.tabs,activeTab:state.activeTab,toolbar:state.toolbar,
+    searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabsByTop:state.tabsByTop,activeTabByTop:state.activeTabByTop,toolbar:state.toolbar,
     searchOn:state.searchOn,cols:state.cols,panels:state.panels,curPanel:state.curPanel,queried:state.queried,extShown:state.extShown,
     meta:state.meta,annots:state.annots,texts:state.texts,topTabs:state.topTabs,activeTopTab:state.activeTopTab});
 }
@@ -1686,7 +1729,16 @@ function applySnap(s){
   hist.lock=true;
   state.title=o.title||'';state.desc=o.desc||'';state.conditions=o.conditions||[];state.popups=o.popups||[];state.infoPopups=o.infoPopups||[];
   state.searchBtns=o.searchBtns||defSearchBtns();state.excelBtns=o.excelBtns||defExcelBtns();
-  state.tabs=o.tabs||[];state.activeTab=o.activeTab||0;state.toolbar=o.toolbar||null;state.searchOn=o.searchOn!==false;
+  /* 결과 탭: 맨위 탭별 저장(tabsByTop). 구버전 전역 tabs 는 모든 맨위 탭에 복사해 마이그레이션 */
+  if(o.tabsByTop){ state.tabsByTop=o.tabsByTop; state.activeTabByTop=o.activeTabByTop||{}; }
+  else{
+    state.tabsByTop={}; state.activeTabByTop={};
+    if(o.tabs&&o.tabs.length){
+      const tt=(o.topTabs&&o.topTabs.length)?o.topTabs.length:1;
+      for(let i=0;i<tt;i++) state.tabsByTop[i]=o.tabs.slice();
+    }
+  }
+  state.toolbar=o.toolbar||null;state.searchOn=o.searchOn!==false;
   state.cols=o.cols||[{flex:1}];state.panels=o.panels||[newPanel('조회결과',0)];
   state.curPanel=findP(o.curPanel)?o.curPanel:(state.panels[0]&&state.panels[0].id);
   state.queried=o.queried!==false;state.extShown=!!o.extShown;
@@ -1724,7 +1776,7 @@ function syncCurScreen(){ if(screens[curScreen]) screens[curScreen].data=capture
 function freshScreenData(){
   const p=newPanel('조회결과',0);
   return {title:'화면 제목을 입력하세요',desc:'',conditions:[],popups:[],infoPopups:[],
-    searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabs:[],activeTab:0,toolbar:null,searchOn:true,
+    searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabsByTop:{},activeTabByTop:{},toolbar:null,searchOn:true,
     cols:[{flex:1}],panels:[p],curPanel:p.id,queried:true,extShown:false,
     meta:{sid:'',author:'',ver:''},annots:[],texts:[],topTabs:[],activeTopTab:0};
 }
@@ -2155,7 +2207,7 @@ $('exportSpec').onclick=()=>{
         const locBits=[];
         if(c.pos==='mid') locBits.push('위치: 엑셀 아래');
         else if(c.pos==='panel'){ const pp2=findByIdIn(state.panels,c.panelId); locBits.push('위치: 패널['+((pp2&&pp2.title)||'?')+']'); }
-        if(state.topTabs&&state.topTabs.length&&(c.pos||'top')==='top') locBits.push(c.topTab==null?'맨위탭: 공통':'맨위탭: '+(state.topTabs[c.topTab]||''));
+        if(state.topTabs&&state.topTabs.length&&(c.pos||'top')!=='panel') locBits.push('맨위탭: '+(state.topTabs[c.topTab==null?0:c.topTab]||''));
         if(locBits.length) extra=(extra?extra+' / ':'')+locBits.join(' / ');
         return `<tr><td class="c">${i+1}</td><td>${esc(c.label)||'<span class="mut">(빈칸)</span>'}</td><td class="c">${COND_TYPE_KO[c.type]||c.type}</td><td class="c">${c.range?O:X}</td><td class="c">${c.required?'<b class="rd">'+O+'</b>':X}</td><td class="c">${c.ext?O:X}</td><td>${esc(extra)||'<span class="mut">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
@@ -2165,8 +2217,10 @@ $('exportSpec').onclick=()=>{
   const btnTbl=`<h2>2. 버튼 구성</h2><table><tbody>
     <tr><th style="width:130px">조회영역 버튼</th><td>${btnLine(state.searchBtns)}</td></tr>
     <tr><th>엑셀영역 버튼</th><td>${btnLine(state.excelBtns)}</td></tr>
-    ${(state.topTabs&&state.topTabs.length)?`<tr><th>화면 맨 위 탭</th><td>${state.topTabs.map(esc).join(' · ')} <span class="mut">(탭별 조회조건 · 패널 구성)</span></td></tr>`:''}
-    ${state.tabs.length?`<tr><th>결과 위 탭</th><td>${state.tabs.map(esc).join(' · ')} <span class="mut">(탭별 패널 구성)</span></td></tr>`:''}
+    ${(state.topTabs&&state.topTabs.length)?`<tr><th>화면 맨 위 탭</th><td>${state.topTabs.map(esc).join(' · ')} <span class="mut">(탭별 조회조건 · 결과 탭 · 패널 독립 구성)</span></td></tr>`:''}
+    ${(state.topTabs&&state.topTabs.length)
+      ? state.topTabs.map((tt,i)=>{const tl=state.tabsByTop[i]||[];return tl.length?`<tr><th>결과 위 탭 [${esc(tt)}]</th><td>${tl.map(esc).join(' · ')} <span class="mut">(탭별 패널 구성)</span></td></tr>`:'';}).join('')
+      : (state.tabs.length?`<tr><th>결과 위 탭</th><td>${state.tabs.map(esc).join(' · ')} <span class="mut">(탭별 패널 구성)</span></td></tr>`:'')}
     ${state.toolbar?`<tr><th>상단 툴바</th><td>${(state.toolbar.buttons||[]).map(esc).join(' · ')}</td></tr>`:''}
   </tbody></table>`;
   /* 패널별 컬럼 정의 */
@@ -2176,7 +2230,9 @@ $('exportSpec').onclick=()=>{
     if(p.check)opts.push('체크박스열');if(p.rownum)opts.push('행번호');if(p.showSum)opts.push('합계행');if(p.pager)opts.push('페이지네이션');
     if(p.filterRow)opts.push('필터행');if(p.fixedCols)opts.push('고정컬럼 '+p.fixedCols+'열');
     const pt=p.ptype||'grid';
-    const tabNm=state.tabs.length?('[탭: '+esc(state.tabs[p.tab||0]||'')+'] '):'';
+    const ptl=tabsFor(p);
+    const topNm=(state.topTabs&&state.topTabs.length)?('[맨위탭: '+esc(p.topTab!=null?(state.topTabs[p.topTab]||''):'공통')+'] '):'';
+    const tabNm=topNm+(ptl.length?('[탭: '+esc(ptl[p.tab||0]||'')+'] '):'');
     panelSecs+=`<h3>패널 ${pi+1}. ${tabNm}${esc(p.title||'(제목없음)')} <span class="mut">— ${PTYPE_KO[pt]||pt}${state.cols.length>1?', '+(p.colIndex+1)+'단 배치':''}${pt==='grid'?', 옵션: '+(opts.join(', ')||'없음'):''}${p.buttons.length?' / 버튼: '+p.buttons.map(b=>esc(b.label)).join(' · '):''}</span></h3>`;
     if(pt==='form'){
       if(!(p.fields||[]).length){panelSecs+=`<p class="mut">필드 없음</p>`;return;}
@@ -2262,7 +2318,8 @@ function PNL(title,o){o=o||{};const cols=o.cols||[];return{id:'P'+(seq++),title,
 function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',required:!!o.req,span:!!o.span||o.t==='textarea'||o.t==='note',options:o.opts||[],value:o.v||''};}
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
 function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:(o.btns||[]).map(b=>typeof b==='string'?parseCondBtn(b):b)};}
-function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();fn();
+function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
+  state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});
   state.extShown=false;state.queried=true;state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}

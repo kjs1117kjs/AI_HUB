@@ -465,13 +465,46 @@
   .ms-wrap.open .ms-pop{display:block;}
   .ms-pop label{display:flex;align-items:center;gap:7px;padding:4px 10px;font-size:12.5px;color:#3d4550;cursor:pointer;white-space:nowrap;border-radius:3px;}
   .ms-pop label:hover{background:#f0f5fc;}
+
+  /* ===== [UI 개선] 기능 그룹 구분 : 색상 헤더 + 접기 ===== */
+  .bgroup-head{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12.5px;cursor:pointer;user-select:none;border-bottom:1px solid var(--border-soft);}
+  .bgroup-head:hover{filter:brightness(0.985);}
+  .bgroup-head .bg-title{font-weight:800;letter-spacing:-0.01em;}
+  .bgroup-head .bg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .bgroup-head .bg-sub{font-weight:500;font-size:11px;color:#7d8794;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+  .bgroup-head .bg-sub b{color:#5a6472;font-weight:700;}
+  .bgroup-head .bg-caret{margin-left:auto;font-size:11px;color:#8a93a0;transition:transform .18s;flex-shrink:0;}
+  .bgroup-head.collapsed .bg-caret{transform:rotate(-90deg);}
+  .builder-sec.grp-hidden{display:none;}
+  .bgroup-head.g-screen{background:#eaf7ef;} .bgroup-head.g-screen .bg-title{color:#176b3d;} .bgroup-head.g-screen .bg-dot{background:#1f9d55;}
+  .bgroup-head.g-cond{background:#e9f2fd;}   .bgroup-head.g-cond .bg-title{color:#1e63b6;}   .bgroup-head.g-cond .bg-dot{background:#2f89ee;}
+  .bgroup-head.g-popup{background:#f1edfb;}  .bgroup-head.g-popup .bg-title{color:#5a3fa8;}  .bgroup-head.g-popup .bg-dot{background:#7a5cd0;}
+  .bgroup-head.g-panel{background:#fdf3e2;}  .bgroup-head.g-panel .bg-title{color:#a86a12;}  .bgroup-head.g-panel .bg-dot{background:#f0a020;}
+  .bgroup-head.g-opt{background:#e7f5f5;}    .bgroup-head.g-opt .bg-title{color:#0f7a77;}    .bgroup-head.g-opt .bg-dot{background:#148f8c;}
+  .bgroup-head.g-tool{background:#eceff2;}   .bgroup-head.g-tool .bg-title{color:#2c3742;}   .bgroup-head.g-tool .bg-dot{background:#3a4551;}
+  .builder-sec.g-screen{box-shadow:inset 3px 0 0 #1f9d55;background:#fbfefc;}
+  .builder-sec.g-cond{box-shadow:inset 3px 0 0 #2f89ee;}
+  .builder-sec.g-popup{box-shadow:inset 3px 0 0 #7a5cd0;}
+  .builder-sec.g-panel{box-shadow:inset 3px 0 0 #f0a020;}
+  .builder-sec.g-opt{box-shadow:inset 3px 0 0 #148f8c;}
+  .builder-sec.g-tool{box-shadow:inset 3px 0 0 #3a4551;background:#fafbfc;}
+  .builder-sec .sec-title{width:104px;}
+  .builder-sec.g-screen .sec-title{color:#176b3d;}
+  .builder-sec.g-cond .sec-title{color:#1e63b6;}
+  .builder-sec.g-popup .sec-title{color:#5a3fa8;}
+  .builder-sec.g-panel .sec-title{color:#a86a12;}
+  .builder-sec.g-opt .sec-title{color:#0f7a77;}
+  .builder-sec.target-sec{background:#fdf8ec;border-top:1px dashed #e5cf9c;border-bottom:1px dashed #e5cf9c;}
+  .builder-sec.target-sec .sec-title{font-size:12.5px;}
+  .builder-sec.target-sec .sec-title::after{content:" ★";color:#f0a020;}
 </style>
 </head>
 <body class="edit">
 <div class="wrap">
   <div class="builder">
     <div class="builder-top">🧩 조회화면 구성기 <span style="font-size:11px;color:#7a828d;font-weight:600;">v011</span><span class="hint">두 종류 탭 · 조건 위치(상단/엑셀 아래/패널 안)까지, 조회조건 중심으로 크게 확장된 버전입니다.</span></div>
-    <div class="builder-sec" style="background:#f5faf5;">
+    <div class="bgroup-head g-screen" data-grp="g-screen"><span class="bg-dot"></span><span class="bg-title">① 화면 관리</span><span class="bg-sub">화면 추가·복제·전환 / 화면ID·작성자·버전</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-screen">
       <span class="sec-title">화면 목록</span>
       <select class="b-sel" id="screenSel" style="min-width:210px;" title="이 파일에서 관리 중인 화면 목록. 전환 시 현재 작업은 자동 보관됩니다"></select>
       <button class="type-btn accent" id="scrAdd">＋ 새 화면</button>
@@ -484,7 +517,8 @@
       <input class="b-txt" id="metaVer" placeholder="버전 (예: v1.0)" style="width:96px;">
       <span class="hint">화면ID·작성자·버전은 JSON · HTML · 화면정의서에 함께 기록됩니다.</span>
     </div>
-    <div class="builder-sec">
+    <div class="bgroup-head g-cond" data-grp="g-cond"><span class="bg-dot"></span><span class="bg-title">② 조회조건</span><span class="bg-sub">일자·텍스트·매장 등 + 선택형(콤보·라디오·토글…) · 위치·뒤 버튼</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-cond">
       <span class="sec-title">조회조건 추가</span>
       <input class="b-txt" id="condName" value="조회조건" placeholder="조건명 (쉼표로 여러개)" title="쉼표로 나열하면 같은 유형의 조건이 한 번에 여러 개 추가됩니다 (예: 매장코드,매장명,사업자번호)" style="width:170px;">
       <select class="b-sel" id="condPos" title="조건이 표시될 위치"><option value="top">위치: 상단 조회영역</option><option value="mid">위치: 엑셀 아래</option><option value="panel">위치: 패널 안</option></select>
@@ -505,7 +539,7 @@
       <button class="type-btn" data-add="prod">📦 상품</button>
       <button class="type-btn ghost" data-add="blank">▫️ 빈칸</button>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-cond">
       <span class="sec-title">선택형 조건</span>
       <input class="b-txt" id="comboName" value="조건" placeholder="조건명 (쉼표로 여러개)" title="쉼표로 나열하면 같은 옵션의 선택형 조건이 여러 개 추가됩니다" style="width:150px;">
       <input class="b-txt" id="comboOpts" placeholder="옵션 (쉼표: 전체,미스터피자,BBQ)" style="width:250px;">
@@ -517,21 +551,23 @@
       <button class="type-btn" data-selkind="toggle" title="사용/미사용 같은 On·Off 스위치. 옵션 비우면 사용,미사용">🎚️ 토글</button>
       <button class="type-btn" data-selkind="multi" title="드롭다운을 열어 여러 항목을 체크로 선택">☑ 다중선택</button>
     </div>
-    <div class="builder-sec">
+    <div class="bgroup-head g-popup" data-grp="g-popup"><span class="bg-dot"></span><span class="bg-title">③ 팝업</span><span class="bg-sub">검색 팝업 · 정보 팝업 만들기</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-popup">
       <span class="sec-title">팝업 구성</span>
       <button class="type-btn accent" id="newPopupBtn">🪟 팝업 만들기</button>
       <button class="type-btn" id="popupSampleBtn">📚 팝업예시</button>
       <span class="divider-v"></span>
       <div class="pop-chips" id="popChips"></div>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-popup">
       <span class="sec-title">정보 팝업</span>
       <button class="type-btn accent" id="newInfoBtn">🗂️ 정보팝업 만들기</button>
       <button class="type-btn" id="infoSampleBtn">📚 팝업예시</button>
       <span class="divider-v"></span>
       <div class="pop-chips" id="infoChips"></div>
     </div>
-    <div class="builder-sec">
+    <div class="bgroup-head g-panel" data-grp="g-panel"><span class="bg-dot"></span><span class="bg-title">④ 패널 · 컬럼 · 데이터</span><span class="bg-sub">레이아웃 → 패널 추가 → <b>대상 패널 선택</b> → 컬럼·필드·데이터 입력</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-panel">
       <span class="sec-title">레이아웃 · 패널</span>
       <span style="font-size:12px;color:#5a6472;font-weight:600;">컬럼수</span>
       <button class="type-btn" data-cols="1">1단</button>
@@ -543,7 +579,7 @@
       <select class="b-sel" id="newPanelCol"></select>
       <button class="type-btn accent" id="addPanel">＋ 패널 추가</button>
     </div>
-    <div class="builder-sec target-sec">
+    <div class="builder-sec g-panel target-sec">
       <span class="sec-title">대상 패널</span>
       <select class="b-sel" id="curPanel" style="min-width:150px;"></select>
       <label class="b-chk"><input type="checkbox" id="pOptCheck"> 체크박스열</label>
@@ -561,7 +597,7 @@
       <button class="type-btn" id="pDupPanel" title="현재 패널을 컬럼·데이터·버튼까지 그대로 복제합니다">⧉ 패널 복제</button>
       <button class="type-btn ghost" id="pDelPanel">패널 삭제</button>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-panel">
       <span class="sec-title">컬럼 추가</span>
       <input class="b-txt" id="colName" value="컬럼" placeholder="컬럼명 (쉼표로 여러개)" style="width:170px;" title="쉼표(,)로 구분해 여러 컬럼을 한 번에 추가">
       <input class="b-txt" id="colGroup" placeholder="그룹명(2줄,선택)" style="width:120px;">
@@ -580,7 +616,7 @@
       <span style="font-size:11.5px;color:#7a828d;">너비</span><input class="b-txt" id="colWidth" type="number" min="1" value="30" style="width:64px;" title="컬럼 너비(글자수)">
       <button class="type-btn accent" id="addCol">＋ 컬럼</button>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-panel">
       <span class="sec-title">폼 필드 · 카드</span>
       <input class="b-txt" id="fldName" placeholder="필드명 (쉼표로 여러개)" style="width:150px;">
       <select class="b-sel" id="fldType">
@@ -603,7 +639,7 @@
       <button class="type-btn" id="statAdd" title="대상 패널(요약카드 유형)에 카드를 추가합니다">＋ 카드</button>
       <span class="hint">‘폼’·‘요약카드’ 유형 패널에 적용됩니다. 안내문 패널은 화면에서 바로 입력하세요.</span>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-panel">
       <span class="sec-title">결과 데이터</span>
       <button class="type-btn" id="addRow">＋ 행</button>
       <button class="type-btn" id="pasteData">📋 붙여넣기</button>
@@ -611,7 +647,8 @@
       <button class="type-btn ghost" id="clearRows">비우기</button>
       <span class="hint">‘대상 패널’ 기준으로 적용됩니다.</span>
     </div>
-    <div class="builder-sec">
+    <div class="bgroup-head g-opt" data-grp="g-opt"><span class="bg-dot"></span><span class="bg-title">⑤ 화면 옵션 · 버튼</span><span class="bg-sub">탭 2종 · 툴바 · 조회/엑셀영역 버튼</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-opt">
       <span class="sec-title">화면 옵션</span>
       <label class="b-chk"><input type="checkbox" id="optSearch" checked> 조회조건 패널</label>
       <span class="divider-v"></span>
@@ -624,7 +661,7 @@
       <button class="type-btn" id="applyToolbar">툴바 적용</button>
       <button class="type-btn ghost" id="clearToolbar">툴바 제거</button>
     </div>
-    <div class="builder-sec">
+    <div class="builder-sec g-opt">
       <span class="sec-title">조회/엑셀 버튼</span>
       <input class="b-txt" id="schBtnName" placeholder="조회영역 버튼명 (쉼표)" style="width:170px;">
       <select class="b-sel tone-sel" id="schBtnTone" title="버튼 색"><optgroup label="진한 색"><option value="blue" selected>파랑</option><option value="navy">남색</option><option value="teal">청록</option><option value="green">초록</option><option value="orange">주황</option><option value="red">빨강</option><option value="purple">보라</option><option value="dark">검정</option></optgroup><optgroup label="연한 색"><option value="soft">연파랑</option><option value="softgreen">연초록</option><option value="softorange">연주황</option><option value="softred">연빨강</option><option value="gray">회색</option><option value="white">흰색</option></optgroup></select>
@@ -637,7 +674,8 @@
       <button class="type-btn ghost" id="xlsBtnReset">기본값</button>
       <span class="hint">버튼명에 ‘확장’이 들어가면 확장조건 토글로 동작합니다. × 로 삭제.</span>
     </div>
-    <div class="builder-sec">
+    <div class="bgroup-head g-tool" data-grp="g-tool"><span class="bg-dot"></span><span class="bg-title">⑥ 저장 · 도구</span><span class="bg-sub">미리보기 · 실행취소 · 주석 · 저장/내보내기 · 예시</span><span class="bg-caret">▾</span></div>
+    <div class="builder-sec g-tool">
       <span class="sec-title">화면 설정</span>
       <button class="btn" id="modeBtn">👁 미리보기 모드</button>
       <button class="btn" id="clearAll">전체 초기화</button>
@@ -3354,6 +3392,20 @@ INFO_PRESETS.couponuse=()=>({name:'쿠폰 사용내역',subtitle:'CPN-2026-0042 
 render();
 syncCurScreen(); /* 첫 화면 슬롯 채움 */
 clearTimeout(hist.timer); pushHist(); /* 초기 상태를 히스토리 기준점으로 */
+</script>
+<script>
+/* [UI 개선] 기능 그룹 접기/펼치기 */
+document.querySelectorAll('.bgroup-head').forEach(function(hd){
+  hd.addEventListener('click', function(){
+    hd.classList.toggle('collapsed');
+    var hide = hd.classList.contains('collapsed');
+    var el = hd.nextElementSibling;
+    while(el && !el.classList.contains('bgroup-head')){
+      if(el.classList.contains('builder-sec')) el.classList.toggle('grp-hidden', hide);
+      el = el.nextElementSibling;
+    }
+  });
+});
 </script>
 </body>
 </html>

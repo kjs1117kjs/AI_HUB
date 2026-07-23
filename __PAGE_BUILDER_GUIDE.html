@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>화면 빌더 사용설명서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:"Pretendard",sans-serif;font-weight:500;color:#2e2e2e;background:#fff;line-height:1.75;
+    word-break:keep-all;overflow-wrap:break-word;font-feature-settings:"tnum";font-size:14.5px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 24px 120px;}
+  header{border-bottom:2px solid #191919;padding-bottom:26px;margin-bottom:30px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#767676;font-weight:600;margin-bottom:10px;}
+  h1{font-size:34px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;color:#191919;}
+  .sub{margin-top:12px;font-size:14.5px;color:#545454;}
+  h2{font-size:21px;font-weight:800;color:#191919;margin-top:64px;padding-top:22px;border-top:2px solid #191919;}
+  h2 .no{color:#a1a1a1;margin-right:10px;}
+  h3{font-size:15.5px;font-weight:700;color:#191919;margin-top:30px;}
+  p{margin-top:12px;color:#3c3c3c;}
+  ul.bl{margin:12px 0 0 2px;list-style:none;}
+  ul.bl li{padding-left:16px;position:relative;margin-top:7px;color:#3c3c3c;}
+  ul.bl li::before{content:"·";position:absolute;left:2px;color:#a1a1a1;font-weight:800;}
+  b{color:#191919;font-weight:700;}
+  code,kbd{font-family:inherit;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:1px 7px;font-size:12.5px;color:#334;}
+  kbd{background:#191919;color:#fff;border-color:#191919;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px;border-top:1px solid #191919;border-bottom:1px solid #191919;}
+  th{background:#efefef;color:#191919;font-weight:700;text-align:left;padding:10px 12px;border-bottom:1px solid #e0e0e0;white-space:nowrap;}
+  td{padding:10px 12px;border-bottom:1px solid #ededed;vertical-align:top;color:#3c3c3c;}
+  tr:last-child td{border-bottom:none;}
+  .tip{background:rgba(252,246,131,.32);padding:16px 20px;margin-top:16px;font-size:13.5px;}
+  .tip .lb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#767676;margin-bottom:6px;}
+  .note{background:rgba(15,128,246,.07);padding:16px 20px;margin-top:16px;font-size:13.5px;}
+  .note .lb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2f649c;margin-bottom:6px;}
+  /* TOC */
+  nav.toc{background:#f8f9fa;border:1px solid #eceef1;border-radius:8px;padding:20px 24px;margin-top:26px;}
+  nav.toc .t{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#767676;margin-bottom:10px;}
+  nav.toc ol{margin-left:18px;columns:2;column-gap:36px;font-size:13.5px;}
+  nav.toc li{margin-top:5px;break-inside:avoid;}
+  nav.toc a{color:#2e2e2e;text-decoration:none;}
+  nav.toc a:hover{color:#0F80F6;text-decoration:underline;text-underline-offset:3px;}
+  .pill{display:inline-block;background:#eef4fb;color:#2f649c;font-size:11.5px;font-weight:700;border-radius:10px;padding:2px 10px;margin-right:4px;}
+  @media(max-width:560px){ nav.toc ol{columns:1;} h1{font-size:27px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Page Builder Guide</div>
+  <h1>화면 빌더 사용설명서</h1>
+  <p class="sub">홈페이지 형태의 화면을 블록 조립으로 설계하고, 그대로 열어볼 수 있는 HTML과 화면정의서까지 뽑아내는 도구입니다. 기준 버전: <b>__PAGE_BUILDER_009.html</b> (블록 20종 · 예시 템플릿 30종)</p>
+</header>
+
+<nav class="toc">
+  <div class="t">목차</div>
+  <ol>
+    <li><a href="#s1">이런 도구입니다</a></li>
+    <li><a href="#s2">화면 구성과 두 가지 모드</a></li>
+    <li><a href="#s3">가장 빠른 시작 — 예시 템플릿 30종</a></li>
+    <li><a href="#s4">페이지 — 추가·이동·링크 연결</a></li>
+    <li><a href="#s5">행(섹션)과 열 — 레이아웃 잡기</a></li>
+    <li><a href="#s6">블록 20종 한눈에</a></li>
+    <li><a href="#s7">데이터 블록 — 표·요약카드·그래프</a></li>
+    <li><a href="#s8">메뉴바(GNB)와 푸터</a></li>
+    <li><a href="#s9">주석(📌) — 설계 의도 남기기</a></li>
+    <li><a href="#s10">저장·불러오기·실행취소</a></li>
+    <li><a href="#s11">HTML 내보내기</a></li>
+    <li><a href="#s12">화면정의서 출력</a></li>
+    <li><a href="#s13">자주 묻는 질문(FAQ)</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1"><span class="no">01</span>이런 도구입니다</h2>
+<p><b>화면 빌더</b>는 코드를 몰라도 홈페이지·랜딩·대시보드 같은 화면을 조립할 수 있는 단일 HTML 도구입니다. 결과물은 두 가지로 뽑습니다.</p>
+<ul class="bl">
+  <li><b>🌐 HTML 내보내기</b> — 만든 화면 그대로 열리는 독립 HTML 한 파일. 페이지 이동(메뉴·버튼·사이드메뉴 클릭)까지 실제로 동작하므로, 설계 검토용은 물론 간단한 실사용 페이지로도 쓸 수 있습니다.</li>
+  <li><b>📑 화면정의서</b> — 페이지 구조·블록 목록·주석을 표로 정리한 인쇄용 문서. 개발팀에 전달하는 설계서가 됩니다.</li>
+</ul>
+<div class="note"><div class="lb">Note</div>브라우저에서 파일을 여는 것만으로 동작하며 서버·설치가 필요 없습니다. 작업 내용은 <b>JSON 저장 파일</b>로 보관하고 다시 불러올 수 있습니다.</div>
+
+<h2 id="s2"><span class="no">02</span>화면 구성과 두 가지 모드</h2>
+<ul class="bl">
+  <li><b>상단 도구막대</b> — 페이지 관리 / 행 추가 / 메뉴바·푸터 스위치 / 템플릿 / 저장·불러오기 / 내보내기 / 주석 모드 / 실행취소.</li>
+  <li><b>캔버스</b> — 실제 화면 모습 그대로 편집하는 영역. 텍스트는 <b>화면에서 직접 클릭해 입력</b>합니다(입력 후 바깥 클릭 시 저장).</li>
+  <li><b>블록 도구</b> — 블록에 마우스를 올리면 우상단에 나타나는 작은 도구(속성 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제).</li>
+</ul>
+<h3>편집 ↔ 미리보기</h3>
+<p>우상단 <code>👁 미리보기</code>를 누르면 점선·도구가 모두 사라진 완성 모습을 확인할 수 있고, 메뉴·버튼 클릭으로 <b>페이지 이동도 실제로 동작</b>합니다. 다시 누르면 편집으로 돌아옵니다.</p>
+
+<h2 id="s3"><span class="no">03</span>가장 빠른 시작 — 예시 템플릿 30종</h2>
+<p>도구막대의 <code>📚 예시 템플릿 (30종)…</code> 콤보에서 원하는 유형을 고르면 화면 전체가 그 예시로 바뀝니다(실행취소 가능). 유명 홈페이지들의 대표 레이아웃을 본떠 만들었으므로, <b>비슷한 유형을 골라 내용만 바꾸는 것</b>이 가장 빠른 사용법입니다.</p>
+<table>
+  <thead><tr><th>그룹</th><th>템플릿</th></tr></thead>
+  <tbody>
+    <tr><td>포털 · 검색</td><td>① 검색 중심형(구글 스타일) · ② 종합 포털형(네이버 스타일)</td></tr>
+    <tr><td>기업 · 제품</td><td>③ 대기업 공식 홈 · ④ IT제품/SaaS · ⑤ 쇼핑몰 · ⑥ 프로모션 랜딩 · ⑦ 앱 소개 랜딩 · ⑧ 에이전시/포트폴리오 · ⑨ 스타트업(연혁+팀) · ⑩ 금융/은행</td></tr>
+    <tr><td>미디어 · 콘텐츠</td><td>⑪ 뉴스/미디어 · ⑫ 블로그 · ⑬ 커뮤니티/게시판 · ⑭ 교육/강의 플랫폼</td></tr>
+    <tr><td>공공 · 생활</td><td>⑮ 공공기관 · ⑯ 병원/클리닉 · ⑰ 레스토랑/카페 · ⑱ 호텔/여행 · ⑲ 부동산 · ⑳ 비영리/재단</td></tr>
+    <tr><td>목적 페이지</td><td>㉑ 회사소개(연혁) · ㉒ 팀 소개 · ㉓ 문의하기 · ㉔ 채용 · ㉕ 고객센터/FAQ · ㉖ 로그인/회원가입(2페이지) · ㉗ 행사/컨퍼런스</td></tr>
+    <tr><td>업무 시스템</td><td>㉘ 사내 인트라넷 포털 · ㉙ 관리자 대시보드 · ㉚ 문서/도움말 센터(사이드메뉴형)</td></tr>
+  </tbody>
+</table>
+<div class="tip"><div class="lb">Tip</div>㉚ 문서센터는 <b>사이드메뉴로 3개 페이지를 오가는 구조</b>, ㉖ 로그인은 <b>버튼으로 두 페이지가 서로 연결된 구조</b>의 견본입니다. 링크 연결 방식을 배우기에 좋습니다.</div>
+
+<h2 id="s4"><span class="no">04</span>페이지 — 추가·이동·링크 연결</h2>
+<p>도구막대 맨 앞 <b>[페이지]</b> 섹션에서 콤보로 전환하고 <code>＋ 페이지</code> <code>✎ 이름</code> <code>⧉ 복제</code> <code>✕ 삭제</code>로 관리합니다. 메뉴바·푸터는 모든 페이지에 공통으로 표시됩니다.</p>
+<h3>링크는 "이름 맞추기"로 연결됩니다</h3>
+<ul class="bl">
+  <li><b>메뉴바 항목</b> · <b>사이드메뉴 항목</b> · <b>버튼</b>의 이름이 <b>페이지명과 같으면 자동 연결</b>됩니다. 편집 모드에서 연결된 메뉴 항목에는 작은 <b>↗</b> 표시가 붙습니다.</li>
+  <li>버튼은 <code>이름=색&gt;페이지명</code> 형식으로 직접 지정할 수도 있습니다. 예: <code>홈으로=회색&gt;홈</code></li>
+  <li>이동은 <b>미리보기</b>와 <b>내보낸 HTML</b>에서 동작합니다(편집 모드에서는 클릭이 편집으로 쓰이므로 이동하지 않음).</li>
+</ul>
+
+<h2 id="s5"><span class="no">05</span>행(섹션)과 열 — 레이아웃 잡기</h2>
+<ul class="bl">
+  <li>화면은 <b>행(가로 섹션)</b>을 위에서 아래로 쌓아 만들고, 각 행은 <b>1~4개의 열</b>로 나뉩니다. 도구막대에서 <code>1열</code> <code>2열</code> <code>3열</code> <code>30:70</code> <code>70:30</code> 등을 눌러 추가합니다.</li>
+  <li>행에 마우스를 올리면 좌상단에 행 도구가 나타납니다 — <b>배경(밴드) 색</b> · 레이아웃 변경 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제.</li>
+  <li><b>행 배경</b>을 연회색/연파랑/연노랑/연초록으로 지정하면 포털·제품 홈에서 흔한 <b>색 밴드 섹션</b>이 됩니다.</li>
+  <li>레이아웃을 줄이면(예: 3열→2열) 넘치는 열의 블록은 마지막 열로 합쳐지며 사라지지 않습니다.</li>
+</ul>
+
+<h2 id="s6"><span class="no">06</span>블록 20종 한눈에</h2>
+<p>각 열 하단의 <code>＋ 제목</code> <code>＋ 본문</code> <code>＋ 카드</code> 버튼 또는 <code>＋ 블록 추가…</code> 콤보(그룹별 20종)로 추가합니다.</p>
+<table>
+  <thead><tr><th>그룹</th><th>블록</th><th>주요 기능</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="6">기본</td><td>제목</td><td>H1/H2/H3 크기 · 정렬 · 색</td></tr>
+    <tr><td>본문</td><td>여러 줄 텍스트 · 크기/정렬/글자색/배경색</td></tr>
+    <tr><td>이미지</td><td>URL 입력(없으면 자리표시) · 너비 · 정렬</td></tr>
+    <tr><td>버튼</td><td>쉼표로 여러 개 · 14색 · <code>이름=색&gt;페이지</code> 링크</td></tr>
+    <tr><td>안내 박스</td><td>파랑/노랑/빨강/회색 4톤</td></tr>
+    <tr><td>구분선 · 여백</td><td>실선/점선/굵은선 · 높이(px)</td></tr>
+    <tr><td rowspan="6">홈페이지</td><td>배너(히어로)</td><td>제목+부제+버튼 · 어두운/파랑/밝은 배경 · 정렬</td></tr>
+    <tr><td>검색창</td><td>크게(중앙)/작게 · 안내 문구 · 버튼 문구</td></tr>
+    <tr><td>뉴스/공지 목록</td><td>날짜+제목 행, ＋/－항목, 화면에서 직접 입력</td></tr>
+    <tr><td>로고 스트립</td><td>고객사/파트너명 쉼표 입력 → 회색 로고 배지</td></tr>
+    <tr><td>요금제</td><td>2~4개 카드 · "추천" 강조 위치 · 카드 안 직접 편집</td></tr>
+    <tr><td>FAQ</td><td>Q/A 목록, ＋/－질문</td></tr>
+    <tr><td rowspan="3">데이터</td><td>표</td><td>헤더·셀 직접 입력 · ＋행/－행/＋열/－열 · 숫자열 자동 우측정렬</td></tr>
+    <tr><td>요약카드(KPI)</td><td>지표명+큰 값+보조설명 · 값 색 5종 · ＋/－지표</td></tr>
+    <tr><td>그래프</td><td>같은 페이지의 표를 원본으로 7종 그래프 (7장 참고)</td></tr>
+    <tr><td rowspan="5">구성요소</td><td>사이드 메뉴</td><td>세로 메뉴 · 페이지 자동 연결 · 현재 페이지 강조</td></tr>
+    <tr><td>타임라인(연혁)</td><td>연도+제목+설명 세로 연혁선 · ＋/－항목</td></tr>
+    <tr><td>갤러리 · 프로필(팀)</td><td>2~4열 그리드 · 캡션/이름·직책 직접 입력</td></tr>
+    <tr><td>후기/인용 · 동영상 자리</td><td>인용 박스 · 16:9 ▶ 플레이스홀더</td></tr>
+    <tr><td>입력 폼 · 진행 단계</td><td>필드 쉼표 입력('내용/문의'는 큰 칸) · ①→②→③ 단계</td></tr>
+  </tbody>
+</table>
+<div class="tip"><div class="lb">Tip</div>블록을 클릭해 선택하면 도구막대 파란 영역에 그 블록의 <b>속성</b>(크기·색·열 수 등)이 나타납니다. 이동 ▲▼ / 복제 ⧉ / 삭제 ✕ 는 블록 우상단 도구를 사용합니다.</div>
+
+<h2 id="s7"><span class="no">07</span>데이터 블록 — 표·요약카드·그래프</h2>
+<h3>표 → 그래프 연동</h3>
+<ul class="bl">
+  <li>먼저 <b>표 블록</b>을 만들고 데이터를 입력합니다. 첫 컬럼이 라벨(예: 월), 숫자가 많은 컬럼이 값 시리즈로 자동 인식됩니다.</li>
+  <li><b>그래프 블록</b>을 추가하고 속성에서 <b>원본 표</b>와 <b>유형</b>(막대·가로막대·누적막대·꺾은선·영역·원형·도넛)·높이를 선택합니다.</li>
+  <li><b>표 값을 고치면 그래프가 즉시 다시 그려집니다.</b> 컬럼명을 바꾸면 범례에도 반영됩니다.</li>
+  <li>내보낸 HTML에는 그래프가 <b>정적 SVG</b>로 담겨 오프라인에서도 그대로 보입니다.</li>
+</ul>
+<div class="note"><div class="lb">Note</div>㉙ 관리자 대시보드 템플릿이 "요약카드 + 표→그래프 2종" 연동의 견본입니다.</div>
+
+<h2 id="s8"><span class="no">08</span>메뉴바(GNB)와 푸터</h2>
+<ul class="bl">
+  <li>도구막대의 <b>메뉴바</b>/<b>푸터</b> 체크박스로 켜고 끕니다. 둘 다 <b>모든 페이지 공통</b>입니다.</li>
+  <li>메뉴바에 마우스를 올리면 사이트명 · 메뉴 항목(쉼표) · 톤(어두운/파랑/밝은)을 편집하는 미니 도구가 나타납니다.</li>
+  <li>푸터의 두 줄은 화면에서 직접 클릭해 수정합니다.</li>
+</ul>
+
+<h2 id="s9"><span class="no">09</span>주석(📌) — 설계 의도 남기기</h2>
+<ul class="bl">
+  <li><code>📌 주석 모드</code>를 켜고 화면 아무 곳이나 클릭하면 <b>빨간 번호 핀</b>이 찍히고, 캔버스 아래 목록에서 설명을 입력합니다.</li>
+  <li>핀을 다시 클릭하면 삭제됩니다. 주석은 <b>페이지별로 따로</b> 저장됩니다.</li>
+  <li>핀과 설명 목록은 <b>내보낸 HTML과 화면정의서에 모두 포함</b>되어, 개발자에게 "이 영역은 이런 동작" 같은 스펙을 전달할 수 있습니다.</li>
+</ul>
+
+<h2 id="s10"><span class="no">10</span>저장·불러오기·실행취소</h2>
+<ul class="bl">
+  <li><code>💾 저장</code> — 전체 작업(페이지·블록·메뉴바·푸터·주석)을 <code>page_builder_날짜.json</code>으로 내려받습니다.</li>
+  <li><code>📂 불러오기</code> — 저장한 JSON을 다시 엽니다. 이전 버전(001~008)에서 저장한 파일도 자동 변환되어 열립니다.</li>
+  <li><code>↶ 실행취소</code> / <code>↷ 다시실행</code> — 최대 60단계. 단축키 <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>. 템플릿 적용·페이지 삭제도 되돌릴 수 있습니다.</li>
+  <li><code>🗑 초기화</code> — 모든 페이지를 지우고 빈 화면으로 시작합니다.</li>
+</ul>
+<div class="tip"><div class="lb">Tip</div>도구 파일 자체에는 작업이 남지 않습니다. 작업을 이어가려면 <b>반드시 JSON 저장</b>을 해 두세요.</div>
+
+<h2 id="s11"><span class="no">11</span>HTML 내보내기</h2>
+<ul class="bl">
+  <li><code>🌐 HTML 내보내기</code> — 편집 흔적(점선·버튼·입력 표시) 없이 완성된 화면만 담긴 독립 HTML을 내려받습니다.</li>
+  <li>페이지가 여러 개면 <b>한 파일 안에 전부</b> 담기고, 메뉴·버튼·사이드메뉴 클릭으로 <b>실제 페이지 이동</b>이 됩니다.</li>
+  <li>좁은 화면(모바일)에서는 열이 자동으로 세로로 쌓입니다.</li>
+  <li>주석 핀·설명 목록도 포함되며 페이지를 넘기면 함께 바뀝니다.</li>
+</ul>
+
+<h2 id="s12"><span class="no">12</span>화면정의서 출력</h2>
+<p><code>📑 화면정의서</code>를 누르면 <code>spec_날짜.html</code> 문서가 내려받아집니다. 구성:</p>
+<ul class="bl">
+  <li><b>0. 공통 영역</b> — 메뉴바 구성(항목별 페이지 연결 여부), 푸터 문구.</li>
+  <li><b>페이지별</b> — 행 구조(열 분할 비율), 블록 목록 표(No · 위치(행-열) · 유형 · 내용 요약), 주석 표.</li>
+  <li>블록 요약은 유형에 맞게 정리됩니다. 예: 표는 "컬럼명 — N행", 그래프는 "꺾은선 — 원본: 표(월·매출)", 버튼은 링크 대상까지.</li>
+</ul>
+<p>브라우저 인쇄(<kbd>Ctrl</kbd>+<kbd>P</kbd>)로 PDF 저장하면 그대로 배포 문서가 됩니다.</p>
+
+<h2 id="s13"><span class="no">13</span>자주 묻는 질문(FAQ)</h2>
+<h3>Q. 메뉴를 눌러도 페이지가 안 바뀌어요.</h3>
+<p>편집 모드에서는 클릭이 편집으로 쓰입니다. <b>미리보기</b>로 전환하거나 내보낸 HTML에서 확인하세요. 그래도 안 되면 메뉴 항목명과 페이지명이 정확히 같은지(공백 포함) 확인하세요 — 연결된 항목에는 편집 모드에서 ↗ 표시가 붙습니다.</p>
+<h3>Q. 그래프가 "표를 선택하세요"라고만 나와요.</h3>
+<p>그래프는 <b>같은 페이지의 표 블록</b>을 원본으로 사용합니다. 표를 먼저 추가하고, 그래프 블록을 클릭 → 속성의 원본 콤보에서 표를 선택하세요. 표에 숫자 컬럼이 하나도 없으면 그릴 수 없습니다.</p>
+<h3>Q. 입력한 글이 사라졌어요.</h3>
+<p>텍스트는 입력 후 <b>바깥을 클릭</b>해야 저장됩니다. 저장 전에 페이지를 전환하거나 새로고침하면 유실될 수 있습니다. 습관적으로 <code>💾 저장</code>을 눌러 JSON을 보관하세요.</p>
+<h3>Q. 템플릿을 골랐는데 원래 작업이 지워졌어요.</h3>
+<p><kbd>Ctrl</kbd>+<kbd>Z</kbd>(실행취소)로 되돌릴 수 있습니다. 템플릿 적용 전 확인창이 뜨므로, 작업 중에는 먼저 JSON 저장을 권장합니다.</p>
+<h3>Q. 실제 서비스로 그대로 써도 되나요?</h3>
+<p>내보낸 HTML은 정적 화면입니다. 검색창·입력 폼은 <b>모양만 있는 설계용</b>이라 실제 동작하지 않습니다. 안내형 페이지·랜딩·사내 공지처럼 "보여주는 화면"은 그대로 사용 가능하고, 기능이 필요한 화면은 이 HTML을 개발 시안으로 전달하면 됩니다.</p>
+
+</div>
+</body>
+</html>

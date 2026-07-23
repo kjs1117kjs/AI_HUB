@@ -224,6 +224,29 @@
   .preset-card:hover{border-color:var(--blue);background:#f5faff;}
   .preset-card .pt{font-weight:700;color:#2c3742;font-size:13px;margin-bottom:3px;}
   .preset-card .pd{font-size:11.5px;color:#7a828d;line-height:1.5;}
+  /* ===== 그래프 영역 (결과 아래 · 화면 설명 위) ===== */
+  #chartArea{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;align-items:flex-start;}
+  .chart-card{background:#fff;border:1px solid var(--border);border-radius:4px;padding:12px 14px 10px;min-width:0;max-width:100%;box-sizing:border-box;}
+  .chart-card.ca-left{margin-right:auto;}
+  .chart-card.ca-center{margin-left:auto;margin-right:auto;}
+  .chart-card.ca-right{margin-left:auto;}
+  .chart-dim-in{width:58px;border:1px solid var(--border);border-radius:4px;padding:3px 5px;font-size:12px;font-family:inherit;}
+  .chart-dim-x{color:#9aa2ac;font-size:11px;}
+  .chart-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .chart-title{font-weight:700;font-size:13px;color:#2c3742;}
+  .chart-title-in{flex:1;min-width:0;border:1px solid transparent;border-radius:4px;padding:3px 6px;font:700 13px/1.4 inherit;font-family:inherit;color:#2c3742;background:transparent;}
+  .chart-title-in:hover,.chart-title-in:focus{border-color:var(--border);background:#fbfdff;outline:none;}
+  .chart-type-sel{font-size:12px;}
+  .chart-x{cursor:pointer;color:#9aa2ac;font-weight:700;padding:0 4px;border-radius:3px;font-size:14px;line-height:1;}
+  .chart-x:hover{color:#d33;background:#fdeaea;}
+  .chart-svg-wrap svg{width:100%;height:auto;display:block;}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;padding-top:6px;border-top:1px dashed #e3e8ee;}
+  .cl-item{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#4a5462;}
+  .cl-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none;}
+  .cl-pct{color:#8a94a2;}
+  .chart-empty{padding:26px 0;text-align:center;color:#9aa2ac;font-size:12.5px;}
+  .chart-size-sel{font-size:12px;}
+  body.preview .chart-card{border-color:#e2e7ed;}
   .desc-box{background:#fff;border:1px solid var(--border);border-radius:4px;margin-top:14px;padding:14px 16px;}
   .desc-box label{display:block;font-weight:700;color:#3a4551;font-size:12.5px;margin-bottom:8px;}
   .desc-box textarea{width:100%;min-height:80px;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.6;color:var(--text);resize:vertical;outline:none;}
@@ -647,6 +670,32 @@
       <button class="type-btn ghost" id="clearRows">비우기</button>
       <span class="hint">‘대상 패널’ 기준으로 적용됩니다.</span>
     </div>
+    <div class="builder-sec g-panel">
+      <span class="sec-title">그래프</span>
+      <select class="b-sel" id="chartSrc" title="그래프의 데이터가 되는 그리드 패널" style="max-width:160px;"></select>
+      <select class="b-sel" id="chartType" title="그래프 유형">
+        <option value="bar">📊 막대</option>
+        <option value="hbar">📊 가로막대</option>
+        <option value="stack">📊 누적막대</option>
+        <option value="line">📈 꺾은선</option>
+        <option value="area">📈 영역</option>
+        <option value="pie">🥧 원형</option>
+        <option value="donut">🍩 도넛</option>
+      </select>
+      <select class="b-sel" id="chartAlign" title="그래프 위치">
+        <option value="left">좌</option>
+        <option value="center" selected>중앙</option>
+        <option value="right">우</option>
+      </select>
+      <input type="number" class="b-txt" id="chartW" value="480" min="220" max="1400" step="10" style="width:64px;" title="그래프 너비(px) · 기본 480">
+      <span class="hint" style="margin:0 -4px;">×</span>
+      <input type="number" class="b-txt" id="chartH" value="300" min="160" max="900" step="10" style="width:64px;" title="그래프 높이(px) · 기본 300">
+      <select class="b-sel" id="chartLabel" title="가로축(항목) 라벨로 쓸 컬럼" style="max-width:130px;"></select>
+      <input class="b-txt" id="chartVals" placeholder="값 컬럼 (쉼표, 비우면 자동)" style="width:170px;" title="숫자 값으로 쓸 컬럼명을 쉼표로 나열. 비워두면 숫자 컬럼을 자동 인식합니다">
+      <input class="b-txt" id="chartTitle" placeholder="그래프 제목" style="width:140px;">
+      <button class="type-btn" id="addChart">＋ 그래프 추가</button>
+      <span class="hint">결과 아래 · 화면 설명 위에 표시됩니다. 데이터를 수정하면 그래프도 즉시 반영됩니다.</span>
+    </div>
     <div class="bgroup-head g-opt" data-grp="g-opt"><span class="bg-dot"></span><span class="bg-title">⑤ 화면 옵션 · 버튼</span><span class="bg-sub">탭 2종 · 툴바 · 조회/엑셀영역 버튼</span><span class="bg-caret">▾</span></div>
     <div class="builder-sec g-opt">
       <span class="sec-title">화면 옵션</span>
@@ -711,6 +760,7 @@
 
   <div class="excel-bar"><span class="count" id="rowCount"></span><span class="xls-actions" id="excelActions"></span></div>
   <div id="resultArea"></div>
+  <div id="chartArea" style="display:none;"></div>
   <div class="desc-box"><label for="descArea">화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label><textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea></div>
   <div class="annot-list" id="annotList" style="display:none;"></div>
   <div id="annotLayer"></div>
@@ -756,7 +806,7 @@ const state = {
   title:'화면 제목을 입력하세요', desc:'', extShown:false, queried:true,
   conditions:[], popups:[], infoPopups:[],
   searchBtns: defSearchBtns(), excelBtns: defExcelBtns(),
-  tabsByTop:{}, activeTabByTop:{}, toolbar:null, searchOn:true,
+  tabsByTop:{}, activeTabByTop:{}, charts:[], toolbar:null, searchOn:true,
   cols:[{flex:1}], panels:[newPanel('조회결과',0)], curPanel:null,
   meta:{sid:'',author:'',ver:''}, annots:[], texts:[], topTabs:[], activeTopTab:0
 };
@@ -1187,6 +1237,112 @@ function renderPanel(p){
   else body=`<div class="grid-outer">${renderPanelGrid(p)}</div>${p.pager?renderPager():''}`;
   return `<div class="gpanel">${head}${pcond}${body}</div>`;
 }
+/* ===================== 그래프 (결과 아래 · 화면 설명 위) ===================== */
+const CHART_TYPES=[['bar','막대'],['hbar','가로막대'],['stack','누적막대'],['line','꺾은선'],['area','영역'],['pie','원형'],['donut','도넛']];
+const CHART_COLORS=['#4285c8','#e8734a','#58a55c','#f2b134','#8e6bbf','#d9556b','#3aa6a6','#7a869a','#c377b2','#5c6bc0'];
+function chartNum(v){const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;}
+function chartIsNumCol(p,k){const cells=(p.rows||[]).map(r=>String(r[k.id]??'').trim()).filter(Boolean);if(!cells.length)return false;return cells.filter(v=>/\d/.test(v)&&!isNaN(parseFloat(v.replace(/[^0-9.\-]/g,''))))
+.length>=cells.length*0.6;}
+function chartData(ch){
+  const p=findP(ch.src); if(!p||(p.ptype||'grid')!=='grid') return null;
+  const cols=p.columns||[]; if(!cols.length||!(p.rows||[]).length) return null;
+  const lab=cols.find(k=>k.id===ch.labelKid)||cols[0];
+  let vk=(ch.valKids||[]).map(id=>cols.find(k=>k.id===id)).filter(Boolean);
+  if(!vk.length) vk=cols.filter(k=>k.id!==lab.id&&chartIsNumCol(p,k));
+  if(!vk.length) return null;
+  const rows=(p.rows||[]).slice(0,40);
+  return {labels:rows.map(r=>String(r[lab.id]??'')),series:vk.map(k=>({name:k.name||'값',vals:rows.map(r=>chartNum(r[k.id]))}))};
+}
+function chartFmt(n){const a=Math.abs(n);let s;if(a>=1e8)s=(n/1e8).toFixed(a>=1e9?0:1)+'억';else if(a>=1e4)s=(n/1e4).toFixed(a>=1e5?0:1)+'만';else s=(Math.round(n*100)/100).toLocaleString('ko-KR');return s.replace(/\.0(억|만)/,'$1');}
+function chartNice(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const d=v/p;return (d<=1?1:d<=2?2:d<=2.5?2.5:d<=5?5:10)*p;}
+function chartTrunc(s,n){s=String(s);return s.length>n?s.slice(0,n)+'…':s;}
+function chartLegendHTML(items){return `<div class="chart-legend">${items.map(it=>`<span class="cl-item"><span class="cl-dot" style="background:${it.c}"></span>${esc(it.n)}${it.x?` <span class="cl-pct">${it.x}</span>`:''}</span>`).join('')}</div>`;}
+function chartSVG(ch,d){
+  const type=ch.ctype||'bar', C=CHART_COLORS, S=d.series, L=d.labels, n=L.length;
+  /* ---- 원형 · 도넛 ---- */
+  if(type==='pie'||type==='donut'){
+    const vals=S[0].vals.map(v=>Math.max(0,v)); const tot=vals.reduce((a,b)=>a+b,0);
+    if(tot<=0) return '<div class="chart-empty">양수 값이 없어 원형 그래프를 그릴 수 없습니다.</div>';
+    const PW=Math.max(220,ch.w||480), PH=Math.max(180,ch.h||300);
+    const cx=PW/2, cy=PH/2, R=Math.min(PW,PH)/2-24, r=type==='donut'?R*0.55:0; let a0=-Math.PI/2; const paths=[];
+    vals.forEach((v,i)=>{ if(v<=0)return; const a1=a0+v/tot*2*Math.PI; const big=(a1-a0)>Math.PI?1:0;
+      const x0=cx+R*Math.cos(a0),y0=cy+R*Math.sin(a0),x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      if(a1-a0>=2*Math.PI-1e-6){
+        paths.push(`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${C[i%C.length]}"/>`);
+        if(r)paths.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/>`);
+      }else if(r){
+        const xi0=cx+r*Math.cos(a0),yi0=cy+r*Math.sin(a0),xi1=cx+r*Math.cos(a1),yi1=cy+r*Math.sin(a1);
+        paths.push(`<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${big} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} L${xi1.toFixed(1)} ${yi1.toFixed(1)} A${r} ${r} 0 ${big} 0 ${xi0.toFixed(1)} ${yi0.toFixed(1)} Z" fill="${C[i%C.length]}"/>`);
+      }else{
+        paths.push(`<path d="M${cx} ${cy} L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${big} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${C[i%C.length]}"/>`);
+      }
+      if(v/tot>=0.06){const am=(a0+a1)/2,lr=r?(R+r)/2:R*0.62;paths.push(`<text x="${(cx+lr*Math.cos(am)).toFixed(1)}" y="${(cy+lr*Math.sin(am)).toFixed(1)}" font-size="11" fill="#fff" font-weight="700" text-anchor="middle" dominant-baseline="middle">${Math.round(v/tot*100)}%</text>`);}
+      a0=a1;});
+    const center=r?`<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="11" fill="#8a94a2">합계</text><text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="14" font-weight="700" fill="#2c3742">${chartFmt(tot)}</text>`:'';
+    const leg=chartLegendHTML(L.map((l,i)=>({n:l||'(빈 값)',c:C[i%C.length],x:Math.round((vals[i]||0)/tot*100)+'%'})));
+    return `<div class="chart-svg-wrap"><svg viewBox="0 0 ${PW} ${PH}" xmlns="http://www.w3.org/2000/svg">${paths.join('')}${center}</svg></div>${leg}`;
+  }
+  /* ---- 축 기반 그래프 공통 스케일 ---- */
+  const stack=type==='stack';
+  const maxRaw=stack? Math.max(0,...L.map((_,i)=>S.reduce((a,s)=>a+Math.max(0,s.vals[i]),0)))
+                    : Math.max(0,...S.flatMap(s=>s.vals));
+  const max=chartNice(maxRaw||1);
+  const ticks=[0,.25,.5,.75,1].map(t=>t*max);
+  /* ---- 가로막대 ---- */
+  if(type==='hbar'){
+    const padL=88,padR=48,padT=8,padB=8, W=Math.max(300,ch.w||480);
+    const minRowH=Math.max(18,S.length*15+6);
+    const H=Math.max(Math.max(140,ch.h||300), padT+padB+n*minRowH);
+    const rowH=(H-padT-padB)/n, plotW=W-padL-padR;
+    let g='';
+    ticks.forEach(t=>{const x=padL+plotW*t/max;g+=`<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${H-padB}" stroke="#eef1f5"/>`;});
+    L.forEach((lb,i)=>{const y0=padT+i*rowH;const bh=Math.min(13,(rowH-6)/S.length);
+      g+=`<text x="${padL-8}" y="${(y0+rowH/2).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="11" fill="#4a5462">${esc(chartTrunc(lb,7))}</text>`;
+      S.forEach((s,si)=>{const v=Math.max(0,s.vals[i]);const w=plotW*v/max;const y=y0+(rowH-bh*S.length-(S.length-1)*2)/2+si*(bh+2);
+        g+=`<rect x="${padL}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${C[si%C.length]}"/>`;
+        if(S.length===1)g+=`<text x="${(padL+w+5).toFixed(1)}" y="${(y+bh/2).toFixed(1)}" font-size="10.5" fill="#5a6472" dominant-baseline="middle">${chartFmt(s.vals[i])}</text>`;});});
+    const leg=S.length>1?chartLegendHTML(S.map((s,i)=>({n:s.name,c:C[i%C.length]}))):'';
+    return `<div class="chart-svg-wrap"><svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg></div>${leg}`;
+  }
+  /* ---- 세로 축 그래프 (막대·누적·꺾은선·영역) ---- */
+  const W=Math.max(300,ch.w||480),H=Math.max(160,ch.h||300),padL=52,padR=14,padT=14,padB=34, plotW=W-padL-padR, plotH=H-padT-padB;
+  const X=i=>padL+plotW*(i+0.5)/n, Y=v=>padT+plotH*(1-v/max);
+  let g='';
+  ticks.forEach(t=>{const y=Y(t);g+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="${t===0?'#c9d1da':'#eef1f5'}"/><text x="${padL-6}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#8a94a2">${chartFmt(t)}</text>`;});
+  const step=Math.ceil(n/12);
+  L.forEach((lb,i)=>{ if(i%step)return; g+=`<text x="${X(i).toFixed(1)}" y="${H-padB+16}" text-anchor="middle" font-size="10.5" fill="#4a5462">${esc(chartTrunc(lb,6))}</text>`;});
+  if(type==='line'||type==='area'){
+    S.forEach((s,si)=>{const pts=s.vals.map((v,i)=>`${X(i).toFixed(1)},${Y(Math.max(0,v)).toFixed(1)}`);
+      if(type==='area'&&n>1)g+=`<polygon points="${pts.join(' ')} ${X(n-1).toFixed(1)},${Y(0).toFixed(1)} ${X(0).toFixed(1)},${Y(0).toFixed(1)}" fill="${C[si%C.length]}" opacity="0.18"/>`;
+      if(n>1)g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${C[si%C.length]}" stroke-width="2"/>`;
+      s.vals.forEach((v,i)=>{g+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(Math.max(0,v)).toFixed(1)}" r="2.8" fill="#fff" stroke="${C[si%C.length]}" stroke-width="2"/>`;});});
+  }else if(stack){
+    const bw=Math.min(40,plotW/n*0.6);
+    L.forEach((_,i)=>{let acc=0;S.forEach((s,si)=>{const v=Math.max(0,s.vals[i]);if(v<=0)return;const y1=Y(acc),y2=Y(acc+v);
+      g+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${y2.toFixed(1)}" width="${bw.toFixed(1)}" height="${(y1-y2).toFixed(1)}" fill="${C[si%C.length]}"/>`;acc+=v;});});
+  }else{
+    const gw=plotW/n*0.7, bw=Math.max(3,Math.min(34,gw/S.length));
+    L.forEach((_,i)=>{S.forEach((s,si)=>{const v=Math.max(0,s.vals[i]);const x=X(i)-bw*S.length/2+si*bw;const y=Y(v);
+      g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1,bw-1.5).toFixed(1)}" height="${(Y(0)-y).toFixed(1)}" rx="2" fill="${C[si%C.length]}"/>`;
+      if(S.length===1&&n<=14)g+=`<text x="${(x+(bw-1.5)/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#5a6472">${chartFmt(s.vals[i])}</text>`;});});
+  }
+  const leg=S.length>1?chartLegendHTML(S.map((s,i)=>({n:s.name,c:C[i%C.length]}))):'';
+  return `<div class="chart-svg-wrap"><svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg></div>${leg}`;
+}
+function renderCharts(){
+  const host=$('chartArea'); if(!host) return;
+  const list=(state.charts||[]).filter(c=>topTabOK(c.topTab));
+  if(!list.length){host.style.display='none';host.innerHTML='';return;}
+  host.style.display='';
+  host.innerHTML=list.map(ch=>{
+    const d=chartData(ch);
+    const body=d?chartSVG(ch,d):'<div class="chart-empty">그래프를 그릴 데이터가 없습니다. 원본 그리드 패널의 데이터·숫자 컬럼을 확인하세요.</div>';
+    const head=isEdit()
+      ?`<div class="chart-head"><input class="chart-title-in" data-chtitle="${ch.id}" value="${esc(ch.title||'')}" placeholder="그래프 제목"><select class="b-sel chart-type-sel" data-chtype="${ch.id}">${CHART_TYPES.map(t=>`<option value="${t[0]}"${(ch.ctype||'bar')===t[0]?' selected':''}>${t[1]}</option>`).join('')}</select><select class="b-sel chart-size-sel" data-chalign="${ch.id}" title="그래프 위치">${[['left','좌'],['center','중앙'],['right','우']].map(z=>`<option value="${z[0]}"${(ch.align||'center')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select><input type="number" class="chart-dim-in" data-chw="${ch.id}" value="${ch.w||480}" min="220" max="1400" step="10" title="너비(px)"><span class="chart-dim-x">×</span><input type="number" class="chart-dim-in" data-chh="${ch.id}" value="${ch.h||300}" min="160" max="900" step="10" title="높이(px)"><span class="chart-x" data-chdel="${ch.id}" title="그래프 삭제">×</span></div>`
+      :(ch.title?`<div class="chart-head"><span class="chart-title">${esc(ch.title)}</span></div>`:'');
+    return `<div class="chart-card ca-${ch.align||'center'}" data-chid="${ch.id}" style="width:${Math.max(220,ch.w||480)+30}px;">${head}${body}</div>`;
+  }).join('');
+}
 function topTabOK(x){ /* 화면맨위 탭 필터 : null=모든 탭 공통 */
   if(!(state.topTabs&&state.topTabs.length)) return true;
   return x==null||x===state.activeTopTab;
@@ -1211,10 +1367,10 @@ function renderResult(){
   host.innerHTML=html;
   if(typeof schedulePush==='function') schedulePush();
 }
-function updateCount(){const p=curP();if(!(state.queried&&p&&p.columns.length)){$('rowCount').innerHTML='';return;}
+function updateCount(){ if(typeof renderCharts==='function') renderCharts(); const p=curP();if(!(state.queried&&p&&p.columns.length)){$('rowCount').innerHTML='';return;}
   const shown=displayRowsP(p).length, tot=p.rows.length;
   $('rowCount').innerHTML = shown<tot ? `총 <b>${shown.toLocaleString('ko-KR')}</b>건 <span style="font-weight:500;color:#8a929c;">/ 전체 ${tot.toLocaleString('ko-KR')}건</span>` : `총 <b>${tot.toLocaleString('ko-KR')}</b>건`;}
-function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); renderTexts(); }
+function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderCharts(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); renderTexts(); }
 
 
 /* ================= 빌더 동기화 ================= */
@@ -1227,6 +1383,7 @@ function syncBuilder(){
   /* 탭 입력창 동기화 — 결과 탭 입력창은 현재 활성 맨위 탭의 결과 탭을 보여준다 */
   if(document.activeElement!==$('topTabsInput')) $('topTabsInput').value=(state.topTabs||[]).join(', ');
   if(document.activeElement!==$('tabsInput')) $('tabsInput').value=state.tabs.join(', ');
+  syncChartBuilder();
   const cp=$('curPanel'); cp.innerHTML = state.panels.map(p=>`<option value="${p.id}">${topPre(p)}${tabPre(p)}${PT_ICON[p.ptype||'grid']||''}${esc(p.title||'(제목없음)')}</option>`).join('');
   const cps=$('condPanelSel');
   if(cps){
@@ -1314,7 +1471,7 @@ document.addEventListener('click', e=>{
       const first=state.panels.find(p=>topTabOK(p.topTab)&&(!state.tabs.length||(p.tab||0)===state.activeTab));
       if(first) state.curPanel=first.id;
     }
-    renderConditions(); renderResult(); syncBuilder(); updateCount(); return;
+    renderConditions(); renderResult(); renderCharts(); syncBuilder(); updateCount(); return;
   }
   const tab=e.target.closest('[data-tab]');
   if(tab){
@@ -1464,6 +1621,49 @@ document.querySelectorAll('[data-cols]').forEach(b=>b.onclick=()=>{
   state.panels.forEach(p=>{if(p.colIndex>=n)p.colIndex=n-1;}); render();
 });
 $('addPanel').onclick=()=>{const name=$('newPanelName').value.trim()||({grid:'새 패널',form:'상세 정보',stat:'요약',notice:'안내'})[$('newPanelType').value];const col=+$('newPanelCol').value||0;const p=newPanel(name,col,$('newPanelType').value);p.tab=state.tabs.length?state.activeTab:0;p.topTab=(state.topTabs&&state.topTabs.length)?state.activeTopTab:null;state.panels.push(p);state.curPanel=p.id;$('newPanelName').value='';render();};
+/* ===== 그래프 빌더 ===== */
+function syncChartBuilder(){
+  const srcSel=$('chartSrc'), labSel=$('chartLabel'); if(!srcSel||!labSel) return;
+  const grids=state.panels.filter(p=>(p.ptype||'grid')==='grid'&&topTabOK(p.topTab));
+  const prevSrc=srcSel.value;
+  srcSel.innerHTML=grids.length?grids.map(p=>`<option value="${p.id}">${esc(p.title||'(제목없음)')}</option>`).join(''):'<option value="">(그리드 패널 없음)</option>';
+  if(grids.some(p=>p.id===prevSrc)) srcSel.value=prevSrc;
+  else if(grids.some(p=>p.id===state.curPanel)) srcSel.value=state.curPanel;
+  const sp=findP(srcSel.value);
+  const prevLab=labSel.value;
+  labSel.innerHTML=(sp&&(sp.columns||[]).length)?sp.columns.map(k=>`<option value="${k.id}">${esc(k.name)}</option>`).join(''):'<option value="">(라벨 컬럼)</option>';
+  if(sp&&(sp.columns||[]).some(k=>k.id===prevLab)) labSel.value=prevLab;
+}
+$('chartSrc').onchange=syncChartBuilder;
+$('addChart').onclick=()=>{
+  const sp=findP($('chartSrc').value);
+  if(!sp){alert('그래프의 원본이 될 그리드 패널이 없습니다.\n먼저 그리드 패널에 컬럼과 데이터를 만들어 주세요.');return;}
+  if(!(sp.columns||[]).length){alert('원본 패널에 컬럼이 없습니다.\n컬럼을 먼저 추가해 주세요.');return;}
+  const names=$('chartVals').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const valKids=names.map(nm=>{const k=(sp.columns||[]).find(c=>c.name===nm);return k?k.id:null;}).filter(Boolean);
+  if(names.length&&!valKids.length){alert('값 컬럼명이 원본 패널의 컬럼과 일치하지 않습니다.\n컬럼명을 정확히 입력하거나, 비워두면 숫자 컬럼을 자동 인식합니다.');return;}
+  const ch={id:'ch'+(seq++),title:$('chartTitle').value.trim(),ctype:$('chartType').value||'bar',
+    align:$('chartAlign').value||'center',
+    w:Math.min(1400,Math.max(220,+$('chartW').value||480)),
+    h:Math.min(900,Math.max(160,+$('chartH').value||300)),src:sp.id,
+    labelKid:$('chartLabel').value||((sp.columns[0]||{}).id),valKids,
+    topTab:(state.topTabs&&state.topTabs.length)?state.activeTopTab:null};
+  state.charts.push(ch); $('chartTitle').value=''; $('chartVals').value='';
+  renderCharts();
+  if(!chartData(ch)) alert('그래프가 추가되었지만 표시할 숫자 데이터가 없습니다.\n원본 패널에 데이터를 입력하면 그래프가 그려집니다.');
+};
+$('chartArea').addEventListener('click',e=>{
+  const del=e.target.closest('[data-chdel]');
+  if(del){state.charts=state.charts.filter(c=>c.id!==del.dataset.chdel);renderCharts();}
+});
+$('chartArea').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.chtype){const c=(state.charts||[]).find(c=>c.id===t.dataset.chtype);if(c){c.ctype=t.value;renderCharts();}}
+  else if(t.dataset.chalign){const c=(state.charts||[]).find(c=>c.id===t.dataset.chalign);if(c){c.align=t.value;renderCharts();}}
+  else if(t.dataset.chw){const c=(state.charts||[]).find(c=>c.id===t.dataset.chw);if(c){c.w=Math.min(1400,Math.max(220,+t.value||480));renderCharts();}}
+  else if(t.dataset.chh){const c=(state.charts||[]).find(c=>c.id===t.dataset.chh);if(c){c.h=Math.min(900,Math.max(160,+t.value||300));renderCharts();}}
+  else if(t.dataset.chtitle!==undefined&&t.dataset.chtitle){const c=(state.charts||[]).find(c=>c.id===t.dataset.chtitle);if(c){c.title=t.value;renderCharts();}}
+});
 $('condPos').onchange=e=>{
   const cps=$('condPanelSel');
   cps.style.display=e.target.value==='panel'?'':'none';
@@ -1580,6 +1780,11 @@ $('applyTopTabs').onclick=()=>{
     if(state.topTabs.length){ if(c.topTab==null||c.topTab>=state.topTabs.length) c.topTab=0; }
     else c.topTab=null;
   });
+  /* 그래프도 맨위 탭별 분리 */
+  (state.charts||[]).forEach(c=>{
+    if(state.topTabs.length){ if(c.topTab==null||c.topTab>=state.topTabs.length) c.topTab=0; }
+    else c.topTab=null;
+  });
   /* 삭제된 맨위 탭의 결과 탭 데이터 정리 + 패널의 결과 탭 인덱스 검증 */
   if(state.topTabs.length){
     Object.keys(state.tabsByTop).forEach(k=>{ if(+k>=state.topTabs.length){ delete state.tabsByTop[k]; delete state.activeTabByTop[k]; } });
@@ -1601,7 +1806,7 @@ $('clearToolbar').onclick=()=>{state.toolbar=null;render();};
 $('modeBtn').onclick=()=>{document.body.classList.toggle('preview');const pv=document.body.classList.contains('preview');$('modeBtn').textContent=pv?'✏ 편집 모드':'👁 미리보기 모드';if(pv)state.panels.forEach(p=>p.sort={kid:null,dir:1});render();};
 $('clearAll').onclick=()=>{
   if(!confirm('모든 구성을 초기화할까요?'))return;
-  state.conditions=[];state.popups=[];state.infoPopups=[];state.tabsByTop={};state.activeTabByTop={};state.toolbar=null;state.searchOn=true;
+  state.conditions=[];state.popups=[];state.infoPopups=[];state.tabsByTop={};state.activeTabByTop={};state.charts=[];state.toolbar=null;state.searchOn=true;
   state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
   state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
   state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;
@@ -1676,6 +1881,12 @@ function normalizeScreenObj(o){
     if(o.tabs&&o.tabs.length){ const tt=o.topTabs.length||1; for(let i=0;i<tt;i++) o.tabsByTop[i]=o.tabs.slice(); }
   }
   o.activeTabByTop={};
+  o.charts=(o.charts||[]).filter(c=>c&&c.id&&c.src);
+  o.charts.forEach(c=>{ if(c.topTab===undefined)c.topTab=null; if(!c.ctype)c.ctype='bar'; if(!c.valKids)c.valKids=[];
+    if(!c.align) c.align='center';
+    if(!(c.w>0)) c.w=({s:360,m:480,l:780,full:1000}[c.size])||480;   /* 구버전 size 프리셋 마이그레이션 */
+    if(!(c.h>0)) c.h=({s:240,m:300,l:340,full:340}[c.size])||300;
+    if(o.topTabs.length){ if(c.topTab==null||c.topTab>=o.topTabs.length) c.topTab=0; } else c.topTab=null; });
   o.panels.forEach(p=>{ const tl=o.tabsByTop[(o.topTabs.length&&p.topTab!=null)?p.topTab:0]||[]; if(tl.length&&p.tab>=tl.length) p.tab=0; });
   o.queried=o.queried!==false;o.extShown=!!o.extShown;
   return o;
@@ -1708,7 +1919,7 @@ $('loadFile').onchange=e=>{
 const hist={stack:[],pos:-1,lock:false,timer:null,MAX:80};
 function snapState(){
   return JSON.stringify({title:state.title,desc:state.desc,conditions:state.conditions,popups:state.popups,infoPopups:state.infoPopups,
-    searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabsByTop:state.tabsByTop,activeTabByTop:state.activeTabByTop,toolbar:state.toolbar,
+    searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabsByTop:state.tabsByTop,activeTabByTop:state.activeTabByTop,charts:state.charts,toolbar:state.toolbar,
     searchOn:state.searchOn,cols:state.cols,panels:state.panels,curPanel:state.curPanel,queried:state.queried,extShown:state.extShown,
     meta:state.meta,annots:state.annots,texts:state.texts,topTabs:state.topTabs,activeTopTab:state.activeTopTab});
 }
@@ -1738,6 +1949,7 @@ function applySnap(s){
       for(let i=0;i<tt;i++) state.tabsByTop[i]=o.tabs.slice();
     }
   }
+  state.charts=o.charts||[];
   state.toolbar=o.toolbar||null;state.searchOn=o.searchOn!==false;
   state.cols=o.cols||[{flex:1}];state.panels=o.panels||[newPanel('조회결과',0)];
   state.curPanel=findP(o.curPanel)?o.curPanel:(state.panels[0]&&state.panels[0].id);
@@ -1776,7 +1988,7 @@ function syncCurScreen(){ if(screens[curScreen]) screens[curScreen].data=capture
 function freshScreenData(){
   const p=newPanel('조회결과',0);
   return {title:'화면 제목을 입력하세요',desc:'',conditions:[],popups:[],infoPopups:[],
-    searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabsByTop:{},activeTabByTop:{},toolbar:null,searchOn:true,
+    searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabsByTop:{},activeTabByTop:{},charts:[],toolbar:null,searchOn:true,
     cols:[{flex:1}],panels:[p],curPanel:p.id,queried:true,extShown:false,
     meta:{sid:'',author:'',ver:''},annots:[],texts:[],topTabs:[],activeTopTab:0};
 }
@@ -2068,7 +2280,8 @@ $('exportHtml').onclick=()=>{
     const p0=curP();
     const ct = (state.queried&&p0&&p0.columns.length) ? `총 <b>${p0.rows.length.toLocaleString('ko-KR')}</b>건` : '';
     const cb = (ct||xb) ? `<div class="excel-bar"><span class="count">${ct}</span><span class="xls-actions">${xb}</span></div>` : '';
-    return pnl+cb+captureResultPanes();
+    const chs=(state.charts||[]).filter(c=>topTabOK(c.topTab)).length?cloneWithValues('#chartArea'):'';
+    return pnl+cb+captureResultPanes()+chs;
   }
   let topTabsHtml='', bodyHtml;
   if(state.topTabs&&state.topTabs.length){
@@ -2076,10 +2289,10 @@ $('exportHtml').onclick=()=>{
     if(state.topTabs.length>1){
       const savedTop=state.activeTopTab, tpanes=[];
       for(let ti=0; ti<state.topTabs.length; ti++){
-        state.activeTopTab=ti; renderConditions(); renderResult();
+        state.activeTopTab=ti; renderConditions(); renderResult(); renderCharts();
         tpanes.push(`<div class="toppane" data-toppane="${ti}" style="${ti===savedTop?'':'display:none;'}">${captureBody()}</div>`);
       }
-      state.activeTopTab=savedTop; renderConditions(); renderResult();
+      state.activeTopTab=savedTop; renderConditions(); renderResult(); renderCharts();
       bodyHtml=tpanes.join('');
     }else{
       bodyHtml=captureBody();
@@ -2269,6 +2482,13 @@ $('exportSpec').onclick=()=>{
       const secs=(ip.sections||[]).map(s=>s.columns?`그리드(${(s.columns||[]).length}컬럼)`:`폼(${(s.fields||[]).length}필드)`).join(' + ');
       return `<tr><td class="c">${i+1}</td><td>${esc(ip.name)}</td><td>${(ip.tabs&&ip.tabs.length?'탭: '+ip.tabs.map(esc).join('·')+' / ':'')+secs}</td></tr>`;}).join('')+`</tbody></table>`;
   }
+  const chartSec=(state.charts||[]).length?`<h2>4-1. 그래프 (${state.charts.length}건)</h2><table><thead><tr><th style="width:36px">No</th><th>제목</th><th>유형</th><th>원본 패널</th><th>라벨 컬럼</th><th>값 컬럼</th>${(state.topTabs&&state.topTabs.length)?'<th>맨위 탭</th>':''}</tr></thead><tbody>${state.charts.map((c,i)=>{
+    const sp=findP(c.src); const cols=(sp&&sp.columns)||[];
+    const tnm=(CHART_TYPES.find(t=>t[0]===(c.ctype||'bar'))||[])[1]||c.ctype;
+    const lab=(cols.find(k=>k.id===c.labelKid)||cols[0]||{}).name||'-';
+    const vals=(c.valKids&&c.valKids.length)?c.valKids.map(id=>(cols.find(k=>k.id===id)||{}).name).filter(Boolean).join(', '):'(숫자 컬럼 자동)';
+    const tt=(state.topTabs&&state.topTabs.length)?`<td>${esc(state.topTabs[c.topTab==null?0:c.topTab]||'')}</td>`:'';
+    return `<tr><td class="c">${i+1}</td><td>${esc(c.title)||'<span class="mut">(제목 없음)</span>'}</td><td>${esc(tnm)}</td><td>${sp?esc(sp.title||'(제목없음)'):'<span class="mut">(삭제됨)</span>'}</td><td>${esc(lab)}</td><td>${esc(vals)}</td>${tt}</tr>`;}).join('')}</tbody></table>`:'';
   const descSec=state.desc?`<h2>5. 화면 설명</h2><div class="descbx">${esc(state.desc)}</div>`:'';
   const textSec=(state.texts||[]).length?`<h2>7. 화면 표시 문구 (${state.texts.length}건)</h2><p class="mut" style="margin:0 0 8px;">화면 위에 직접 표시되는 주의사항·안내 문구입니다.</p><table><thead><tr><th style="width:36px">No</th><th>문구</th></tr></thead><tbody>${state.texts.map((t,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;color:${esc(t.color||'#e0554e')};font-weight:600;">${esc(t.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const annotSec=(state.annots||[]).length?`<h2>6. 화면 주석 (${state.annots.length}건)</h2><p class="mut" style="margin:0 0 8px;">번호는 화면(HTML 내보내기)의 빨간 핀 번호와 일치합니다.</p><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${state.annots.map((a,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
@@ -2297,7 +2517,7 @@ td.c{text-align:center;}
 </style></head><body><div class="doc">
 <h1>${esc(state.title||'조회화면')}</h1>
 <div class="meta">화면정의서${metaBits2.length?' · '+metaBits2.join(' · '):''} · 작성일 ${specDateStr()} · 조회조건 ${state.conditions.length}건 · 패널 ${state.panels.length}개</div>
-${condTbl}${btnTbl}<h2>3. 결과 그리드 (패널 ${state.panels.length}개${state.cols.length>1?' · '+state.cols.length+'단 레이아웃':''})</h2>${panelSecs}${popSec}${descSec}${annotSec}${textSec}
+${condTbl}${btnTbl}<h2>3. 결과 그리드 (패널 ${state.panels.length}개${state.cols.length>1?' · '+state.cols.length+'단 레이아웃':''})</h2>${panelSecs}${popSec}${chartSec}${descSec}${annotSec}${textSec}
 </div></body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((mm.sid?mm.sid+'_':'')+(state.title||'조회화면'))+'_화면정의서.html';a.click();
@@ -2319,7 +2539,7 @@ function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',requi
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
 function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:(o.btns||[]).map(b=>typeof b==='string'?parseCondBtn(b):b)};}
 function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
-  state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};fn();
+  state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};state.charts=[];fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});
   state.extShown=false;state.queried=true;state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}

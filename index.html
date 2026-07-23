@@ -77,6 +77,31 @@
 
   footer{ margin-top:56px; font-size:12px; color:var(--ink-5); }
 
+  /* 이전 버전 접기/펼치기 */
+  details.oldver{ margin-top:20px; }
+  details.oldver > summary{
+    list-style:none; cursor:pointer; user-select:none;
+    display:flex; align-items:center; gap:8px;
+    padding:12px 4px; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
+    font-size:13px; font-weight:600; color:var(--ink-3);
+    transition:color 200ms;
+  }
+  details.oldver > summary::-webkit-details-marker{ display:none; }
+  details.oldver > summary:hover{ color:var(--ink); }
+  details.oldver > summary .chev{
+    font-size:11px; color:var(--ink-5);
+    transition:transform 200ms cubic-bezier(0.32,0.72,0,1);
+  }
+  details.oldver[open] > summary .chev{ transform:rotate(90deg); }
+  details.oldver > summary .cnt{
+    margin-left:auto; font-size:11px; font-weight:600; color:var(--ink-5);
+    background:var(--surface-1); border:1px solid var(--line-soft); border-radius:10px; padding:2px 9px;
+  }
+  details.oldver > summary .open-txt{ display:none; }
+  details.oldver[open] > summary .open-txt{ display:inline; }
+  details.oldver[open] > summary .closed-txt{ display:none; }
+  details.oldver ul{ margin-top:4px; }
+
   @media(max-width:520px){
     .wrap{ padding:48px 20px 72px; }
     h1{ font-size:30px; }
@@ -120,13 +145,22 @@
       <li><a href="__CREATE_HTML_20260716_011.html" target="_blank" rel="noopener">
         <span class="num">11</span>
         <span class="body">
-          <span class="name">조회조건 대확장 — 탭 2종 · 조건 위치 · 뒤 버튼<span class="badge latest">LATEST</span></span>
-          <span class="desc">조회조건 중심의 대규모 확장. 조건 뒤 버튼(14색 콤보) · 선택형 신규 3종(버튼그룹 · 토글 · 다중선택) · 조건 쉼표 일괄 등록, 화면 맨 위 탭과 결과 위 탭을 독립 구성하고 맨위 탭마다 조회조건 · 패널을 따로 구성, 조건 위치 선택(상단 · 엑셀 아래 · 패널 안), 미리보기/내보내기의 빈 안내 문구 제거까지 담았습니다. 실사용은 이 버전을 권장합니다.</span>
+          <span class="name">탭 완전 분리 · 그래프 — 탭 2종 · 그래프 7종 · 조건 위치<span class="badge latest">LATEST</span></span>
+          <span class="desc">맨위 탭마다 조회조건 · 결과 위 탭 · 패널이 전부 독립되는 탭 완전 분리 구조와, 결과 데이터 기반 그래프 7종(막대 · 가로막대 · 누적막대 · 꺾은선 · 영역 · 원형 · 도넛, 위치 · 너비×높이 지정)을 담았습니다. 조건 뒤 버튼(14색) · 선택형 3종(버튼그룹 · 토글 · 다중선택) · 조건 위치 선택(상단 · 엑셀 아래 · 패널 안), 그래프의 저장 · HTML 내보내기 · 화면정의서 반영까지 포함합니다. 실사용은 이 버전을 권장합니다.</span>
           <span class="file">__CREATE_HTML_20260716_011.html</span>
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>
+    </ul>
 
+    <details class="oldver">
+      <summary>
+        <span class="chev">▶</span>
+        <span class="closed-txt">이전 버전 보기 (02 ~ 10 · 기본형 01)</span>
+        <span class="open-txt">이전 버전 접기</span>
+        <span class="cnt">10건</span>
+      </summary>
+    <ul>
       <li><a href="__CREATE_HTML_20260716_010.html" target="_blank" rel="noopener">
         <span class="num">10</span>
         <span class="body">
@@ -227,6 +261,7 @@
         <span class="arrow">&#8594;</span>
       </a></li>
     </ul>
+    </details>
 
     <footer>AI_HUB · GitHub Pages</footer>
   </div>

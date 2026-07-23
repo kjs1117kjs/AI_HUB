@@ -225,6 +225,28 @@
   .annot-item .adel:hover{color:var(--red);}
   body.preview .annot-item textarea{border-color:transparent;background:#fafbfc;pointer-events:none;}
   body.preview .annot-item .adel{display:none;}
+
+  /* ===== 텍스트 모드(📝) — 화면 위 문구 ===== */
+  body.textm #canvas{cursor:text;outline:2px dashed var(--blue);outline-offset:-2px;}
+  body.textm #canvas .pblk, body.textm #canvas .gnb-wrap, body.textm #canvas .pfooter,
+  body.textm #canvas .prow-tools, body.textm #canvas .pcol-add{pointer-events:none;}
+  .txt-note{position:absolute;white-space:pre-wrap;font-weight:600;line-height:1.5;max-width:420px;padding:1px 4px;border-radius:3px;z-index:19;}
+  .txt-note.hl{background:rgba(252,240,150,.85);}
+  body.textm .txt-note{cursor:grab;outline:1px dashed rgba(217,83,79,.5);outline-offset:2px;user-select:none;}
+  body.textm .txt-note:active{cursor:grabbing;}
+  body.annot .txt-note{pointer-events:none;}
+  .txt-editor{position:absolute;z-index:30;background:#fff;border:1px solid #a9c4e8;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.22);padding:10px;width:290px;cursor:auto;}
+  .txt-editor textarea{width:100%;min-height:58px;border:1px solid var(--border);border-radius:4px;padding:8px;font-family:inherit;font-size:12px;line-height:1.55;resize:vertical;outline:none;color:var(--text);}
+  .txt-editor textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(61,127,196,.14);}
+  .txt-editor .te-row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .txt-editor .te-row select{height:26px;border:1px solid var(--border);border-radius:3px;font-family:inherit;font-size:11.5px;padding:0 4px;background:#fff;}
+  .txt-editor .te-row label{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#48515c;cursor:pointer;}
+  .txt-editor .te-btns{display:flex;align-items:center;gap:6px;margin-top:8px;}
+  .txt-editor .te-btns .sp{flex:1;}
+  .txt-editor .tbtn{border:1px solid var(--border);background:#fff;color:#42505f;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;}
+  .txt-editor .tbtn:hover{background:#f4f6f9;}
+  .txt-editor .tbtn.pri{background:var(--blue);border-color:var(--blue-dark);color:#fff;}
+  .txt-editor .tbtn.pri:hover{background:var(--blue-dark);}
   body.preview #canvas{border-color:#e2e7ed;}
 
   /* 빈 캔버스 안내 */
@@ -370,6 +392,7 @@
     <a class="type-btn" href="__PAGE_BUILDER_GUIDE.html" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;" title="사용설명서를 새 탭에서 엽니다">📖 설명서</a>
     <span class="divider-v edit-only"></span>
     <button class="type-btn edit-only" id="annotBtn" title="켠 상태에서 화면을 클릭하면 번호 핀과 설명을 답니다">📌 주석 모드</button>
+    <button class="type-btn edit-only" id="textBtn" title="켠 상태에서 화면을 클릭해 주의사항·안내 문구를 직접 표시합니다. 색상·크기·형광펜 지정 가능">📝 텍스트 모드</button>
     <select class="b-sel edit-only" id="tplSel" title="예시 템플릿 30종 — 유명 홈페이지 유형을 본뜬 예시 (현재 내용을 대체)">
       <option value="">📚 예시 템플릿 (30종)…</option>
       <optgroup label="포털 · 검색">
@@ -910,9 +933,11 @@ function render(){
   }else{
     rowsHtml = state.rows.map(rowHTML).join('');
   }
-  const pg=curPageObj(); if(!pg.annots) pg.annots=[];
+  const pg=curPageObj(); if(!pg.annots) pg.annots=[]; if(!pg.texts) pg.texts=[];
+  if(typeof closeTextEditor==='function') closeTextEditor(); /* 렌더 시 열린 텍스트 편집창 정리 */
   const pins = pg.annots.map((a,i)=>`<div class="annot-pin" data-apin="${a.id}" style="left:${a.x}%;top:${a.y}px;" title="주석 ${i+1}${document.body.classList.contains('annot')?' — 클릭하면 삭제':''}">${i+1}</div>`).join('');
-  cv.innerHTML = gnbHTML(ed) + `<div class="rows-area">${rowsHtml}</div>` + footerHTML(ed) + pins;
+  const notes = pg.texts.map(t=>`<div class="txt-note${t.hl?' hl':''}" data-tid="${t.id}" style="left:${t.x}%;top:${t.y}px;color:${esc(t.color||'#d9534f')};font-size:${t.size||13}px;">${esc(t.text||'(내용 없음)')}</div>`).join('');
+  cv.innerHTML = gnbHTML(ed) + `<div class="rows-area">${rowsHtml}</div>` + footerHTML(ed) + pins + notes;
   const al=$('annotList');
   al.style.display = pg.annots.length ? '' : 'none';
   al.innerHTML = pg.annots.length ? `<div class="al-box"><div class="al-title">📌 화면 주석 — ${esc(pg.name)} (${pg.annots.length}건)</div>${
@@ -950,6 +975,7 @@ $('pageDup').onclick = () => {
   cp.name=nm;
   cp.rows.forEach(r=>{ r.id='R'+(seq++); r.cols.forEach(c=>{ c.id='C'+(seq++); c.blocks.forEach(b=>b.id='B'+(seq++)); }); });
   (cp.annots||[]).forEach(a=>a.id='A'+(seq++));
+  (cp.texts||[]).forEach(t=>t.id='T'+(seq++));
   state.pages.splice(state.pages.indexOf(src)+1,0,cp); goPage(cp.id);
 };
 $('pageDel').onclick = () => {
@@ -999,7 +1025,7 @@ document.addEventListener('keydown', e => {
 function reseq(){
   let mx=0;
   const chk=id=>{ const m=/([0-9]+)$/.exec(String(id||'')); if(m) mx=Math.max(mx,+m[1]); };
-  state.pages.forEach(p=>{ chk(p.id); (p.annots||[]).forEach(a=>chk(a.id)); p.rows.forEach(r=>{ chk(r.id); r.cols.forEach(c=>{ chk(c.id); c.blocks.forEach(b=>chk(b.id)); }); }); });
+  state.pages.forEach(p=>{ chk(p.id); (p.annots||[]).forEach(a=>chk(a.id)); (p.texts||[]).forEach(t=>chk(t.id)); p.rows.forEach(r=>{ chk(r.id); r.cols.forEach(c=>{ chk(c.id); c.blocks.forEach(b=>chk(b.id)); }); }); });
   if(mx>=seq) seq=mx+1;
 }
 function normGnb(g){
@@ -1082,7 +1108,8 @@ $('loadFile').onchange=e=>{
         pages=[{id:'PG'+(seq++), name:'홈', rows:normalizeRows(o.rows||o), annots:[]}];
       }
       pages.forEach((p,i)=>{ const src=(Array.isArray(o.pages)?o.pages[i]:null)||{};
-        p.annots=(Array.isArray(src.annots)?src.annots:[]).filter(a=>a&&a.x!=null&&a.y!=null).map(a=>({id:a.id||('A'+(seq++)), x:+a.x||0, y:+a.y||0, text:String(a.text??'')})); });
+        p.annots=(Array.isArray(src.annots)?src.annots:[]).filter(a=>a&&a.x!=null&&a.y!=null).map(a=>({id:a.id||('A'+(seq++)), x:+a.x||0, y:+a.y||0, text:String(a.text??'')}));
+        p.texts=(Array.isArray(src.texts)?src.texts:[]).filter(t=>t&&t.x!=null&&t.y!=null).map(t=>({id:t.id||('T'+(seq++)), x:+t.x||0, y:+t.y||0, text:String(t.text??''), color:t.color||'#d9534f', size:+t.size||13, hl:!!t.hl})); });
       if(!pages.length) pages=[{id:'PG'+(seq++), name:'홈', rows:[], annots:[]}];
       pushHist();
       state.pages=pages; state.curPage=pages[0].id;
@@ -1114,6 +1141,8 @@ function exportHTML(){
   });
   const pinX = state.pages.map((p,i)=>(p.annots||[]).map((a,ai)=>
     `<div class="annot-pin" data-annotpage="${p.id}" style="left:${a.x}%;top:${a.y}px;${i===0?'':'display:none;'}">${ai+1}</div>`).join('')).join('');
+  const noteX = state.pages.map((p,i)=>(p.texts||[]).filter(t=>t.text).map(t=>
+    `<div class="txt-note${t.hl?' hl':''}" data-annotpage="${p.id}" style="left:${t.x}%;top:${t.y}px;color:${esc(t.color||'#d9534f')};font-size:${t.size||13}px;${i===0?'':'display:none;'}">${esc(t.text)}</div>`).join('')).join('');
   const annotListX = state.pages.map((p,i)=>(p.annots||[]).length?
     `<div class="annot-list" data-annotpage="${p.id}"${i===0?'':' style="display:none;"'}><div class="al-box"><div class="al-title">📌 화면 주석 — ${esc(p.name)}</div>${
       p.annots.map((a,ai)=>`<div class="annot-item"><span class="no">${ai+1}</span><div class="atext">${esc(a.text)||'<span style="color:#c3cad3;">(내용 없음)</span>'}</div></div>`).join('')
@@ -1263,6 +1292,8 @@ body{font-family:"Pretendard",sans-serif;background:#eef1f4;color:#2c3742;font-s
 .pvideo .vcap{font-size:12px;color:#6a7482;margin-top:8px;text-align:center;}
 #canvas{position:relative;}
 .annot-pin{position:absolute;width:22px;height:22px;border-radius:50%;background:#d9534f;color:#fff;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(180,40,40,.35);z-index:20;border:2px solid #fff;}
+.txt-note{position:absolute;white-space:pre-wrap;font-weight:600;line-height:1.5;max-width:420px;padding:1px 4px;border-radius:3px;z-index:19;}
+.txt-note.hl{background:rgba(252,240,150,.85);}
 .annot-list{margin-top:14px;}
 .annot-list .al-box{background:#fff;border:1px solid #e2e7ed;border-radius:6px;padding:14px 16px;}
 .annot-list .al-title{font-size:12.5px;font-weight:700;color:#d9534f;margin-bottom:10px;}
@@ -1305,6 +1336,7 @@ ${gnbX}
 ${body}
 ${footX}
 ${pinX}
+${noteX}
 </div>
 ${annotListX}
 </div>
@@ -1358,10 +1390,12 @@ $('exportSpec').onclick=()=>{
       blkRows.push(`<tr><td class="c">${no++}</td><td class="c">행${ri+1}-열${ci+1}</td><td class="c">${BLOCK_NAMES[b.type]||b.type}</td><td>${esc(blockSummary(b))}</td></tr>`);
     })));
     const annotRows=(p.annots||[]).map((a,ai)=>`<tr><td class="c">${ai+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('');
+    const textRows=(p.texts||[]).filter(t=>t.text).map((t,ti)=>`<tr><td class="c">${ti+1}</td><td style="white-space:pre-wrap;color:${esc(t.color||'#d9534f')};font-weight:600;">${esc(t.text)}</td></tr>`).join('');
     return `<h2>${pi+1}. ${esc(p.name)}</h2>
       <p class="mut">${rowsDesc}</p>
       ${blkRows.length?`<table><thead><tr><th style="width:36px">No</th><th style="width:76px">위치</th><th style="width:76px">유형</th><th>내용</th></tr></thead><tbody>${blkRows.join('')}</tbody></table>`:''}
-      ${annotRows?`<h3 style="margin-top:14px;">📌 주석 (${p.annots.length}건)</h3><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${annotRows}</tbody></table>`:''}`;
+      ${annotRows?`<h3 style="margin-top:14px;">📌 주석 (${p.annots.length}건)</h3><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${annotRows}</tbody></table>`:''}
+      ${textRows?`<h3 style="margin-top:14px;">📝 화면 문구 (${(p.texts||[]).filter(t=>t.text).length}건)</h3><table><thead><tr><th style="width:36px">No</th><th>문구</th></tr></thead><tbody>${textRows}</tbody></table>`:''}`;
   }).join('');
   const gnbDesc = state.gnb.on ? `메뉴바: ${esc(state.gnb.brand)} — ${(state.gnb.items||[]).map(i=>{const pg=findPageByName(i.label);return esc(i.label)+(pg?'(연결)':'');}).join(' · ')}` : '메뉴바 없음';
   const footDesc = state.footer.on ? `푸터: ${esc(state.footer.text)}` : '푸터 없음';
@@ -1589,6 +1623,7 @@ $('canvas').addEventListener('change', e => {
 
 /* ---------- 주석(📌) ---------- */
 $('annotBtn').onclick = () => {
+  if(!document.body.classList.contains('annot') && document.body.classList.contains('textm')) setTextMode(false); /* 텍스트 모드와 상호 배타 */
   document.body.classList.toggle('annot');
   const on = document.body.classList.contains('annot');
   $('annotBtn').textContent = on ? '📌 주석 모드 (켜짐)' : '📌 주석 모드';
@@ -1623,10 +1658,112 @@ $('annotList').addEventListener('focusout', e => {
   if(a && a.text!==ta.value){ pushHist(); a.text=ta.value; }
 });
 
+/* ---------- 텍스트 모드(📝) — 화면 위 문구 ---------- */
+const NOTE_COLORS=[['#d9534f','빨강'],['#2f649c','파랑'],['#1f7e46','초록'],['#69707a','회색'],['#2c3742','검정']];
+let textEditorEl=null, textEditingId=null, textDrag=null, textMoved=false;
+function curTexts(){ const pg=curPageObj(); if(!pg.texts) pg.texts=[]; return pg.texts; }
+function setTextMode(on){
+  document.body.classList.toggle('textm',on);
+  $('textBtn').textContent = on ? '📝 텍스트 모드 (켜짐)' : '📝 텍스트 모드';
+  $('textBtn').classList.toggle('accent',on);
+  if(!on) closeTextEditor();
+}
+function closeTextEditor(){ if(textEditorEl){textEditorEl.remove();textEditorEl=null;} textEditingId=null; }
+$('textBtn').onclick=()=>{
+  const turnOn=!document.body.classList.contains('textm');
+  if(turnOn && document.body.classList.contains('annot')) $('annotBtn').onclick(); /* 주석 모드와 상호 배타 */
+  setTextMode(turnOn);
+  render();
+};
+function openTextEditor(t){
+  closeTextEditor();
+  textEditingId=t.id;
+  const cv=$('canvas');
+  textEditorEl=document.createElement('div');
+  textEditorEl.className='txt-editor';
+  const cw=cv.offsetWidth||1000;
+  const px=Math.round(t.x/100*cw);
+  textEditorEl.style.left=Math.max(4,Math.min(px,cw-300))+'px';
+  textEditorEl.style.top=(t.y+24)+'px';
+  const colorOpts=NOTE_COLORS.map(([c,n])=>`<option value="${c}"${(t.color||'#d9534f')===c?' selected':''}>${n}</option>`).join('');
+  const sizeOpts=[12,13,15,17,20].map(s=>`<option value="${s}"${(t.size||13)===s?' selected':''}>${s}px</option>`).join('');
+  textEditorEl.innerHTML=`<textarea class="te-ta" placeholder="화면에 표시할 문구를 적어주세요. 예: ※ 마감 후에는 수정이 불가합니다">${esc(t.text||'')}</textarea>
+    <div class="te-row"><select class="te-color" title="글자 색">${colorOpts}</select><select class="te-size" title="글자 크기">${sizeOpts}</select><label><input type="checkbox" class="te-hl"${t.hl?' checked':''}> 형광펜</label></div>
+    <div class="te-btns"><button class="tbtn" data-te="del" style="color:#c0403a;">삭제</button><span class="sp"></span><button class="tbtn" data-te="close">닫기</button><button class="tbtn pri" data-te="save">저장</button></div>`;
+  cv.appendChild(textEditorEl);
+  textEditorEl.querySelector('.te-ta').focus();
+  /* 색·크기·형광펜·문구는 즉시 미리보기 */
+  const live=()=>{ const el=cv.querySelector(`.txt-note[data-tid="${t.id}"]`); if(!el) return;
+    el.style.color=textEditorEl.querySelector('.te-color').value;
+    el.style.fontSize=textEditorEl.querySelector('.te-size').value+'px';
+    el.classList.toggle('hl',textEditorEl.querySelector('.te-hl').checked);
+    el.textContent=textEditorEl.querySelector('.te-ta').value||'(내용 없음)'; };
+  textEditorEl.querySelectorAll('.te-color,.te-size,.te-hl').forEach(x=>x.addEventListener('change',live));
+  textEditorEl.querySelector('.te-ta').addEventListener('input',live);
+  textEditorEl.addEventListener('click',e=>{
+    const b=e.target.closest('[data-te]'); if(!b) return;
+    e.stopPropagation();
+    const pg=curPageObj(); const t2=curTexts().find(x=>x.id===textEditingId);
+    if(b.dataset.te==='save'){
+      pushHist();
+      if(t2){
+        t2.text=textEditorEl.querySelector('.te-ta').value.trim();
+        t2.color=textEditorEl.querySelector('.te-color').value;
+        t2.size=+textEditorEl.querySelector('.te-size').value;
+        t2.hl=textEditorEl.querySelector('.te-hl').checked;
+        if(!t2.text) pg.texts=pg.texts.filter(x=>x.id!==textEditingId); /* 빈 문구는 자동 삭제 */
+      }
+      closeTextEditor(); render();
+    }else if(b.dataset.te==='del'){
+      pushHist(); pg.texts=pg.texts.filter(x=>x.id!==textEditingId);
+      closeTextEditor(); render();
+    }else{ closeTextEditor(); render(); }
+  });
+}
+/* 텍스트 모드 : 화면 클릭 가로채기 (capture — 편집 클릭보다 먼저) */
+$('canvas').addEventListener('click', e=>{
+  if(!document.body.classList.contains('textm')) return;
+  if(e.target.closest('.txt-editor')) return;
+  e.preventDefault(); e.stopPropagation();
+  if(textMoved){ textMoved=false; return; }
+  const noteEl=e.target.closest('.txt-note');
+  if(noteEl){ const t=curTexts().find(x=>x.id===noteEl.dataset.tid); if(t) openTextEditor(t); return; }
+  if(e.target.closest('.annot-pin')) return;
+  const rect=$('canvas').getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width*100), y=(e.clientY-rect.top);
+  if(x<0||x>100||y<0) return;
+  pushHist();
+  const t={id:'T'+(seq++), x:+x.toFixed(2), y:Math.round(y), text:'', color:'#d9534f', size:13, hl:false};
+  curTexts().push(t); render(); openTextEditor(t);
+}, true);
+/* 텍스트 모드 : 문구 드래그 이동 */
+$('canvas').addEventListener('mousedown', e=>{
+  if(!document.body.classList.contains('textm')) return;
+  const noteEl=e.target.closest('.txt-note'); if(!noteEl) return;
+  const t=curTexts().find(x=>x.id===noteEl.dataset.tid); if(!t) return;
+  e.preventDefault();
+  textDrag={t,noteEl,sx:e.clientX,sy:e.clientY,ox:t.x,oy:t.y,pushed:false}; textMoved=false;
+}, true);
+document.addEventListener('mousemove', e=>{
+  if(!textDrag) return;
+  const cw=$('canvas').getBoundingClientRect().width||1;
+  const dx=e.clientX-textDrag.sx, dy=e.clientY-textDrag.sy;
+  if(Math.abs(dx)+Math.abs(dy)>3){
+    if(!textDrag.pushed){ pushHist(); textDrag.pushed=true; }
+    textMoved=true;
+  }
+  textDrag.t.x=+(textDrag.ox+dx/cw*100).toFixed(2);
+  textDrag.t.y=Math.round(textDrag.oy+dy);
+  textDrag.noteEl.style.left=textDrag.t.x+'%';
+  textDrag.noteEl.style.top=textDrag.t.y+'px';
+});
+document.addEventListener('mouseup', ()=>{ if(textDrag) textDrag=null; });
+
 /* ---------- 모드 · 초기화 ---------- */
 $('modeBtn').onclick = () => {
   document.activeElement?.blur(); /* 편집 중 텍스트 확정 */
   if(document.body.classList.contains('annot')) $('annotBtn').onclick();
+  if(document.body.classList.contains('textm')) setTextMode(false);
   document.body.classList.toggle('preview');
   $('modeBtn').textContent = isEdit() ? '👁 미리보기 모드' : '✏️ 편집 모드';
   state.sel=null; render();

@@ -461,6 +461,31 @@
   .st-badge.g{background:#e5f4ec;color:#1c8a52;} .st-badge.r{background:#fdecec;color:#d0433c;}
   .st-badge.o{background:#fff3e0;color:#c07a10;} .st-badge.b{background:#e7f0fc;color:#2f6bc0;}
   .st-badge.gy{background:#eef0f3;color:#5f6874;}
+  /* ===== 추가 기능(012) : 신규 컬럼 유형 셀 ===== */
+  .cell-prog{display:inline-flex;align-items:center;gap:6px;min-width:90px;width:100%;}
+  .cell-prog .pg-track{flex:1;height:8px;background:#e6eaf0;border-radius:4px;overflow:hidden;min-width:44px;}
+  .cell-prog .pg-fill{display:block;height:100%;background:linear-gradient(90deg,#4c9af2,#2f89ee);border-radius:4px;}
+  .cell-prog .pg-fill.warn{background:linear-gradient(90deg,#f0a24a,#e8871f);}
+  .cell-prog .pg-fill.bad{background:linear-gradient(90deg,#ec7a74,#e0554e);}
+  .cell-prog .pg-tx{font-size:11px;color:#5f6874;min-width:32px;text-align:right;font-variant-numeric:tabular-nums;}
+  .cell-rate{color:#f5a623;font-size:12px;letter-spacing:1px;white-space:nowrap;}
+  .cell-rate .off{color:#d8dde4;}
+  .cell-tags{display:inline-flex;flex-wrap:wrap;gap:3px;justify-content:center;}
+  .tagchip{display:inline-block;padding:0 7px;border-radius:9px;background:#eef3fa;border:1px solid #d4e0ef;color:#3f6ba8;font-size:10.5px;font-weight:600;line-height:1.7;white-space:nowrap;}
+  .cell-tglm{display:inline-flex;align-items:center;cursor:pointer;vertical-align:middle;}
+  .cell-tglm .tk{width:30px;height:16px;border-radius:9px;background:#c9cfd8;position:relative;transition:background .15s;}
+  .cell-tglm .tk::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .cell-tglm.on .tk{background:var(--blue);}
+  .cell-tglm.on .tk::after{left:16px;}
+  .cell-btnm{height:23px;padding:0 10px;border:1px solid #b8c8dd;background:#f4f8fd;color:#3f6ba8;border-radius:3px;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .cell-btnm:hover{background:#e5eefa;border-color:#8fabce;}
+  .cell-imgm{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #d8dfe8;border-radius:4px;background:#f4f6f9;font-size:15px;overflow:hidden;}
+  .diff-up{color:#d0433c;font-weight:700;white-space:nowrap;} .diff-down{color:#2f6bc0;font-weight:700;white-space:nowrap;} .diff-zero{color:#8a929c;}
+  .cell-mail{color:var(--blue);text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
+  /* ===== 추가 기능(012) : 신규 조회조건 유형 ===== */
+  .time-in{width:76px !important;text-align:center;}
+  .part-in{text-align:center;}
+  .cond-suffix{font-size:12px;color:#69707a;flex-shrink:0;}
   /* ===== 추가 기능(010) : 조회조건 뒤 버튼 ===== */
   .cond-fld-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
   .cond-fld-row>.fld-main{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0;}
@@ -525,7 +550,7 @@
 <body class="edit">
 <div class="wrap">
   <div class="builder">
-    <div class="builder-top">🧩 조회화면 구성기 <span style="font-size:11px;color:#7a828d;font-weight:600;">v011</span><span class="hint">두 종류 탭 · 조건 위치(상단/엑셀 아래/패널 안)까지, 조회조건 중심으로 크게 확장된 버전입니다.</span></div>
+    <div class="builder-top">🧩 조회화면 구성기 <span style="font-size:11px;color:#7a828d;font-weight:600;">v012</span><span class="hint">조회조건 10종(시각·일시·주차·금액·전화·사업자·이메일·사원·거래처·부서) · 컬럼 10종(일자·진행률·별점·태그·토글·버튼·이미지·증감·이메일·전화)이 추가된 버전입니다.</span></div>
     <div class="bgroup-head g-screen" data-grp="g-screen"><span class="bg-dot"></span><span class="bg-title">① 화면 관리</span><span class="bg-sub">화면 추가·복제·전환 / 화면ID·작성자·버전</span><span class="bg-caret">▾</span></div>
     <div class="builder-sec g-screen">
       <span class="sec-title">화면 목록</span>
@@ -560,6 +585,16 @@
       <button class="type-btn" data-add="cat">🗂️ 분류</button>
       <button class="type-btn" data-add="store">🏬 매장</button>
       <button class="type-btn" data-add="prod">📦 상품</button>
+      <button class="type-btn" data-add="time" title="HH:MM 시각 입력. 기간 체크 시 시작~종료">🕐 시각</button>
+      <button class="type-btn" data-add="datetime" title="일자 + 시각을 함께 입력. 기간 체크 시 범위">⏱️ 일시</button>
+      <button class="type-btn" data-add="week" title="년도 + 주차 선택. 기간 체크 시 범위">🗓️ 주차</button>
+      <button class="type-btn" data-add="amount" title="금액 입력 (원 단위 표시). 기간 체크 시 최소~최대">💰 금액</button>
+      <button class="type-btn" data-add="phone" title="000-0000-0000 3분할 입력">☎️ 전화번호</button>
+      <button class="type-btn" data-add="bizno" title="000-00-00000 사업자등록번호 3분할 입력">🏢 사업자번호</button>
+      <button class="type-btn" data-add="email" title="아이디 @ 도메인 입력 (도메인 자동완성)">✉️ 이메일</button>
+      <button class="type-btn" data-add="emp" title="내장 사원 검색 팝업">👤 사원</button>
+      <button class="type-btn" data-add="vendor" title="내장 거래처 검색 팝업">🚚 거래처</button>
+      <button class="type-btn" data-add="dept" title="내장 부서 검색 팝업">🏛️ 부서</button>
       <button class="type-btn ghost" data-add="blank">▫️ 빈칸</button>
     </div>
     <div class="builder-sec g-cond">
@@ -631,6 +666,16 @@
         <option value="checkbox">체크박스</option>
         <option value="number">숫자</option>
         <option value="badge">상태 뱃지</option>
+        <option value="date">일자</option>
+        <option value="progress">진행률 바</option>
+        <option value="rating">별점(1~5)</option>
+        <option value="tag">태그(다중)</option>
+        <option value="toggle">토글 스위치</option>
+        <option value="button">행 버튼</option>
+        <option value="image">이미지(이모지)</option>
+        <option value="diff">증감(▲▼)</option>
+        <option value="email">이메일 링크</option>
+        <option value="phone">전화번호</option>
       </select>
       <input class="b-txt" id="colDropOpts" placeholder="드롭다운·뱃지 옵션(쉼표)" style="width:150px;" title="뱃지: 값=색 형식 지정 가능 (예: 정상=초록,잠금=주황,만료=빨강). 색 미지정 시 자동 판별">
       <select class="b-sel" id="colLink" title="링크(코드) 클릭 시 열 정보 팝업"><option value="">(링크팝업 없음)</option></select>
@@ -833,7 +878,7 @@ const findCond= id => state.conditions.find(c=>c.id===id);
 const findPopup=id => state.popups.find(p=>p.id===id);
 const findP   = id => state.panels.find(p=>p.id===id);
 const curP    = () => state.panels.find(p=>p.id===state.curPanel) || state.panels[0];
-const NUMERIC = k => k.cellType==='number' || k.align==='r' || ['comma','won','percent'].includes(k.format);
+const NUMERIC = k => k.cellType==='number' || ['progress','rating','diff'].includes(k.cellType) || k.align==='r' || ['comma','won','percent'].includes(k.format);
 const truthy  = v => v===true||['1','y','Y','true','O','o','사용','체크','예'].includes(String(v));
 
 /* ================= 조회조건 추가 ================= */
@@ -923,6 +968,16 @@ function condFieldHTML(c){
     case 'cat':    return popupField(c,'cat','분류조회 선택');
     case 'store':  return popupField(c,'store','전체');
     case 'prod':   return popupField(c,'prod','전체');
+    case 'time':   return timeField(c);
+    case 'datetime':return datetimeField(c);
+    case 'week':   return weekField(c);
+    case 'amount': return amountField(c);
+    case 'phone':  return phoneField(c);
+    case 'bizno':  return biznoField(c);
+    case 'email':  return emailField(c);
+    case 'emp':    return popupField(c,'emp','전체');
+    case 'vendor': return popupField(c,'vendor','전체');
+    case 'dept':   return popupField(c,'dept','전체');
     case 'custompopup': return customPopupField(c);
     case 'blank':  return '';
   }
@@ -937,6 +992,14 @@ function rangeWrap(c,kind){
 function yearField(c){const y=new Date().getFullYear();let o='';for(let i=y+1;i>=y-6;i--)o+=`<option ${i===y?'selected':''}>${i}년</option>`;const one=`<select class="cmb" style="width:120px">${o}</select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
 function quarterField(c){const one=`<select class="cmb" style="width:110px"><option>1분기</option><option>2분기</option><option>3분기</option><option>4분기</option></select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
 function numberField(c){const one=`<input class="txt num-in" type="text" inputmode="numeric" placeholder="0">`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+/* ===== (012) 신규 조회조건 유형 필드 ===== */
+function timeField(c){const one=v=>`<input class="txt time-in" value="${v}" maxlength="5" title="HH:MM">`;return `<div class="fld-row">${one('09:00')}${c.range?`<span class="tilde">~</span>${one('18:00')}`:''}</div>`;}
+function datetimeField(c){const one=t=>`<div class="date-wrap"><input class="txt js-date" readonly value="${todayStr()}"><button class="pick-btn js-date-btn" type="button">${CAL_ICON}</button></div><input class="txt time-in" value="${t}" maxlength="5" title="HH:MM">`;return `<div class="fld-row">${one('00:00')}${c.range?`<span class="tilde">~</span>${one('23:59')}`:''}</div>`;}
+function weekField(c){const y=new Date().getFullYear();let yo='';for(let i=y+1;i>=y-3;i--)yo+=`<option ${i===y?'selected':''}>${i}년</option>`;let wo='';for(let w=1;w<=53;w++)wo+=`<option ${w===29?'selected':''}>${w}주차</option>`;const one=`<select class="cmb" style="width:84px">${yo}</select><select class="cmb" style="width:86px">${wo}</select>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+function amountField(c){const one=`<input class="txt num-in" style="width:110px;text-align:right;" inputmode="numeric" placeholder="0"><span class="cond-suffix">원</span>`;return `<div class="fld-row">${one}${c.range?`<span class="tilde">~</span>${one}`:''}</div>`;}
+function phoneField(c){return `<div class="fld-row"><input class="txt part-in" style="width:54px" maxlength="3" value="010"><span class="cond-suffix">-</span><input class="txt part-in" style="width:64px" maxlength="4"><span class="cond-suffix">-</span><input class="txt part-in" style="width:64px" maxlength="4"></div>`;}
+function biznoField(c){return `<div class="fld-row"><input class="txt part-in" style="width:54px" maxlength="3"><span class="cond-suffix">-</span><input class="txt part-in" style="width:44px" maxlength="2"><span class="cond-suffix">-</span><input class="txt part-in" style="width:74px" maxlength="5"></div>`;}
+function emailField(c){return `<div class="fld-row"><input class="txt" style="width:110px" placeholder="아이디"><span class="cond-suffix">@</span><input class="txt" style="width:110px" placeholder="도메인" list="${c.id}_dom"><datalist id="${c.id}_dom"><option value="naver.com"></option><option value="gmail.com"></option><option value="daum.net"></option><option value="nhn.com"></option></datalist></div>`;}
 function optRow(c,kind){const nm=kind==='radio'?`name="${c.id}"`:'';return `<div class="opt-row">${c.options.map((o,i)=>`<label class="opt"><input type="${kind}" ${nm} ${kind==='radio'&&i===0?'checked':''}>${esc(o)}</label>`).join('')}</div>`;}
 function popupField(c,type,ph){return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="${type}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
 function customPopupField(c){const p=findPopup(c.popupId);const ph=p?'전체':'(삭제된 팝업)';return `<div class="fld-row"><div class="select-box grow empty" id="${c.id}_box" data-popup="custom" data-pid="${c.popupId}"><span class="val">${ph}</span></div><button class="btn btn-sm btn-selcancel" data-clear="${c.id}_box">선택취소</button></div>`;}
@@ -1018,7 +1081,7 @@ function applyFiltersP(p,arr){
   return arr.filter(it=>active.every(k=>{
     const fv=String(f[k.id]).trim(), raw=String(it.r[k.id]??'');
     if(k.cellType==='dropdown') return raw===fv;
-    if(k.cellType==='checkbox') return fv==='1'?truthy(raw):!truthy(raw);
+    if(k.cellType==='checkbox'||k.cellType==='toggle') return fv==='1'?truthy(raw):!truthy(raw);
     return raw.toLowerCase().includes(fv.toLowerCase());
   }));
 }
@@ -1060,11 +1123,26 @@ function cellRender(p,k,row,ri,edit){
   const raw=row[k.id]??'';
   if(k.cellType==='checkbox') return `<input type="checkbox" class="cell-chk" data-pid="${p.id}" data-ri="${ri}" data-kid="${k.id}" ${truthy(raw)?'checked':''}>`;
   if(k.cellType==='dropdown') return selHtml(p,k,raw,ri);
+  if(k.cellType==='toggle') return `<span class="cell-tglm ${truthy(raw)?'on':''}" data-tgl-pid="${p.id}" data-tgl-ri="${ri}" data-tgl-kid="${k.id}" title="클릭하여 전환"><span class="tk"></span></span>`;
   if(edit) return `<input class="cell-input" data-pid="${p.id}" data-ri="${ri}" data-kid="${k.id}" value="${esc(String(raw))}">`;
   if(k.cellType==='badge') return badgeHtml(k,raw);
   if(k.cellType==='link') return raw!==''?`<a class="cell-link" data-infopopup="${k.infoPopupId||''}"${k.infoPopupId?' title="클릭 시 정보 팝업"':''}>${esc(String(raw))}</a>`:'&nbsp;';
+  if(k.cellType==='progress') return progHtml(raw);
+  if(k.cellType==='rating') return rateHtml(raw);
+  if(k.cellType==='tag') return tagHtml(raw);
+  if(k.cellType==='button') return raw!==''?`<button class="cell-btnm" type="button">${esc(String(raw))}</button>`:'&nbsp;';
+  if(k.cellType==='image') return `<span class="cell-imgm" title="${esc(String(raw))}">${raw!==''?esc(String(raw)):'🖼'}</span>`;
+  if(k.cellType==='diff') return diffHtml(raw);
+  if(k.cellType==='email') return raw!==''?`<a class="cell-mail" title="메일 보내기">${esc(String(raw))}</a>`:'&nbsp;';
   return fmtCell(raw,k)||'&nbsp;';
 }
+/* ===== (012) 신규 컬럼 유형 렌더 ===== */
+function progHtml(raw){const n=Math.max(0,Math.min(100,Number(String(raw).replace(/[^0-9.\-]/g,''))||0));const cls=n<40?'bad':n<70?'warn':'';return `<span class="cell-prog"><span class="pg-track"><span class="pg-fill ${cls}" style="width:${n}%"></span></span><span class="pg-tx">${n}%</span></span>`;}
+function rateHtml(raw){let n=Math.round(Number(String(raw).replace(/[^0-9.]/g,''))||0);n=Math.max(0,Math.min(5,n));return `<span class="cell-rate">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`;}
+function tagHtml(raw){const arr=String(raw||'').split(/[,|·]/).map(s=>s.trim()).filter(Boolean);return arr.length?`<span class="cell-tags">${arr.map(t=>`<span class="tagchip">${esc(t)}</span>`).join('')}</span>`:'&nbsp;';}
+function diffHtml(raw){const n=Number(String(raw).replace(/,/g,''));if(raw===''||isNaN(n))return esc(String(raw))||'&nbsp;';if(n>0)return `<span class="diff-up">▲ ${n.toLocaleString('ko-KR')}</span>`;if(n<0)return `<span class="diff-down">▼ ${Math.abs(n).toLocaleString('ko-KR')}</span>`;return `<span class="diff-zero">— 0</span>`;}
+/* 토글 셀 클릭 전환 */
+document.addEventListener('click',e=>{const t=e.target.closest('.cell-tglm');if(!t||!t.dataset.tglPid)return;const p=findP(t.dataset.tglPid);if(!p)return;const r=p.rows[+t.dataset.tglRi];if(!r)return;r[t.dataset.tglKid]=truthy(r[t.dataset.tglKid])?'':'1';renderResult();});
 function fixInfoP(p){
   /* 고정컬럼 left 오프셋 계산 : lead(No/체크) 셀은 px, 데이터 컬럼은 ch 누적 */
   const n=Math.min(p.fixedCols||0, p.columns.length);
@@ -1088,7 +1166,7 @@ function filterCellHTML(p,k,topStyle){
   let inner;
   if(k.cellType==='dropdown'&&k.options&&k.options.length){
     inner=`<select class="flt-in" data-fpid="${p.id}" data-fkid="${k.id}"><option value="">전체</option>${k.options.map(o=>`<option ${String(o)===String((p.filters||{})[k.id]||'')?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  }else if(k.cellType==='checkbox'){
+  }else if(k.cellType==='checkbox'||k.cellType==='toggle'){
     inner=`<select class="flt-in" data-fpid="${p.id}" data-fkid="${k.id}"><option value="">전체</option><option value="1" ${v==='1'?'selected':''}>체크</option><option value="0" ${v==='0'?'selected':''}>미체크</option></select>`;
   }else{
     inner=`<input class="flt-in" data-fpid="${p.id}" data-fkid="${k.id}" value="${v}" placeholder="필터">`;
@@ -1722,12 +1800,32 @@ $('clearRows').onclick=()=>{const p=curP();if(!p||!p.rows.length)return;if(confi
 function genRows(p,n){
   const stores=[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨']];
   const prods=['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원'];
+  const names=['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'];
+  const tagPool=['신규','VIP','재방문','프로모션','앱주문','포장','배달','예약'];
+  const emojiPool=['🍕','🍔','🥤','🍗','🥗','🧀','🍟','☕'];
+  const pad=(v,l)=>String(v).padStart(l,'0');
   const out=[];
   for(let r=0;r<n;r++){const row={};p.columns.forEach(k=>{const nm=k.name;
-    if(k.cellType==='checkbox') row[k.id]=Math.random()>.5?'1':'';
+    if(k.cellType==='checkbox'||k.cellType==='toggle') row[k.id]=Math.random()>.5?'1':'';
     else if(k.cellType==='dropdown') row[k.id]=(k.options&&k.options[0])||'선택';
+    else if(k.cellType==='progress') row[k.id]=String(Math.floor(Math.random()*101));
+    else if(k.cellType==='rating') row[k.id]=String(Math.floor(Math.random()*5)+1);
+    else if(k.cellType==='tag'){const cnt=1+Math.floor(Math.random()*2);const st=Math.floor(Math.random()*tagPool.length);row[k.id]=Array.from({length:cnt},(_,i)=>tagPool[(st+i)%tagPool.length]).join(',');}
+    else if(k.cellType==='button') row[k.id]=/보고|리포트/.test(nm)?'보고서':/재발송|발송/.test(nm)?'재발송':/승인/.test(nm)?'승인':'보기';
+    else if(k.cellType==='image') row[k.id]=emojiPool[r%emojiPool.length];
+    else if(k.cellType==='diff') row[k.id]=String(Math.floor(Math.random()*2001)-1000);
+    else if(k.cellType==='email') row[k.id]='user'+pad(r+1,2)+'@'+['naver.com','gmail.com','nhn.com'][r%3];
+    else if(k.cellType==='phone') row[k.id]='010-'+pad(Math.floor(Math.random()*9000)+1000,4)+'-'+pad(Math.floor(Math.random()*9000)+1000,4);
+    else if(k.cellType==='date'||/일자|날짜|등록일|점검일/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d);}
+    else if(/일시|수신시각|접수시각/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d)+' '+pad(9+(r%10),2)+':'+pad((r*7)%60,2);}
+    else if(/시각|시간$/.test(nm)&&!NUMERIC(k)) row[k.id]=pad(9+(r%10),2)+':'+pad((r*5)%60,2);
+    else if(/사업자/.test(nm)) row[k.id]=pad(100+r*13%900,3)+'-'+pad(10+r*7%90,2)+'-'+pad(10000+r*997%90000,5);
+    else if(/전화|연락처|휴대폰/.test(nm)) row[k.id]='010-'+pad(Math.floor(Math.random()*9000)+1000,4)+'-'+pad(Math.floor(Math.random()*9000)+1000,4);
+    else if(/이메일|메일/.test(nm)) row[k.id]='user'+pad(r+1,2)+'@nhn.com';
     else if(NUMERIC(k)) row[k.id]= k.format==='percent'?(Math.random()*100).toFixed(1):String(Math.floor(Math.random()*90000)+1000);
-    else if(/일자|날짜/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d);}
+    else if(/성명|사원명|담당자|작성자|점검자|고객명/.test(nm)) row[k.id]=names[r%names.length];
+    else if(/부서/.test(nm)) row[k.id]=['영업팀','운영팀','전산팀','인사팀'][r%4];
+    else if(/거래처/.test(nm)) row[k.id]=['(주)한빛식자재','대한물류(주)','서울포장산업','그린팜'][r%4];
     else if(/매장명|점포|그룹명/.test(nm)) row[k.id]=stores[r%stores.length][1];
     else if(/매장코드|그룹코드|코드/.test(nm)) row[k.id]=stores[r%stores.length][0];
     else if(/상품명|메뉴/.test(nm)) row[k.id]=prods[r%prods.length];
@@ -2393,8 +2491,8 @@ document.addEventListener('change',function(e){
 };
 
 /* ================= 화면정의서(스펙 문서) 내보내기 ================= */
-const COND_TYPE_KO={date:'일자',month:'월',year:'년도',quarter:'분기',text:'텍스트',number:'숫자',combo:'콤보',radio:'라디오',checkbox:'체크박스',segment:'버튼그룹',toggle:'토글',multi:'다중선택',cat:'분류 팝업',store:'매장 팝업',prod:'상품 팝업',custompopup:'사용자 팝업',blank:'(빈칸)'};
-const COL_TYPE_KO={text:'텍스트',link:'링크(코드)',dropdown:'드롭다운',checkbox:'체크박스',number:'숫자',badge:'상태 뱃지'};
+const COND_TYPE_KO={date:'일자',month:'월',year:'년도',quarter:'분기',text:'텍스트',number:'숫자',combo:'콤보',radio:'라디오',checkbox:'체크박스',segment:'버튼그룹',toggle:'토글',multi:'다중선택',cat:'분류 팝업',store:'매장 팝업',prod:'상품 팝업',time:'시각',datetime:'일시',week:'주차',amount:'금액',phone:'전화번호',bizno:'사업자번호',email:'이메일',emp:'사원 팝업',vendor:'거래처 팝업',dept:'부서 팝업',custompopup:'사용자 팝업',blank:'(빈칸)'};
+const COL_TYPE_KO={text:'텍스트',link:'링크(코드)',dropdown:'드롭다운',checkbox:'체크박스',number:'숫자',badge:'상태 뱃지',date:'일자',progress:'진행률 바',rating:'별점',tag:'태그',toggle:'토글',button:'행 버튼',image:'이미지',diff:'증감(▲▼)',email:'이메일',phone:'전화번호'};
 const PTYPE_KO={grid:'그리드(표)',form:'폼(입력·상세)',stat:'요약카드(KPI)',notice:'안내문'};
 const FTYPE_KO={text:'텍스트',combo:'콤보',date:'일자',textarea:'여러줄',readonly:'읽기전용',checkbox:'체크박스',note:'안내문구'};
 const ALIGN_KO={c:'가운데',l:'왼쪽',r:'오른쪽'};
@@ -2412,7 +2510,7 @@ $('exportSpec').onclick=()=>{
         let extra='';
         if(c.options&&c.options.length) extra=c.options.join(', ');
         else if(c.type==='custompopup') extra='팝업: '+popName(c.popupId);
-        else if(['cat','store','prod'].includes(c.type)) extra=COND_TYPE_KO[c.type];
+        else if(['cat','store','prod','emp','vendor','dept'].includes(c.type)) extra=COND_TYPE_KO[c.type];
         if(c.btns&&c.btns.length){
           const TONE_KO={blue:'파랑',navy:'남색',teal:'청록',green:'초록',orange:'주황',red:'빨강',purple:'보라',dark:'검정',soft:'연파랑',softgreen:'연초록',softorange:'연주황',softred:'연빨강',gray:'회색',white:'흰색'};
           extra=(extra?extra+' / ':'')+'뒤 버튼: '+c.btns.map(b=>cfBtnLabel(b)+(cfBtnTone(b)?'('+(TONE_KO[cfBtnTone(b)]||cfBtnTone(b))+')':'')).join(', ');
@@ -2528,6 +2626,16 @@ function autoW(name,t){
   if(t==='checkbox') return 6;
   if(t==='number') return 12;
   if(t==='link') return 10;
+  if(t==='progress') return 14;
+  if(t==='rating') return 10;
+  if(t==='tag') return 16;
+  if(t==='toggle') return 7;
+  if(t==='button') return 10;
+  if(t==='image') return 7;
+  if(t==='diff') return 11;
+  if(t==='email') return 20;
+  if(t==='phone') return 14;
+  if(t==='date') return 11;
   if(/명|제목|REMARK|메모|파일명|과목|구분$/.test(name)) return 16;
   if(/코드|번호|일자|날짜|기간|시작|종료/.test(name)) return 11;
   return 12;
@@ -2693,6 +2801,128 @@ PRESETS.board=()=>{
   state.desc='게시판형 공지 목록. 제목=링크, 분류/상태=드롭다운, 상단고정=체크박스, 페이지네이션 포함.';
 };
 
+/* ===== (012) 신규 예시 10종 — 신규 조회조건 · 컬럼 유형 활용 ===== */
+PRESETS.attend=()=>{
+  state.title='근태관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('month','근태월'),CD('dept','부서'),CD('emp','사원'),CD('time','출근시각',{range:true}),CD('combo','근태상태',{opts:['전체','정상','지각','조퇴','결근']})];
+  state.cols=[{flex:1}];
+  const cols=[C('일자',{t:'date'}),C('사번',{t:'link',w:9}),C('성명',{w:9}),C('부서',{w:10}),C('출근시각',{w:9}),C('퇴근시각',{w:9}),C('근무시간',{a:'r',t:'number',w:9}),C('상태',{t:'badge',o:['정상=초록','지각=주황','결근=빨강']}),C('지각',{t:'toggle'}),C('승인',{t:'button'})];
+  const d=todayStr();
+  const R=[[d,'E1001','홍길동','영업팀','08:52','18:10','8.5','정상','','승인'],[d,'E1002','김영희','영업팀','09:14','18:30','8.2','지각','1','승인'],[d,'E1003','이철수','운영팀','08:45','17:55','8.4','정상','','승인'],[d,'E1004','박민수','전산팀','09:31','19:02','8.3','지각','1','승인'],[d,'E1005','최지은','전산팀','','','0','결근','','승인'],[d,'E1006','정우성','인사팀','08:58','18:05','8.3','정상','','승인']];
+  state.panels=[PNL('',{check:true,btns:['일괄승인','엑셀다운로드'],pager:true,sel:0,cols,rows:R})];
+  state.desc='월 · 부서/사원 팝업 · 출근시각 범위(시각 조건)로 조회하는 근태 현황. 상태=뱃지, 지각=토글, 승인=행 버튼. (012 신규 유형 예시)';
+};
+PRESETS.delivery=()=>{
+  state.title='배송관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','주문일자',{range:true}),CD('phone','수령인 연락처'),CD('vendor','택배사'),CD('combo','배송상태',{opts:['전체','상품준비','배송중','배송완료','반송']})];
+  state.cols=[{flex:1}];
+  const cols=[C('주문번호',{t:'link',w:13}),C('수령인',{w:9}),C('연락처',{t:'phone'}),C('주소',{a:'l',w:26}),C('택배사',{w:11}),C('태그',{t:'tag'}),C('진행률',{t:'progress'}),C('상태',{t:'badge',o:['배송완료=초록','배송중=파랑','상품준비=주황','반송=빨강']}),C('배송조회',{t:'button'})];
+  const R=[['ORD-260716-01','홍길동','010-2211-3341','서울 강남구 학동로 12','대한물류(주)','앱주문,포장','100','배송완료','조회'],
+    ['ORD-260716-02','김영희','010-8804-1123','경기 성남시 분당구 정자일로 5','대한물류(주)','신규','70','배송중','조회'],
+    ['ORD-260716-03','이철수','010-5522-9081','서울 송파구 올림픽로 300','서울포장산업','VIP,예약','35','상품준비','조회'],
+    ['ORD-260716-04','박민수','010-7733-4455','인천 연수구 송도과학로 27','대한물류(주)','재방문','10','반송','조회'],
+    ['ORD-260716-05','최지은','010-9182-7364','서울 마포구 월드컵북로 396','그린팜','배달','88','배송중','조회']];
+  state.panels=[PNL('',{check:true,btns:['송장출력','엑셀다운로드'],pager:true,sel:1,cols,rows:R})];
+  state.desc='전화번호 3분할 조건 + 거래처(택배사) 팝업으로 조회하는 배송 목록. 연락처=전화번호, 태그=다중 태그칩, 진행률=바, 배송조회=행 버튼. (012 신규 유형 예시)';
+};
+PRESETS.vendorled=()=>{
+  state.title='거래처 정산원장';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('month','정산월',{range:true}),CD('vendor','거래처'),CD('bizno','사업자번호'),CD('amount','정산금액',{range:true})];
+  state.cols=[{flex:1}];
+  const cols=[C('거래처코드',{t:'link',w:10}),C('거래처명',{a:'l',w:16}),C('사업자번호',{w:14}),C('매입액',{a:'r',f:'comma',t:'number'}),C('지급액',{a:'r',f:'comma',t:'number'}),C('잔액',{a:'r',f:'comma',t:'number'}),C('전월대비',{t:'diff'}),C('상태',{t:'badge',o:['정산완료=초록','정산중=파랑','보류=주황']})];
+  const R=[['V0001','(주)한빛식자재','123-45-67890',48250000,45000000,3250000,'1250000','정산중'],
+    ['V0002','대한물류(주)','211-86-33210',22400000,22400000,0,'-830000','정산완료'],
+    ['V0003','서울포장산업','305-81-99887',9860000,9000000,860000,'120000','정산중'],
+    ['V0004','그린팜','114-86-55231',15300000,12000000,3300000,'0','보류'],
+    ['V0005','(주)미소푸드','120-87-11223',31280000,31280000,0,'-2100000','정산완료']];
+  state.panels=[PNL('',{btns:['정산확정','엑셀다운로드'],sum:true,pager:true,sel:0,cols,rows:R})];
+  state.desc='거래처 팝업 · 사업자번호 3분할 · 금액 범위 조건으로 조회하는 정산원장. 전월대비=증감(▲빨강/▼파랑) + 합계행. (012 신규 유형 예시)';
+};
+PRESETS.hreval=()=>{
+  state.title='인사평가관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('year','평가연도'),CD('dept','부서'),CD('emp','대상자'),CD('combo','평가등급',{opts:['전체','S','A','B','C','D']})];
+  state.cols=[{flex:1}];
+  const cols=[C('사번',{t:'link',w:9}),C('성명',{w:9}),C('부서',{w:10}),C('직급',{w:8}),C('역량점수',{a:'r',t:'number',w:9}),C('평가등급',{t:'badge',o:['S=파랑','A=초록','B=회색','C=주황','D=빨강']}),C('리더평가',{t:'rating'}),C('목표달성률',{t:'progress'}),C('평가서',{t:'button'})];
+  const R=[['E1001','홍길동','영업팀','과장','92','S','5','96','보고서'],['E1002','김영희','영업팀','대리','85','A','4','88','보고서'],['E1003','이철수','운영팀','사원','78','B','3','72','보고서'],['E1004','박민수','전산팀','차장','88','A','4','91','보고서'],['E1005','최지은','전산팀','과장','69','C','2','55','보고서'],['E1006','정우성','인사팀','대리','81','B','3','80','보고서']];
+  state.panels=[PNL('',{check:true,btns:['평가확정','엑셀다운로드'],sel:0,cols,rows:R})];
+  state.desc='부서/사원 팝업 조건으로 조회하는 평가 목록. 리더평가=별점(★), 목표달성률=진행률 바, 평가등급=뱃지, 평가서=행 버튼. (012 신규 유형 예시)';
+};
+PRESETS.inspection=()=>{
+  state.title='매장 위생점검관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('week','점검주차',{range:true}),CD('store','매장선택'),CD('emp','점검자'),CD('combo','점검결과',{opts:['전체','적합','조건부적합','부적합']})];
+  state.cols=[{flex:1}];
+  const cols=[C('매장',{a:'l',w:13}),C('점검일',{t:'date'}),C('점검자',{w:9}),C('점검항목수',{a:'r',t:'number',w:10}),C('적합률',{t:'progress'}),C('평점',{t:'rating'}),C('결과',{t:'badge',o:['적합=초록','조건부적합=주황','부적합=빨강']}),C('현장사진',{t:'image'}),C('보고서',{t:'button'})];
+  const R=[['학동역점','2026-07-20','홍길동','42','95','5','적합','🍕','보고서'],['맘스터치 A점','2026-07-20','김영희','42','82','4','적합','🍗','보고서'],['남양주오남','2026-07-21','이철수','42','61','3','조건부적합','🥤','보고서'],['피자앤치킨 서초점','2026-07-21','박민수','42','34','1','부적합','🍟','보고서'],['동대문DD','2026-07-22','최지은','42','88','4','적합','🥗','보고서']];
+  state.panels=[PNL('',{btns:['재점검 지시','엑셀다운로드'],sel:3,cols,rows:R})];
+  state.desc='주차(년도+주차) 범위 조건으로 조회하는 위생점검. 적합률=진행률(40%↓ 빨강), 평점=별점, 현장사진=이미지 셀. (012 신규 유형 예시)';
+};
+PRESETS.campaign=()=>{
+  state.title='프로모션 캠페인 관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('datetime','캠페인 기간',{range:true}),CD('combo','채널',{opts:['전체','앱푸시','SMS','이메일','배너']}),CD('toggle','진행중만',{opts:['보기','전체']}),CD('amount','예산',{range:true})];
+  state.cols=[{flex:1}];
+  const cols=[C('캠페인명',{t:'link',a:'l',w:20}),C('채널',{t:'tag'}),C('시작일시',{w:15}),C('종료일시',{w:15}),C('예산',{a:'r',f:'won',t:'number'}),C('소진률',{t:'progress'}),C('상태',{t:'badge',o:['진행중=초록','대기=주황','종료=회색']}),C('사용',{t:'toggle'})];
+  const R=[['여름 시즌 2배 적립','앱푸시,배너','2026-07-01 09:00','2026-07-31 23:59',30000000,'68','진행중','1'],
+    ['신메뉴 출시 알림','앱푸시,SMS','2026-07-15 10:00','2026-07-22 22:00',8000000,'100','종료',''],
+    ['휴면회원 복귀 쿠폰','이메일','2026-08-01 09:00','2026-08-15 23:59',12000000,'0','대기','1'],
+    ['주말 배달 무료','배너','2026-07-18 00:00','2026-07-20 23:59',5000000,'92','종료',''],
+    ['런치 타임 할인','앱푸시','2026-07-10 11:00','2026-07-31 14:00',15000000,'41','진행중','1']];
+  state.panels=[PNL('',{check:true,btns:[{label:'신규 캠페인',primary:true},'중지'],sel:0,cols,rows:R})];
+  state.desc='일시(일자+시각) 범위 · 금액 범위 · 토글 조건으로 조회하는 캠페인 목록. 채널=태그, 소진률=진행률, 사용=토글 스위치(클릭 전환). (012 신규 유형 예시)';
+};
+PRESETS.device=()=>{
+  state.title='단말 상태 모니터링';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('store','매장선택'),CD('combo','단말유형',{opts:['전체','POS','키오스크','KDS','라우터']}),CD('datetime','최종수신'),CD('combo','상태',{opts:['전체','정상','지연','끊김']})];
+  state.cols=[{flex:1}];
+  const cols=[C('단말번호',{t:'link',w:12}),C('매장',{a:'l',w:13}),C('유형',{t:'dropdown',o:['POS','키오스크','KDS','라우터']}),C('최종수신일시',{w:16}),C('상태',{t:'badge',o:['정상=초록','지연=주황','끊김=빨강']}),C('전일대비 트래픽',{t:'diff',w:13}),C('CPU사용률',{t:'progress'}),C('펌웨어',{w:9}),C('재시작',{t:'button'})];
+  const R=[['POS-0912','학동역점','POS','2026-07-23 11:02','정상','320','23','v3.2.1','재시작'],
+    ['KSK-0311','학동역점','키오스크','2026-07-23 11:01','정상','-120','48','v2.9.0','재시작'],
+    ['POS-1204','맘스터치 A점','POS','2026-07-23 10:12','지연','-860','77','v3.2.1','재시작'],
+    ['KDS-0221','남양주오남','KDS','2026-07-22 21:44','끊김','-2100','0','v1.4.2','재시작'],
+    ['RTR-0090','피자앤치킨 서초점','라우터','2026-07-23 11:03','정상','1450','36','v5.0.3','재시작']];
+  state.panels=[PNL('',{btns:['전체 새로고침'],sel:3,cols,rows:R})];
+  state.desc='일시 조건으로 최종수신 시각을 조회하는 단말 모니터링. 전일대비=증감, CPU=진행률(70%↑ 경고색), 재시작=행 버튼. (012 신규 유형 예시)';
+};
+PRESETS.review=()=>{
+  state.title='고객 리뷰관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','작성일자',{range:true}),CD('store','매장선택'),CD('email','작성자 이메일'),CD('combo','별점',{opts:['전체','5점','4점','3점 이하']})];
+  state.cols=[{flex:1}];
+  const cols=[C('리뷰번호',{t:'link',w:10}),C('매장',{a:'l',w:13}),C('작성자',{w:9}),C('이메일',{t:'email'}),C('별점',{t:'rating'}),C('태그',{t:'tag'}),C('내용',{a:'l',w:26}),C('상태',{t:'badge',o:['답변완료=초록','미답변=주황','신고=빨강']}),C('답변',{t:'button'})];
+  const R=[['RV-10021','학동역점','홍길동','hong01@naver.com','5','재방문,배달','피자가 정말 맛있어요. 배달도 빨랐습니다.','답변완료','보기'],
+    ['RV-10022','맘스터치 A점','김영희','kim02@gmail.com','2','신규','주문이 30분 넘게 지연됐어요.','미답변','답변'],
+    ['RV-10023','남양주오남','이철수','lee03@nhn.com','4','포장','포장 상태 깔끔했습니다.','답변완료','보기'],
+    ['RV-10024','학동역점','박민수','park04@naver.com','1','배달','음식이 식어서 왔습니다. 환불 요청합니다.','신고','답변'],
+    ['RV-10025','피자앤치킨 서초점','최지은','choi05@gmail.com','5','VIP,재방문','항상 만족합니다!','답변완료','보기']];
+  state.panels=[PNL('',{check:true,btns:['일괄 답변','엑셀다운로드'],pager:true,sel:1,cols,rows:R})];
+  state.desc='이메일 조건(아이디@도메인)으로 조회하는 리뷰 목록. 이메일=메일 링크, 별점=★, 태그=칩, 답변=행 버튼. (012 신규 유형 예시)';
+};
+PRESETS.shift=()=>{
+  state.title='근무 스케줄관리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('week','근무주차'),CD('store','매장선택'),CD('emp','사원'),CD('time','근무시간대',{range:true})];
+  state.cols=[{flex:1}];
+  const cols=[C('일자',{t:'date'}),C('매장',{a:'l',w:13}),C('사원',{w:9}),C('시작시각',{w:9}),C('종료시각',{w:9}),C('근무시간',{a:'r',t:'number',w:9}),C('포지션',{t:'tag'}),C('확정',{t:'toggle'})];
+  const R=[['2026-07-20','학동역점','홍길동','09:00','18:00','8','홀,계산','1'],
+    ['2026-07-20','학동역점','김영희','11:00','20:00','8','주방','1'],
+    ['2026-07-21','맘스터치 A점','이철수','09:00','15:00','5.5','배달',''],
+    ['2026-07-21','맘스터치 A점','박민수','15:00','22:00','6.5','홀','1'],
+    ['2026-07-22','남양주오남','최지은','10:00','19:00','8','주방,마감',''],
+    ['2026-07-22','학동역점','정우성','17:00','22:00','4.5','홀,마감','1']];
+  state.panels=[PNL('',{check:true,btns:['스케줄 확정','엑셀다운로드'],sel:0,cols,rows:R})];
+  state.desc='주차 + 시각 범위 조건으로 조회하는 근무 스케줄. 포지션=태그, 확정=토글(클릭 전환). (012 신규 유형 예시)';
+};
+PRESETS.crmclaim=()=>{
+  state.title='고객 클레임 처리';state.searchOn=true;state.tabs=[];state.toolbar=null;
+  state.conditions=[CD('date','접수일자',{range:true}),CD('phone','고객 연락처'),CD('email','고객 이메일'),CD('combo','유형',{opts:['전체','배달지연','품질','오배송','환불','기타']}),CD('dept','처리부서')];
+  state.cols=[{flex:1}];
+  const cols=[C('접수번호',{t:'link',w:11}),C('고객명',{w:9}),C('연락처',{t:'phone'}),C('이메일',{t:'email'}),C('유형',{t:'dropdown',o:['배달지연','품질','오배송','환불','기타']}),C('접수일시',{w:15}),C('처리부서',{w:10}),C('처리율',{t:'progress'}),C('상태',{t:'badge',o:['완료=초록','처리중=파랑','접수=주황','보류=빨강']}),C('처리',{t:'button'})];
+  const R=[['CL-26-0711','홍길동','010-2211-3341','hong01@naver.com','배달지연','2026-07-22 12:31','운영팀','100','완료','보기'],
+    ['CL-26-0712','김영희','010-8804-1123','kim02@gmail.com','품질','2026-07-22 18:04','영업팀','60','처리중','처리'],
+    ['CL-26-0713','이철수','010-5522-9081','lee03@nhn.com','오배송','2026-07-23 09:12','운영팀','20','접수','처리'],
+    ['CL-26-0714','박민수','010-7733-4455','park04@naver.com','환불','2026-07-23 10:40','재무팀','45','처리중','처리'],
+    ['CL-26-0715','최지은','010-9182-7364','choi05@gmail.com','기타','2026-07-23 11:05','영업팀','0','보류','처리']];
+  state.panels=[PNL('',{check:true,btns:['담당자 지정','엑셀다운로드'],pager:true,sel:2,cols,rows:R})];
+  state.desc='전화번호 · 이메일 · 부서 팝업 조건을 모두 쓰는 클레임 처리 화면. 연락처/이메일/진행률/뱃지/행 버튼 컬럼 조합. (012 신규 유형 예시)';
+};
+
 $('sampleBtn').onclick=()=>{
   const items=[
     ['sales','매장-일별결제수단매출','단일 조회 + 2줄 그룹헤더 + 합계/페이지'],
@@ -2716,7 +2946,17 @@ $('sampleBtn').onclick=()=>{
     ['smsresend','알림 발송이력','발송번호→알림 재발송 팝업'],
     ['posauth','포스 단말 인증관리','단말번호→단말 인증 초기화 팝업'],
     ['salesdash','매출 요약 대시보드','안내문 + 요약카드(KPI) + 상태뱃지 그리드 (010 신규)'],
-    ['memberreg','회원 등록·상세','좌측 회원 그리드 + 우측 상세 폼 패널 (010 신규)']
+    ['memberreg','회원 등록·상세','좌측 회원 그리드 + 우측 상세 폼 패널 (010 신규)'],
+    ['attend','근태관리','월·부서/사원 팝업·시각 범위 + 토글·행 버튼 (012 신규)'],
+    ['delivery','배송관리','전화번호·거래처 조건 + 태그·진행률·행 버튼 (012 신규)'],
+    ['vendorled','거래처 정산원장','거래처·사업자번호·금액 범위 + 증감(▲▼)·합계 (012 신규)'],
+    ['hreval','인사평가관리','부서/사원 팝업 + 별점·진행률·뱃지 (012 신규)'],
+    ['inspection','매장 위생점검','주차 범위 + 진행률·별점·이미지 셀 (012 신규)'],
+    ['campaign','프로모션 캠페인','일시 범위·금액·토글 조건 + 태그·소진률 (012 신규)'],
+    ['device','단말 상태 모니터링','일시 조건 + 증감·진행률·행 버튼 (012 신규)'],
+    ['review','고객 리뷰관리','이메일 조건 + 메일 링크·별점·태그 (012 신규)'],
+    ['shift','근무 스케줄','주차·시각 범위 + 태그·확정 토글 (012 신규)'],
+    ['crmclaim','고객 클레임 처리','전화·이메일·부서 조건 + 진행률·뱃지·행 버튼 (012 신규)']
   ];
   const infos=INFO_SAMPLES;
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📚 예시 불러오기</span><button class="x" data-x>&times;</button></div>
@@ -2786,6 +3026,9 @@ document.addEventListener('click', e=>{
 /* ================= 팝업(매장/상품/분류/커스텀) ================= */
 const STORE_DATA=[['001060MP','미스터피자 야탑점','오픈',''],['001070MP','미스터피자 신흥점','오픈',''],['001130MP','미스터피자 산본점','오픈',''],['001190MP','미스터피자 부평점','오픈',''],['001200MP','미스터피자 중동점','오픈',''],['001290MP','미스터피자 상계점','오픈',''],['001340MP','미스터피자 잠실점','오픈',''],['001470MP','미스터피자 수지점','폐점',''],['C00023','피자앤치킨 서초점','오픈','제한']];
 const PROD_DATA=[['0101000740','쉬림프골드'],['0101000760','포테이토골드'],['0101000770','하프앤하프'],['0101001070','새우천왕'],['0101001480','스페셜콰트로'],['0101001490','트리플 올인원'],['0101001500','멕시칸 치폴레']];
+const EMP_POP_DATA=[['E1001','홍길동','영업팀','과장'],['E1002','김영희','영업팀','대리'],['E1003','이철수','운영팀','사원'],['E1004','박민수','전산팀','차장'],['E1005','최지은','전산팀','과장'],['E1006','정우성','인사팀','대리'],['E1007','한소희','재무팀','사원']];
+const VENDOR_POP_DATA=[['V0001','(주)한빛식자재','123-45-67890','거래중'],['V0002','대한물류(주)','211-86-33210','거래중'],['V0003','서울포장산업','305-81-99887','거래중'],['V0004','그린팜','114-86-55231','중지'],['V0005','(주)미소푸드','120-87-11223','거래중']];
+const DEPT_POP_DATA=[['1000','경영지원본부',''],['1100','인사팀','경영지원본부'],['1200','재무팀','경영지원본부'],['2000','영업본부',''],['2100','영업팀','영업본부'],['2200','마케팅팀','영업본부'],['3000','전산본부',''],['3100','전산팀','전산본부'],['3200','운영팀','전산본부']];
 const CAT_TREE=[{name:'사이드',children:['감자류','소스','치킨류']},{name:'옵션',children:['옵션','토핑','사이즈']},{name:'피자',children:['프리미엄','스테디','신제품']}];
 const mask=$('modalMask'),modalBox=$('modalBox');
 function openModal(wide){mask.classList.add('open');modalBox.className='modal'+(wide?' wide':'');}
@@ -2796,8 +3039,23 @@ function setBoxValue(boxId,text){const b=$(boxId);if(!b)return;b.querySelector('
 function clearBox(boxId){const b=$(boxId);const ph=b&&b.dataset.popup==='cat'?'분류조회 선택':'전체';setBoxValue(boxId,ph);}
 function openPopup(type,boxId,pid){
   if(type==='store')buildStore(boxId);else if(type==='prod')buildProd(boxId);else if(type==='cat')buildCat(boxId);
+  else if(type==='emp')buildSimplePopup(boxId,'사원선택',['사번','성명','부서','직급'],EMP_POP_DATA);
+  else if(type==='vendor')buildSimplePopup(boxId,'거래처선택',['거래처코드','거래처명','사업자번호','상태'],VENDOR_POP_DATA);
+  else if(type==='dept')buildSimplePopup(boxId,'부서선택',['부서코드','부서명','상위부서'],DEPT_POP_DATA);
   else if(type==='custom'){const p=findPopup(pid);if(!p){alert('삭제된 팝업입니다.');return;}buildCustomModal(p,boxId);}
   openModal();
+}
+function buildSimplePopup(boxId,title,heads,data){
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${title}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <table class="m-search"><tr><td class="ml">${heads[0]}</td><td><input id="bsc"></td><td class="ml">${heads[1]}</td><td><input id="bsn"></td></tr></table>
+    <div class="m-btns"><button class="btn btn-sm" id="bsr">조회</button><button class="btn btn-primary btn-sm" id="bsa">선택</button></div>
+    <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="ball"></th>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody id="bbody"></tbody></table></div></div>`;
+  bindX();const body=modalBox.querySelector('#bbody');let cur=data.slice();
+  const draw=l=>{body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="bc" value="${i}"></td>${r.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('');body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const cbx=tr.querySelector('.bc');cbx.checked=!cbx.checked;}});};
+  draw(cur);
+  modalBox.querySelector('#ball').onchange=e=>modalBox.querySelectorAll('.bc').forEach(cb=>cb.checked=e.target.checked);
+  modalBox.querySelector('#bsr').onclick=()=>{const a=modalBox.querySelector('#bsc').value.trim(),b=modalBox.querySelector('#bsn').value.trim();cur=data.filter(r=>(!a||String(r[0]).includes(a))&&(!b||String(r[1]).includes(b)));draw(cur);};
+  modalBox.querySelector('#bsa').onclick=()=>{const sel=[...modalBox.querySelectorAll('.bc:checked')].map(cb=>cur[+cb.value]).filter(Boolean);if(!sel.length){alert('항목을 선택하세요.');return;}setBoxValue(boxId,sel.length===1?`[${sel[0][0]}] ${sel[0][1]}`:`[${sel[0][0]}] ${sel[0][1]} 외 ${sel.length-1}건`);closeModal();};
 }
 function buildStore(boxId){
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">매장선택</span><button class="x" data-x>&times;</button></div><div class="modal-body">

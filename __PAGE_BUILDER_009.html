@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>화면 빌더 009 — 블록 37종 · 예시 템플릿 30종</title>
+<title>화면 빌더 010 — 블록 40종 · 예시 템플릿 60종 · 슬라이드/팝업/HTML 블록</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root{
@@ -410,6 +410,98 @@
   .pblk-tools .tin.wnum{width:48px;}
 
   @media (max-width:720px){ .prow-cols{flex-wrap:wrap;} .prow-cols .pcol{flex:1 1 100% !important;} }
+
+  /* ===== 메뉴바 드롭다운 (2단) ===== */
+  .gnb .gwrap{position:relative;display:inline-block;}
+  .gnb .gitem .caret{font-size:9px;margin-left:3px;opacity:.7;}
+  .gnb .gsub{display:none;position:absolute;top:100%;left:0;padding-top:6px;z-index:80;}
+  .gnb .gwrap:hover .gsub{display:block;}
+  .gnb .gsubbox{display:block;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 8px 20px rgba(20,30,50,.14);padding:4px 0;min-width:130px;}
+  .gnb .gsubi{display:block;padding:8px 14px;font-size:12.5px;font-weight:600;color:#2c3742;white-space:nowrap;opacity:1;}
+  body.preview .gnb .gsubi[data-nav]{cursor:pointer;}
+  .gnb .gsubi:hover{background:var(--blue-soft);color:var(--blue-dark);}
+  .gnb .gsubi.on{color:var(--blue-dark);font-weight:800;}
+  body:not(.preview) .gnb .gsubi.linked::after{content:"↗";font-size:9px;margin-left:2px;opacity:.6;}
+
+  /* ===== 메뉴바 좌우 풀폭(메가) 메뉴 ===== */
+  .gnb{position:relative;}
+  .gnb .gwrap.mega{position:static;}
+  .gnb .gmega{display:none;position:absolute;left:0;right:0;top:100%;z-index:80;padding-top:0;}
+  .gnb .gwrap.mega:hover .gmega{display:block;}
+  .gnb .gmega-in{display:flex;gap:18px;background:#fff;border-bottom:1px solid var(--border-soft);box-shadow:0 16px 32px rgba(20,30,50,.10);padding:24px 48px 26px;}
+  .gnb .gmi{flex:1;min-width:0;display:block;}
+  body.preview .gnb .gmi[data-nav]{cursor:pointer;}
+  .gnb .gmi .gmt{display:block;font-size:13.5px;font-weight:800;color:#191919;line-height:1.4;}
+  .gnb .gmi .gmd{display:block;font-size:11.5px;color:#8a94a2;margin-top:4px;line-height:1.5;}
+  .gnb .gmi:hover .gmt{color:var(--blue-dark);}
+  .gnb .gmi.on .gmt{color:var(--blue-dark);}
+  body:not(.preview) .gnb .gmi.linked .gmt::after{content:"↗";font-size:9px;margin-left:3px;opacity:.6;}
+
+  /* ===== 슬라이드(캐러셀) ===== */
+  .pslider{position:relative;border-radius:6px;overflow:hidden;}
+  .pslider .slide{display:none;padding:52px 72px;min-height:150px;position:relative;}
+  .pslider .slide.on{display:block;}
+  .pslider .slide .simg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;}
+  .pslider .sbody{position:relative;z-index:2;text-align:center;}
+  .pslider .st{font-size:26px;font-weight:800;line-height:1.35;}
+  .pslider .sd{font-size:13.5px;margin-top:9px;opacity:.85;line-height:1.7;white-space:pre-wrap;}
+  .pslider [contenteditable]{outline:none;}
+  .pslider [contenteditable]:empty::before{content:attr(data-ph);opacity:.5;}
+  .pslider.sl-dark{background:linear-gradient(120deg,#2c3742,#41546b);color:#fff;}
+  .pslider.sl-blue{background:linear-gradient(120deg,#2f649c,#4a8ccb);color:#fff;}
+  .pslider.sl-light{background:#eef3f9;color:#2c3742;}
+  .pslider .snav{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:3;user-select:none;}
+  .pslider.sl-light .snav{background:rgba(44,55,66,.12);}
+  .pslider .snav:hover{background:rgba(255,255,255,.4);}
+  .pslider.sl-light .snav:hover{background:rgba(44,55,66,.22);}
+  .pslider .snav.prev{left:14px;}
+  .pslider .snav.next{right:14px;}
+  .pslider .sdots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px;z-index:3;}
+  .pslider .sdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;}
+  .pslider.sl-light .sdot{background:rgba(44,55,66,.25);}
+  .pslider .sdot.on{background:#fff;}
+  .pslider.sl-light .sdot.on{background:#2f649c;}
+  .pslider .scount{position:absolute;top:12px;right:16px;font-size:11px;font-weight:700;opacity:.7;z-index:3;font-feature-settings:"tnum";}
+
+  /* ===== 팝업(모달) — 편집 카드 ===== */
+  .ppopup-ed{border:2px dashed #c9b3e0;border-radius:8px;padding:12px;background:#fbf9fe;}
+  .ppopup-ed .pp-tag{font-size:11px;color:#7a5cb8;font-weight:700;margin-bottom:9px;}
+  .ppopup-ed .pp-box{background:#fff;border:1px solid var(--border-soft);border-radius:8px;box-shadow:0 6px 18px rgba(30,40,60,.1);padding:18px 20px 16px;max-width:420px;}
+  .ppopup-ed .pt,.ppopup .pt{font-size:15.5px;font-weight:800;color:#2c3742;margin-bottom:8px;}
+  .ppopup-ed .px,.ppopup .px{font-size:13px;color:#4a5462;line-height:1.75;white-space:pre-wrap;}
+  .ppopup-ed .pp-foot,.ppopup .pp-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:10px;}
+  .ppopup-ed .ppn,.ppopup .ppn{font-size:11.5px;color:#8a94a2;}
+  .ppopup-ed [contenteditable]{outline:none;}
+  .ppopup-ed [contenteditable]:empty::before{content:attr(data-ph);color:#c3cad3;}
+  /* 팝업 — 미리보기 오버레이 */
+  .ppopup{position:fixed;inset:0;z-index:200;}
+  .ppopup .pp-dim{position:absolute;inset:0;background:rgba(20,28,40,.45);}
+  .ppopup .pp-box{position:absolute;background:#fff;border-radius:10px;box-shadow:0 18px 50px rgba(15,25,45,.3);padding:24px 26px 20px;width:min(420px,calc(100vw - 48px));}
+  .ppopup.pos-center .pp-box{left:50%;top:44%;transform:translate(-50%,-50%);}
+  .ppopup.pos-corner{pointer-events:none;}
+  .ppopup.pos-corner .pp-box{pointer-events:auto;right:24px;bottom:24px;box-shadow:0 12px 34px rgba(15,25,45,.22);border:1px solid var(--border-soft);}
+  .ppopup .pp-x{position:absolute;top:12px;right:14px;color:#9aa2ac;font-size:13px;cursor:pointer;font-weight:700;}
+  .ppopup .pp-x:hover{color:#2c3742;}
+  .ppopup .pt{padding-right:20px;}
+  .ppopup [data-popclose].pbtn{cursor:pointer;}
+
+  /* ===== HTML 블록 ===== */
+  .phtml{position:relative;}
+  .phtml-tag{display:inline-block;font-size:10px;font-weight:800;color:#7a869a;background:#f0f2f5;border:1px solid var(--border-soft);border-radius:3px;padding:1px 7px;margin-bottom:6px;letter-spacing:.04em;}
+  .phtml-body.edlock{pointer-events:none;}   /* 편집 중에는 iframe이 클릭을 삼키지 않도록 */
+  .phtml-body iframe,.phtml-body img,.phtml-body video{max-width:100%;}
+  .phtml-ph{border:2px dashed #c9d2dc;border-radius:6px;background:#fbfcfe;color:#8a94a2;font-size:12.5px;text-align:center;padding:26px 16px;line-height:1.9;}
+  .phtml-ph span{font-size:11.5px;color:#a8b0bc;}
+
+  /* ===== HTML 코드 편집 오버레이 ===== */
+  .html-editor{position:fixed;inset:0;background:rgba(20,28,40,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .html-editor .he-box{background:#fff;border-radius:10px;box-shadow:0 18px 50px rgba(15,25,45,.3);padding:20px 22px;width:min(720px,100%);display:flex;flex-direction:column;gap:10px;}
+  .html-editor .he-title{font-size:14.5px;font-weight:800;color:#2c3742;}
+  .html-editor .he-desc{font-size:12px;color:#6a7482;}
+  .html-editor .he-ta{width:100%;height:280px;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:Consolas,Menlo,monospace;font-size:12.5px;line-height:1.6;color:#2c3742;resize:vertical;background:#fbfcfe;}
+  .html-editor .he-ta:focus{outline:2px solid var(--blue);border-color:var(--blue);}
+  .html-editor .he-hint{font-size:11.5px;color:#b9640f;background:#fdf3e4;border:1px solid #f2ddbd;border-radius:5px;padding:8px 12px;line-height:1.6;}
+  .html-editor .he-btns{display:flex;gap:8px;align-items:center;}
 </style>
 </head>
 <body>
@@ -422,7 +514,11 @@
     <button class="type-btn" id="pageRen" title="현재 페이지 이름 바꾸기">✎ 이름</button>
     <button class="type-btn" id="pageDup" title="현재 페이지 복제">⧉ 복제</button>
     <button class="type-btn ghost" id="pageDel">✕ 삭제</button>
-    <span class="hint">메뉴바 항목이나 버튼의 이름이 <b>페이지명과 같으면 자동 연결</b>됩니다. 버튼은 <code style="font-size:11px;">이름=색&gt;페이지명</code>으로 직접 지정할 수도 있습니다. 이동은 미리보기 · 내보낸 HTML에서 동작합니다.</span>
+    <span class="divider-v"></span>
+    <button class="type-btn" id="pageUp" title="현재 페이지를 목록에서 앞으로 이동">◀ 순서</button>
+    <button class="type-btn" id="pageDn" title="현재 페이지를 목록에서 뒤로 이동">순서 ▶</button>
+    <button class="type-btn" id="pageIndent" title="현재 페이지를 하위 페이지로 들여쓰기 / 해제 (페이지 목록·화면정의서에 Tree로 표시)">⇥ 하위</button>
+    <span class="hint">메뉴바 항목이나 버튼의 이름이 <b>페이지명과 같으면 자동 연결</b>됩니다. 버튼은 <code style="font-size:11px;">이름=색&gt;페이지명</code>, 메뉴바 하위 메뉴는 <code style="font-size:11px;">상위(하위1/하위2)</code>로 지정합니다. 이동은 미리보기 · 내보낸 HTML에서 동작합니다.</span>
   </div>
   <div class="builder-sec edit-only">
     <span class="sec-title">행(섹션)</span>
@@ -470,8 +566,8 @@
     <span class="divider-v edit-only"></span>
     <button class="type-btn edit-only" id="annotBtn" title="켠 상태에서 화면을 클릭하면 번호 핀과 설명을 답니다">📌 주석 모드</button>
     <button class="type-btn edit-only" id="textBtn" title="켠 상태에서 화면을 클릭해 주의사항·안내 문구를 직접 표시합니다. 색상·크기·형광펜 지정 가능">📝 텍스트 모드</button>
-    <select class="b-sel edit-only" id="tplSel" title="예시 템플릿 30종 — 유명 홈페이지 유형을 본뜬 예시 (현재 내용을 대체)">
-      <option value="">📚 예시 템플릿 (30종)…</option>
+    <select class="b-sel edit-only" id="tplSel" title="예시 템플릿 60종 — 유명 홈페이지 유형을 본뜬 예시 (현재 내용을 대체)">
+      <option value="">📚 예시 템플릿 (60종)…</option>
       <optgroup label="포털 · 검색">
         <option value="searchMain">① 검색 중심형 (구글 스타일)</option>
         <option value="webPortal">② 종합 포털형 (네이버 스타일)</option>
@@ -513,6 +609,40 @@
         <option value="portal">㉘ 사내 인트라넷 포털</option>
         <option value="dash">㉙ 관리자 대시보드</option>
         <option value="docs">㉚ 문서/도움말 센터 (사이드메뉴)</option>
+      </optgroup>
+      <optgroup label="드롭다운 메뉴 견본 — 상위 메뉴에 하위 2개">
+        <option value="dGroupware">㉛ 기업 그룹웨어 (2단)</option>
+        <option value="dUniv">㉜ 대학교 홈 (2단)</option>
+        <option value="dShop">㉝ 쇼핑몰 카테고리 (2단)</option>
+        <option value="dGov">㉞ 관공서 포털 (2단)</option>
+        <option value="dMfg">㉟ 제조기업 홈 (2단)</option>
+        <option value="dSaaS">㊱ IT 서비스 (2단)</option>
+        <option value="dHosp">㊲ 병원 홈 (2단)</option>
+        <option value="dBank">㊳ 금융 포털 (2단)</option>
+        <option value="dEdu">㊴ 교육 플랫폼 (2단)</option>
+        <option value="dNews">㊵ 뉴스 포털 (2단)</option>
+        <option value="dHotel">㊶ 호텔 리조트 (2단)</option>
+        <option value="dRecruit">㊷ 채용 사이트 (2단)</option>
+        <option value="dComm">㊸ 커뮤니티 (2단)</option>
+        <option value="dDocs">㊹ 문서센터 (2단)</option>
+        <option value="dConf">㊺ 행사/컨퍼런스 (2단)</option>
+      </optgroup>
+      <optgroup label="좌우 풀폭 메가 메뉴 견본 — 화면 꽉 차는 2단">
+        <option value="mPos">46 포스 솔루션 기업 (2단_좌우)</option>
+        <option value="mItGroup">47 IT 그룹사 홈 (2단_좌우)</option>
+        <option value="mElec">48 전자제품 브랜드 (2단_좌우)</option>
+        <option value="mRetail">49 백화점/유통 (2단_좌우)</option>
+        <option value="mInsu">50 보험사 (2단_좌우)</option>
+        <option value="mTelco">51 통신사 (2단_좌우)</option>
+        <option value="mConst">52 건설사 (2단_좌우)</option>
+        <option value="mFood">53 식품 기업 (2단_좌우)</option>
+        <option value="mCar">54 자동차 브랜드 (2단_좌우)</option>
+        <option value="mAir">55 항공사 (2단_좌우)</option>
+        <option value="mLogis">56 물류/택배 (2단_좌우)</option>
+        <option value="mGame">57 게임사 (2단_좌우)</option>
+        <option value="mCosmetic">58 화장품 브랜드 (2단_좌우)</option>
+        <option value="mEnergy">59 에너지/발전 (2단_좌우)</option>
+        <option value="mEnter">60 방송/엔터 (2단_좌우)</option>
       </optgroup>
       <optgroup label="기타">
         <option value="guide">안내 페이지</option>
@@ -594,6 +724,12 @@ function newBlock(type){
   else if(type==='download') Object.assign(b,{items:[{name:'서비스 소개서.pdf',size:'2.4MB'},{name:'이용 약관.hwp',size:'156KB'}]});
   else if(type==='checklist') Object.assign(b,{items:['신청서 작성','증빙 서류 첨부','담당자 확인']});
   else if(type==='comment') Object.assign(b,{items:[{who:'김○○',date:'07.21 14:02',text:'좋은 정보 감사합니다.'},{who:'이○○',date:'07.21 15:47',text:'문의드립니다. 상세 일정은 어디서 확인하나요?'}]});
+  else if(type==='html') Object.assign(b,{code:'', align:undefined});
+  else if(type==='slider') Object.assign(b,{tone:'dark', cur:0, auto:true, items:[
+    {title:'첫 번째 슬라이드',desc:'‹ › 화살표나 점을 눌러 슬라이드를 넘기고, 제목·설명을 화면에서 직접 입력하세요.',img:''},
+    {title:'두 번째 슬라이드',desc:'',img:''},
+    {title:'세 번째 슬라이드',desc:'',img:''}]});
+  else if(type==='popup') Object.assign(b,{title:'공지 팝업', text:'미리보기와 내보낸 HTML에서 페이지에 들어올 때 팝업 창으로 표시됩니다.', btn:'닫기', pos:'center'});
   else Object.assign(b,{text:''});
   return b;
 }
@@ -884,6 +1020,30 @@ function blockBodyHTML(b, ed){
   if(b.type==='comment'){
     return `<div class="pcmt">${(b.items||[]).map((it,i)=>`<div class="cr2"><div class="ch2"><span class="cw"${ce} data-bitem="${b.id}:${i}:who" data-ph="작성자">${esc(it.who)}</span><span class="cd2"${ce} data-bitem="${b.id}:${i}:date" data-ph="날짜">${esc(it.date)}</span></div><div class="cx"${ce} data-bitem="${b.id}:${i}:text" data-ph="댓글 내용을 입력하세요">${esc(it.text)}</div></div>`).join('')}</div>`;
   }
+  if(b.type==='html'){
+    if(!String(b.code||'').trim())
+      return `<div class="phtml-ph">〈/〉 HTML 블록 — 우상단 도구의 <b>[〈/〉 코드]</b> 버튼을 눌러 코드를 붙여넣으세요<br><span>유튜브 iframe · 지도 embed · 임의 HTML을 그대로 넣을 수 있습니다</span></div>`;
+    return `<div class="phtml">${ed?'<div class="phtml-tag" data-notext>〈/〉 HTML</div>':''}<div class="phtml-body${ed?' edlock':''}">${b.code}</div></div>`;
+  }
+  if(b.type==='slider'){
+    const items=b.items||[];
+    const cur=Math.min(Math.max(0,+b.cur||0), Math.max(0,items.length-1));
+    const slides=items.map((it,i)=>`<div class="slide${i===cur?' on':''}">${it.img?`<img class="simg" src="${esc(it.img)}" alt="">`:''}<div class="sbody">
+        <div class="st"${ce} data-bitem="${b.id}:${i}:title" data-ph="슬라이드 제목">${esc(it.title)}</div>
+        <div class="sd"${ce} data-bitem="${b.id}:${i}:desc" data-ph="설명 (비워도 됨)">${esc(it.desc)}</div>
+      </div></div>`).join('');
+    const dots=items.map((_,i)=>`<span class="sdot${i===cur?' on':''}" data-sldot="${b.id}:${i}"></span>`).join('');
+    return `<div class="pslider sl-${b.tone||'dark'}"${(!ed&&b.auto)?' data-auto="1"':''}>${slides}
+      <span class="snav prev" data-slnav="${b.id}:-1" data-notext>‹</span><span class="snav next" data-slnav="${b.id}:1" data-notext>›</span>
+      <div class="sdots">${dots}</div><span class="scount">${cur+1} / ${items.length||1}</span></div>`;
+  }
+  if(b.type==='popup'){
+    const inner=`<div class="pt"${ce} data-bfield="${b.id}:title" data-ph="팝업 제목">${esc(b.title)}</div>
+      <div class="px"${ce} data-bfield="${b.id}:text" data-ph="팝업 내용을 입력하세요">${esc(b.text)}</div>
+      <div class="pp-foot"><span class="ppn">☐ 오늘 하루 보지 않기</span><span class="pbtn tone-dark"${ed?'':' data-popclose'}>${esc(b.btn||'닫기')}</span></div>`;
+    if(ed) return `<div class="ppopup-ed"><div class="pp-tag" data-notext>🪟 팝업 — 미리보기·내보낸 HTML에서 <b>페이지 진입 시 ${b.pos==='corner'?'우하단 카드':'중앙 모달'}</b>로 표시됩니다</div><div class="pp-box">${inner}</div></div>`;
+    return `<div class="ppopup pos-${b.pos||'center'}" data-popup>${(b.pos||'center')==='center'?'<div class="pp-dim" data-popclose></div>':''}<div class="pp-box"><span class="pp-x" data-popclose>✕</span>${inner}</div></div>`;
+  }
   if(b.type==='cards'){
     return `<div class="cardgrid" style="grid-template-columns:repeat(${b.cols||3},1fr);">${(b.items||[]).map((it,i)=>`
       <div class="pcard">
@@ -979,6 +1139,16 @@ function blockProps(b){
   if(b.type==='cards'){
     return `<select class="b-sel" data-bcardcols="${b.id}" title="열 수">${[2,3,4].map(n=>`<option value="${n}"${(b.cols||3)===n?' selected':''}>${n}열</option>`).join('')}</select><button class="tl" data-bcardadd="${b.id}" title="카드 추가">＋카드</button><button class="tl" data-bcarddel="${b.id}" title="마지막 카드 삭제">－카드</button>`;
   }
+  if(b.type==='html'){
+    return `<button class="tl" data-bhtmledit="${b.id}" title="HTML 코드 입력/수정">〈/〉 코드</button>`;
+  }
+  if(b.type==='slider'){
+    const cur=Math.min(Math.max(0,+b.cur||0), Math.max(0,(b.items||[]).length-1));
+    return `<button class="tl" data-biadd="${b.id}" title="슬라이드 추가">＋슬라이드</button><button class="tl" data-bidel="${b.id}" title="마지막 슬라이드 삭제">－슬라이드</button><select class="b-sel" data-bsltone="${b.id}" title="배경">${[['dark','어두운'],['blue','파랑'],['light','밝은']].map(z=>`<option value="${z[0]}"${(b.tone||'dark')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select><select class="b-sel" data-bslauto="${b.id}" title="내보낸 HTML에서 5초마다 자동 넘김"><option value="1"${b.auto?' selected':''}>자동넘김</option><option value=""${b.auto?'':' selected'}>수동</option></select><input class="tin" data-bslimg="${b.id}" value="${esc(((b.items||[])[cur]||{}).img||'')}" placeholder="현재 슬라이드 이미지 URL" title="현재 보이는 슬라이드의 배경 이미지 URL (비우면 색 배경)" style="width:150px;">`;
+  }
+  if(b.type==='popup'){
+    return `<select class="b-sel" data-bpoppos="${b.id}" title="표시 위치">${[['center','중앙 모달'],['corner','우하단 카드']].map(z=>`<option value="${z[0]}"${(b.pos||'center')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select><input class="tin wnum" data-bpopbtn="${b.id}" value="${esc(b.btn||'')}" placeholder="버튼" style="width:60px;" title="닫기 버튼 문구">`;
+  }
   return '';
 }
 function blockHTML(b){
@@ -1003,14 +1173,15 @@ function colHTML(c){
       <button data-badd="${c.id}:heading">＋ 제목</button>
       <button data-badd="${c.id}:text">＋ 본문</button>
       <button data-badd="${c.id}:cards">＋ 카드</button>
-      <select class="b-sel badd-sel" data-baddsel="${c.id}" title="블록 추가 (37종)">
+      <select class="b-sel badd-sel" data-baddsel="${c.id}" title="블록 추가 (40종)">
         <option value="">＋ 블록 추가…</option>
         <optgroup label="기본">
           <option value="image">이미지</option><option value="buttons">버튼</option>
           <option value="notice">안내 박스</option><option value="divider">구분선</option><option value="spacer">여백</option>
+          <option value="html">HTML 코드</option>
         </optgroup>
         <optgroup label="홈페이지">
-          <option value="hero">배너(히어로)</option><option value="search">검색창</option>
+          <option value="hero">배너(히어로)</option><option value="slider">슬라이드(캐러셀)</option><option value="search">검색창</option>
           <option value="news">뉴스/공지 목록</option><option value="logos">로고 스트립</option>
           <option value="pricing">요금제</option><option value="faq">FAQ</option>
         </optgroup>
@@ -1026,6 +1197,7 @@ function colHTML(c){
         <optgroup label="화면 요소">
           <option value="tabs">탭</option><option value="breadcrumb">경로(브레드크럼)</option>
           <option value="pagination">페이지네이션</option><option value="strip">띠 배너(공지바)</option>
+          <option value="popup">팝업(모달)</option>
           <option value="login">로그인 박스</option><option value="filebox">첨부파일</option>
           <option value="progress">진행률 바</option><option value="checklist">체크리스트</option>
           <option value="download">자료 다운로드</option><option value="comment">댓글 목록</option>
@@ -1057,21 +1229,68 @@ function rowHTML(r, idx){
   return `<div class="prow${r.bg?' hasbg':''}" data-row="${r.id}"${bgSty}>${tools}<div class="prow-cols">${r.cols.map(colHTML).join('')}</div></div>`;
 }
 
+/* 메뉴바 항목 직렬화
+   — 일반 드롭다운:  상위(하위1/하위2)
+   — 좌우 풀폭(메가): 상위[하위1:설명/하위2:설명]  (설명은 생략 가능) */
+function gnbItemsToStr(items){ return (items||[]).map(i=>{
+  const kids=i.children||[];
+  if(!kids.length) return i.label;
+  const body=kids.map(c=> c.desc ? c.label+':'+c.desc : c.label).join('/');
+  return i.mega ? i.label+'['+body+']' : i.label+'('+kids.map(c=>c.label).join('/')+')';
+}).join(', '); }
+function strToGnbItems(str){
+  return String(str).split(',').map(x=>x.trim()).filter(Boolean).map(x=>{
+    /* 메가(풀폭): 상위[하위:설명/…] */
+    let m=/^(.+?)\[(.+)\]$/.exec(x);
+    if(m){
+      const kids=m[2].split('/').map(c=>c.trim()).filter(Boolean).map(c=>{
+        const ci=c.indexOf(':');
+        return ci>-1 ? {label:c.slice(0,ci).trim(), desc:c.slice(ci+1).trim()} : {label:c};
+      });
+      if(kids.length) return {label:m[1].trim(), mega:true, children:kids};
+      return {label:m[1].trim()};
+    }
+    /* 일반 드롭다운: 상위(하위/…) */
+    m=/^(.+?)\((.+)\)$/.exec(x);
+    if(m){ const kids=m[2].split('/').map(c=>c.trim()).filter(Boolean).map(l=>({label:l}));
+      return kids.length ? {label:m[1].trim(), children:kids} : {label:m[1].trim()}; }
+    return {label:x};
+  });
+}
+/* 메뉴바 메뉴 목록 HTML — 편집 캔버스 · 내보내기 공용. activePid 기준으로 활성 표시 */
+function gnbMenuHTML(activePid, editMode){
+  return (state.gnb.items||[]).map(i=>{
+    const pg=findPageByName(i.label);
+    const kids=i.children||[];
+    const cls='gitem'+(editMode&&pg?' linked':'')+(pg&&pg.id===activePid?' on':'')+(kids.length?' haskids':'');
+    const item=`<span class="${cls}"${pg?` data-nav="${pg.id}"`:''}>${esc(i.label)}${kids.length?'<span class="caret">▾</span>':''}</span>`;
+    if(!kids.length) return item;
+    if(i.mega){
+      /* 좌우 풀폭(메가) 패널 — 하위: 굵은 제목 + 회색 설명 */
+      const panel=`<span class="gmega"><span class="gmega-in">${kids.map(c=>{
+        const p2=findPageByName(c.label);
+        return `<span class="gmi${editMode&&p2?' linked':''}${p2&&p2.id===activePid?' on':''}"${p2?` data-nav="${p2.id}"`:''}><span class="gmt">${esc(c.label)}</span>${c.desc?`<span class="gmd">${esc(c.desc)}</span>`:''}</span>`;
+      }).join('')}</span></span>`;
+      return `<span class="gwrap mega">${item}${panel}</span>`;
+    }
+    const sub=`<span class="gsub"><span class="gsubbox">${kids.map(c=>{
+      const p2=findPageByName(c.label);
+      return `<span class="gsubi${editMode&&p2?' linked':''}${p2&&p2.id===activePid?' on':''}"${p2?` data-nav="${p2.id}"`:''}>${esc(c.label)}</span>`;
+    }).join('')}</span></span>`;
+    return `<span class="gwrap">${item}${sub}</span>`;
+  }).join('');
+}
 function gnbHTML(ed){
   if(!state.gnb.on) return '';
   const g=state.gnb;
   const tools = ed ? `<div class="prow-tools" style="top:6px;right:10px;">
       <input class="tin" data-gbrand value="${esc(g.brand)}" placeholder="사이트명" style="width:90px;" title="사이트명/로고 텍스트">
-      <input class="tin" data-gitems value="${esc((g.items||[]).map(i=>i.label).join(', '))}" placeholder="메뉴 (쉼표)" title="메뉴 항목을 쉼표로">
+      <input class="tin" data-gitems value="${esc(gnbItemsToStr(g.items))}" placeholder="메뉴 (쉼표 · 하위: 괄호/대괄호)" title="메뉴 항목을 쉼표로. 일반 드롭다운은 괄호 — 소개(연혁/팀). 좌우 풀폭(메가) 메뉴는 대괄호와 하위:설명 — 제품[포스:올인원 POS/키오스크:셀프 주문]" style="width:210px;">
       <select class="b-sel" data-gtone title="메뉴바 색">${[['dark','어두운'],['blue','파랑'],['white','흰색']].map(z=>`<option value="${z[0]}"${(g.tone||'dark')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
     </div>` : '';
   return `<div class="gnb-wrap">${tools}<div class="gnb gnb-${g.tone||'dark'}">
     <span class="brand">${esc(g.brand)}</span>
-    <span class="gmenu">${(g.items||[]).map(i=>{
-      const pg=findPageByName(i.label);
-      const cls='gitem'+(pg?' linked':'')+(pg&&pg.id===state.curPage?' on':'');
-      return `<span class="${cls}"${pg?` data-nav="${pg.id}"`:''}>${esc(i.label)}</span>`;
-    }).join('')}</span>
+    <span class="gmenu">${gnbMenuHTML(state.curPage, ed)}</span>
   </div></div>`;
 }
 function footerHTML(ed){
@@ -1105,7 +1324,7 @@ function render(){
   }</div>` : '';
   $('gnbOn').checked = !!state.gnb.on;
   $('footerOn').checked = !!state.footer.on;
-  $('pageSel').innerHTML = state.pages.map(p=>`<option value="${p.id}"${p.id===state.curPage?' selected':''}>${esc(p.name)}</option>`).join('');
+  $('pageSel').innerHTML = state.pages.map(p=>`<option value="${p.id}"${p.id===state.curPage?' selected':''}>${p.depth?'\u00A0\u00A0└ ':''}${esc(p.name)}</option>`).join('');
 }
 /* ---------- 페이지 관리 ---------- */
 $('pageSel').onchange = e => goPage(e.target.value);
@@ -1147,6 +1366,9 @@ $('pageDel').onclick = () => {
   state.pages.splice(i,1);
   goPage(state.pages[Math.max(0,i-1)].id);
 };
+$('pageUp').onclick = () => { const i=state.pages.indexOf(curPageObj()); if(i>0){ pushHist(); moveInArr(state.pages,i,-1); render(); } };
+$('pageDn').onclick = () => { const i=state.pages.indexOf(curPageObj()); if(i>-1&&i<state.pages.length-1){ pushHist(); moveInArr(state.pages,i,1); render(); } };
+$('pageIndent').onclick = () => { pushHist(); const p=curPageObj(); p.depth=p.depth?0:1; render(); };
 $('gnbOn').onchange = e => { pushHist(); state.gnb.on = e.target.checked; render(); };
 $('footerOn').onchange = e => { pushHist(); state.footer.on = e.target.checked; render(); };
 
@@ -1191,7 +1413,14 @@ function reseq(){
 function normGnb(g){
   if(!g) return {on:false, brand:'사이트명', items:[{label:'홈'}], tone:'dark'};  /* 구버전 파일: 메뉴바 없음 */
   return {on:!!g.on, brand:g.brand||'사이트명',
-    items:(Array.isArray(g.items)?g.items:[]).filter(i=>i&&i.label).map(i=>({label:String(i.label)})),
+    items:(Array.isArray(g.items)?g.items:[]).filter(i=>i&&i.label).map(i=>{
+      const it={label:String(i.label)};
+      const kids=(Array.isArray(i.children)?i.children:[]).filter(c=>c&&c.label).map(c=>{
+        const k={label:String(c.label)}; if(c.desc) k.desc=String(c.desc); return k;
+      });
+      if(kids.length){ it.children=kids; if(i.mega) it.mega=true; }
+      return it;
+    }),
     tone:['dark','blue','white'].includes(g.tone)?g.tone:'dark'};
 }
 function normFooter(f){
@@ -1245,6 +1474,9 @@ function normalizeRows(rows){
         if(b.type==='checklist'){ if(!Array.isArray(b.items)||!b.items.length)b.items=['항목']; b.items=b.items.map(x=>String(x??'')); }
         if(b.type==='comment'){ if(!Array.isArray(b.items)||!b.items.length)b.items=[{who:'',date:'',text:''}]; b.items.forEach(it=>{if(it.who==null)it.who='';if(it.date==null)it.date='';if(it.text==null)it.text='';}); }
         if(b.type==='cards'){ if(!(b.cols>=2&&b.cols<=4))b.cols=3; if(!Array.isArray(b.items)||!b.items.length)b.items=[{icon:'📌',title:'카드 제목',desc:'설명'}]; b.items.forEach(it=>{if(it.icon==null)it.icon='';if(it.title==null)it.title='';if(it.desc==null)it.desc='';}); }
+        if(b.type==='html'){ if(b.code==null)b.code=''; }
+        if(b.type==='slider'){ if(!['dark','blue','light'].includes(b.tone))b.tone='dark'; if(!Array.isArray(b.items)||!b.items.length)b.items=[{title:'슬라이드',desc:'',img:''}]; b.items.forEach(it=>{if(it.title==null)it.title='';if(it.desc==null)it.desc='';if(it.img==null)it.img='';}); if(!(b.cur>=0&&b.cur<b.items.length))b.cur=0; b.auto=b.auto!==false; }
+        if(b.type==='popup'){ if(b.title==null)b.title=''; if(b.text==null)b.text=''; if(!b.btn)b.btn='닫기'; if(!['center','corner'].includes(b.pos))b.pos='center'; }
         if(b.text==null&&(b.type==='heading'||b.type==='text'||b.type==='notice')) b.text='';
         return b;
       });
@@ -1275,7 +1507,7 @@ $('loadFile').onchange=e=>{
       const o=JSON.parse(rd.result);
       let pages;
       if(Array.isArray(o.pages)){ /* v5 형식 */
-        pages=o.pages.filter(p=>p&&p.name!=null).map(p=>({id:p.id||('PG'+(seq++)), name:String(p.name)||'페이지', rows:normalizeRows(p.rows)}));
+        pages=o.pages.filter(p=>p&&p.name!=null).map(p=>({id:p.id||('PG'+(seq++)), name:String(p.name)||'페이지', depth:p.depth?1:0, rows:normalizeRows(p.rows)}));
       }else{ /* v2~v4 : rows 단일 페이지 */
         pages=[{id:'PG'+(seq++), name:'홈', rows:normalizeRows(o.rows||o), annots:[]}];
       }
@@ -1510,7 +1742,95 @@ body{font-family:"Pretendard",sans-serif;background:#eef1f4;color:#2c3742;font-s
 .nbox.nt-warn{background:#fdf6dd;border-color:#efe2ac;color:#6e5a12;}
 .nbox.nt-danger{background:#fdecea;border-color:#f4cdc9;color:#8c2f27;}
 .nbox.nt-gray{background:#f4f6f8;border-color:#dfe4ea;color:#4a5462;}
-@media (max-width:720px){ .prow-cols{flex-wrap:wrap;} .prow-cols .pcol{flex:1 1 100% !important;} }`;
+@media (max-width:720px){ .prow-cols{flex-wrap:wrap;} .prow-cols .pcol{flex:1 1 100% !important;} }
+/* ===== 메뉴바 드롭다운 (2단) ===== */
+.gnb .gwrap{position:relative;display:inline-block;}
+.gnb .gitem .caret{font-size:9px;margin-left:3px;opacity:.7;}
+.gnb .gsub{display:none;position:absolute;top:100%;left:0;padding-top:6px;z-index:80;}
+.gnb .gwrap:hover .gsub{display:block;}
+.gnb .gsubbox{display:block;background:#fff;border:1px solid #d5dbe2;border-radius:6px;box-shadow:0 8px 20px rgba(20,30,50,.14);padding:4px 0;min-width:130px;}
+.gnb .gsubi{display:block;padding:8px 14px;font-size:12.5px;font-weight:600;color:#2c3742;white-space:nowrap;opacity:1;}
+.gnb .gsubi[data-nav]{cursor:pointer;}
+.gnb .gsubi:hover{background:#eef4fb;color:#2f649c;}
+.gnb .gsubi.on{color:#2f649c;font-weight:800;}
+
+/* ===== 메뉴바 좌우 풀폭(메가) 메뉴 ===== */
+.gnb{position:relative;}
+.gnb .gwrap.mega{position:static;}
+.gnb .gmega{display:none;position:absolute;left:0;right:0;top:100%;z-index:80;}
+.gnb .gwrap.mega:hover .gmega{display:block;}
+.gnb .gmega-in{display:flex;gap:18px;background:#fff;border-bottom:1px solid #e4e8ed;box-shadow:0 16px 32px rgba(20,30,50,.10);padding:24px 48px 26px;}
+.gnb .gmi{flex:1;min-width:0;display:block;}
+.gnb .gmi[data-nav]{cursor:pointer;}
+.gnb .gmi .gmt{display:block;font-size:13.5px;font-weight:800;color:#191919;line-height:1.4;}
+.gnb .gmi .gmd{display:block;font-size:11.5px;color:#8a94a2;margin-top:4px;line-height:1.5;}
+.gnb .gmi:hover .gmt{color:#2f649c;}
+.gnb .gmi.on .gmt{color:#2f649c;}
+/* ===== 슬라이드(캐러셀) ===== */
+.pslider{position:relative;border-radius:6px;overflow:hidden;}
+.pslider .slide{display:none;padding:52px 72px;min-height:150px;position:relative;}
+.pslider .slide.on{display:block;}
+.pslider .slide .simg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;}
+.pslider .sbody{position:relative;z-index:2;text-align:center;}
+.pslider .st{font-size:26px;font-weight:800;line-height:1.35;}
+.pslider .sd{font-size:13.5px;margin-top:9px;opacity:.85;line-height:1.7;white-space:pre-wrap;}
+.pslider.sl-dark{background:linear-gradient(120deg,#2c3742,#41546b);color:#fff;}
+.pslider.sl-blue{background:linear-gradient(120deg,#2f649c,#4a8ccb);color:#fff;}
+.pslider.sl-light{background:#eef3f9;color:#2c3742;}
+.pslider .snav{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:3;user-select:none;}
+.pslider.sl-light .snav{background:rgba(44,55,66,.12);}
+.pslider .snav:hover{background:rgba(255,255,255,.4);}
+.pslider.sl-light .snav:hover{background:rgba(44,55,66,.22);}
+.pslider .snav.prev{left:14px;}
+.pslider .snav.next{right:14px;}
+.pslider .sdots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px;z-index:3;}
+.pslider .sdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;}
+.pslider.sl-light .sdot{background:rgba(44,55,66,.25);}
+.pslider .sdot.on{background:#fff;}
+.pslider.sl-light .sdot.on{background:#2f649c;}
+.pslider .scount{position:absolute;top:12px;right:16px;font-size:11px;font-weight:700;opacity:.7;z-index:3;font-feature-settings:"tnum";}
+/* ===== 팝업(모달) ===== */
+.ppopup{position:fixed;inset:0;z-index:200;}
+.ppopup .pp-dim{position:absolute;inset:0;background:rgba(20,28,40,.45);}
+.ppopup .pp-box{position:absolute;background:#fff;border-radius:10px;box-shadow:0 18px 50px rgba(15,25,45,.3);padding:24px 26px 20px;width:min(420px,calc(100vw - 48px));}
+.ppopup.pos-center .pp-box{left:50%;top:44%;transform:translate(-50%,-50%);}
+.ppopup.pos-corner{pointer-events:none;}
+.ppopup.pos-corner .pp-box{pointer-events:auto;right:24px;bottom:24px;box-shadow:0 12px 34px rgba(15,25,45,.22);border:1px solid #e4e8ed;}
+.ppopup .pp-x{position:absolute;top:12px;right:14px;color:#9aa2ac;font-size:13px;cursor:pointer;font-weight:700;}
+.ppopup .pp-x:hover{color:#2c3742;}
+.ppopup .pt{font-size:15.5px;font-weight:800;color:#2c3742;margin-bottom:8px;padding-right:20px;}
+.ppopup .px{font-size:13px;color:#4a5462;line-height:1.75;white-space:pre-wrap;}
+.ppopup .pp-foot{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:10px;}
+.ppopup .ppn{font-size:11.5px;color:#8a94a2;}
+.ppopup [data-popclose].pbtn{cursor:pointer;}
+/* ===== HTML 블록 ===== */
+.phtml{position:relative;}
+.phtml-body iframe,.phtml-body img,.phtml-body video{max-width:100%;}`;
+/* 내보낸 HTML 공용 인터랙션 — 슬라이드 넘김/자동재생 · 팝업 닫기 */
+const EXPORT_INTERACT_JS=`
+document.addEventListener('click',function(e){
+  var pc=e.target.closest('[data-popclose]');
+  if(pc){ var pp=pc.closest('[data-popup]'); if(pp) pp.style.display='none'; return; }
+  var n=e.target.closest('[data-slnav],[data-sldot]'); if(!n) return;
+  slNav(n.closest('.pslider'), n.hasAttribute('data-sldot') ? {dot:+n.getAttribute('data-sldot').split(':')[1]||0} : {dir:+n.getAttribute('data-slnav').split(':')[1]||1});
+});
+function slNav(w,opt){
+  if(!w) return;
+  var slides=w.querySelectorAll('.slide'), dots=w.querySelectorAll('.sdot');
+  if(!slides.length) return;
+  var cur=0; slides.forEach(function(s,i){ if(s.classList.contains('on')) cur=i; });
+  var next = (opt.dot!=null) ? opt.dot : ((cur+opt.dir)%slides.length+slides.length)%slides.length;
+  slides.forEach(function(s,i){ s.classList.toggle('on',i===next); });
+  dots.forEach(function(d,i){ d.classList.toggle('on',i===next); });
+  var c=w.querySelector('.scount'); if(c) c.textContent=(next+1)+' / '+slides.length;
+}
+setInterval(function(){
+  document.querySelectorAll('.pslider[data-auto]').forEach(function(w){
+    if(w.matches(':hover')) return;                     /* 마우스 올린 동안은 정지 */
+    if(w.offsetParent===null) return;                   /* 숨겨진 페이지는 건너뜀 */
+    slNav(w,{dir:1});
+  });
+},5000);`;
 function exportHTML(){
   document.activeElement?.blur();
   const savedCur = state.curPage;
@@ -1530,21 +1850,21 @@ function exportHTML(){
   state.curPage=savedCur;
   const body = panes.join('\n');
   const firstPg = state.pages[0];
-  const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${(state.gnb.items||[]).map(i=>{
-      const pg=findPageByName(i.label);
-      return `<span class="gitem${pg&&pg.id===firstPg.id?' on':''}"${pg?` data-nav="${pg.id}"`:''}>${esc(i.label)}</span>`;
-    }).join('')}</span></div>` : '';
+  const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(firstPg.id,false)}</span></div>` : '';
   const footX = state.footer.on ? `<div class="pfooter"><div class="fmain">${esc(state.footer.text)}</div><div>${esc(state.footer.sub)}</div></div>` : '';
-  const navJs = state.pages.length>1 ? `<script>
+  const pageSwitchJs = state.pages.length>1 ? `
 document.addEventListener('click',function(e){
+  if(e.target.closest('[data-slnav],[data-sldot],[data-popclose]')) return;
   var el=e.target.closest('[data-nav]'); if(!el) return;
   var pid=el.getAttribute('data-nav');
   document.querySelectorAll('.ppage').forEach(function(p){ p.style.display = p.getAttribute('data-page')===pid ? '' : 'none'; });
   document.querySelectorAll('[data-annotpage]').forEach(function(p){ p.style.display = p.getAttribute('data-annotpage')===pid ? '' : 'none'; });
-  document.querySelectorAll('.gnb .gitem').forEach(function(g){ g.classList.toggle('on', g.getAttribute('data-nav')===pid); });
+  document.querySelectorAll('.gnb .gitem, .gnb .gsubi, .gnb .gmi').forEach(function(g){ g.classList.toggle('on', g.getAttribute('data-nav')===pid); });
   window.scrollTo({top:0});
-});
-<\/script>` : '';
+});` : '';
+  const navJs = `<script>${pageSwitchJs}
+${EXPORT_INTERACT_JS}
+<\/script>`;
   const firstH = state.gnb.on&&state.gnb.brand ? state.gnb.brand
     : (()=>{ for(const p of state.pages) for(const r of p.rows) for(const c of r.cols) for(const b of c.blocks) if(b.type==='heading'&&b.text.trim()) return b.text.trim(); return '화면'; })();
   const html=`<!DOCTYPE html>
@@ -1583,18 +1903,17 @@ function exportHTMLSplit(){
   const navJs=`<script>
 var NAV=${JSON.stringify(navMap)};
 document.addEventListener('click',function(e){
+  if(e.target.closest('[data-slnav],[data-sldot],[data-popclose]')) return;
   var el=e.target.closest('[data-nav]'); if(!el) return;
   var f=NAV[el.getAttribute('data-nav')]; if(f) location.href=f;
 });
+${EXPORT_INTERACT_JS}
 <\/script>`;
   files.forEach((f,i)=>{
     const p=f.p;
     state.curPage=p.id;   /* 메뉴바·사이드메뉴 활성 표시가 이 페이지 기준으로 렌더되도록 */
     const rowsX=exportRowsHTML(p.rows)||'<p style="color:#9aa2ac;text-align:center;padding:60px 0;">내용이 없습니다.</p>';
-    const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${(state.gnb.items||[]).map(it=>{
-        const pg=findPageByName(it.label);
-        return `<span class="gitem${pg&&pg.id===p.id?' on':''}"${pg?` data-nav="${pg.id}"`:''}>${esc(it.label)}</span>`;
-      }).join('')}</span></div>` : '';
+    const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(p.id,false)}</span></div>` : '';
     const footX = state.footer.on ? `<div class="pfooter"><div class="fmain">${esc(state.footer.text)}</div><div>${esc(state.footer.sub)}</div></div>` : '';
     const pinX=(p.annots||[]).map((a,ai)=>`<div class="annot-pin" style="left:${a.x}%;top:${a.y}px;">${ai+1}</div>`).join('');
     const noteX=(p.texts||[]).filter(t=>t.text).map(t=>`<div class="txt-note${t.hl?' hl':''}" style="left:${t.x}%;top:${t.y}px;color:${esc(t.color||'#d9534f')};font-size:${t.size||13}px;">${esc(t.text)}</div>`).join('');
@@ -1673,10 +1992,13 @@ function blockSummary(b){
     case 'download':return (b.items||[]).map(it=>it.name).join(' · ');
     case 'checklist':return (b.items||[]).join(' · ');
     case 'comment': return (b.items||[]).length+'건: '+cut((b.items||[]).map(it=>it.text).join(' / '),40);
+    case 'html':    return b.code?('코드 '+String(b.code).length+'자 — '+cut(b.code,50)):'(빈 HTML 블록)';
+    case 'slider':  return `${(b.items||[]).length}장 · ${{dark:'어두운',blue:'파랑',light:'밝은'}[b.tone]||''} · ${b.auto?'자동넘김':'수동'} — ${(b.items||[]).map(it=>it.title).join(' · ')}`;
+    case 'popup':   return `[${b.pos==='corner'?'우하단':'중앙'}] ${cut(b.title,20)} — ${cut(b.text,40)}`;
     default: return '';
   }
 }
-const BLOCK_NAMES={heading:'제목',text:'본문',image:'이미지',buttons:'버튼',divider:'구분선',spacer:'여백',notice:'안내',hero:'배너',cards:'카드목록',table:'표',stat:'요약카드',chart:'그래프',search:'검색창',logos:'로고',news:'뉴스목록',pricing:'요금제',faq:'FAQ',sidemenu:'사이드메뉴',timeline:'타임라인',gallery:'갤러리',profile:'프로필',quote:'후기/인용',form:'입력폼',steps:'진행단계',video:'동영상',tabs:'탭',breadcrumb:'경로',pagination:'페이지네이션',login:'로그인',filebox:'첨부파일',progress:'진행률',calendar:'달력',map:'지도',strip:'띠배너',download:'다운로드',checklist:'체크리스트',comment:'댓글목록'};
+const BLOCK_NAMES={heading:'제목',text:'본문',image:'이미지',buttons:'버튼',divider:'구분선',spacer:'여백',notice:'안내',hero:'배너',cards:'카드목록',table:'표',stat:'요약카드',chart:'그래프',search:'검색창',logos:'로고',news:'뉴스목록',pricing:'요금제',faq:'FAQ',sidemenu:'사이드메뉴',timeline:'타임라인',gallery:'갤러리',profile:'프로필',quote:'후기/인용',form:'입력폼',steps:'진행단계',video:'동영상',tabs:'탭',breadcrumb:'경로',pagination:'페이지네이션',login:'로그인',filebox:'첨부파일',progress:'진행률',calendar:'달력',map:'지도',strip:'띠배너',download:'다운로드',checklist:'체크리스트',comment:'댓글목록',html:'HTML',slider:'슬라이드',popup:'팝업'};
 $('exportSpec').onclick=()=>{
   document.activeElement?.blur();
   const site=state.gnb.brand||'화면';
@@ -1688,13 +2010,13 @@ $('exportSpec').onclick=()=>{
     })));
     const annotRows=(p.annots||[]).map((a,ai)=>`<tr><td class="c">${ai+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('');
     const textRows=(p.texts||[]).filter(t=>t.text).map((t,ti)=>`<tr><td class="c">${ti+1}</td><td style="white-space:pre-wrap;color:${esc(t.color||'#d9534f')};font-weight:600;">${esc(t.text)}</td></tr>`).join('');
-    return `<h2>${pi+1}. ${esc(p.name)}</h2>
+    return `<h2>${pi+1}. ${p.depth?'└ ':''}${esc(p.name)}</h2>
       <p class="mut">${rowsDesc}</p>
       ${blkRows.length?`<table><thead><tr><th style="width:36px">No</th><th style="width:76px">위치</th><th style="width:76px">유형</th><th>내용</th></tr></thead><tbody>${blkRows.join('')}</tbody></table>`:''}
       ${annotRows?`<h3 style="margin-top:14px;">📌 주석 (${p.annots.length}건)</h3><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${annotRows}</tbody></table>`:''}
       ${textRows?`<h3 style="margin-top:14px;">📝 화면 문구 (${(p.texts||[]).filter(t=>t.text).length}건)</h3><table><thead><tr><th style="width:36px">No</th><th>문구</th></tr></thead><tbody>${textRows}</tbody></table>`:''}`;
   }).join('');
-  const gnbDesc = state.gnb.on ? `메뉴바: ${esc(state.gnb.brand)} — ${(state.gnb.items||[]).map(i=>{const pg=findPageByName(i.label);return esc(i.label)+(pg?'(연결)':'');}).join(' · ')}` : '메뉴바 없음';
+  const gnbDesc = state.gnb.on ? `메뉴바: ${esc(state.gnb.brand)} — ${(state.gnb.items||[]).map(i=>{const pg=findPageByName(i.label);let t=esc(i.label)+(pg?'(연결)':'');if(i.children&&i.children.length)t+=' ▾['+i.children.map(c=>esc(c.label)).join('/')+']';return t;}).join(' · ')}` : '메뉴바 없음';
   const footDesc = state.footer.on ? `푸터: ${esc(state.footer.text)}` : '푸터 없음';
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(site)} — 화면정의서</title>
@@ -1714,7 +2036,7 @@ td.c{text-align:center;white-space:nowrap;}
 @media print{ body{padding:12px;} }
 </style></head><body>
 <h1>${esc(site)} — 화면정의서</h1>
-<p class="mut">생성일 ${new Date().toISOString().slice(0,10).replace(/-/g,'.')} · 페이지 ${state.pages.length}개 · 화면 빌더 007</p>
+<p class="mut">생성일 ${new Date().toISOString().slice(0,10).replace(/-/g,'.')} · 페이지 ${state.pages.length}개 · 화면 빌더 010</p>
 <h2>0. 공통 영역</h2>
 <p>${gnbDesc}<br>${footDesc}</p>
 ${pageSecs}
@@ -1740,8 +2062,25 @@ function relayoutRow(r, layout){
 }
 
 /* ---------- 이벤트 위임 ---------- */
+/* 슬라이드 넘김 — DOM만 조작 (미리보기·내보내기 공용 로직) */
+function sliderNavDOM(n){
+  const w=n.closest('.pslider'); if(!w) return;
+  const slides=w.querySelectorAll('.slide'), dots=w.querySelectorAll('.sdot');
+  if(!slides.length) return;
+  let cur=0; slides.forEach((s,i)=>{ if(s.classList.contains('on')) cur=i; });
+  let next;
+  if(n.hasAttribute('data-sldot')) next=+n.getAttribute('data-sldot').split(':')[1]||0;
+  else next=((cur+(+n.getAttribute('data-slnav').split(':')[1]))%slides.length+slides.length)%slides.length;
+  slides.forEach((s,i)=>s.classList.toggle('on',i===next));
+  dots.forEach((d,i)=>d.classList.toggle('on',i===next));
+  const c=w.querySelector('.scount'); if(c) c.textContent=(next+1)+' / '+slides.length;
+}
 $('canvas').addEventListener('click', e => {
   if(!isEdit()){
+    const pc=e.target.closest('[data-popclose]');
+    if(pc){ const pp=pc.closest('[data-popup]'); if(pp) pp.style.display='none'; return; }
+    const sn=e.target.closest('[data-slnav],[data-sldot]');
+    if(sn){ sliderNavDOM(sn); return; }
     const nav = e.target.closest('[data-nav]');
     if(nav) goPage(nav.dataset.nav);
     return;
@@ -1784,8 +2123,11 @@ $('canvas').addEventListener('click', e => {
       : f.block.type==='progress' ? {label:'항목',pct:'50'}
       : f.block.type==='download' ? {name:'파일명.pdf',size:'1.0MB'}
       : f.block.type==='comment' ? {who:'작성자',date:'07.23',text:'댓글 내용'}
+      : f.block.type==='slider' ? {title:'새 슬라이드',desc:'',img:''}
       : {q:'새 질문',a:'답변을 입력하세요.'};
-    f.block.items.push(proto); render(); } return; }
+    f.block.items.push(proto);
+    if(f.block.type==='slider') f.block.cur=f.block.items.length-1;   /* 방금 추가한 슬라이드를 표시 */
+    render(); } return; }
   if(v=rid('bidel')){ const f=findBlock(v); if(f&&f.block.items.length>1){ pushHist(); f.block.items.pop(); render(); } return; }
 
   /* 표 행/열 · 지표 추가/삭제 */
@@ -1799,6 +2141,15 @@ $('canvas').addEventListener('click', e => {
   /* 카드 추가/삭제 */
   if(v=rid('bcardadd')){ const f=findBlock(v); if(f){ pushHist(); f.block.items.push({icon:'⭐',title:'카드 제목',desc:'설명을 입력하세요'}); render(); } return; }
   if(v=rid('bcarddel')){ const f=findBlock(v); if(f&&f.block.items.length>1){ pushHist(); f.block.items.pop(); render(); } return; }
+
+  /* 슬라이드 편집 중 넘김 (상태 기반 — 재렌더 후에도 현재 슬라이드 유지) */
+  if(v=rid('slnav')){ const [bid,d]=v.split(':'); const f=findBlock(bid);
+    if(f){ const n=(f.block.items||[]).length||1; f.block.cur=((((+f.block.cur||0)+(+d))%n)+n)%n; render(); } return; }
+  if(v=rid('sldot')){ const [bid,i]=v.split(':'); const f=findBlock(bid);
+    if(f){ f.block.cur=+i||0; render(); } return; }
+
+  /* HTML 블록 코드 편집 */
+  if(v=rid('bhtmledit')){ openHtmlEditor(v); return; }
 
   /* 블록 도구 */
   if(v=rid('bup')){ const f=findBlock(v); if(f){ pushHist(); moveInArr(f.col.blocks, f.col.blocks.indexOf(f.block), -1); } render(); return; }
@@ -1923,6 +2274,11 @@ $('canvas').addEventListener('change', e => {
   if(bset('bcalm', b=>b.mark=Math.max(0,Math.min(31,+t.value||0)))) return;
   if(bset('bstone', b=>b.tone=t.value)) return;
   if(bset('bsmore', b=>b.more=t.value)) return;
+  if(bset('bsltone', b=>b.tone=t.value)) return;
+  if(bset('bslauto', b=>b.auto=!!t.value)) return;
+  if(bset('bslimg', b=>{ const cur=Math.min(Math.max(0,+b.cur||0),(b.items||[]).length-1); if(b.items[cur]) b.items[cur].img=t.value.trim(); })) return;
+  if(bset('bpoppos', b=>b.pos=t.value)) return;
+  if(bset('bpopbtn', b=>b.btn=t.value||'닫기')) return;
   if(bset('bchk', b=>{ const a=t.value.split(',').map(x=>x.trim()).filter(Boolean); b.items=a.length?a:['항목']; })) return;
   if(t.dataset.baddsel!=null){ const type=t.value; t.value=''; if(!type) return;
     const c=findCol(t.dataset.baddsel);
@@ -1930,7 +2286,7 @@ $('canvas').addEventListener('change', e => {
       const fo=document.querySelector(`[data-btext="${b.id}"]`); if(fo&&fo.isContentEditable) fo.focus(); }
     return; }
   if(t.dataset.gbrand!=null){ pushHist(); state.gnb.brand=t.value.trim()||'사이트명'; render(); return; }
-  if(t.dataset.gitems!=null){ pushHist(); state.gnb.items=t.value.split(',').map(x=>x.trim()).filter(Boolean).map(l=>({label:l})); render(); return; }
+  if(t.dataset.gitems!=null){ pushHist(); state.gnb.items=strToGnbItems(t.value); render(); return; }
   if(t.dataset.gtone!=null){ pushHist(); state.gnb.tone=t.value; render(); return; }
   if(t.dataset.rlayout){ const r=findRow(t.dataset.rlayout); if(r){ pushHist(); relayoutRow(r, t.value); render(); } }
 });
@@ -2073,6 +2429,36 @@ document.addEventListener('mousemove', e=>{
 });
 document.addEventListener('mouseup', ()=>{ if(textDrag) textDrag=null; });
 
+/* ---------- HTML 블록 코드 편집 오버레이 ---------- */
+let htmlEditorEl=null, htmlEditingId=null;
+function closeHtmlEditor(){ if(htmlEditorEl){htmlEditorEl.remove();htmlEditorEl=null;} htmlEditingId=null; }
+function openHtmlEditor(bid){
+  const f=findBlock(bid); if(!f) return;
+  closeHtmlEditor();
+  htmlEditingId=bid;
+  const w=document.createElement('div');
+  w.className='html-editor';
+  w.innerHTML=`<div class="he-box">
+    <div class="he-title">〈/〉 HTML 코드</div>
+    <div class="he-desc">유튜브 iframe · 지도 embed · 임의 HTML을 그대로 붙여넣으세요. 미리보기와 내보낸 HTML에 그대로 렌더링됩니다.</div>
+    <textarea class="he-ta" spellcheck="false" placeholder='예) &lt;iframe width="560" height="315" src="https://www.youtube.com/embed/영상ID" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;'></textarea>
+    <div class="he-hint">⚠ 내보낸 HTML에서는 코드(script 포함)가 그대로 실행됩니다. 신뢰할 수 있는 코드만 붙여넣으세요. 편집 화면에서는 안전을 위해 script가 실행되지 않습니다.</div>
+    <div class="he-btns"><button class="type-btn" data-he="clear" style="color:#c0403a;">비우기</button><span style="flex:1;"></span><button class="type-btn" data-he="close">닫기</button><button class="type-btn accent" data-he="save">적용</button></div>
+  </div>`;
+  w.querySelector('.he-ta').value=f.block.code||'';
+  document.body.appendChild(w);
+  htmlEditorEl=w;
+  w.addEventListener('mousedown',e=>{ if(e.target===w){ closeHtmlEditor(); } });
+  w.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-he]'); if(!btn) return;
+    const f2=findBlock(htmlEditingId);
+    if(btn.dataset.he==='save'){ if(f2){ const nv=w.querySelector('.he-ta').value; if(nv!==f2.block.code){ pushHist(); f2.block.code=nv; } } closeHtmlEditor(); render(); }
+    else if(btn.dataset.he==='clear'){ w.querySelector('.he-ta').value=''; }
+    else closeHtmlEditor();
+  });
+  w.querySelector('.he-ta').focus();
+}
+
 /* ---------- 모드 · 초기화 ---------- */
 $('modeBtn').onclick = () => {
   document.activeElement?.blur(); /* 편집 중 텍스트 확정 */
@@ -2093,7 +2479,8 @@ $('clearAll').onclick = () => {
 /* ---------- 템플릿 ---------- */
 const TPL={};
 TPL.portal=function(){
-  state.gnb={on:true,brand:'사이트명',items:[{label:'홈'},{label:'대시보드'},{label:'소개'},{label:'문의'}],tone:'dark'};
+  /* '회사' 메뉴는 하위 드롭다운(소개/문의) 예시 — 하위 항목명이 페이지명과 같으면 자동 연결 */
+  state.gnb={on:true,brand:'사이트명',items:[{label:'홈'},{label:'대시보드'},{label:'회사',children:[{label:'소개'},{label:'문의'}]}],tone:'dark'};
   state.footer={on:true,text:'© 2026 회사명. All rights reserved.',sub:'문의: help@example.com · 02-000-0000'};
   state.pages=[{id:'PG'+(seq++),name:'홈',rows:[],annots:[]}];
   state.curPage=state.pages[0].id;
@@ -2667,6 +3054,513 @@ TPL.docs=function(){
     PBK('table',{cols:['메서드','경로','설명'],rows:[['GET','/v1/items','목록 조회'],['POST','/v1/items','생성'],['PATCH','/v1/items/:id','수정'],['DELETE','/v1/items/:id','삭제']]}),
   ]);
   state.pages=[p1,p2,p3]; state.curPage=p1.id;
+};
+
+/* ══════════ (2단) 드롭다운 메뉴 예시 15종 — 상위(하위1/하위2) 메뉴 구조 견본 ══════════ */
+/* 공용: 하위 페이지 간단 생성 — 제목 + 블록들 (1열) */
+function P2(name,blocks){ return PPG(name,[PROW('1','',[[PBK('heading',{level:'h1',text:name}),...blocks]])]); }
+
+/* ㉛ 기업 그룹웨어 (2단) */
+TPL.dGroupware=function(){
+  state.gnb={on:true,brand:'그룹웨어',items:[{label:'홈'},{label:'업무',children:[{label:'전자결재'},{label:'근태'}]},{label:'소통',children:[{label:'공지'},{label:'게시판'}]}],tone:'dark'};
+  state.footer={on:true,text:'© 회사명 정보시스템팀',sub:'내선 1234 · helpdesk@example.com'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'오늘도 좋은 하루 되세요 👋',sub:'상단 [업무]·[소통] 메뉴에 마우스를 올리면 하위 메뉴가 펼쳐집니다.',btns:[{label:'전자결재',tone:'white'},{label:'공지',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('cards',{cols:4,items:[{icon:'📝',title:'전자결재',desc:'대기 3건'},{icon:'⏰',title:'근태',desc:'출근 09:02'},{icon:'📢',title:'공지',desc:'새 글 2건'},{icon:'💬',title:'게시판',desc:'오늘 12건'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('전자결재',[PBK('table',{cols:['문서','기안자','상태'],rows:[['출장 신청','김대리','대기'],['비용 정산','이사원','승인'],['휴가 신청','박과장','반려']]})]),
+    P2('근태',[PBK('stat',{items:[{label:'이번 주 근무',value:'32h 10m',sub:'',tone:'blue'},{label:'잔여 연차',value:'8.5일',sub:'',tone:'dark'}]}),PBK('buttons',{items:[{label:'출근',tone:'blue'},{label:'퇴근',tone:'gray'}]})]),
+    P2('공지',[PBK('news',{items:[{date:'07.22',title:'사내 보안 교육 안내'},{date:'07.18',title:'하계 휴가 신청 마감'},{date:'07.10',title:'주차장 공사 안내'}]})]),
+    P2('게시판',[PBK('table',{cols:['번호','제목','작성자'],rows:[['52','점심 같이 드실 분','김사원'],['51','모니터 나눔합니다','박대리'],['50','동호회 모집(등산)','이과장']]})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㉜ 대학교 홈 (2단) */
+TPL.dUniv=function(){
+  state.gnb={on:true,brand:'한국미래대학교',items:[{label:'홈'},{label:'대학안내',children:[{label:'대학소개'},{label:'입학안내'}]},{label:'학사',children:[{label:'학사일정'},{label:'수강신청'}]}],tone:'blue'};
+  state.footer={on:true,text:'© 한국미래대학교',sub:'서울시 ○○구 대학로 1 · 대표전화 02-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h1',text:'미래를 여는 대학',align:'center'}),PBK('search',{ph:'학과·교직원·공지 검색',btn:'검색',big:true})]]),
+    PROW('1,1','',[
+      [PBK('heading',{level:'h3',text:'대학 소식'}),PBK('news',{items:[{date:'07.21',title:'2학기 수강신청 일정 안내'},{date:'07.15',title:'여름 계절학기 성적 공시'},{date:'07.08',title:'도서관 방학 중 운영시간'}]})],
+      [PBK('heading',{level:'h3',text:'바로가기'}),PBK('buttons',{items:[{label:'입학안내',tone:'blue'},{label:'수강신청',tone:'soft'},{label:'학사일정',tone:'soft'}]})],
+    ]),
+  ]);
+  state.pages=[home,
+    P2('대학소개',[PBK('text',{text:'1985년 개교 이래 3만 명의 인재를 배출했습니다.'}),PBK('stat',{items:[{label:'재학생',value:'12,400명',sub:'',tone:'blue'},{label:'전임교원',value:'520명',sub:'',tone:'dark'},{label:'학과',value:'48개',sub:'',tone:'green'}]})]),
+    P2('입학안내',[PBK('steps',{items:['원서접수','서류평가','면접','합격발표']}),PBK('notice',{tone:'info',text:'수시 원서접수: 9월 9일 ~ 9월 13일'})]),
+    P2('학사일정',[PBK('table',{cols:['기간','일정'],rows:[['08.01~08.05','2학기 수강신청'],['09.01','개강'],['10.21~10.25','중간고사']]})]),
+    P2('수강신청',[PBK('notice',{tone:'warn',text:'수강신청은 학년별 지정 시간에만 접속할 수 있습니다.'}),PBK('login',{title:'포털 로그인'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㉝ 쇼핑몰 카테고리 (2단) */
+TPL.dShop=function(){
+  state.gnb={on:true,brand:'데일리샵',items:[{label:'홈'},{label:'상품',children:[{label:'신상품'},{label:'베스트'}]},{label:'고객센터',children:[{label:'자주 묻는 질문'},{label:'문의하기'}]}],tone:'white'};
+  state.footer={on:true,text:'© 데일리샵 · 통신판매업 신고 제2026-서울-0000호',sub:'교환/반품 · 이용약관 · 개인정보처리방침'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('slider',{tone:'blue',auto:true,cur:0,items:[{title:'여름 시즌오프 최대 60%',desc:'인기 상품을 가장 좋은 가격에',img:''},{title:'신규 가입 10% 쿠폰',desc:'가입 즉시 자동 발급',img:''},{title:'무료배송 위크',desc:'전 상품 무료배송',img:''}]})]]),
+    PROW('1','',[[PBK('heading',{level:'h3',text:'오늘의 특가'}),PBK('cards',{cols:4,items:[{icon:'👕',title:'베이직 티셔츠',desc:'9,900원'},{icon:'👟',title:'러닝화',desc:'49,000원'},{icon:'🎒',title:'백팩',desc:'32,000원'},{icon:'🧴',title:'선크림',desc:'12,900원'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('신상품',[PBK('gallery',{cols:4,items:[{img:'',cap:'린넨 셔츠 39,000'},{img:'',cap:'와이드 팬츠 45,000'},{img:'',cap:'샌들 29,000'},{img:'',cap:'캡모자 15,000'}]})]),
+    P2('베스트',[PBK('table',{cols:['순위','상품','판매가'],rows:[['1','베이직 티셔츠','9,900'],['2','러닝화','49,000'],['3','백팩','32,000']]})]),
+    P2('자주 묻는 질문',[PBK('faq',{items:[{q:'배송은 얼마나 걸리나요?',a:'평일 오후 2시 이전 주문 시 당일 출고됩니다.'},{q:'교환/반품 기간은?',a:'수령 후 7일 이내 신청 가능합니다.'}]})]),
+    P2('문의하기',[PBK('form',{fields:['주문번호','이메일','문의 내용'],btn:'문의 접수'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㉞ 관공서 포털 (2단) */
+TPL.dGov=function(){
+  state.gnb={on:true,brand:'시민포털',items:[{label:'홈'},{label:'민원',children:[{label:'민원신청'},{label:'증명발급'}]},{label:'정보공개',children:[{label:'고시공고'},{label:'자료실'}]}],tone:'blue'};
+  state.footer={on:true,text:'© 시민포털. 본 사이트는 웹 접근성 지침을 준수합니다.',sub:'(00000) ○○시 ○○구 시청로 1 · 대표전화 120'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h2',text:'무엇을 도와드릴까요?',align:'center'}),PBK('search',{ph:'민원·고시·자료 통합검색',btn:'검색',big:true})]]),
+    PROW('1','',[[PBK('cards',{cols:4,items:[{icon:'📄',title:'민원신청',desc:'온라인 접수'},{icon:'🖨️',title:'증명발급',desc:'24시간 발급'},{icon:'📢',title:'고시공고',desc:'최근 8건'},{icon:'📁',title:'자료실',desc:'서식 내려받기'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('민원신청',[PBK('steps',{items:['민원 선택','내용 작성','접수 완료']}),PBK('notice',{tone:'info',text:'처리 기간은 민원 종류에 따라 3~14일입니다.'})]),
+    P2('증명발급',[PBK('checklist',{items:['본인 인증 수단 준비','프린터 연결 확인','수수료 결제 수단']}),PBK('buttons',{items:[{label:'발급 시작',tone:'blue'}]})]),
+    P2('고시공고',[PBK('news',{items:[{date:'07.22',title:'도로 점용 허가 고시'},{date:'07.19',title:'도시계획 변경 열람 공고'},{date:'07.11',title:'지방보조금 공모 안내'}]})]),
+    P2('자료실',[PBK('download',{items:[{name:'민원 서식 모음.zip',size:'4.2MB'},{name:'수수료 안내.pdf',size:'380KB'}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㉟ 제조기업 홈 (2단) */
+TPL.dMfg=function(){
+  state.gnb={on:true,brand:'한빛정밀',items:[{label:'홈'},{label:'제품',children:[{label:'산업용 모터'},{label:'제어장비'}]},{label:'회사',children:[{label:'회사소개'},{label:'오시는 길'}]}],tone:'dark'};
+  state.footer={on:true,text:'© 한빛정밀(주) · 사업자 000-00-00000',sub:'경기도 ○○시 산업단지로 77 · TEL 031-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'left',title:'40년 정밀 가공 기술',sub:'산업용 모터 · 제어장비 전문 제조',btns:[{label:'제품 카탈로그',tone:'white'},{label:'견적 문의',tone:'soft'}]})]]),
+    PROW('1','#f6f8fa',[[PBK('logos',{items:['현장A중공업','B산업','C테크','D엔지니어링']})]]),
+  ]);
+  state.pages=[home,
+    P2('산업용 모터',[PBK('table',{cols:['모델','출력','전압'],rows:[['HM-100','1.5kW','220V'],['HM-300','3.7kW','380V'],['HM-750','7.5kW','380V']]}),PBK('buttons',{items:[{label:'사양서 다운로드',tone:'soft'}]})]),
+    P2('제어장비',[PBK('cards',{cols:3,items:[{icon:'🎛️',title:'인버터',desc:'0.4~55kW'},{icon:'🖥️',title:'PLC 패널',desc:'맞춤 제작'},{icon:'📡',title:'원격 모니터링',desc:'IoT 옵션'}]})]),
+    P2('회사소개',[PBK('timeline',{items:[{date:'1986',title:'창업',desc:''},{date:'2005',title:'기술연구소 설립',desc:''},{date:'2021',title:'스마트공장 구축',desc:''}]})]),
+    P2('오시는 길',[PBK('map',{text:'경기도 ○○시 산업단지로 77 · ○○IC에서 5분'}),PBK('notice',{tone:'gray',text:'방문 전 영업팀(031-000-0000)으로 연락 주세요.'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊱ IT 서비스 (2단) */
+TPL.dSaaS=function(){
+  state.gnb={on:true,brand:'워크플로',items:[{label:'홈'},{label:'제품',children:[{label:'기능'},{label:'요금'}]},{label:'지원',children:[{label:'문서'},{label:'문의'}]}],tone:'white'};
+  state.footer={on:true,text:'© Workflo Inc.',sub:'이용약관 · 개인정보처리방침 · status.workflo.io'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'blue',align:'center',title:'팀의 일하는 방식을 바꿉니다',sub:'프로젝트 · 문서 · 자동화를 하나로',btns:[{label:'무료로 시작',tone:'white'},{label:'요금',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('stat',{items:[{label:'도입 팀',value:'8,200+',sub:'',tone:'blue'},{label:'가동률',value:'99.98%',sub:'최근 12개월',tone:'green'},{label:'평점',value:'4.8/5',sub:'리뷰 1,240건',tone:'dark'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('기능',[PBK('cards',{cols:3,items:[{icon:'📋',title:'칸반 보드',desc:'드래그로 업무 관리'},{icon:'📄',title:'실시간 문서',desc:'동시 편집'},{icon:'🤖',title:'자동화',desc:'반복 업무 자동 처리'}]})]),
+    P2('요금',[PBK('pricing',{hot:2,items:[{name:'Free',price:'무료',feats:'5인까지\n기본 기능',btn:'시작'},{name:'Pro',price:'₩12,000/월',feats:'무제한 인원\n자동화 포함',btn:'구독'},{name:'Enterprise',price:'문의',feats:'SSO · 감사 로그\n전담 지원',btn:'상담'}]})]),
+    P2('문서',[PBK('sidemenu',{title:'문서',items:[{label:'문서'},{label:'문의'}]}),PBK('faq',{items:[{q:'설치가 필요한가요?',a:'웹 기반이라 설치 없이 바로 사용합니다.'},{q:'데이터 이전이 되나요?',a:'CSV·타 서비스 가져오기를 지원합니다.'}]})]),
+    P2('문의',[PBK('form',{fields:['회사명','이메일','문의 내용'],btn:'문의 보내기'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊲ 병원 홈 (2단) */
+TPL.dHosp=function(){
+  state.gnb={on:true,brand:'미소내과',items:[{label:'홈'},{label:'진료',children:[{label:'진료안내'},{label:'의료진'}]},{label:'이용안내',children:[{label:'예약'},{label:'오시는 길'}]}],tone:'white'};
+  state.footer={on:true,text:'미소내과의원 · 대표 김원장',sub:'서울시 ○○구 ○○로 45, 2층 · TEL 02-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h1',text:'미소내과',align:'center'}),PBK('text',{text:'꼼꼼한 진료, 친절한 설명을 약속합니다.',align:'center',color:'#2f649c'}),PBK('buttons',{align:'center',items:[{label:'예약',tone:'blue'},{label:'진료안내',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('strip',{tone:'warn',text:'8/15(토) 광복절 휴진 안내',more:'자세히 ›'})]]),
+  ]);
+  state.pages=[home,
+    P2('진료안내',[PBK('table',{cols:['요일','시간'],rows:[['평일','09:00~18:30'],['토요일','09:00~13:00'],['점심','13:00~14:00']]}),PBK('checklist',{items:['내시경 검사','건강검진','독감 예방접종']})]),
+    P2('의료진',[PBK('profile',{cols:2,items:[{emoji:'👨‍⚕️',name:'김원장',role:'내과 전문의',desc:'○○대병원 출신'},{emoji:'👩‍⚕️',name:'이원장',role:'내과 전문의',desc:'소화기내과 세부전문의'}]})]),
+    P2('예약',[PBK('form',{fields:['이름','연락처','희망 날짜','증상/문의 내용'],btn:'예약 신청'}),PBK('notice',{tone:'info',text:'전화 예약: 02-000-0000 (평일 09~18시)'})]),
+    P2('오시는 길',[PBK('map',{text:'지하철 3호선 ○○역 2번 출구 도보 3분 · 건물 주차 30분 무료'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊳ 금융 포털 (2단) */
+TPL.dBank=function(){
+  state.gnb={on:true,brand:'미래은행',items:[{label:'홈'},{label:'금융상품',children:[{label:'예금'},{label:'대출'}]},{label:'고객센터',children:[{label:'자주 묻는 질문'},{label:'상담 신청'}]}],tone:'dark'};
+  state.footer={on:true,text:'© 미래은행. 예금자보호법에 따라 1인당 5천만원까지 보호됩니다.',sub:'준법감시인 심의필 제2026-000호 · 고객센터 1588-0000'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h2',text:'금융, 더 쉽게'}),PBK('search',{ph:'상품·서비스 검색',btn:'검색',big:true})]]),
+    PROW('1','',[[PBK('cards',{cols:4,items:[{icon:'💰',title:'정기예금',desc:'연 3.6%'},{icon:'🏠',title:'주택대출',desc:'최저 3.1%'},{icon:'💳',title:'체크카드',desc:'캐시백 2%'},{icon:'📈',title:'펀드',desc:'포트폴리오 진단'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('예금',[PBK('table',{cols:['상품','기간','금리'],rows:[['미래 정기예금','12개월','연 3.6%'],['자유적금','6~36개월','연 3.2%'],['파킹통장','수시','연 2.5%']]}),PBK('notice',{tone:'gray',text:'금리는 2026.07 기준이며 변동될 수 있습니다.'})]),
+    P2('대출',[PBK('steps',{items:['한도 조회','서류 제출','심사','실행']}),PBK('notice',{tone:'danger',text:'과도한 빚은 큰 불행을 가져올 수 있습니다.'})]),
+    P2('자주 묻는 질문',[PBK('faq',{items:[{q:'비대면 계좌 개설이 되나요?',a:'앱에서 신분증 촬영으로 개설할 수 있습니다.'},{q:'이체 한도를 올리고 싶어요.',a:'영업점 방문 또는 앱 보안등급 상향으로 가능합니다.'}]})]),
+    P2('상담 신청',[PBK('form',{fields:['이름','연락처','상담 분야','문의 내용'],btn:'상담 신청'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊴ 교육 플랫폼 (2단) */
+TPL.dEdu=function(){
+  state.gnb={on:true,brand:'배움터+',items:[{label:'홈'},{label:'강의',children:[{label:'개발 강의'},{label:'디자인 강의'}]},{label:'내 학습',children:[{label:'내 강의실'},{label:'수료증'}]}],tone:'white'};
+  state.footer={on:true,text:'© 배움터+ · 평생교육시설 신고 제2026-00호',sub:'환불규정 · 강사 지원'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'light',align:'center',title:'실무에서 바로 쓰는 강의',sub:'상단 [강의] 메뉴에서 분야별 강의를 찾아보세요',btns:[{label:'개발 강의',tone:'blue'},{label:'디자인 강의',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('stat',{items:[{label:'누적 수강생',value:'42만 명',sub:'',tone:'blue'},{label:'강의 수',value:'2,800개',sub:'',tone:'dark'},{label:'평균 만족도',value:'4.8',sub:'',tone:'green'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('개발 강의',[PBK('cards',{cols:3,items:[{icon:'⚛️',title:'리액트 마스터',desc:'₩88,000 · ★4.9'},{icon:'🐍',title:'파이썬 자동화',desc:'₩66,000 · ★4.8'},{icon:'☁️',title:'클라우드 입문',desc:'₩77,000 · ★4.7'}]})]),
+    P2('디자인 강의',[PBK('cards',{cols:3,items:[{icon:'🎨',title:'피그마 실무',desc:'₩55,000 · ★4.9'},{icon:'🖌️',title:'브랜딩 기초',desc:'₩49,000 · ★4.6'},{icon:'📐',title:'UX 리서치',desc:'₩72,000 · ★4.8'}]})]),
+    P2('내 강의실',[PBK('progress',{items:[{label:'리액트 마스터',pct:'72'},{label:'피그마 실무',pct:'35'}]}),PBK('buttons',{items:[{label:'이어서 학습',tone:'blue'}]})]),
+    P2('수료증',[PBK('download',{items:[{name:'리액트 마스터 수료증.pdf',size:'220KB'}]}),PBK('notice',{tone:'info',text:'진도율 80% 이상 강의만 발급됩니다.'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊵ 뉴스 포털 (2단) */
+TPL.dNews=function(){
+  state.gnb={on:true,brand:'투데이뉴스',items:[{label:'홈'},{label:'뉴스',children:[{label:'경제'},{label:'사회'}]},{label:'참여',children:[{label:'뉴스레터 구독'},{label:'제보하기'}]}],tone:'white'};
+  state.footer={on:true,text:'© 투데이뉴스 · 무단 전재 및 재배포 금지',sub:'등록번호 서울 아00000 · 청소년보호책임자'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('heading',{level:'h1',text:'전력수급 비상… 올여름 최대 고비'}),PBK('text',{text:'연일 이어지는 폭염으로 전력 수요가 사상 최대치를 경신했다.',size:'15',color:'#8a94a2'}),PBK('divider',{})]]),
+    PROW('7,3','',[
+      [PBK('news',{items:[{date:'15:10',title:'[경제] 코스피 사상 최고치 경신'},{date:'14:22',title:'[사회] 폭염 특보, 야외작업 중단 권고'},{date:'12:05',title:'[경제] 하반기 부동산 전망'},{date:'10:40',title:'[사회] 새 학기 등교 시간 조정 논의'}]})],
+      [PBK('heading',{level:'h3',text:'많이 본 뉴스'}),PBK('news',{items:[{date:'1',title:'코스피 최고치'},{date:'2',title:'폭염 특보'},{date:'3',title:'환율 동향'}]})],
+    ]),
+  ]);
+  state.pages=[home,
+    P2('경제',[PBK('news',{items:[{date:'07.23',title:'코스피 사상 최고치 경신'},{date:'07.23',title:'환율, 두 달 만에 최저'},{date:'07.22',title:'반도체 수출 30% 증가'}]})]),
+    P2('사회',[PBK('news',{items:[{date:'07.23',title:'폭염 특보 전국 확대'},{date:'07.22',title:'여름 휴가철 교통 대책 발표'},{date:'07.21',title:'전기요금 지원 대상 확대'}]})]),
+    P2('뉴스레터 구독',[PBK('text',{text:'매일 아침 7시, 주요 뉴스 5개를 이메일로 보내드립니다.'}),PBK('form',{fields:['이메일'],btn:'무료 구독'})]),
+    P2('제보하기',[PBK('form',{fields:['이름(선택)','연락처(선택)','제보 내용'],btn:'제보 보내기'}),PBK('notice',{tone:'gray',text:'제보자 정보는 취재 목적 외에 사용되지 않습니다.'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊶ 호텔 리조트 (2단) */
+TPL.dHotel=function(){
+  state.gnb={on:true,brand:'SOLBIT 리조트',items:[{label:'홈'},{label:'시설',children:[{label:'객실'},{label:'다이닝'}]},{label:'예약',children:[{label:'예약 안내'},{label:'오시는 길'}]}],tone:'white'};
+  state.footer={on:true,text:'© SOLBIT Resort',sub:'강원도 ○○군 해안로 1 · 예약센터 033-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('slider',{tone:'blue',auto:true,cur:0,items:[{title:'바다를 마주한 하루',desc:'전 객실 오션뷰 · 인피니티 풀',img:''},{title:'서머 패키지 오픈',desc:'조식 2인 + 레이트 체크아웃',img:''},{title:'다이닝 위크',desc:'셰프 코스 20% 할인',img:''}]})]]),
+    PROW('1','#eef4fb',[[PBK('search',{ph:'체크인 날짜 · 인원 선택',btn:'객실 검색',big:true})]]),
+  ]);
+  state.pages=[home,
+    P2('객실',[PBK('cards',{cols:3,items:[{icon:'🌊',title:'디럭스 오션',desc:'2인 · 220,000원~'},{icon:'🛁',title:'스위트 스파',desc:'2인 · 380,000원~'},{icon:'👨‍👩‍👧',title:'패밀리',desc:'4인 · 320,000원~'}]})]),
+    P2('다이닝',[PBK('gallery',{cols:3,items:[{img:'',cap:'뷔페 레스토랑'},{img:'',cap:'루프탑 바'},{img:'',cap:'씨푸드 그릴'}]})]),
+    P2('예약 안내',[PBK('steps',{items:['객실 선택','정보 입력','결제','확정']}),PBK('notice',{tone:'info',text:'체크인 15:00 · 체크아웃 11:00'})]),
+    P2('오시는 길',[PBK('map',{text:'강원도 ○○군 해안로 1 · ○○IC에서 15분 · 셔틀 운행'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊷ 채용 사이트 (2단) */
+TPL.dRecruit=function(){
+  state.gnb={on:true,brand:'그로우랩 채용',items:[{label:'홈'},{label:'채용',children:[{label:'채용 공고'},{label:'채용 절차'}]},{label:'회사',children:[{label:'팀 문화'},{label:'복지'}]}],tone:'dark'};
+  state.footer={on:true,text:'© Growlab Inc. · recruit@growlab.kr',sub:''};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'같이 성장할 동료를 찾습니다',sub:'상단 [채용] 메뉴에서 공고와 절차를 확인하세요',btns:[{label:'채용 공고',tone:'orange'}]})]]),
+    PROW('1','',[[PBK('quote',{text:'입사 첫 주부터 실제 프로덕트에 기여했어요. 성장 속도가 다릅니다.',who:'— 프론트엔드 엔지니어, 입사 1년차'})]]),
+  ]);
+  state.pages=[home,
+    P2('채용 공고',[PBK('table',{cols:['직무','경력','마감'],rows:[['백엔드 개발자','3년+','상시'],['프로덕트 디자이너','2년+','08.15'],['데이터 분석가','신입/경력','상시']]})]),
+    P2('채용 절차',[PBK('steps',{items:['서류','과제','인터뷰','처우 협의','입사']}),PBK('faq',{items:[{q:'전형 기간은 얼마나 걸리나요?',a:'단계별 7일 이내 안내드립니다.'}]})]),
+    P2('팀 문화',[PBK('cards',{cols:3,items:[{icon:'🤝',title:'수평 문화',desc:'직급 없는 호칭'},{icon:'📢',title:'투명 공유',desc:'전사 지표 공개'},{icon:'🚀',title:'빠른 실행',desc:'2주 스프린트'}]})]),
+    P2('복지',[PBK('checklist',{items:['주 2회 재택','교육비 연 200만','점심 전액 지원','최고 사양 장비']})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊸ 커뮤니티 (2단) */
+TPL.dComm=function(){
+  state.gnb={on:true,brand:'우리동네',items:[{label:'홈'},{label:'게시판',children:[{label:'자유게시판'},{label:'질문답변'}]},{label:'이용안내',children:[{label:'이용규칙'},{label:'문의하기'}]}],tone:'blue'};
+  state.footer={on:true,text:'© 우리동네 커뮤니티',sub:'신고센터 · 운영정책'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('search',{ph:'게시글 검색',btn:'검색',big:false})]]),
+    PROW('1,1','',[
+      [PBK('heading',{level:'h3',text:'자유게시판 최신 글'}),PBK('news',{items:[{date:'14:20',title:'맛집 발견했어요 (사진)'},{date:'13:02',title:'주말 플리마켓 후기'},{date:'11:47',title:'강아지 산책 모임 하실 분'}]})],
+      [PBK('heading',{level:'h3',text:'질문답변 최신 글'}),PBK('news',{items:[{date:'15:01',title:'에어컨 설치 업체 추천 부탁'},{date:'12:30',title:'주차 등록 어떻게 하나요?'},{date:'10:15',title:'분리수거 요일이 언제죠?'}]})],
+    ]),
+  ]);
+  state.pages=[home,
+    P2('자유게시판',[PBK('table',{cols:['번호','제목','작성자','조회'],rows:[['512','맛집 발견했어요 (사진)','먹보','1,204'],['511','주말 플리마켓 후기','마켓러','812'],['510','강아지 산책 모임','댕댕맘','645']]}),PBK('pagination',{pages:5,on:1})]),
+    P2('질문답변',[PBK('table',{cols:['번호','제목','상태'],rows:[['88','에어컨 설치 업체 추천','답변완료'],['87','주차 등록 방법','답변대기'],['86','분리수거 요일','답변완료']]})]),
+    P2('이용규칙',[PBK('checklist',{items:['서로 존중하는 말투','광고성 게시글 금지','개인정보 노출 주의']}),PBK('notice',{tone:'warn',text:'규칙 위반 시 게시글이 숨김 처리될 수 있습니다.'})]),
+    P2('문의하기',[PBK('form',{fields:['닉네임','이메일','문의 내용'],btn:'문의 접수'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊹ 문서센터 (2단) */
+TPL.dDocs=function(){
+  state.gnb={on:true,brand:'제품 문서',items:[{label:'홈'},{label:'문서',children:[{label:'시작하기'},{label:'API 레퍼런스'}]},{label:'지원',children:[{label:'자주 묻는 질문'},{label:'지원 문의'}]}],tone:'white'};
+  state.footer={on:true,text:'© 제품 문서 v3.0',sub:'수정 제안: docs@example.com'};
+  const home=PPG('홈',[
+    PROW('1','#f6f8fa',[[PBK('heading',{level:'h1',text:'무엇이든 찾아보세요',align:'center'}),PBK('search',{ph:'문서 검색 (예: 설치, 인증, webhook)',btn:'검색',big:true})]]),
+    PROW('1','',[[PBK('cards',{cols:3,items:[{icon:'🚀',title:'시작하기',desc:'5분 만에 첫 연동'},{icon:'📖',title:'API 레퍼런스',desc:'전체 엔드포인트'},{icon:'💬',title:'지원 문의',desc:'영업일 1일 내 답변'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('시작하기',[PBK('steps',{items:['설치','API 키 발급','첫 호출']}),PBK('notice',{tone:'info',text:'Node.js 18 이상이 필요합니다.'})]),
+    P2('API 레퍼런스',[PBK('table',{cols:['메서드','경로','설명'],rows:[['GET','/v1/items','목록 조회'],['POST','/v1/items','생성'],['DELETE','/v1/items/:id','삭제']]})]),
+    P2('자주 묻는 질문',[PBK('faq',{items:[{q:'요청 한도가 있나요?',a:'기본 분당 600회이며, 플랜에 따라 상향됩니다.'},{q:'샌드박스 환경이 있나요?',a:'테스트 키로 무료 샌드박스를 사용할 수 있습니다.'}]})]),
+    P2('지원 문의',[PBK('form',{fields:['이메일','제품 버전','문의 내용'],btn:'문의 보내기'})]),
+  ];
+  state.curPage=home.id;
+};
+/* ㊺ 행사/컨퍼런스 (2단) */
+TPL.dConf=function(){
+  state.gnb={on:true,brand:'DESIGN WEEK 2026',items:[{label:'홈'},{label:'행사',children:[{label:'프로그램'},{label:'연사'}]},{label:'참가',children:[{label:'등록 안내'},{label:'오시는 길'}]}],tone:'dark'};
+  state.footer={on:true,text:'© DESIGN WEEK 조직위원회',sub:'후원 문의 sponsor@designweek.kr'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'DESIGN WEEK 2026',sub:'10월 8일(목)~9일(금) · 코엑스 · 오프라인 1,500석',btns:[{label:'등록 안내',tone:'orange'},{label:'프로그램',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('strip',{tone:'info',text:'얼리버드 등록 8/31까지 — 정가 대비 30% 할인',more:'등록하기 ›'})]]),
+  ]);
+  state.pages=[home,
+    P2('프로그램',[PBK('timeline',{items:[{date:'10:00',title:'키노트 — AI와 디자인',desc:''},{date:'11:30',title:'트랙 A · 디자인 시스템',desc:''},{date:'14:00',title:'트랙 B · 브랜드 경험',desc:''},{date:'16:30',title:'네트워킹',desc:''}]})]),
+    P2('연사',[PBK('profile',{cols:4,items:[{emoji:'👩‍🎨',name:'김디자인',role:'○○ CDO',desc:''},{emoji:'👨‍💻',name:'이프로덕트',role:'△△ 리드',desc:''},{emoji:'🧑‍🏫',name:'박교수',role:'□□대 교수',desc:''},{emoji:'👩‍💼',name:'최브랜드',role:'◇◇ 디렉터',desc:''}]})]),
+    P2('등록 안내',[PBK('pricing',{hot:1,items:[{name:'얼리버드',price:'₩89,000',feats:'8/31까지\n전 세션 입장',btn:'등록'},{name:'일반',price:'₩129,000',feats:'전 세션 입장',btn:'등록'},{name:'단체(5+)',price:'문의',feats:'단체 할인\n세금계산서',btn:'문의'}]})]),
+    P2('오시는 길',[PBK('map',{text:'서울 강남구 영동대로 513 코엑스 · 지하철 9호선 봉은사역 직결'})]),
+  ];
+  state.curPage=home.id;
+};
+
+/* ══════════ (2단_좌우) 좌우 풀폭 메가 메뉴 예시 15종 — 상위[하위:설명/…] 구조 견본 ══════════ */
+/* 46 포스 솔루션 기업 (2단_좌우) */
+TPL.mPos=function(){
+  state.gnb={on:true,brand:'LINKA',items:[{label:'홈'},{label:'제품·솔루션',mega:true,children:[{label:'링크포스',desc:'올인원 POS 소프트웨어'},{label:'키오스크',desc:'셀프 주문·결제'},{label:'주방 디스플레이',desc:'KDS'},{label:'포스 하드웨어',desc:'단말기·주변기기'}]},{label:'도입 문의'}],tone:'white'};
+  state.footer={on:true,text:'© LINKA Inc.',sub:'도입 상담 1600-0000 · sales@linka.io'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'매장 운영의 모든 것, 링카',sub:'상단 [제품·솔루션]에 마우스를 올리면 좌우 풀폭 메뉴가 펼쳐집니다',btns:[{label:'도입 문의',tone:'blue'}]})]]),
+    PROW('1','',[[PBK('stat',{items:[{label:'도입 매장',value:'38,000+',sub:'',tone:'blue'},{label:'일 결제 처리',value:'420만 건',sub:'',tone:'dark'},{label:'가동률',value:'99.99%',sub:'',tone:'green'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('링크포스',[PBK('cards',{cols:3,items:[{icon:'🧾',title:'주문·결제',desc:'카드/간편결제 통합'},{icon:'📊',title:'매출 분석',desc:'실시간 대시보드'},{icon:'👥',title:'고객 관리',desc:'적립·쿠폰'}]})]),
+    P2('키오스크',[PBK('text',{text:'셀프 주문·결제 키오스크로 피크타임 대기 시간을 절반으로 줄이세요.'}),PBK('buttons',{items:[{label:'견적 문의',tone:'blue'}]})]),
+    P2('주방 디스플레이',[PBK('checklist',{items:['주문 자동 전달','조리 시간 측정','품절 실시간 반영']})]),
+    P2('포스 하드웨어',[PBK('table',{cols:['제품','구성','가격'],rows:[['POS 단말기','15" 터치','문의'],['카드 결제기','IC/MSR/NFC','문의'],['영수증 프린터','80mm 열전사','문의']]})]),
+    P2('도입 문의',[PBK('form',{fields:['매장명','연락처','문의 내용'],btn:'상담 신청'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 47 IT 그룹사 홈 (2단_좌우) */
+TPL.mItGroup=function(){
+  state.gnb={on:true,brand:'NX그룹',items:[{label:'홈'},{label:'사업영역',mega:true,children:[{label:'클라우드',desc:'IaaS·PaaS 인프라'},{label:'게임',desc:'퍼블리싱·개발'},{label:'커머스',desc:'결제·쇼핑 플랫폼'},{label:'콘텐츠',desc:'웹툰·음악'}]},{label:'회사소개'}],tone:'dark'};
+  state.footer={on:true,text:'© NX Group',sub:'IR · 윤리경영 · 채용'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'left',title:'기술로 연결하는 내일',sub:'클라우드 · 게임 · 커머스 · 콘텐츠',btns:[{label:'사업영역 보기',tone:'white'}]})]]),
+    PROW('1','#f6f8fa',[[PBK('logos',{items:['NX클라우드','NX게임즈','NX페이','NX콘텐츠']})]]),
+  ]);
+  state.pages=[home,
+    P2('클라우드',[PBK('stat',{items:[{label:'리전',value:'12개',sub:'글로벌',tone:'blue'},{label:'고객사',value:'5,400+',sub:'',tone:'dark'}]})]),
+    P2('게임',[PBK('gallery',{cols:3,items:[{img:'',cap:'프로젝트 A (RPG)'},{img:'',cap:'프로젝트 B (캐주얼)'},{img:'',cap:'프로젝트 C (스포츠)'}]})]),
+    P2('커머스',[PBK('text',{text:'월 거래액 3조 원 규모의 결제·쇼핑 플랫폼을 운영합니다.'})]),
+    P2('콘텐츠',[PBK('cards',{cols:2,items:[{icon:'📚',title:'웹툰',desc:'주간 이용자 800만'},{icon:'🎵',title:'음악',desc:'스트리밍 1위 앱'}]})]),
+    P2('회사소개',[PBK('timeline',{items:[{date:'2001',title:'그룹 창립',desc:''},{date:'2015',title:'클라우드 사업 진출',desc:''},{date:'2024',title:'글로벌 매출 1조 달성',desc:''}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 48 전자제품 브랜드 (2단_좌우) */
+TPL.mElec=function(){
+  state.gnb={on:true,brand:'하늘전자',items:[{label:'홈'},{label:'제품',mega:true,children:[{label:'TV',desc:'OLED · QLED'},{label:'냉장고',desc:'비스포크 라인'},{label:'세탁기',desc:'AI 맞춤 세탁'},{label:'에어컨',desc:'무풍 시스템'}]},{label:'고객지원'}],tone:'white'};
+  state.footer={on:true,text:'© 하늘전자',sub:'고객센터 1588-0000 · 서비스센터 찾기'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('slider',{tone:'dark',auto:true,cur:0,items:[{title:'여름맞이 에어컨 특별전',desc:'최대 40만원 캐시백',img:''},{title:'신형 OLED TV 출시',desc:'예약 구매 사은품 증정',img:''},{title:'비스포크 위크',desc:'냉장고 + 세탁기 결합 할인',img:''}]})]]),
+  ]);
+  state.pages=[home,
+    P2('TV',[PBK('cards',{cols:3,items:[{icon:'📺',title:'OLED 65"',desc:'2,890,000원'},{icon:'📺',title:'QLED 75"',desc:'3,490,000원'},{icon:'📺',title:'라이프스타일 TV',desc:'1,590,000원'}]})]),
+    P2('냉장고',[PBK('gallery',{cols:3,items:[{img:'',cap:'4도어 870L'},{img:'',cap:'김치냉장고 490L'},{img:'',cap:'와인셀러 42병'}]})]),
+    P2('세탁기',[PBK('text',{text:'AI가 옷감을 인식해 세탁 코스를 자동으로 맞춥니다.'})]),
+    P2('에어컨',[PBK('table',{cols:['모델','평형','가격'],rows:[['무풍 갤러리','18평','1,790,000'],['무풍 슬림','13평','1,190,000'],['벽걸이','6평','590,000']]})]),
+    P2('고객지원',[PBK('cards',{cols:3,items:[{icon:'🔧',title:'출장 수리',desc:'온라인 접수'},{icon:'📖',title:'사용 설명서',desc:'모델별 다운로드'},{icon:'💬',title:'채팅 상담',desc:'평일 09~18시'}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 49 백화점/유통 (2단_좌우) */
+TPL.mRetail=function(){
+  state.gnb={on:true,brand:'더현대몰',items:[{label:'홈'},{label:'쇼핑',mega:true,children:[{label:'패션',desc:'여성·남성·키즈'},{label:'뷰티',desc:'스킨케어·메이크업'},{label:'리빙',desc:'가구·주방·침구'},{label:'식품관',desc:'신선·베이커리'}]},{label:'매장 안내'}],tone:'white'};
+  state.footer={on:true,text:'© 더현대몰 · 통신판매업 제2026-서울-0000호',sub:'고객센터 1588-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('strip',{tone:'red',text:'여름 정기 세일 — 7/25(토)까지 최대 70%',more:'세일 매장 보기 ›'})]]),
+    PROW('1','',[[PBK('heading',{level:'h3',text:'지금 인기'}),PBK('cards',{cols:4,items:[{icon:'👗',title:'린넨 원피스',desc:'89,000원'},{icon:'💄',title:'선쿠션',desc:'32,000원'},{icon:'🛋️',title:'패브릭 소파',desc:'690,000원'},{icon:'🥐',title:'베이커리 세트',desc:'18,000원'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('패션',[PBK('tabs',{items:['여성','남성','키즈'],on:1}),PBK('gallery',{cols:4,items:[{img:'',cap:'린넨 셔츠'},{img:'',cap:'와이드 슬랙스'},{img:'',cap:'샌들'},{img:'',cap:'라탄 백'}]})]),
+    P2('뷰티',[PBK('cards',{cols:3,items:[{icon:'🧴',title:'수분 세럼',desc:'42,000원'},{icon:'💄',title:'립 틴트',desc:'19,000원'},{icon:'🌸',title:'퍼퓸 50ml',desc:'128,000원'}]})]),
+    P2('리빙',[PBK('gallery',{cols:3,items:[{img:'',cap:'원목 식탁'},{img:'',cap:'구스 이불'},{img:'',cap:'무쇠 냄비'}]})]),
+    P2('식품관',[PBK('news',{items:[{date:'매일',title:'오전 10시 베이커리 갓 구운 빵'},{date:'주말',title:'산지직송 과일 특가전'},{date:'상시',title:'저녁 7시 신선식품 타임세일'}]})]),
+    P2('매장 안내',[PBK('table',{cols:['층','매장'],rows:[['B1','식품관·푸드코트'],['1F','뷰티·잡화'],['2~4F','패션'],['5F','리빙']]}),PBK('map',{text:'지하철 2호선 ○○역 4번 출구 직결'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 50 보험사 (2단_좌우) */
+TPL.mInsu=function(){
+  state.gnb={on:true,brand:'든든생명',items:[{label:'홈'},{label:'보험상품',mega:true,children:[{label:'암보험',desc:'진단비 최대 1억'},{label:'실손의료비',desc:'4세대 실손'},{label:'어린이보험',desc:'태아 가입 가능'},{label:'연금보험',desc:'노후 준비'}]},{label:'보험금 청구'}],tone:'blue'};
+  state.footer={on:true,text:'© 든든생명보험 · 준법감시인 심의필 제2026-000호',sub:'상담 1588-0000 · 보험은 계약 전 상품설명서를 확인하세요'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h2',text:'나에게 맞는 보장 찾기',align:'center'}),PBK('search',{ph:'상품명·보장 내용 검색',btn:'검색',big:true})]]),
+    PROW('1','',[[PBK('steps',{items:['보장 진단','상품 추천','상담 신청']})]]),
+  ]);
+  state.pages=[home,
+    P2('암보험',[PBK('notice',{tone:'info',text:'유사암 포함 여부, 갱신형/비갱신형을 꼭 비교하세요.'}),PBK('buttons',{items:[{label:'보험료 계산',tone:'blue'}]})]),
+    P2('실손의료비',[PBK('faq',{items:[{q:'기존 실손에서 갈아탈 수 있나요?',a:'전환 제도를 통해 심사 후 가능합니다.'},{q:'통원 한도는 얼마인가요?',a:'급여·비급여 구분에 따라 다릅니다.'}]})]),
+    P2('어린이보험',[PBK('checklist',{items:['태아 시기 가입','성인 전환 특약','수술·입원 보장']})]),
+    P2('연금보험',[PBK('table',{cols:['구분','내용'],rows:[['납입','10~20년'],['개시','만 55세부터'],['세제','연 최대 세액공제']]})]),
+    P2('보험금 청구',[PBK('steps',{items:['서류 준비','온라인 접수','심사','지급']}),PBK('filebox',{text:'진단서·영수증 사진 첨부 (JPG/PDF)'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 51 통신사 (2단_좌우) */
+TPL.mTelco=function(){
+  state.gnb={on:true,brand:'U모바일',items:[{label:'홈'},{label:'상품',mega:true,children:[{label:'모바일 요금제',desc:'5G·LTE'},{label:'인터넷',desc:'기가 인터넷'},{label:'IPTV',desc:'채널 260개'},{label:'결합 할인',desc:'가족·유무선'}]},{label:'고객센터'}],tone:'dark'};
+  state.footer={on:true,text:'© U모바일',sub:'고객센터 114 · 대리점 찾기'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'blue',align:'center',title:'요금은 가볍게, 속도는 빠르게',sub:'5G 데이터 무제한 월 49,000원',btns:[{label:'요금제 보기',tone:'white'}]})]]),
+    PROW('1','',[[PBK('strip',{tone:'info',text:'번호이동 고객 최대 30만원 상당 혜택',more:'자세히 ›'})]]),
+  ]);
+  state.pages=[home,
+    P2('모바일 요금제',[PBK('pricing',{hot:2,items:[{name:'라이트',price:'₩33,000',feats:'데이터 8GB\n통화 무제한',btn:'가입'},{name:'스탠다드',price:'₩49,000',feats:'데이터 무제한\n테더링 40GB',btn:'가입'},{name:'프리미엄',price:'₩69,000',feats:'데이터 무제한\nOTT 1종 포함',btn:'가입'}]})]),
+    P2('인터넷',[PBK('table',{cols:['상품','속도','월 요금'],rows:[['기가 라이트','500M','30,000'],['기가','1G','35,000'],['기가 프로','2.5G','45,000']]})]),
+    P2('IPTV',[PBK('cards',{cols:3,items:[{icon:'📺',title:'베이직',desc:'180채널 · 13,000원'},{icon:'🎬',title:'프리미엄',desc:'260채널 · 18,000원'},{icon:'👶',title:'키즈팩',desc:'+5,000원'}]})]),
+    P2('결합 할인',[PBK('notice',{tone:'info',text:'모바일+인터넷 결합 시 월 최대 22,000원 할인됩니다.'}),PBK('steps',{items:['결합 대상 확인','신청','다음 달 반영']})]),
+    P2('고객센터',[PBK('form',{fields:['이름','연락처','문의 내용'],btn:'상담 예약'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 52 건설사 (2단_좌우) */
+TPL.mConst=function(){
+  state.gnb={on:true,brand:'한결건설',items:[{label:'홈'},{label:'사업분야',mega:true,children:[{label:'주택',desc:'아파트·주상복합'},{label:'토목',desc:'도로·교량'},{label:'플랜트',desc:'산업설비'},{label:'리모델링',desc:'재건축·재개발'}]},{label:'분양정보'}],tone:'dark'};
+  state.footer={on:true,text:'© 한결건설(주)',sub:'서울시 ○○구 건설로 1 · 02-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'left',title:'공간에 가치를 짓다',sub:'주택 · 토목 · 플랜트 · 리모델링',btns:[{label:'분양정보',tone:'white'}]})]]),
+    PROW('1','#f6f8fa',[[PBK('stat',{items:[{label:'시공능력평가',value:'12위',sub:'2026',tone:'blue'},{label:'누적 공급',value:'18만 세대',sub:'',tone:'dark'},{label:'무재해',value:'1,240일',sub:'',tone:'green'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('주택',[PBK('gallery',{cols:3,items:[{img:'',cap:'한결 더퍼스트 (서울)'},{img:'',cap:'한결 리버뷰 (부산)'},{img:'',cap:'한결 센트럴 (대전)'}]})]),
+    P2('토목',[PBK('checklist',{items:['고속도로 3개 구간 시공 중','해상교량 특수공법 보유','스마트 안전관리 시스템']})]),
+    P2('플랜트',[PBK('text',{text:'국내외 산업설비 EPC 수행 실적 42건.'})]),
+    P2('리모델링',[PBK('steps',{items:['안전진단','조합 설립','시공사 선정','착공']})]),
+    P2('분양정보',[PBK('table',{cols:['단지','지역','일정'],rows:[['한결 더퍼스트','서울 ○○구','8월 청약'],['한결 파크뷰','인천 △△구','9월 청약']]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 53 식품 기업 (2단_좌우) */
+TPL.mFood=function(){
+  state.gnb={on:true,brand:'맛있는식품',items:[{label:'홈'},{label:'브랜드',mega:true,children:[{label:'간편식',desc:'냉동·레토르트'},{label:'음료',desc:'주스·탄산'},{label:'스낵',desc:'과자·시리얼'},{label:'건강식품',desc:'홍삼·유산균'}]},{label:'회사소개'}],tone:'white'};
+  state.footer={on:true,text:'© 맛있는식품(주)',sub:'소비자상담실 080-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('slider',{tone:'light',auto:true,cur:0,items:[{title:'신제품 — 직화 불고기 덮밥',desc:'전자레인지 4분 완성',img:''},{title:'여름 한정 스파클링',desc:'청포도 · 자몽 2종',img:''},{title:'유산균 1+1 이벤트',desc:'공식몰 단독',img:''}]})]]),
+  ]);
+  state.pages=[home,
+    P2('간편식',[PBK('cards',{cols:3,items:[{icon:'🍛',title:'직화 덮밥 4종',desc:'4,980원'},{icon:'🥟',title:'손만두',desc:'6,980원'},{icon:'🍜',title:'얼큰 우동',desc:'3,980원'}]})]),
+    P2('음료',[PBK('gallery',{cols:4,items:[{img:'',cap:'착즙 오렌지'},{img:'',cap:'스파클링 청포도'},{img:'',cap:'콜드브루'},{img:'',cap:'보리차'}]})]),
+    P2('스낵',[PBK('text',{text:'국산 감자 100% 스낵 라인업을 만나보세요.'})]),
+    P2('건강식품',[PBK('table',{cols:['제품','규격','가격'],rows:[['6년근 홍삼정','240g','89,000'],['프로바이오틱스','30포','29,000']]})]),
+    P2('회사소개',[PBK('timeline',{items:[{date:'1978',title:'창업',desc:''},{date:'1999',title:'수출 개시',desc:''},{date:'2023',title:'스마트 공장 준공',desc:''}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 54 자동차 브랜드 (2단_좌우) */
+TPL.mCar=function(){
+  state.gnb={on:true,brand:'HANRO',items:[{label:'홈'},{label:'모델',mega:true,children:[{label:'전기차',desc:'EV 라인업'},{label:'SUV',desc:'컴팩트~대형'},{label:'세단',desc:'준중형~플래그십'},{label:'상용차',desc:'트럭·밴'}]},{label:'시승 신청'}],tone:'dark'};
+  state.footer={on:true,text:'© HANRO Motors',sub:'전시장 찾기 · 고객센터 080-000-0000'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'NEW HANRO EV9',sub:'1회 충전 주행거리 620km · 지금 사전예약',btns:[{label:'시승 신청',tone:'white'},{label:'견적 내기',tone:'soft'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('전기차',[PBK('cards',{cols:3,items:[{icon:'⚡',title:'EV9',desc:'5,900만원~ · 620km'},{icon:'⚡',title:'EV5',desc:'4,200만원~ · 510km'},{icon:'⚡',title:'EV3',desc:'3,400만원~ · 450km'}]})]),
+    P2('SUV',[PBK('gallery',{cols:3,items:[{img:'',cap:'컴팩트 SUV 코나로'},{img:'',cap:'중형 SUV 산토스'},{img:'',cap:'대형 SUV 팰리오'}]})]),
+    P2('세단',[PBK('table',{cols:['모델','구분','가격'],rows:[['아반로','준중형','2,100만원~'],['소나로','중형','2,900만원~'],['제로 G90','플래그십','7,800만원~']]})]),
+    P2('상용차',[PBK('text',{text:'1톤 트럭부터 냉동탑차까지 — 비즈니스 맞춤 상용 라인업.'})]),
+    P2('시승 신청',[PBK('form',{fields:['이름','연락처','희망 모델','희망 날짜'],btn:'시승 신청'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 55 항공사 (2단_좌우) */
+TPL.mAir=function(){
+  state.gnb={on:true,brand:'SORA AIR',items:[{label:'홈'},{label:'서비스',mega:true,children:[{label:'항공권 예매',desc:'국내·국제선'},{label:'체크인',desc:'온라인·모바일'},{label:'수하물',desc:'규정·초과 요금'},{label:'마일리지',desc:'적립·사용'}]},{label:'고객센터'}],tone:'blue'};
+  state.footer={on:true,text:'© SORA AIR',sub:'예약센터 1588-0000 (연중무휴)'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h2',text:'어디로 떠나볼까요?',align:'center'}),PBK('search',{ph:'출발지 → 도착지 · 날짜',btn:'항공권 검색',big:true})]]),
+    PROW('1','',[[PBK('cards',{cols:4,items:[{icon:'🗾',title:'도쿄',desc:'왕복 219,000원~'},{icon:'🏝️',title:'다낭',desc:'왕복 289,000원~'},{icon:'🗽',title:'뉴욕',desc:'왕복 1,190,000원~'},{icon:'🇫🇷',title:'파리',desc:'왕복 1,090,000원~'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('항공권 예매',[PBK('steps',{items:['노선 검색','좌석 선택','결제','발권']})]),
+    P2('체크인',[PBK('notice',{tone:'info',text:'온라인 체크인은 출발 48시간 전부터 1시간 전까지 가능합니다.'}),PBK('buttons',{items:[{label:'체크인 하기',tone:'blue'}]})]),
+    P2('수하물',[PBK('table',{cols:['구분','무료 허용량','초과 요금'],rows:[['국내선','15kg','kg당 2,000원'],['국제선(단거리)','23kg 1개','개당 80,000원'],['국제선(장거리)','23kg 2개','개당 120,000원']]})]),
+    P2('마일리지',[PBK('stat',{items:[{label:'적립률',value:'구간의 100%',sub:'일반석 기준',tone:'blue'},{label:'보너스 항공권',value:'편도 20,000M~',sub:'',tone:'dark'}]})]),
+    P2('고객센터',[PBK('faq',{items:[{q:'예약 변경 수수료는?',a:'운임 규정에 따라 다르며 예약 상세에서 확인 가능합니다.'},{q:'유아 동반 좌석은?',a:'베시넷 좌석을 사전 신청할 수 있습니다.'}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 56 물류/택배 (2단_좌우) */
+TPL.mLogis=function(){
+  state.gnb={on:true,brand:'번개로지스',items:[{label:'홈'},{label:'서비스',mega:true,children:[{label:'택배 예약',desc:'방문 수거'},{label:'배송 조회',desc:'실시간 위치'},{label:'기업 물류',desc:'풀필먼트·3PL'},{label:'국제 특송',desc:'해외 배송'}]},{label:'고객센터'}],tone:'dark'};
+  state.footer={on:true,text:'© 번개로지스',sub:'고객센터 1588-0000 (평일 09~18시)'};
+  const home=PPG('홈',[
+    PROW('1','#eef4fb',[[PBK('heading',{level:'h2',text:'운송장 번호로 배송 조회',align:'center'}),PBK('search',{ph:'운송장 번호 12자리 입력',btn:'조회',big:true})]]),
+    PROW('1','',[[PBK('stat',{items:[{label:'일 처리 물량',value:'320만 박스',sub:'',tone:'blue'},{label:'익일 배송률',value:'98.4%',sub:'',tone:'green'},{label:'터미널',value:'42곳',sub:'전국',tone:'dark'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('택배 예약',[PBK('steps',{items:['예약 접수','방문 수거','배송','완료']}),PBK('buttons',{items:[{label:'예약하기',tone:'blue'}]})]),
+    P2('배송 조회',[PBK('table',{cols:['시간','위치','상태'],rows:[['09:12','서울 ○○터미널','간선 상차'],['13:40','△△ 허브','간선 하차'],['16:05','□□ 대리점','배송 출발']]})]),
+    P2('기업 물류',[PBK('cards',{cols:3,items:[{icon:'📦',title:'풀필먼트',desc:'입고~출고 대행'},{icon:'🏭',title:'3PL',desc:'창고·재고 운영'},{icon:'🔗',title:'API 연동',desc:'쇼핑몰 자동 연동'}]})]),
+    P2('국제 특송',[PBK('table',{cols:['지역','소요일','요금(0.5kg)'],rows:[['일본','2~3일','18,000'],['미국','3~5일','32,000'],['유럽','4~6일','36,000']]})]),
+    P2('고객센터',[PBK('form',{fields:['운송장 번호','연락처','문의 내용'],btn:'문의 접수'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 57 게임사 (2단_좌우) */
+TPL.mGame=function(){
+  state.gnb={on:true,brand:'PIXELFORGE',items:[{label:'홈'},{label:'게임',mega:true,children:[{label:'크로니클',desc:'MMORPG'},{label:'스타팜',desc:'힐링 시뮬레이션'},{label:'배틀존',desc:'슈팅 · e스포츠'},{label:'퍼즐팝',desc:'캐주얼 퍼즐'}]},{label:'채용'}],tone:'dark'};
+  state.footer={on:true,text:'© PIXELFORGE Studio',sub:'이용약관 · 운영정책 · press@pixelforge.gg'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'center',title:'크로니클 — 시즌 5 오픈',sub:'새 대륙 · 신규 클래스 · 길드 레이드',btns:[{label:'지금 플레이',tone:'orange'},{label:'트레일러',tone:'soft'}]})]]),
+    PROW('1','',[[PBK('news',{items:[{date:'07.22',title:'크로니클 시즌 5 패치노트'},{date:'07.18',title:'배틀존 여름 리그 일정'},{date:'07.10',title:'스타팜 1주년 이벤트'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('크로니클',[PBK('stat',{items:[{label:'동시 접속',value:'42만',sub:'최고 기록',tone:'blue'},{label:'서버',value:'글로벌 8개',sub:'',tone:'dark'}]})]),
+    P2('스타팜',[PBK('gallery',{cols:3,items:[{img:'',cap:'농장 꾸미기'},{img:'',cap:'동물 키우기'},{img:'',cap:'마을 축제'}]})]),
+    P2('배틀존',[PBK('timeline',{items:[{date:'08.02',title:'여름 리그 예선',desc:''},{date:'08.16',title:'본선 8강',desc:''},{date:'08.30',title:'결승전 (오프라인)',desc:''}]})]),
+    P2('퍼즐팝',[PBK('text',{text:'3분이면 충분한 캐주얼 퍼즐 — 다운로드 5,000만 돌파.'})]),
+    P2('채용',[PBK('table',{cols:['직무','팀','마감'],rows:[['게임 클라이언트','크로니클','상시'],['테크니컬 아티스트','스타팜','08.15']]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 58 화장품 브랜드 (2단_좌우) */
+TPL.mCosmetic=function(){
+  state.gnb={on:true,brand:'onui',items:[{label:'홈'},{label:'제품',mega:true,children:[{label:'스킨케어',desc:'토너·세럼·크림'},{label:'선케어',desc:'자외선 차단'},{label:'메이크업',desc:'베이스·립'},{label:'헤어·바디',desc:'샴푸·로션'}]},{label:'매장 찾기'}],tone:'white'};
+  state.footer={on:true,text:'© onui cosmetics',sub:'고객센터 080-000-0000 · 전성분 조회'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'light',align:'center',title:'피부 본연의 편안함',sub:'저자극 비건 스킨케어 onui',btns:[{label:'베스트 보기',tone:'green'}]})]]),
+    PROW('1','#eff8f2',[[PBK('quote',{text:'민감성 피부인데 트러블 없이 쓰는 유일한 세럼이에요.',who:'— 수분 세럼 구매 후기 ★4.9'})]]),
+  ]);
+  state.pages=[home,
+    P2('스킨케어',[PBK('cards',{cols:3,items:[{icon:'💧',title:'수분 토너',desc:'22,000원'},{icon:'🌿',title:'시카 세럼',desc:'34,000원'},{icon:'🧴',title:'배리어 크림',desc:'28,000원'}]})]),
+    P2('선케어',[PBK('table',{cols:['제품','SPF','가격'],rows:[['데일리 선크림','SPF50+','19,000'],['톤업 선쿠션','SPF45','24,000']]})]),
+    P2('메이크업',[PBK('gallery',{cols:4,items:[{img:'',cap:'글로우 쿠션'},{img:'',cap:'립 밤 3색'},{img:'',cap:'컨실러'},{img:'',cap:'브로우 펜슬'}]})]),
+    P2('헤어·바디',[PBK('text',{text:'두피부터 바디까지 — 약산성 저자극 라인.'})]),
+    P2('매장 찾기',[PBK('map',{text:'전국 백화점·올리브영 입점 · 가까운 매장을 검색하세요'})]),
+  ];
+  state.curPage=home.id;
+};
+/* 59 에너지/발전 (2단_좌우) */
+TPL.mEnergy=function(){
+  state.gnb={on:true,brand:'그린에너지',items:[{label:'홈'},{label:'사업',mega:true,children:[{label:'태양광',desc:'발전소 구축·운영'},{label:'풍력',desc:'해상·육상 단지'},{label:'ESS',desc:'에너지 저장'},{label:'수소',desc:'생산·충전 인프라'}]},{label:'지속가능경영'}],tone:'dark'};
+  state.footer={on:true,text:'© 그린에너지(주)',sub:'IR · 윤리경영 신고센터'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('hero',{bg:'dark',align:'left',title:'탄소중립을 앞당기는 에너지',sub:'태양광 · 풍력 · ESS · 수소',btns:[{label:'사업 보기',tone:'white'}]})]]),
+    PROW('1','#eff8f2',[[PBK('stat',{items:[{label:'재생에너지 설비',value:'3.2GW',sub:'누적',tone:'green'},{label:'CO₂ 감축',value:'연 180만 톤',sub:'',tone:'blue'},{label:'운영 발전소',value:'86곳',sub:'',tone:'dark'}]})]]),
+  ]);
+  state.pages=[home,
+    P2('태양광',[PBK('text',{text:'설계부터 O&M까지 — 전국 62개 태양광 발전소 운영.'})]),
+    P2('풍력',[PBK('gallery',{cols:2,items:[{img:'',cap:'서남해 해상풍력 400MW'},{img:'',cap:'대관령 육상풍력 98MW'}]})]),
+    P2('ESS',[PBK('checklist',{items:['피크 저감용 ESS 구축','재생에너지 연계형','안전관리 24시간 관제']})]),
+    P2('수소',[PBK('steps',{items:['그린수소 생산','저장·운송','충전소 공급']})]),
+    P2('지속가능경영',[PBK('download',{items:[{name:'지속가능경영보고서 2026.pdf',size:'8.4MB'},{name:'ESG 데이터북.xlsx',size:'1.1MB'}]})]),
+  ];
+  state.curPage=home.id;
+};
+/* 60 방송/엔터 (2단_좌우) */
+TPL.mEnter=function(){
+  state.gnb={on:true,brand:'STARWAVE',items:[{label:'홈'},{label:'콘텐츠',mega:true,children:[{label:'드라마',desc:'오리지널 시리즈'},{label:'예능',desc:'버라이어티'},{label:'음악',desc:'아티스트·음반'},{label:'공연',desc:'콘서트·페스티벌'}]},{label:'회사소개'}],tone:'dark'};
+  state.footer={on:true,text:'© STARWAVE Entertainment',sub:'제휴 문의 biz@starwave.tv'};
+  const home=PPG('홈',[
+    PROW('1','',[[PBK('slider',{tone:'dark',auto:true,cur:0,items:[{title:'오리지널 드라마 「파도」 공개',desc:'금·토 밤 10시',img:''},{title:'서머 페스티벌 라인업 발표',desc:'8월 22~23일 · 티켓 오픈',img:''},{title:'신인 그룹 데뷔 쇼케이스',desc:'생중계 예정',img:''}]})]]),
+  ]);
+  state.pages=[home,
+    P2('드라마',[PBK('gallery',{cols:3,items:[{img:'',cap:'파도 (12부작)'},{img:'',cap:'서울의 밤 (10부작)'},{img:'',cap:'다시, 봄 (8부작)'}]})]),
+    P2('예능',[PBK('news',{items:[{date:'토 18:00',title:'달리는 사람들'},{date:'수 21:00',title:'오늘 뭐 먹지'},{date:'금 20:00',title:'무인도 일주일'}]})]),
+    P2('음악',[PBK('profile',{cols:4,items:[{emoji:'🎤',name:'루나',role:'솔로 아티스트',desc:''},{emoji:'🎸',name:'블루문',role:'밴드',desc:''},{emoji:'🎧',name:'NOVA',role:'보이그룹',desc:''},{emoji:'🎹',name:'하람',role:'싱어송라이터',desc:''}]})]),
+    P2('공연',[PBK('timeline',{items:[{date:'08.22',title:'서머 페스티벌 1일차',desc:''},{date:'08.23',title:'서머 페스티벌 2일차',desc:''},{date:'10.04',title:'루나 단독 콘서트',desc:''}]})]),
+    P2('회사소개',[PBK('text',{text:'콘텐츠 제작·매니지먼트·공연 사업을 아우르는 종합 엔터테인먼트.'})]),
+  ];
+  state.curPage=home.id;
 };
 
 TPL.blank=function(){

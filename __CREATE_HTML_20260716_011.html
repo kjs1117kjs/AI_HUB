@@ -785,6 +785,7 @@
       <input type="file" id="loadFile" accept=".json" style="display:none;">
       <button class="btn" id="exportHtml">🌐 HTML 내보내기</button>
       <button class="btn" id="exportSpec" title="조건·컬럼 정의를 표로 정리한 화면정의서(HTML)를 내려받습니다">📑 화면정의서</button>
+      <button class="btn" id="exportBoth" title="위에는 완성 화면(HTML 내보내기), 아래에는 화면정의서를 이어붙인 단일 HTML을 내려받습니다">🧾 HTML+화면정의서</button>
       <button class="btn btn-primary" id="sampleBtn">📚 예시 화면</button>
       <button class="btn" id="guideBtn" title="구성기 사용설명서 열기">📖 사용설명</button>
     </div>
@@ -2354,7 +2355,11 @@ function cloneWithValues(sel){
     else{c.setAttribute('value',el.value);if(el.tagName==='TEXTAREA')c.textContent=el.value;}});
   return clone.outerHTML;
 }
-$('exportHtml').onclick=()=>{
+function dlHtml(html,name){
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+}
+function buildScreenExport(){
   const wasEdit=isEdit(), prevExt=state.extShown;
   document.body.classList.add('preview'); state.extShown=true; render();
   const head=document.querySelector('style').outerHTML;
@@ -2482,13 +2487,14 @@ document.addEventListener('change',function(e){
   document.querySelectorAll('table.grid').forEach(setup);
 })();
 </scr`+`ipt>`;
+  const bodyInner=`<div class="wrap">${metaLine}<div style="position:relative;">${topTabsHtml}${panel}${cnt}${result}${desc}${pins}</div>${annotList}</div>`;
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
     `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
-    `<body class="preview export"><div class="wrap">${metaLine}<div style="position:relative;">${topTabsHtml}${panel}${cnt}${result}${desc}${pins}</div>${annotList}</div>${exportScript}</body></html>`;
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((m.sid?m.sid+'_':'')+(state.title||'조회화면'))+'.html';a.click();
+    `<body class="preview export">${bodyInner}${exportScript}</body></html>`;
   state.extShown=prevExt; if(wasEdit)document.body.classList.remove('preview'); render();
-};
+  return {html, head, extra, exportScript, bodyInner, fileBase:((m.sid?m.sid+'_':'')+(state.title||'조회화면'))};
+}
+$('exportHtml').onclick=()=>{ const r=buildScreenExport(); dlHtml(r.html, r.fileBase+'.html'); };
 
 /* ================= 화면정의서(스펙 문서) 내보내기 ================= */
 const COND_TYPE_KO={date:'일자',month:'월',year:'년도',quarter:'분기',text:'텍스트',number:'숫자',combo:'콤보',radio:'라디오',checkbox:'체크박스',segment:'버튼그룹',toggle:'토글',multi:'다중선택',cat:'분류 팝업',store:'매장 팝업',prod:'상품 팝업',time:'시각',datetime:'일시',week:'주차',amount:'금액',phone:'전화번호',bizno:'사업자번호',email:'이메일',emp:'사원 팝업',vendor:'거래처 팝업',dept:'부서 팝업',custompopup:'사용자 팝업',blank:'(빈칸)'};
@@ -2498,7 +2504,27 @@ const FTYPE_KO={text:'텍스트',combo:'콤보',date:'일자',textarea:'여러�
 const ALIGN_KO={c:'가운데',l:'왼쪽',r:'오른쪽'};
 const FMT_KO={none:'일반',comma:'1,000',won:'₩',percent:'%'};
 function specDateStr(){const d=new Date();return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');}
-$('exportSpec').onclick=()=>{
+/* 화면정의서 CSS — .specdoc 으로 스코프. 화면 HTML과 한 파일에 합쳐도 스타일이 섞이지 않는다 */
+const SPEC_CSS=`
+.specdoc{font-family:"Pretendard","Malgun Gothic",sans-serif;font-size:13px;color:#333a44;background:#fff;line-height:1.6;word-break:keep-all;}
+.specdoc .doc{max-width:960px;margin:0 auto;padding:48px 40px 80px;}
+.specdoc h1{font-size:22px;margin:0 0 4px;color:#1f2732;font-weight:700;}
+.specdoc .meta{color:#69707a;font-size:12px;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid #2c3742;}
+.specdoc h2{font-size:15px;margin:34px 0 10px;padding:7px 10px;background:#eef4fb;border-left:4px solid #2f89ee;color:#2c3742;font-weight:700;}
+.specdoc h3{font-size:13.5px;margin:22px 0 8px;color:#2c3742;font-weight:700;}
+.specdoc h3 .mut{font-weight:500;}
+.specdoc p{margin:0 0 8px;}
+.specdoc table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;background:#fff;table-layout:auto;}
+.specdoc th,.specdoc td{border:1px solid #d3dce8;padding:6px 10px;text-align:left;vertical-align:top;color:#333a44;font-size:12.5px;height:auto;white-space:normal;position:static;}
+.specdoc thead th{background:#f0f4f9;color:#3a4551;font-weight:700;}
+.specdoc tbody th{background:#f6f9fc;font-weight:600;width:130px;}
+.specdoc td.c{text-align:center;}
+.specdoc .mut{color:#9aa2ac;}
+.specdoc .rd{color:#e0554e;}
+.specdoc .descbx{border:1px solid #d3dce8;background:#fafbfc;padding:12px 14px;white-space:pre-wrap;border-radius:4px;}
+@media print{.specdoc .doc{padding:0;}.specdoc{font-size:12px;}}
+`;
+function buildSpecExport(){
   const O='○', X='—';
   const infoName=id=>{const ip=(state.infoPopups||[]).find(x=>x.id===id);return ip?ip.name:'';};
   const popName=id=>{const pp=findPopup(id);return pp?pp.name:'(삭제된 팝업)';};
@@ -2592,33 +2618,52 @@ $('exportSpec').onclick=()=>{
   const annotSec=(state.annots||[]).length?`<h2>6. 화면 주석 (${state.annots.length}건)</h2><p class="mut" style="margin:0 0 8px;">번호는 화면(HTML 내보내기)의 빨간 핀 번호와 일치합니다.</p><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${state.annots.map((a,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const mm=state.meta||{};
   const metaBits2=[mm.sid&&('화면ID '+esc(mm.sid)), mm.author&&('작성자 '+esc(mm.author)), mm.ver&&('버전 '+esc(mm.ver))].filter(Boolean);
-  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(state.title||'조회화면')} — 화면정의서</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<style>
-body{font-family:"Pretendard","Malgun Gothic",sans-serif;font-size:13px;color:#333a44;margin:0;background:#fff;line-height:1.6;word-break:keep-all;}
-.doc{max-width:960px;margin:0 auto;padding:48px 40px 80px;}
-h1{font-size:22px;margin:0 0 4px;color:#1f2732;}
-.meta{color:#69707a;font-size:12px;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid #2c3742;}
-h2{font-size:15px;margin:34px 0 10px;padding:7px 10px;background:#eef4fb;border-left:4px solid #2f89ee;color:#2c3742;}
-h3{font-size:13.5px;margin:22px 0 8px;color:#2c3742;}
-h3 .mut{font-weight:500;}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;}
-th,td{border:1px solid #d3dce8;padding:6px 10px;text-align:left;vertical-align:top;}
-thead th{background:#f0f4f9;color:#3a4551;font-weight:700;}
-tbody th{background:#f6f9fc;font-weight:600;width:130px;}
-td.c{text-align:center;}
-.mut{color:#9aa2ac;}
-.rd{color:#e0554e;}
-.descbx{border:1px solid #d3dce8;background:#fafbfc;padding:12px 14px;white-space:pre-wrap;border-radius:4px;}
-@media print{.doc{padding:0;}body{font-size:12px;}}
-</style></head><body><div class="doc">
+  const inner=`<div class="doc">
 <h1>${esc(state.title||'조회화면')}</h1>
 <div class="meta">화면정의서${metaBits2.length?' · '+metaBits2.join(' · '):''} · 작성일 ${specDateStr()} · 조회조건 ${state.conditions.length}건 · 패널 ${state.panels.length}개</div>
 ${condTbl}${btnTbl}<h2>3. 결과 그리드 (패널 ${state.panels.length}개${state.cols.length>1?' · '+state.cols.length+'단 레이아웃':''})</h2>${panelSecs}${popSec}${chartSec}${descSec}${annotSec}${textSec}
-</div></body></html>`;
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((mm.sid?mm.sid+'_':'')+(state.title||'조회화면'))+'_화면정의서.html';a.click();
+</div>`;
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(state.title||'조회화면')} — 화면정의서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>html,body{margin:0;padding:0;background:#fff;}${SPEC_CSS}</style></head><body><div class="specdoc">${inner}</div></body></html>`;
+  return {html, inner, fileBase:((mm.sid?mm.sid+'_':'')+(state.title||'조회화면'))};
+}
+$('exportSpec').onclick=()=>{ const r=buildSpecExport(); dlHtml(r.html, r.fileBase+'_화면정의서.html'); };
+
+/* ================= HTML + 화면정의서 (한 파일로 합쳐 내보내기) ================= */
+const COMBO_CSS=`
+body.combo{background:#f4f6f9;}
+body.combo .combo-band{max-width:1720px;margin:0 auto;padding:0 16px;}
+body.combo .combo-band .tag{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#2c3742;padding:4px 12px;border-radius:3px;}
+body.combo .combo-band .sub{font-size:11.5px;color:#7a828d;margin-left:8px;font-weight:600;}
+body.combo .combo-band.top{padding-top:20px;padding-bottom:2px;}
+body.combo .combo-band.sep{margin-top:40px;}
+body.combo .combo-band.sep .line{border-top:2px solid #2c3742;padding-top:14px;}
+body.combo .specdoc{background:transparent;}
+body.combo .specdoc .doc{background:#fff;border:1px solid #e3e8ef;border-radius:6px;padding:40px 40px 64px;margin-top:16px;margin-bottom:48px;}
+@media print{
+  body.combo{background:#fff;}
+  body.combo .combo-band.sep{page-break-before:always;break-before:page;}
+  body.combo .specdoc .doc{border:none;padding:0;margin:0;}
+}
+`;
+$('exportBoth').onclick=()=>{
+  const scr=buildScreenExport();
+  const spc=buildSpecExport();
+  const ttl=esc(state.title||'조회화면');
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${ttl} — 화면 + 화면정의서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+${scr.head}${scr.extra}<style>${SPEC_CSS}${COMBO_CSS}</style></head>
+<body class="preview export combo">
+<div class="combo-band top"><span class="tag">화면</span><span class="sub">완성 화면 미리보기</span></div>
+${scr.bodyInner}
+<div class="combo-band sep"><div class="line"><span class="tag">화면정의서</span><span class="sub">조회조건 · 버튼 · 컬럼 정의</span></div></div>
+<div class="specdoc">${spc.inner}</div>
+${scr.exportScript}
+</body></html>`;
+  dlHtml(html, scr.fileBase+'_화면+화면정의서.html');
 };
 
 /* ================= 예시 화면(프리셋) ================= */

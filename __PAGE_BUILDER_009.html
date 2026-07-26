@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>화면 빌더 010 — 블록 40종 · 예시 템플릿 60종 · 슬라이드/팝업/HTML 블록</title>
+<title>화면 빌더 010 — 드래그&amp;드롭 이동 · 블록 40종 · 예시 템플릿 60종</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root{
@@ -365,6 +365,55 @@
   .pblk [contenteditable]{outline:none;min-height:1em;}
   .pblk [contenteditable]:empty::before{content:attr(data-ph);color:#b6bec9;}
 
+  /* ===== 자동 저장 복구 배너 ===== */
+  .restore-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:9px 12px;
+    background:#fffaf0;border:1px solid #f0dcae;border-radius:6px;font-size:12.5px;color:#6b5a32;}
+  .restore-bar[hidden]{display:none;}
+  .restore-bar .rb-dot{width:7px;height:7px;border-radius:50%;background:#e0a53a;flex:none;}
+  .restore-bar .rb-txt{flex:1;}
+  .restore-bar .rb-txt b{font-weight:700;color:#4a3d20;}
+  .restore-bar .rb-x{border:none;background:none;color:#a99a76;cursor:pointer;font-size:12px;
+    padding:2px 4px;border-radius:3px;font-family:inherit;}
+  .restore-bar .rb-x:hover{background:#f4e6c6;color:#6b5a32;}
+  #autoSaveInfo.warn{color:var(--red);font-weight:600;}
+
+  /* ===== 드래그 & 드롭 (블록 · 행 이동) ===== */
+  /* 블록 손잡이 — 블록 좌상단. 마우스를 올리거나 선택했을 때 나타난다 */
+  .pblk-grip{position:absolute;top:-13px;left:-2px;display:none;align-items:center;justify-content:center;
+    background:#fff;border:1px solid var(--border);border-radius:5px;padding:2px 7px;
+    font-size:11px;color:#8a94a2;line-height:1;cursor:grab;user-select:none;
+    box-shadow:0 2px 6px rgba(30,40,60,.1);z-index:6;}
+  body:not(.preview) .pblk:hover > .pblk-grip,
+  body:not(.preview) .pblk.sel   > .pblk-grip{display:inline-flex;}
+  .pblk-grip:hover{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-soft);}
+  .pblk-grip:active,.prow-grip:active{cursor:grabbing;}
+  /* 주석 · 텍스트 모드에서는 손잡이를 숨긴다 (클릭이 핀 추가와 충돌) */
+  body.annot .pblk-grip,body.textm .pblk-grip,
+  body.annot .prow-grip,body.textm .prow-grip{display:none !important;}
+  /* 행 손잡이 — 행 툴바 맨 앞 */
+  .prow-tools .prow-grip{display:inline-flex;align-items:center;padding:3px 5px;border-radius:3px;
+    font-size:11.5px;color:#8a94a2;line-height:1;cursor:grab;user-select:none;}
+  .prow-tools .prow-grip:hover{background:var(--blue-soft);color:var(--blue-dark);}
+  /* 드래그 중 */
+  .pblk.dragging,.prow.dragging{opacity:.3;}
+  body.dnd-active{cursor:grabbing;user-select:none;-webkit-user-select:none;}
+  /* 포인터를 따라다니는 반투명 사본 */
+  .dnd-ghost{position:fixed;left:0;top:0;z-index:9998;pointer-events:none;opacity:.9;
+    background:#fff;border:1px solid var(--blue);border-radius:5px;padding:8px 10px;
+    max-height:190px;overflow:hidden;box-shadow:0 10px 24px rgba(30,40,60,.22);}
+  .dnd-ghost .pblk,.dnd-ghost .prow{outline:none !important;border:none !important;}
+  body.dnd-active .pblk-tools{display:none !important;}
+  body.dnd-active .pcol.dnd-over{border-style:solid;border-color:var(--blue);background:var(--blue-soft);}
+  /* 드래그 중에는 주석 핀 · 텍스트 메모 · 상단 고정 바가 마우스를 가로채지 않게 한다
+     (상단 바는 sticky 라 페이지 맨 위 드롭 지점을 덮는다) */
+  body.dnd-active .annot-pin,body.dnd-active .txt-note,body.dnd-active #builder{pointer-events:none;}
+  /* 삽입 위치 표시선 */
+  .dnd-line{position:fixed;display:none;height:3px;background:var(--blue);border-radius:2px;
+    pointer-events:none;z-index:9999;box-shadow:0 0 0 1px rgba(255,255,255,.7);}
+  .dnd-line::before{content:"";position:absolute;left:-4px;top:-3px;width:9px;height:9px;border-radius:50%;background:var(--blue);}
+  /* 이미지 자체가 끌리면 손잡이 드래그와 섞이므로 편집 중엔 막는다 */
+  body:not(.preview) .pblk img{-webkit-user-drag:none;user-drag:none;}
+
   /* ===== 블록 유형 ===== */
   .blk-heading h1{font-size:26px;font-weight:800;line-height:1.3;}
   .blk-heading h2{font-size:20px;font-weight:700;line-height:1.35;}
@@ -540,7 +589,7 @@
       <option value="1,1,1,1,1,1">6열 (균등)</option>
     </select>
     <button class="type-btn accent" id="addRow">＋ 행 추가</button>
-    <span class="hint">행 위에 마우스를 올리면 순서이동 · 열 분할 변경 · 삭제가 나옵니다. 블록은 각 열의 ＋버튼(제목 · 본문 · 이미지 · 버튼 · 안내 · 구분선 · 여백)으로 추가하세요.</span>
+    <span class="hint">행 위에 마우스를 올리면 순서이동 · 열 분할 변경 · 삭제가 나옵니다. 블록은 각 열의 ＋버튼(제목 · 본문 · 이미지 · 버튼 · 안내 · 구분선 · 여백)으로 추가하세요. <b>⠿ 손잡이를 끌면</b> 행 순서와 블록 위치를 옮길 수 있습니다(블록은 다른 열 · 다른 행으로도 이동).</span>
   </div>
   <div class="builder-sec edit-only">
     <span class="sec-title">홈페이지</span>
@@ -649,11 +698,12 @@
         <option value="blank">빈 화면</option>
       </optgroup>
     </select>
+    <span class="hint edit-only" id="autoSaveInfo" title="편집 내용은 이 브라우저에 자동으로 보관됩니다. 다른 PC로 옮기거나 백업하려면 저장(JSON)을 쓰세요">자동 저장 준비 중…</span>
     <span class="hint edit-only">저장(JSON)은 이어서 편집할 원본, HTML 내보내기는 공유용 완성 화면입니다.</span>
   </div>
 </div>
 
-<div id="canvasWrap"><div id="canvas"></div><div class="annot-list" id="annotList" style="display:none;"></div></div>
+<div id="canvasWrap"><div class="restore-bar" id="restoreBar" hidden><span class="rb-dot"></span><span class="rb-txt">이전에 작업하던 내용을 불러왔습니다 <b id="rbWhen"></b></span><button class="type-btn ghost" id="rbFresh">기본 예시로 새로 시작</button><button class="rb-x" id="rbClose" title="닫기">✕</button></div><div id="canvas"></div><div class="annot-list" id="annotList" style="display:none;"></div></div>
 
 <script>
 /* =====================================================================
@@ -1162,7 +1212,8 @@ function blockHTML(b){
       <button class="tl del" data-bdel="${b.id}" title="삭제">✕</button>
     </div>` : '';
   const sel = state.sel===b.id ? ' sel' : '';
-  return `<div class="pblk blk-${b.type}${sel}" data-blk="${b.id}">${tools}${body}</div>`;
+  const grip = ed ? `<span class="pblk-grip" data-notext data-bdrag="${b.id}" title="끌어서 이동 — 같은 열은 물론 다른 열 · 다른 행으로도 옮길 수 있습니다">⠿</span>` : '';
+  return `<div class="pblk blk-${b.type}${sel}" data-blk="${b.id}">${grip}${tools}${body}</div>`;
 }
 
 function colHTML(c){
@@ -1214,6 +1265,7 @@ function rowHTML(r, idx){
   const layoutOpts = [['1','1열'],['1,1','2열 50:50'],['1,3','2열 25:75'],['3,1','2열 75:25'],['3,7','2열 30:70'],['7,3','2열 70:30'],['2,3','2열 40:60'],['3,2','2열 60:40'],['1,1,1','3열 균등'],['1,2,1','3열 25:50:25'],['2,1,1','3열 50:25:25'],['1,1,2','3열 25:25:50'],['1,1,1,1','4열 균등'],['1,1,1,1,1','5열 균등'],['1,1,1,1,1,1','6열 균등']];
   const inList = layoutOpts.some(o=>o[0]===layoutVal);
   const tools = ed ? `<div class="prow-tools">
+      <span class="prow-grip" data-notext data-rdrag="${r.id}" title="끌어서 행 순서 이동">⠿</span>
       <span class="lbl">행 ${idx+1}</span>
       <select class="b-sel" data-rlayout="${r.id}" title="열 분할 변경">
         ${layoutOpts.map(o=>`<option value="${o[0]}"${o[0]===layoutVal?' selected':''}>${o[1]}</option>`).join('')}
@@ -3577,11 +3629,289 @@ $('tplSel').onchange = e => {
   TPL[k](); state.sel=null; render();
 };
 
+/* =====================================================================
+   STEP 8 — 드래그 & 드롭 (블록 · 행 순서 이동)
+   · 블록: 같은 열 안에서, 그리고 다른 열 · 다른 행으로 옮길 수 있습니다.
+   · 행  : 페이지 안에서 위아래로 옮길 수 있습니다.
+   · 손잡이(⠿)를 잡았을 때만 시작되므로 텍스트 편집 · 선택과 충돌하지 않습니다.
+   · 이동은 pushHist() 를 거치므로 Ctrl+Z 로 되돌릴 수 있습니다.
+   · HTML5 dragstart 대신 포인터 이벤트로 구현 — 마우스 · 터치 · 펜에서 같게 동작하고
+     contenteditable 위에서 끌 때 브라우저 기본 드래그와 부딪히지 않습니다.
+===================================================================== */
+(function(){
+  const THRESHOLD = 4;                    /* 이 거리 이상 움직여야 드래그로 인정 */
+  const D = { armed:null, on:false, kind:null, id:null, host:null, drop:null, x:0, y:0, raf:0 };
+
+  /* ---------- 삽입 위치 표시선 ---------- */
+  let lineEl=null, ghostEl=null;
+  function lineDom(){
+    if(!lineEl){ lineEl=document.createElement('div'); lineEl.className='dnd-line'; document.body.appendChild(lineEl); }
+    return lineEl;
+  }
+  function showLine(x,y,w){
+    const el=lineDom();
+    el.style.display='block';
+    el.style.left=Math.round(x)+'px';
+    el.style.top=Math.round(y-1.5)+'px';
+    el.style.width=Math.max(24,Math.round(w))+'px';
+  }
+  function hideLine(){ if(lineEl) lineEl.style.display='none'; }
+  function clearMarks(){ document.querySelectorAll('.dnd-over').forEach(el=>el.classList.remove('dnd-over')); }
+
+  /* ---------- 따라다니는 반투명 사본 ---------- */
+  function makeGhost(host){
+    const w=Math.min(host.offsetWidth||280, 320);
+    const g=document.createElement('div');
+    g.className='dnd-ghost';
+    g.style.width=w+'px';
+    const cp=host.cloneNode(true);
+    cp.classList.remove('sel','dragging');
+    cp.querySelectorAll('.pblk-tools,.pblk-grip,.prow-tools,.annot-pin,.txt-note').forEach(el=>el.remove());
+    cp.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    g.appendChild(cp);
+    document.body.appendChild(g);
+    ghostEl=g;
+  }
+  function moveGhost(x,y){ if(ghostEl){ ghostEl.style.left=(x+14)+'px'; ghostEl.style.top=(y+12)+'px'; } }
+  function killGhost(){ if(ghostEl){ ghostEl.remove(); ghostEl=null; } }
+
+  /* ---------- 가장자리 자동 스크롤 ----------
+     위쪽 여백은 고정된 빌더 바 높이만큼 더 잡는다 — 바에 가려진 구간으로 끌면
+     스크롤이 올라가면서 가려졌던 자리가 드러난다 */
+  let topM=90;
+  function autoScroll(){
+    if(!D.on){ D.raf=0; return; }
+    const M=90, h=window.innerHeight;
+    if(D.y<topM)     window.scrollBy(0, -(18*(1-D.y/topM)+4));
+    else if(D.y>h-M) window.scrollBy(0,  (18*(1-(h-D.y)/M)+4));
+    D.raf=requestAnimationFrame(autoScroll);
+  }
+
+  function reset(){
+    D.armed=null; D.on=false; D.kind=null; D.id=null; D.drop=null;
+    if(D.raf){ cancelAnimationFrame(D.raf); D.raf=0; }
+    if(D.host) D.host.classList.remove('dragging');
+    D.host=null;
+    hideLine(); clearMarks(); killGhost();
+    document.body.classList.remove('dnd-active');
+  }
+
+  /* ---------- 놓을 위치 계산 ---------- */
+  /* 자식들의 세로 중앙선을 기준으로 몇 번째 앞에 끼울지 정한다 */
+  function slotIndex(kids, y){
+    for(let i=0;i<kids.length;i++){
+      const r=kids[i].getBoundingClientRect();
+      if(y < r.top + r.height/2) return i;
+    }
+    return kids.length;
+  }
+  function elAt(x,y,sel){
+    /* 사본·표시선은 pointer-events:none 이라 아래 요소가 잡힌다 */
+    const el=document.elementFromPoint(x,y);
+    return el ? el.closest(sel) : null;
+  }
+  function blockTarget(x,y){
+    const col=elAt(x,y,'.pcol');
+    if(!col) return null;
+    const kids=[...col.querySelectorAll(':scope > .pblk')];
+    const idx=slotIndex(kids,y);
+    const cr=col.getBoundingClientRect();
+    let ly;
+    if(!kids.length)         ly = cr.top + 14;
+    else if(idx<kids.length) ly = kids[idx].getBoundingClientRect().top - 5;
+    else                     ly = kids[kids.length-1].getBoundingClientRect().bottom + 5;
+    clearMarks(); col.classList.add('dnd-over');
+    showLine(cr.left+10, ly, cr.width-20);
+    return { colId: col.dataset.col, index: idx };
+  }
+  function rowTarget(x,y){
+    const area=elAt(x,y,'.rows-area');
+    if(!area) return null;
+    const kids=[...area.querySelectorAll(':scope > .prow')];
+    const idx=slotIndex(kids,y);
+    const ar=area.getBoundingClientRect();
+    let ly;
+    if(!kids.length)         ly = ar.top + 14;
+    else if(idx<kids.length) ly = kids[idx].getBoundingClientRect().top - 7;
+    else                     ly = kids[kids.length-1].getBoundingClientRect().bottom + 7;
+    clearMarks();
+    showLine(ar.left, ly, ar.width);
+    return { index: idx };
+  }
+
+  /* ---------- 실제 이동 ---------- */
+  function dropBlock(bid, colId, idx){
+    const f=findBlock(bid), to=findCol(colId);
+    if(!f || !to) return;
+    const from=f.col.blocks, i=from.indexOf(f.block);
+    if(i<0) return;
+    if(f.col===to){                     /* 같은 열 — 자기 자신을 뺀 뒤의 위치로 보정 */
+      if(idx>i) idx--;
+      if(idx===i) return;               /* 제자리 — 히스토리를 남기지 않는다 */
+    }
+    pushHist();
+    from.splice(i,1);
+    to.blocks.splice(Math.max(0,Math.min(idx,to.blocks.length)),0,f.block);
+    state.sel=bid;
+    render();
+  }
+  function dropRow(rid, idx){
+    const rows=state.rows, i=rows.findIndex(r=>r.id===rid);
+    if(i<0) return;
+    if(idx>i) idx--;
+    if(idx===i) return;
+    pushHist();
+    const [x]=rows.splice(i,1);
+    rows.splice(Math.max(0,Math.min(idx,rows.length)),0,x);
+    render();
+  }
+
+  /* ---------- 이벤트 ---------- */
+  document.addEventListener('pointerdown', e=>{
+    if(e.button!==0) return;
+    const g = e.target.closest && e.target.closest('[data-bdrag],[data-rdrag]');
+    if(!g) return;
+    if(!isEdit() || document.body.classList.contains('annot') || document.body.classList.contains('textm')) return;
+    const bid=g.dataset.bdrag;
+    D.armed={ kind: bid?'block':'row', id: bid || g.dataset.rdrag, x:e.clientX, y:e.clientY };
+    /* 캡처는 <html> 에 건다 — 손잡이(행 툴바)는 hover 가 풀리면 숨겨지고,
+       숨겨진 요소는 캡처를 잃으면서 pointercancel 을 일으켜 드래그가 끊긴다 */
+    try{ document.documentElement.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();                  /* 끄는 동안 글자가 선택되지 않게 */
+  });
+
+  document.addEventListener('pointermove', e=>{
+    if(!D.armed && !D.on) return;
+    D.x=e.clientX; D.y=e.clientY;
+
+    if(!D.on){                           /* 문턱을 넘는 순간 드래그 시작 */
+      if(Math.abs(e.clientX-D.armed.x)<THRESHOLD && Math.abs(e.clientY-D.armed.y)<THRESHOLD) return;
+      D.on=true; D.kind=D.armed.kind; D.id=D.armed.id;
+      D.host=document.querySelector(D.kind==='block' ? `[data-blk="${D.id}"]` : `[data-row="${D.id}"]`);
+      if(!D.host){ reset(); return; }
+      D.host.classList.add('dragging');
+      document.body.classList.add('dnd-active');
+      makeGhost(D.host);
+      const bar=$('builder');
+      topM=Math.max(90,(bar?bar.getBoundingClientRect().height:0)+30);
+      if(!D.raf) D.raf=requestAnimationFrame(autoScroll);
+    }
+
+    moveGhost(e.clientX, e.clientY);
+    const hit = D.kind==='block' ? blockTarget(e.clientX,e.clientY) : rowTarget(e.clientX,e.clientY);
+    if(!hit){ D.drop=null; hideLine(); clearMarks(); }
+    else D.drop=hit;
+  });
+
+  document.addEventListener('pointerup', e=>{
+    if(!D.on){ D.armed=null; return; }
+    const kind=D.kind, id=D.id, d=D.drop;
+    reset();
+    /* 뒤따라오는 click 을 한 번 삼키기 위한 표시 (click 이 없을 때를 대비해 즉시 만료) */
+    document.body.dataset.dndJust='1';
+    setTimeout(()=>{ delete document.body.dataset.dndJust; }, 0);
+    if(!d) return;                       /* 빈 곳에 놓으면 아무 일도 일어나지 않는다 */
+    if(kind==='block') dropBlock(id, d.colId, d.index);
+    else               dropRow(id, d.index);
+  });
+
+  document.addEventListener('pointercancel', reset);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && (D.on||D.armed)) reset(); });
+  /* 드래그 직후의 click 이 다른 동작을 건드리지 않게 한 번 삼킨다 */
+  document.addEventListener('click', e=>{
+    if(!document.body.dataset.dndJust) return;
+    delete document.body.dataset.dndJust;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+})();
+
+/* =====================================================================
+   STEP 9 — 자동 저장 (브라우저 보관)
+   · 편집할 때마다 현재 상태 전체를 localStorage 에 담아 둔다.
+   · 탭을 닫거나 새로고침해도 다음에 열 때 그대로 이어서 작업할 수 있다.
+   · snap() / applySnap() 을 그대로 재사용하므로 실행취소와 같은 형식이다.
+   · 이 파일을 열 수 없는 환경(사생활 보호 모드 등)에서는 조용히 꺼지고
+     상단에 알린다 — 그때는 저장(JSON) 을 쓰면 된다.
+===================================================================== */
+const AS_KEY='pageBuilder.autosave.v1';
+let asOn=true, asTimer=0, asPausedUntilReady=true;
+
+function asStamp(t){
+  const d=new Date(t), p=n=>String(n).padStart(2,'0');
+  const sameDay=new Date().toDateString()===d.toDateString();
+  return (sameDay?'':`${d.getMonth()+1}.${d.getDate()} `)+`${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function asInfo(msg,warn){
+  const el=$('autoSaveInfo'); if(!el) return;
+  el.textContent=msg; el.classList.toggle('warn',!!warn);
+}
+function asSave(){
+  if(!asOn || asPausedUntilReady) return;
+  try{
+    const t=Date.now();
+    localStorage.setItem(AS_KEY, JSON.stringify({v:1,t,s:snap()}));
+    asInfo('자동 저장됨 · '+asStamp(t));
+  }catch(err){
+    asOn=false;
+    const quota = err && (err.name==='QuotaExceededError' || err.code===22);
+    asInfo(quota?'자동 저장 중단 — 용량 초과. 저장(JSON)을 이용하세요'
+                :'자동 저장 사용 불가 — 저장(JSON)을 이용하세요', true);
+  }
+}
+function asSchedule(){ if(!asOn) return; clearTimeout(asTimer); asTimer=setTimeout(asSave,700); }
+function asFlush(){ clearTimeout(asTimer); asSave(); }
+function asClear(){ try{ localStorage.removeItem(AS_KEY); }catch(_){} }
+
+/* 상태를 바꾸는 길목은 모두 render() 를 지난다 — 여기 한 곳만 감싸면 된다 */
+const __render_before_autosave = render;
+render = function(){ __render_before_autosave.apply(this,arguments); asSchedule(); };
+/* 본문 글자 편집은 focusout 에서 상태에 반영되므로 따로 걸어 준다 */
+$('canvas').addEventListener('focusout', asSchedule);
+/* 탭을 닫거나 숨길 때는 기다리지 않고 즉시 기록 */
+window.addEventListener('pagehide', asFlush);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') asFlush(); });
+
 /* ---------- 시작 ---------- */
 (function init(){
-  TPL.portal();
-  render(); syncHistBtns();
+  let restored=null;
+  try{
+    const raw=localStorage.getItem(AS_KEY);
+    if(raw){
+      const o=JSON.parse(raw);
+      if(o && o.s) restored=o;
+    }
+  }catch(err){
+    asOn=false;
+    asInfo('자동 저장 사용 불가 — 저장(JSON)을 이용하세요', true);
+  }
+
+  if(restored){
+    try{
+      applySnap(restored.s);                 /* 내부에서 reseq() · render() 까지 처리 */
+      undoStack=[]; redoStack=[];            /* 복구 직후는 되돌릴 이전 상태가 없다 */
+      const bar=$('restoreBar');
+      $('rbWhen').textContent='('+asStamp(restored.t)+' 기준)';
+      bar.hidden=false;
+    }catch(err){
+      restored=null;                          /* 깨진 기록이면 버리고 기본 예시로 */
+      asClear();
+    }
+  }
+  if(!restored){ TPL.portal(); render(); }
+
+  syncHistBtns();
+  asPausedUntilReady=false;                   /* 여기서부터 자동 저장 시작 */
+  if(asOn) asInfo(restored?'자동 저장됨 · '+asStamp(restored.t):'자동 저장 켜짐');
 })();
+
+$('rbFresh').onclick = () => {
+  if(!confirm('지금 화면의 내용을 지우고 기본 예시로 새로 시작할까요?\n(보관된 이전 내용도 함께 삭제됩니다)')) return;
+  asClear();
+  undoStack=[]; redoStack=[]; syncHistBtns();
+  TPL.portal(); state.sel=null; render();
+  $('restoreBar').hidden=true;
+};
+$('rbClose').onclick = () => { $('restoreBar').hidden=true; };
 </script>
 </body>
 </html>

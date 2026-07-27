@@ -124,6 +124,7 @@
   table.cm-tbl .mini{width:20px;height:20px;border:1px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;color:#5a6472;padding:0;}
   table.cm-tbl .mini:hover{background:#eef4fb;}
   table.cm-tbl .mini.eye.off{background:#f0a020;border-color:#dc8f14;color:#fff;}
+  table.cm-tbl .fx-mark{display:inline-block;background:#e8f7ee;color:#1f7a4a;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700;}
   table.cm-tbl .c{text-align:center;}
   table.cm-tbl .num{text-align:right;font-feature-settings:"tnum";}
   body.edit table.grid thead th.col-gear{cursor:pointer;}
@@ -808,6 +809,10 @@
       <select class="b-sel" id="colFormat" title="일반(자동): 숫자 유형이거나 컬럼명이 금액·수량·율이면 콤마·%를 자동으로 적용합니다. 직접 고르면 그 포맷이 우선합니다."><option value="none">일반(자동)</option><option value="comma">1,000</option><option value="won">₩</option><option value="percent">%</option></select>
       <span style="font-size:11.5px;color:#7a828d;">너비</span><input class="b-txt" id="colWidth" type="number" min="1" value="30" style="width:64px;" title="컬럼 너비(글자수)">
       <button class="type-btn accent" id="addCol">＋ 컬럼</button>
+      <span class="divider-v"></span>
+      <select class="b-sel" id="colTpl" style="width:132px;" title="자주 쓰는 컬럼 묶음을 한 번에 추가"><option value="">컬럼 세트…</option></select>
+      <button class="type-btn" id="addTpl">＋ 세트</button>
+      <button class="type-btn" id="colDefPaste" title="엑셀의 컬럼 정의표를 붙여넣어 한 번에 만들기">📋 정의 붙여넣기</button>
     </div>
     <div class="builder-sec g-panel">
       <span class="sec-title">폼 필드 · 카드</span>
@@ -838,7 +843,9 @@
       <button class="type-btn" id="pasteData">📋 붙여넣기</button>
       <button class="type-btn" id="genSample">🎲 샘플</button>
       <select class="b-sel" id="sampleN" style="width:74px;" title="생성할 행 수"><option>5</option><option selected>8</option><option>10</option><option>20</option><option>50</option><option>100</option></select>
+      <select class="b-sel" id="sampleDom" style="width:104px;" title="샘플에 쓰일 어휘 묶음"><option value="auto">주문·매장</option><option value="member">회원</option><option value="stock">재고·품목</option><option value="settle">정산</option><option value="hr">인사·근태</option></select>
       <label class="b-chk" title="비우지 않고 기존 데이터 뒤에 이어 붙입니다"><input type="checkbox" id="sampleAppend"> 이어붙이기</label>
+      <label class="b-chk" title="다시 눌러도 같은 값이 나옵니다 (화면 비교용)"><input type="checkbox" id="sampleSeed"> 값 고정</label>
       <button class="type-btn ghost" id="delChecked" title="체크박스열에서 체크한 행을 한 번에 지웁니다">✕ 선택행 삭제</button>
       <button class="type-btn ghost" id="clearRows">비우기</button>
       <span class="hint">‘대상 패널’ 기준으로 적용됩니다.</span>
@@ -1354,6 +1361,7 @@ function openColEditor(pid,kid){
       <label>옵션</label><input class="b-txt full" id="ceOpts" value="${esc((k.options||[]).join(', '))}" placeholder="드롭다운·뱃지 옵션 (쉼표) — 뱃지는 값=색 지정 가능 (예: 정상=초록)">
       <label>링크팝업</label><select class="b-sel" id="ceLink">${$('colLink').innerHTML}</select>
       <label>합계행</label><select class="b-sel" id="ceAgg" title="합계행이 켜져 있을 때 이 컬럼에 표시할 집계">${Object.keys(AGG_KO).map(x=>`<option value="${x}">${AGG_KO[x]}</option>`).join('')}</select>
+      <label>수식</label><input class="b-txt full" id="ceFx" value="${esc(k.formula||'')}" placeholder="예: [단가] * [수량]   — 다른 컬럼은 [컬럼명] 으로, + - * / ( ) 사용">
       <label>순서</label><div class="ce-ord full">
         <button class="btn btn-sm" data-ord="first" title="맨 앞으로">⇤ 맨앞</button>
         <button class="btn btn-sm" data-ord="left">◀</button>
@@ -1406,9 +1414,12 @@ function openColEditor(pid,kid){
     k.options=optArr();
     k.infoPopupId=$('ceLink').value||null;
     k.agg=$('ceAgg').value;
+    k.formula=$('ceFx').value.trim();
     k.hidden=$('ceHide').checked;
+    /* [STEP9-D] 수식이 있으면 지금 있는 행을 바로 계산해 채운다 */
+    const nfx=k.formula?applyFormulas(p,p.rows):0;
     closeModal(); render(); schedulePush();
-    if(typeof __actToast==='function') __actToast(`‘${nm}’ 컬럼 설정을 적용했습니다.`,'success');
+    if(typeof __actToast==='function') __actToast(`‘${nm}’ 컬럼 설정을 적용했습니다.${nfx?` (수식으로 ${nfx}칸 계산)`:''}`,'success');
   };
   drawPrev(); $('ceName').focus();
 }
@@ -1455,6 +1466,13 @@ function openColManager(pid){
       <button class="btn btn-sm" id="cmEven" title="현재 전체 폭을 균등 분배">균등</button>
       <button class="btn btn-sm" id="cmReset" title="유형·이름 기준 기본값으로">초기화</button>
     </div>
+    <div class="cm-bar">
+      <span class="lb">그룹 묶기</span>
+      <input class="b-txt" id="cmGrpName" placeholder="그룹명 (2줄 헤더)" style="width:150px;">
+      <button class="btn btn-sm btn-primary" id="cmGrpSet" title="체크한 컬럼을 나란히 모으고 하나의 그룹 헤더로 묶습니다">묶기</button>
+      <button class="btn btn-sm" id="cmGrpClr" title="체크한 컬럼의 그룹을 해제합니다">해제</button>
+      <span class="lb" style="margin-left:6px;">선택한 컬럼은 그룹으로 묶이면서 서로 붙습니다</span>
+    </div>
     <div class="cm-wrap"><table class="cm-tbl"><thead><tr>
       <th style="width:30px"></th><th style="width:34px">#</th><th>컬럼명</th><th style="width:92px">유형</th>
       <th style="width:58px">정렬</th><th style="width:74px">형식</th><th style="width:56px">너비</th>
@@ -1469,7 +1487,7 @@ function openColManager(pid){
     $('cmBody').innerHTML=list.map(({k,i})=>`<tr class="${sel.has(k.id)?'on':''}${k.hidden?' hid':''}">
       <td class="c"><input type="checkbox" class="cm-chk" data-kid="${k.id}" ${sel.has(k.id)?'checked':''}></td>
       <td class="c">${i+1}</td>
-      <td class="cm-name">${esc(k.name)}${k.group?` <span style="color:#9aa2ac;font-weight:500;">(${esc(k.group)})</span>`:''}</td>
+      <td class="cm-name">${esc(k.name)}${k.group?` <span style="color:#9aa2ac;font-weight:500;">(${esc(k.group)})</span>`:''}${k.formula?` <span class="fx-mark" title="수식: ${esc(k.formula)}">ƒ</span>`:''}</td>
       <td>${COL_TYPE_KO[k.cellType]||k.cellType}</td>
       <td class="c">${ALIGN[k.align]||''}</td>
       <td class="c">${FMT[k.format||'none']||''}${(k.format==='none'||!k.format)&&autoComma(k)?'<span style="color:#2278df" title="숫자 컬럼 자동 콤마">*</span>':''}</td>
@@ -1512,6 +1530,20 @@ function openColManager(pid){
   $('cmHide').onclick=()=>{const a=picked();if(!a)return;a.forEach(k=>k.hidden=true);renderResult();schedulePush();draw();};
   $('cmFit').onclick=()=>{const a=picked();if(!a)return;a.forEach(k=>k.width=autoFitW(p,k));renderResult();schedulePush();draw();};
   $('cmEven').onclick=()=>{const a=picked();if(!a)return;const t=a.reduce((s2,k)=>s2+(k.width||20),0);const w=Math.max(6,Math.round(t/a.length));a.forEach(k=>k.width=w);renderResult();schedulePush();draw();};
+  $('cmGrpSet').onclick=()=>{
+    const a=picked(); if(!a)return;
+    const nm=$('cmGrpName').value.trim();
+    if(!nm){alert('그룹명을 입력하세요.');$('cmGrpName').focus();return;}
+    const arr=p.columns.slice();
+    const sorted=a.slice().sort((x,y)=>arr.indexOf(x)-arr.indexOf(y));
+    const firstIdx=arr.indexOf(sorted[0]);
+    const ins=arr.slice(0,firstIdx).filter(k=>!a.includes(k)).length;   /* 선택 컬럼을 제외한 앞쪽 개수 = 삽입 위치 */
+    const rest=arr.filter(k=>!a.includes(k));
+    sorted.forEach(k=>k.group=nm);
+    p.columns=[...rest.slice(0,ins),...sorted,...rest.slice(ins)];
+    renderResult(); schedulePush(); draw();
+  };
+  $('cmGrpClr').onclick=()=>{const a=picked();if(!a)return;a.forEach(k=>k.group='');renderResult();schedulePush();draw();};
   $('cmReset').onclick=()=>{const a=picked();if(!a)return;a.forEach(k=>k.width=autoW(k.name,k.cellType));renderResult();schedulePush();draw();};
   draw();
 }
@@ -2292,52 +2324,79 @@ $('clearRows').onclick=()=>{const p=curP();if(!p||!p.rows.length)return;if(confi
    · 표시형식(₩·콤마·%)에 따라 값의 자릿수를 달리 한다
    · 단가×수량=금액, 시작일≤종료일 처럼 컬럼 사이 앞뒤가 맞도록 보정한다 */
 function optValues(k){ return (k.options||[]).map(o=>String(o).split('=')[0].trim()).filter(Boolean); }
-function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+/* [STEP9-D] 값 고정 : 같은 표는 몇 번을 눌러도 같은 샘플이 나오도록 시드 난수를 쓴다 */
+let RND=Math.random;
+function seededRnd(seed){ let x=(seed>>>0)||1; return ()=>{ x=(Math.imul(x,1664525)+1013904223)>>>0; return x/4294967296; }; }
+function hashStr(str){ let h=2166136261; for(let i=0;i<String(str).length;i++){ h^=String(str).charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function pick(a){ return a[Math.floor(RND()*a.length)]; }
+/* [STEP9-D] 업무 영역별 어휘 */
+let SAMPLE_DOM='auto';
+const DOM_POOL={
+  auto:  {org:[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨']],
+          item:['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원'],
+          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'],
+          tag:['신규','VIP','재방문','프로모션','앱주문','포장','배달','예약']},
+  member:{org:[['M0001','강남지점'],['M0002','수원지점'],['M0003','부산서면'],['M0004','대전둔산']],
+          item:['일반','실버','골드','VIP'],
+          name:['김서연','이도윤','박하준','최지우','정예은','한시우','오유진','장민재'],
+          tag:['신규가입','휴면','마케팅동의','앱설치','추천가입','등급상향']},
+  stock: {org:[['W001','중앙물류창고'],['W002','남부창고'],['W003','수도권창고'],['W004','반품창고']],
+          item:['생수 500ml','종이컵 6oz','포장용기 소','냅킨 200매','일회용 수저'],
+          name:['재고담당','물류팀','검수자','창고장'],
+          tag:['부족','과잉','유통기한임박','반품','폐기예정']},
+  settle:{org:[['V1001','(주)한빛식자재'],['V1002','대한물류(주)'],['V1003','서울포장산업'],['V1004','그린팜']],
+          item:['카드정산','현금정산','포인트차감','쿠폰정산','수수료'],
+          name:['정산담당','회계팀','승인자','검토자'],
+          tag:['이월','조정','보류','확정','재정산']},
+  hr:    {org:[['D01','영업팀'],['D02','운영팀'],['D03','전산팀'],['D04','인사팀']],
+          item:['연차','반차','출장','교육','재택'],
+          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'],
+          tag:['정상','지각','조퇴','결근','승인대기']}
+};
 function numByFormat(k){
-  if(k.format==='percent') return (Math.random()*100).toFixed(1);
-  if(k.format==='won')     return String((Math.floor(Math.random()*900)+50)*10000);      /* 50만 ~ 9,500만 */
-  if(/단가|가격/.test(k.name)) return String((Math.floor(Math.random()*90)+5)*100);        /* 500 ~ 9,500 */
-  if(/수량|건수|개수|인원|횟수/.test(k.name)) return String(Math.floor(Math.random()*300)+1);
-  if(k.format==='comma')   return String(Math.floor(Math.random()*900000)+1000);
-  return String(Math.floor(Math.random()*90000)+1000);
+  if(k.format==='percent') return (RND()*100).toFixed(1);
+  if(k.format==='won')     return String((Math.floor(RND()*900)+50)*10000);      /* 50만 ~ 9,500만 */
+  if(/단가|가격/.test(k.name)) return String((Math.floor(RND()*90)+5)*100);        /* 500 ~ 9,500 */
+  if(/수량|건수|개수|인원|횟수/.test(k.name)) return String(Math.floor(RND()*300)+1);
+  if(k.format==='comma')   return String(Math.floor(RND()*900000)+1000);
+  return String(Math.floor(RND()*90000)+1000);
 }
 function genRows(p,n,startIdx){
   const base=startIdx||0;
-  const stores=[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨']];
-  const prods=['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원'];
-  const names=['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'];
-  const tagPool=['신규','VIP','재방문','프로모션','앱주문','포장','배달','예약'];
+  const pool=DOM_POOL[SAMPLE_DOM]||DOM_POOL.auto;
+  const stores=pool.org, prods=pool.item, names=pool.name, tagPool=pool.tag;
   const emojiPool=['🍕','🍔','🥤','🍗','🥗','🧀','🍟','☕'];
   const pad=(v,l)=>String(v).padStart(l,'0');
   const out=[];
   for(let x=0;x<n;x++){const r=base+x;const row={};p.columns.forEach(k=>{const nm=k.name;
-    if(k.cellType==='checkbox'||k.cellType==='toggle') row[k.id]=Math.random()>.5?'1':'';
+    if(k.cellType==='checkbox'||k.cellType==='toggle') row[k.id]=RND()>.5?'1':'';
     else if(k.cellType==='dropdown'){const o=optValues(k);row[k.id]=o.length?pick(o):'선택';}
     else if(k.cellType==='badge'){const o=optValues(k);row[k.id]=o.length?pick(o):pick(['정상','대기','만료']);}
-    else if(k.cellType==='progress') row[k.id]=String(Math.floor(Math.random()*101));
-    else if(k.cellType==='rating') row[k.id]=String(Math.floor(Math.random()*5)+1);
-    else if(k.cellType==='tag'){const cnt=1+Math.floor(Math.random()*2);const st=Math.floor(Math.random()*tagPool.length);row[k.id]=Array.from({length:cnt},(_,i)=>tagPool[(st+i)%tagPool.length]).join(',');}
+    else if(k.cellType==='progress') row[k.id]=String(Math.floor(RND()*101));
+    else if(k.cellType==='rating') row[k.id]=String(Math.floor(RND()*5)+1);
+    else if(k.cellType==='tag'){const cnt=1+Math.floor(RND()*2);const st=Math.floor(RND()*tagPool.length);row[k.id]=Array.from({length:cnt},(_,i)=>tagPool[(st+i)%tagPool.length]).join(',');}
     else if(k.cellType==='button') row[k.id]=/보고|리포트/.test(nm)?'보고서':/재발송|발송/.test(nm)?'재발송':/승인/.test(nm)?'승인':'보기';
     else if(k.cellType==='image') row[k.id]=emojiPool[r%emojiPool.length];
-    else if(k.cellType==='diff') row[k.id]=String(Math.floor(Math.random()*2001)-1000);
+    else if(k.cellType==='diff') row[k.id]=String(Math.floor(RND()*2001)-1000);
     else if(k.cellType==='email') row[k.id]='user'+pad(r+1,2)+'@'+['naver.com','gmail.com','nhn.com'][r%3];
-    else if(k.cellType==='phone') row[k.id]='010-'+pad(Math.floor(Math.random()*9000)+1000,4)+'-'+pad(Math.floor(Math.random()*9000)+1000,4);
+    else if(k.cellType==='phone') row[k.id]='010-'+pad(Math.floor(RND()*9000)+1000,4)+'-'+pad(Math.floor(RND()*9000)+1000,4);
     else if(k.cellType==='date'||/일자|날짜|등록일|점검일/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d);}
     else if(/일시|수신시각|접수시각/.test(nm)){const d=new Date();d.setDate(d.getDate()-r);row[k.id]=fmt(d)+' '+pad(9+(r%10),2)+':'+pad((r*7)%60,2);}
     else if(/시각|시간$/.test(nm)&&!NUMERIC(k)) row[k.id]=pad(9+(r%10),2)+':'+pad((r*5)%60,2);
     else if(/사업자/.test(nm)) row[k.id]=pad(100+r*13%900,3)+'-'+pad(10+r*7%90,2)+'-'+pad(10000+r*997%90000,5);
-    else if(/전화|연락처|휴대폰/.test(nm)) row[k.id]='010-'+pad(Math.floor(Math.random()*9000)+1000,4)+'-'+pad(Math.floor(Math.random()*9000)+1000,4);
+    else if(/전화|연락처|휴대폰/.test(nm)) row[k.id]='010-'+pad(Math.floor(RND()*9000)+1000,4)+'-'+pad(Math.floor(RND()*9000)+1000,4);
     else if(/이메일|메일/.test(nm)) row[k.id]='user'+pad(r+1,2)+'@nhn.com';
     else if(NUMERIC(k)) row[k.id]=numByFormat(k);
     else if(/성명|사원명|담당자|작성자|점검자|고객명/.test(nm)) row[k.id]=names[r%names.length];
     else if(/부서/.test(nm)) row[k.id]=['영업팀','운영팀','전산팀','인사팀'][r%4];
-    else if(/거래처/.test(nm)) row[k.id]=['(주)한빛식자재','대한물류(주)','서울포장산업','그린팜'][r%4];
+    else if(/거래처|가맹점|공급처|업체|창고|지점/.test(nm)) row[k.id]=stores[r%stores.length][1];
     else if(/매장명|점포|그룹명/.test(nm)) row[k.id]=stores[r%stores.length][1];
     else if(/매장코드|그룹코드|코드/.test(nm)) row[k.id]=stores[r%stores.length][0];
     else if(/상품명|메뉴/.test(nm)) row[k.id]=prods[r%prods.length];
     else row[k.id]=nm+' '+(r+1);});
     fixupRow(p,row);
     out.push(row);}
+  applyFormulas(p,out);                     /* [STEP9-D] 수식이 지정된 컬럼은 계산 결과로 덮어쓴다 */
   return out;
 }
 /* 컬럼 사이 값이 서로 어긋나지 않게 보정 */
@@ -2359,12 +2418,173 @@ $('genSample').onclick=()=>{
   const p=curP(); if(!gridOnly(p))return;
   if(!p.columns.length){alert('대상 패널에 컬럼을 먼저 추가하세요.');return;}
   const n=Math.max(1,parseInt($('sampleN').value,10)||8), app=$('sampleAppend').checked;
+  SAMPLE_DOM=$('sampleDom').value||'auto';
+  RND = $('sampleSeed').checked ? seededRnd(hashStr(p.id+'|'+p.columns.map(k=>k.name).join(','))) : Math.random;
   state.queried=true;
   const made=genRows(p,n,app?p.rows.length:0);
+  RND=Math.random;
   p.rows = app ? p.rows.concat(made) : made;
   renderResult(); updateCount(); schedulePush();
   if(typeof __actToast==='function') __actToast(`샘플 ${n}행을 ${app?'추가':'생성'}했습니다.`,'success');
 };
+
+
+/* ================= [STEP9-D] 컬럼 세트 템플릿 ================= */
+/* 자주 쓰는 컬럼 묶음. [이름, 유형, {f:형식, a:정렬, w:너비, o:옵션}] */
+const COL_SETS={
+  hist:{nm:'등록·수정 이력', cols:[['등록일시','date'],['등록자','text'],['수정일시','date'],['수정자','text']]},
+  store:{nm:'매장 기본', cols:[['매장코드','link'],['매장명','text',{a:'l'}],['대표자','text'],['연락처','phone'],
+    ['상태','badge',{o:['정상=초록','휴점=주황','폐점=빨강']}]]},
+  prod:{nm:'상품 기본', cols:[['상품코드','link'],['상품명','text',{a:'l'}],['분류','dropdown',{o:['음료','스낵','세트','기타']}],
+    ['단가','number',{f:'won'}],['재고수량','number',{f:'comma'}],['사용','checkbox']]},
+  amt:{nm:'금액 계산', cols:[['단가','number',{f:'won'}],['수량','number',{f:'comma'}],
+    ['공급가','number',{f:'won',fx:'[단가] * [수량]'}],['부가세','number',{f:'won',fx:'[공급가] * 0.1'}],
+    ['합계금액','number',{f:'won',fx:'[공급가] + [부가세]'}]]},
+  member:{nm:'회원 기본', cols:[['회원번호','link'],['회원명','text'],['휴대폰','phone'],['이메일','email',{a:'l'}],
+    ['가입일자','date'],['등급','badge',{o:['VIP=초록','일반=회색','휴면=주황']}]]},
+  proc:{nm:'처리 상태', cols:[['상태','badge',{o:['완료=초록','진행=주황','실패=빨강']}],['처리일시','date'],['처리자','text'],['비고','text',{a:'l',w:24}]]},
+  term:{nm:'기간 (시작~종료)', cols:[['시작일자','date'],['종료일자','date']]}
+};
+function addColSet(key){
+  const set=COL_SETS[key]; if(!set) return;
+  const p=curP(); if(!gridOnly(p))return;
+  set.cols.forEach(([nm,t,o])=>{
+    o=o||{};
+    const fmt=o.f||guessFormat(nm,t);
+    const k={id:'k'+(seq++),name:nm,align:o.a||(fmt!=='none'&&t!=='number'?'r':(t==='number'?'r':'c')),
+      group:'',format:fmt,cellType:t,options:o.o||[],width:o.w||autoW(nm,t),infoPopupId:null};
+    if(o.fx) k.formula=o.fx;
+    p.columns.push(k);
+  });
+  render(); schedulePush();
+  if(typeof __actToast==='function') __actToast(`‘${set.nm}’ 컬럼 ${set.cols.length}개를 추가했습니다.`,'success');
+}
+
+/* ================= [STEP9-D] 컬럼 정의 표 붙여넣기 ================= */
+/* 유형 별칭표 — COL_TYPE_KO 가 아래쪽에 선언되므로 처음 쓸 때 만든다 */
+let _typeAlias=null;
+function typeAlias(){
+  if(_typeAlias) return _typeAlias;
+  const m={};
+  Object.keys(COL_TYPE_KO).forEach(k=>{m[k]=k;m[COL_TYPE_KO[k].replace(/\s|\(.*\)/g,'')]=k;});
+  Object.assign(m,{'숫자형':'number','금액':'number','문자':'text','문자열':'text','날짜':'date','일자':'date',
+    '뱃지':'badge','상태':'badge','콤보':'dropdown','선택':'dropdown','체크':'checkbox','링크':'link','전화':'phone','메일':'email'});
+  return (_typeAlias=m);
+}
+const ALIGN_ALIAS={'가운데':'c','중앙':'c','왼쪽':'l','좌':'l','오른쪽':'r','우':'r',c:'c',l:'l',r:'r',center:'c',left:'l',right:'r'};
+const FMT_ALIAS={'일반':'none','없음':'none','콤마':'comma','1,000':'comma','천단위':'comma','₩':'won','원':'won','금액':'won','%':'percent','퍼센트':'percent',none:'none',comma:'comma',won:'won',percent:'percent'};
+const DEF_FIELDS=['name','type','align','format','width','group','options','formula'];
+function defHeaderKey(s){
+  const v=String(s||'').replace(/\s/g,'');
+  if(/^(컬럼명|이름|항목명|name|컬럼)$/i.test(v)) return 'name';
+  if(/^(유형|타입|type|컬럼유형)$/i.test(v)) return 'type';
+  if(/^(정렬|align)$/i.test(v)) return 'align';
+  if(/^(형식|표시형식|포맷|format)$/i.test(v)) return 'format';
+  if(/^(너비|폭|width)$/i.test(v)) return 'width';
+  if(/^(그룹|그룹명|group)$/i.test(v)) return 'group';
+  if(/^(옵션|코드|목록|options)$/i.test(v)) return 'options';
+  if(/^(수식|계산|formula)$/i.test(v)) return 'formula';
+  return '';
+}
+function openColDefPaste(){
+  const p=curP(); if(!gridOnly(p))return;
+  modalBox.innerHTML=`<div class="modal-hd"><span class="mt">📋 컬럼 정의 붙여넣기 — ${esc(p.title||'패널')}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
+    <p class="hint-line">엑셀의 <b>컬럼 정의표</b>를 그대로 붙여넣어 컬럼을 한 번에 만듭니다.<br>
+      열 순서: <b>컬럼명 · 유형 · 정렬 · 형식 · 너비 · 그룹 · 옵션 · 수식</b> — 뒤쪽은 비워도 됩니다. 머리글이 있으면 이름으로 알아서 맞춥니다.</p>
+    <textarea class="paste-ta" id="cdArea" style="height:150px;" placeholder="매장코드&#9;링크&#9;가운데&#9;&#9;12&#10;매장명&#9;텍스트&#9;왼쪽&#9;&#9;20&#10;매출액&#9;숫자&#9;오른쪽&#9;₩&#9;14&#9;실적&#10;상태&#9;상태뱃지&#9;가운데&#9;&#9;10&#9;&#9;정상=초록,중지=빨강"></textarea>
+    <div class="pd-stat idle" id="cdStat">붙여넣으면 만들어질 컬럼을 아래에서 확인할 수 있습니다.</div>
+    <div class="pd-prev" id="cdPrev"></div>
+    <div class="pb-row" style="margin-top:10px;"><label style="width:auto;">방식</label>
+      <label class="b-chk"><input type="radio" name="cdmode" value="append" checked> 기존 뒤에 추가</label>
+      <label class="b-chk"><input type="radio" name="cdmode" value="replace"> 기존 컬럼 대체</label></div>
+    <div class="m-btns" style="margin-top:12px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="cdApply">적용</button></div></div>`;
+  openModal(true); bindX();
+  const ta=$('cdArea');
+  function parse(){
+    const r=parsePasteText(ta.value,'auto');
+    if(!r.rows.length) return {cols:[]};
+    let map=DEF_FIELDS.slice(), rows=r.rows;
+    const hk=r.rows[0].map(defHeaderKey);
+    if(hk.filter(Boolean).length>=2){ map=hk; rows=r.rows.slice(1); }
+    const cols=rows.map(cells=>{
+      const g={}; cells.forEach((v,i)=>{ const f=map[i]; if(f) g[f]=String(v||'').trim(); });
+      const nm=g.name||'';
+      const t=typeAlias()[String(g.type||'').replace(/\s|\(.*\)/g,'')]||'';
+      const fmt=FMT_ALIAS[String(g.format||'').replace(/\s/g,'')]||'';
+      const al=ALIGN_ALIAS[String(g.align||'').replace(/\s/g,'')]||'';
+      const w=parseInt(g.width,10);
+      return {name:nm, cellType:t||'text', typeRaw:g.type||'', typeOK:!g.type||!!t,
+        format:fmt||guessFormat(nm,t||'text'), align:al||((t==='number')?'r':'c'),
+        width:w>0?w:autoW(nm,t||'text'), group:g.group||'',
+        options:(g.options||'').split(/[,·]/).map(x=>x.trim()).filter(Boolean),
+        formula:g.formula||''};
+    }).filter(c=>c.name);
+    return {cols};
+  }
+  function draw(){
+    const {cols}=parse();
+    if(!ta.value.trim()||!cols.length){
+      $('cdStat').className='pd-stat idle';
+      $('cdStat').textContent='붙여넣으면 만들어질 컬럼을 아래에서 확인할 수 있습니다.';
+      $('cdPrev').innerHTML=''; return;
+    }
+    const bad=cols.filter(c=>!c.typeOK).length;
+    $('cdStat').className='pd-stat '+(bad?'bad':'ok');
+    $('cdStat').innerHTML=bad?`⚠ 컬럼 ${cols.length}개 중 <b>${bad}개</b>의 유형을 알 수 없어 <b>텍스트</b>로 만듭니다.`
+                             :`✓ 컬럼 ${cols.length}개를 만듭니다.`;
+    const FMT={none:'일반',comma:'1,000',won:'₩',percent:'%'}, AL={c:'가운데',l:'왼쪽',r:'오른쪽'};
+    $('cdPrev').innerHTML='<table><thead><tr><th class="rn">#</th><th>컬럼명</th><th>유형</th><th>정렬</th><th>형식</th><th>너비</th><th>그룹</th><th>옵션 · 수식</th></tr></thead><tbody>'
+      + cols.map((c,i)=>`<tr class="${c.typeOK?'':'bad'}"><td class="rn">${i+1}</td><td>${esc(c.name)}</td>
+        <td>${COL_TYPE_KO[c.cellType]}${c.typeOK?'':` <span class="mk-skip">${esc(c.typeRaw)}?</span>`}</td>
+        <td>${AL[c.align]||''}</td><td>${FMT[c.format]||''}</td><td>${c.width}</td><td>${esc(c.group)||'—'}</td>
+        <td>${esc(c.options.join(', ')||'')}${c.formula?` <span class="mk-new">ƒ ${esc(c.formula)}</span>`:''}</td></tr>`).join('')
+      + '</tbody></table>';
+  }
+  ta.addEventListener('input',draw); draw(); ta.focus();
+  $('cdApply').onclick=()=>{
+    const {cols}=parse();
+    if(!cols.length){alert('만들 컬럼이 없습니다.');return;}
+    const mode=modalBox.querySelector('input[name="cdmode"]:checked').value;
+    if(mode==='replace'&&p.columns.length&&!confirm(`기존 컬럼 ${p.columns.length}개와 데이터를 지우고 ${cols.length}개로 바꿉니다.\n계속할까요?`)) return;
+    if(mode==='replace'){ p.columns=[]; p.rows=[]; p.filters={}; }
+    cols.forEach(c=>p.columns.push({id:'k'+(seq++),name:c.name,align:c.align,group:c.group,format:c.format,
+      cellType:c.cellType,options:c.options,width:c.width,infoPopupId:null,formula:c.formula||''}));
+    closeModal(); render(); schedulePush();
+    if(typeof __actToast==='function') __actToast(`컬럼 ${cols.length}개를 만들었습니다.`,'success');
+  };
+}
+
+/* ================= [STEP9-D] 계산 수식 ================= */
+/* [컬럼명] 과 + - * / ( ) 숫자만 허용. 실시간 재계산이 아니라 '한 번 계산해 채우는' 방식 */
+function calcFormula(p,row,k){
+  if(!k.formula) return null;
+  let ex=String(k.formula);
+  ex=ex.replace(/\[([^\]]+)\]/g,(m,nm)=>{
+    const c=p.columns.find(x=>x.name.replace(/\s/g,'')===String(nm).replace(/\s/g,''));
+    if(!c) return 'NaN';
+    const v=Number(String(row[c.id]??'').replace(/,/g,''));
+    return isNaN(v)?'NaN':String(v);
+  });
+  if(!/^[\d\s.+\-*/()NaN]*$/.test(ex)) return null;      /* 허용 문자 외에는 계산하지 않는다 */
+  try{
+    const v=Function('"use strict";return ('+ex+')')();
+    if(typeof v!=='number'||!isFinite(v)) return null;
+    return String(Math.round(v*100)/100);
+  }catch(e){ return null; }
+}
+function applyFormulas(p,rows){
+  const fx=p.columns.filter(k=>k.formula); if(!fx.length) return 0;
+  let n=0;
+  for(let pass=0;pass<2;pass++){                          /* 수식이 서로를 참조해도 두 번이면 대개 채워진다 */
+    rows.forEach(r=>fx.forEach(k=>{const v=calcFormula(p,r,k); if(v!=null){ if(r[k.id]!==v) n++; r[k.id]=v; }}));
+  }
+  return n;
+}
+
+/* [STEP9-D] 컬럼 세트 · 정의 붙여넣기 */
+$('colTpl').innerHTML='<option value="">컬럼 세트…</option>'+Object.keys(COL_SETS).map(k=>`<option value="${k}">${esc(COL_SETS[k].nm)} (${COL_SETS[k].cols.length})</option>`).join('');
+$('addTpl').onclick=()=>{ const v=$('colTpl').value; if(!v){alert('추가할 컬럼 세트를 고르세요.');return;} addColSet(v); };
+$('colDefPaste').onclick=openColDefPaste;
 
 /* ================= 폼 필드 · 요약카드 추가 ================= */
 $('fldAdd').onclick=()=>{
@@ -3269,6 +3489,7 @@ function buildSpecExport(){
         if(k.cellType==='link'&&k.infoPopupId)notes.push('정보팝업: '+infoName(k.infoPopupId));
         if(k.hidden)notes.push('숨김 컬럼 (화면 미표시)');
         if(p.showSum&&aggOf(k)!=='none'&&aggOf(k)!=='sum')notes.push('합계행: '+AGG_KO[aggOf(k)]);
+        if(k.formula)notes.push('수식: '+k.formula);
         if(k.note)notes.push(k.note);
         return `<tr><td class="c">${i+1}</td><td>${esc(k.group)||'<span class="mut">—</span>'}</td><td>${esc(k.name)}</td><td class="c">${COL_TYPE_KO[k.cellType]||k.cellType}</td><td class="c">${ALIGN_KO[k.align]||''}</td><td class="c">${FMT_KO[k.format]||''}</td><td class="c">${k.width||''}</td><td>${esc(notes.join(' / '))||'<span class="mut">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;

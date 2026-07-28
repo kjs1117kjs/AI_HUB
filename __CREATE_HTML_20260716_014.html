@@ -2600,59 +2600,111 @@ document.addEventListener('click', e=>{
   tbl.querySelectorAll('tbody tr').forEach(tr=>{const c=tr.querySelector('.chk-row');if(c)tr.classList.toggle('chk-on',c.checked);});
 });
 $('clearRows').onclick=()=>{const p=curP();if(!p||!p.rows.length)return;if(confirm('이 패널의 데이터를 비울까요?')){p.rows=[];renderResult();updateCount();}};
-/* ===== [STEP6] 샘플 데이터 생성 =====
-   · 드롭다운·뱃지는 옵션 중에서 무작위로 뽑는다
-   · 표시형식(₩·콤마·%)에 따라 값의 자릿수를 달리 한다
-   · 단가×수량=금액, 시작일≤종료일 처럼 컬럼 사이 앞뒤가 맞도록 보정한다 */
+/* ===== [STEP6/STEP10] 샘플 데이터 생성 =====
+   · 드롭다운·뱃지는 옵션 중에서 무작위로 뽑는다 (옵션 없으면 컬럼명으로 시나리오 추정)
+   · 표시형식(₩·콤마·%)에 따라 값의 자릿수를 달리 한다 (금액류는 왼쪽으로 쏠린 분포)
+   · 단가×수량=금액, 입금-출금=잔액, 실적/목표=달성률, 시작일≤종료일 처럼 컬럼 사이 앞뒤가 맞도록 보정한다
+   · 주소·상태·유형·비고·등급·채널 등 흔한 텍스트 컬럼도 어휘 풀로 채운다
+   · 조직·이름·상품 등은 매 생성마다 섞어(shuffle) 써서 r%len 순환이 그대로 드러나지 않게 한다 */
 function optValues(k){ return (k.options||[]).map(o=>String(o).split('=')[0].trim()).filter(Boolean); }
 /* [STEP9-D] 값 고정 : 같은 표는 몇 번을 눌러도 같은 샘플이 나오도록 시드 난수를 쓴다 */
 let RND=Math.random;
 function seededRnd(seed){ let x=(seed>>>0)||1; return ()=>{ x=(Math.imul(x,1664525)+1013904223)>>>0; return x/4294967296; }; }
 function hashStr(str){ let h=2166136261; for(let i=0;i<String(str).length;i++){ h^=String(str).charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 function pick(a){ return a[Math.floor(RND()*a.length)]; }
-/* [STEP9-D] 업무 영역별 어휘 */
+/* [STEP10] 배열을 RND 기준으로 섞어 복사본 반환 — 순환 반복(r%len)이 그대로 드러나지 않도록 */
+function shuffled(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(RND()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; }
+/* [STEP10] 왼쪽으로 쏠린 분포 — 매출·금액류는 균일분포보다 이쪽이 실제 데이터에 가깝다 */
+function skewed(min,max,pow){ return min + (max-min)*Math.pow(RND(), pow||2); }
+function roundTo(v,unit){ return Math.round(v/unit)*unit; }
+/* [STEP10] 업무 영역별 어휘 — 풀 확장 + 주소/상태/유형/비고/등급/채널 추가 */
 let SAMPLE_DOM='auto';
 const DOM_POOL={
-  auto:  {org:[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨']],
-          item:['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원'],
-          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'],
-          tag:['신규','VIP','재방문','프로모션','앱주문','포장','배달','예약']},
-  member:{org:[['M0001','강남지점'],['M0002','수원지점'],['M0003','부산서면'],['M0004','대전둔산']],
+  auto:  {org:[['E09725','학동역점'],['E09748','맘스터치 A점'],['C00001','남양주오남'],['C00023','피자앤치킨'],
+               ['E10102','신촌점'],['E10233','홍대입구점'],['C00088','왕십리분식'],['E10578','수원영통점']],
+          item:['쉬림프골드','포테이토골드','스페셜콰트로','트리플 올인원','핫크리스피버거','치즈스틱','불고기버거','아메리카노'],
+          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈','윤서연','임재현','조은비','강태호'],
+          tag:['신규','VIP','재방문','프로모션','앱주문','포장','배달','예약'],
+          addr:['서울 강남구 학동로 401','서울 마포구 양화로 12','경기 남양주시 오남읍 오남로 88','서울 성동구 왕십리로 55',
+                '경기 수원시 영통구 광교로 21','서울 서대문구 신촌로 33','서울 마포구 홍익로 19','인천 남동구 구월로 7'],
+          status:['정상','휴점','영업준비','폐점예정'], type:['직영','가맹','위탁'],
+          memo:['특이사항 없음','재방문 고객 응대 요망','포장 주문 다수','배달 지연 이력 있음','신메뉴 반응 양호'],
+          grade:['일반','우수','최우수'], channel:['매장','앱','배달앱','전화주문'],
+          grp:[['G01','수도권사업부'],['G02','충청사업부'],['G03','영남사업부'],['G04','호남사업부']]},
+  member:{org:[['M0001','강남지점'],['M0002','수원지점'],['M0003','부산서면'],['M0004','대전둔산'],
+               ['M0005','인천송도'],['M0006','대구동성로'],['M0007','광주상무'],['M0008','제주노형']],
           item:['일반','실버','골드','VIP'],
-          name:['김서연','이도윤','박하준','최지우','정예은','한시우','오유진','장민재'],
-          tag:['신규가입','휴면','마케팅동의','앱설치','추천가입','등급상향']},
-  stock: {org:[['W001','중앙물류창고'],['W002','남부창고'],['W003','수도권창고'],['W004','반품창고']],
-          item:['생수 500ml','종이컵 6oz','포장용기 소','냅킨 200매','일회용 수저'],
-          name:['재고담당','물류팀','검수자','창고장'],
-          tag:['부족','과잉','유통기한임박','반품','폐기예정']},
-  settle:{org:[['V1001','(주)한빛식자재'],['V1002','대한물류(주)'],['V1003','서울포장산업'],['V1004','그린팜']],
+          name:['김서연','이도윤','박하준','최지우','정예은','한시우','오유진','장민재','서지호','강나윤','문지훈','배소율'],
+          tag:['신규가입','휴면','마케팅동의','앱설치','추천가입','등급상향'],
+          addr:['서울 강남구 테헤란로 152','경기 수원시 팔달구 인계로 20','부산 부산진구 서면로 30','대전 둔산동 대덕대로 155',
+                '인천 연수구 송도과학로 16','대구 중구 동성로 5','광주 서구 상무중앙로 61','제주 노형동 노형로 89'],
+          status:['정상','휴면','탈퇴'], type:['개인','법인'],
+          memo:['최근 3개월 미접속','문의 이력 있음','이벤트 참여 이력 다수','불만 접수 이력 있음','우수 활동 회원'],
+          grade:['브론즈','실버','골드','VIP'], channel:['앱','웹','오프라인','제휴채널'],
+          grp:[['G01','수도권회원그룹'],['G02','영남회원그룹'],['G03','호남회원그룹'],['G04','제주회원그룹']]},
+  stock: {org:[['W001','중앙물류창고'],['W002','남부창고'],['W003','수도권창고'],['W004','반품창고'],
+               ['W005','냉동창고A'],['W006','냉장창고B'],['W007','동남권창고'],['W008','임시보관창고']],
+          item:['생수 500ml','종이컵 6oz','포장용기 소','냅킨 200매','일회용 수저','비닐장갑','포장박스 대','테이프'],
+          name:['재고담당','물류팀','검수자','창고장','입출고담당','재고관리자'],
+          tag:['부족','과잉','유통기한임박','반품','폐기예정'],
+          addr:['경기 이천시 물류로 100','경기 용인시 남부로 55','서울 강서구 수도권로 8','충북 청주시 반품로 3',
+                '경기 안성시 냉동로 12','인천 서구 냉장로 21','부산 강서구 동남로 44','경기 화성시 임시로 9'],
+          status:['입고완료','출고대기','보관중','폐기대상'], type:['원자재','부자재','소모품'],
+          memo:['정기 재고실사 대상','파손 확인 필요','유통기한 임박 처리 필요','반품 승인 대기','특이사항 없음'],
+          grade:['A등급','B등급','C등급'], channel:['본사입고','업체직송','반품입고'],
+          grp:[['G01','상온보관그룹'],['G02','냉장보관그룹'],['G03','냉동보관그룹'],['G04','위험물보관그룹']]},
+  settle:{org:[['V1001','(주)한빛식자재'],['V1002','대한물류(주)'],['V1003','서울포장산업'],['V1004','그린팜'],
+               ['V1005','(주)미래유통'],['V1006','한강푸드'],['V1007','청년물산'],['V1008','대성상사']],
           item:['카드정산','현금정산','포인트차감','쿠폰정산','수수료'],
-          name:['정산담당','회계팀','승인자','검토자'],
-          tag:['이월','조정','보류','확정','재정산']},
-  hr:    {org:[['D01','영업팀'],['D02','운영팀'],['D03','전산팀'],['D04','인사팀']],
+          name:['정산담당','회계팀','승인자','검토자','재무담당'],
+          tag:['이월','조정','보류','확정','재정산'],
+          addr:['서울 중구 한빛로 10','경기 김포시 물류로 40','서울 영등포구 포장로 8','전남 나주시 그린로 5',
+                '서울 송파구 미래로 33','서울 마포구 한강로 71','대전 유성구 청년로 18','부산 사상구 대성로 26'],
+          status:['정산대기','정산완료','오류','보류'], type:['카드','현금','계좌이체','포인트'],
+          memo:['세금계산서 미발행','정산 오차 확인 필요','이월 처리됨','재정산 요청 접수','특이사항 없음'],
+          grade:['일반거래처','우수거래처','핵심거래처'], channel:['본사정산','지사정산','자동이체'],
+          grp:[['G01','정기거래처그룹'],['G02','일시거래처그룹'],['G03','우수거래처그룹'],['G04','신규거래처그룹']]},
+  hr:    {org:[['D01','영업팀'],['D02','운영팀'],['D03','전산팀'],['D04','인사팀'],
+               ['D05','마케팅팀'],['D06','재무팀'],['D07','법무팀'],['D08','전략기획팀']],
           item:['연차','반차','출장','교육','재택'],
-          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈'],
-          tag:['정상','지각','조퇴','결근','승인대기']}
+          name:['홍길동','김영희','이철수','박민수','최지은','정우성','한소희','오세훈','윤서연','임재현','조은비','강태호'],
+          tag:['정상','지각','조퇴','결근','승인대기'],
+          addr:['서울 강남구 테헤란로 231','서울 중구 을지로 45','서울 서초구 서초대로 100','서울 영등포구 여의대로 12',
+                '서울 마포구 월드컵로 20','서울 종로구 종로 5','서울 강서구 공항대로 30','서울 성동구 성수이로 8'],
+          status:['재직','휴직','퇴직예정'], type:['정규직','계약직','인턴'],
+          memo:['특이사항 없음','승인 대기중','재택 근무 전환','교육 이수 필요','평가 진행중'],
+          grade:['사원','대리','과장','차장','부장'], channel:['본사','지사','재택'],
+          grp:[['G01','본사그룹'],['G02','지사그룹'],['G03','해외그룹'],['G04','파견그룹']]}
 };
 function numByFormat(k){
   if(k.format==='percent') return (RND()*100).toFixed(1);
-  if(k.format==='won')     return String((Math.floor(RND()*900)+50)*10000);      /* 50만 ~ 9,500만 */
+  if(k.format==='won')     return String(roundTo(skewed(500000,95000000,2.2),10000));  /* 낮은 값에 쏠린 50만 ~ 9,500만 */
   if(/단가|가격/.test(k.name)) return String((Math.floor(RND()*90)+5)*100);        /* 500 ~ 9,500 */
   if(/수량|건수|개수|인원|횟수/.test(k.name)) return String(Math.floor(RND()*300)+1);
-  if(k.format==='comma')   return String(Math.floor(RND()*900000)+1000);
-  return String(Math.floor(RND()*90000)+1000);
+  if(k.format==='comma')   return String(Math.round(skewed(1000,900000,1.8)));
+  return String(Math.round(skewed(1000,90000,1.6)));
+}
+/* [STEP10] 옵션 없는 배지·드롭다운의 컬럼명 기반 기본 시나리오 추정 */
+function badgeGuess(nm,pool){
+  if(/승인/.test(nm)) return ['승인','반려','대기'];
+  if(/결제|정산/.test(nm)) return ['완료','대기','실패'];
+  if(/처리/.test(nm)) return ['처리완료','처리중','미처리'];
+  if(/상태/.test(nm)) return pool.status;
+  return ['정상','대기','만료'];
 }
 function genRows(p,n,startIdx){
   const base=startIdx||0;
   const pool=DOM_POOL[SAMPLE_DOM]||DOM_POOL.auto;
-  const stores=pool.org, prods=pool.item, names=pool.name, tagPool=pool.tag;
+  const stores=shuffled(pool.org), prods=shuffled(pool.item), names=shuffled(pool.name), tagPool=pool.tag;
+  const addrs=shuffled(pool.addr), memos=shuffled(pool.memo), grps=shuffled(pool.grp);
+  const deptPool=SAMPLE_DOM==='hr'?stores:shuffled(DOM_POOL.hr.org);
   const emojiPool=['🍕','🍔','🥤','🍗','🥗','🧀','🍟','☕'];
   const pad=(v,l)=>String(v).padStart(l,'0');
   const out=[];
   for(let x=0;x<n;x++){const r=base+x;const row={};p.columns.forEach(k=>{const nm=k.name;
     if(k.cellType==='checkbox'||k.cellType==='toggle') row[k.id]=RND()>.5?'1':'';
-    else if(k.cellType==='dropdown'){const o=optValues(k);row[k.id]=o.length?pick(o):'선택';}
-    else if(k.cellType==='badge'){const o=optValues(k);row[k.id]=o.length?pick(o):pick(['정상','대기','만료']);}
+    else if(k.cellType==='dropdown'){const o=optValues(k);row[k.id]=o.length?pick(o):pick(badgeGuess(nm,pool));}
+    else if(k.cellType==='badge'){const o=optValues(k);row[k.id]=o.length?pick(o):pick(badgeGuess(nm,pool));}
     else if(k.cellType==='progress') row[k.id]=String(Math.floor(RND()*101));
     else if(k.cellType==='rating') row[k.id]=String(Math.floor(RND()*5)+1);
     else if(k.cellType==='tag'){const cnt=1+Math.floor(RND()*2);const st=Math.floor(RND()*tagPool.length);row[k.id]=Array.from({length:cnt},(_,i)=>tagPool[(st+i)%tagPool.length]).join(',');}
@@ -2668,12 +2720,20 @@ function genRows(p,n,startIdx){
     else if(/전화|연락처|휴대폰/.test(nm)) row[k.id]='010-'+pad(Math.floor(RND()*9000)+1000,4)+'-'+pad(Math.floor(RND()*9000)+1000,4);
     else if(/이메일|메일/.test(nm)) row[k.id]='user'+pad(r+1,2)+'@nhn.com';
     else if(NUMERIC(k)) row[k.id]=numByFormat(k);
-    else if(/성명|사원명|담당자|작성자|점검자|고객명/.test(nm)) row[k.id]=names[r%names.length];
-    else if(/부서/.test(nm)) row[k.id]=['영업팀','운영팀','전산팀','인사팀'][r%4];
-    else if(/거래처|가맹점|공급처|업체|창고|지점/.test(nm)) row[k.id]=stores[r%stores.length][1];
-    else if(/매장명|점포|그룹명/.test(nm)) row[k.id]=stores[r%stores.length][1];
-    else if(/매장코드|그룹코드|코드/.test(nm)) row[k.id]=stores[r%stores.length][0];
+    else if(/성명|사원명|담당자|책임자|매니저|작성자|점검자|고객명|신청자|처리자/.test(nm)) row[k.id]=names[r%names.length];
+    else if(/부서|팀명/.test(nm)) row[k.id]=deptPool[r%deptPool.length][1];
+    else if(/주소|소재지/.test(nm)) row[k.id]=addrs[r%addrs.length];
+    else if(/거래처|가맹점|공급처|업체|창고|지점|파트너|매입처|매출처/.test(nm)) row[k.id]=stores[r%stores.length][1];
+    else if(/그룹명/.test(nm)) row[k.id]=grps[r%grps.length][1];        /* '그룹'은 매장과 다른 풀·다른 인덱스 오프셋 사용 */
+    else if(/매장명|점포/.test(nm)) row[k.id]=stores[r%stores.length][1];
+    else if(/그룹코드/.test(nm)) row[k.id]=grps[r%grps.length][0];
+    else if(/매장코드|코드/.test(nm)) row[k.id]=stores[r%stores.length][0];
     else if(/상품명|메뉴/.test(nm)) row[k.id]=prods[r%prods.length];
+    else if(/등급/.test(nm)) row[k.id]=pool.grade[r%pool.grade.length];
+    else if(/채널/.test(nm)) row[k.id]=pool.channel[r%pool.channel.length];
+    else if(/유형|분류|타입/.test(nm)) row[k.id]=pool.type[r%pool.type.length];
+    else if(/상태/.test(nm)) row[k.id]=pool.status[r%pool.status.length];
+    else if(/사유|비고|메모|특이사항/.test(nm)) row[k.id]=memos[r%memos.length];
     else row[k.id]=nm+' '+(r+1);});
     fixupRow(p,row);
     out.push(row);}
@@ -2693,6 +2753,18 @@ function fixupRow(p,row){
   const st=p.columns.find(k=>/시작/.test(k.name)), ed=p.columns.find(k=>/종료|만료/.test(k.name));
   if(st&&ed&&/^\d{4}-\d{2}-\d{2}$/.test(String(row[st.id]||''))&&/^\d{4}-\d{2}-\d{2}$/.test(String(row[ed.id]||''))){
     if(row[ed.id]<row[st.id]){ const t=row[st.id]; row[st.id]=row[ed.id]; row[ed.id]=t; }
+  }
+  /* [STEP10] 입금-출금=잔액 */
+  const income=find(/입금/), outgo=find(/출금/), bal=p.columns.find(k=>/잔액/.test(k.name)&&NUMERIC(k));
+  if(income&&outgo&&bal&&bal!==income&&bal!==outgo){
+    const i=Number(row[income.id])||0, o=Number(row[outgo.id])||0;
+    row[bal.id]=String(Math.max(0,i-o));
+  }
+  /* [STEP10] 실적/목표=달성률(%) */
+  const target=find(/목표/), actual=find(/실적/), rate=p.columns.find(k=>/달성률|달성율/.test(k.name)&&(k.format==='percent'||NUMERIC(k)));
+  if(target&&actual&&rate){
+    const t=Number(row[target.id])||0, a=Number(row[actual.id])||0;
+    if(t) row[rate.id]=(a/t*100).toFixed(1);
   }
 }
 $('genSample').onclick=()=>{

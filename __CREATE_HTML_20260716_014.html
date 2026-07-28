@@ -1083,6 +1083,9 @@ const state = {
   meta:{sid:'',author:'',ver:''}, annots:[], texts:[], topTabs:[], activeTopTab:0, rules:[], specSec:null
 };
 state.curPanel = state.panels[0].id;
+/* [FIX] 조회조건에 입력한 값으로 실제 조회결과를 필터링하기 위한 상태.
+   화면(스크린) 전환·설정 초기화·프리셋 적용 시 함께 초기화된다 (아래 각 지점 참고). */
+let lastFilters=[];
 /* ===== 결과 탭을 맨위 탭별로 독립 저장 =====
    state.tabs / state.activeTab 은 getter/setter — 현재 활성 맨위 탭의 결과 탭을 가리킨다.
    맨위 탭이 없으면 key 0 사용. 기존 코드(state.tabs 참조)는 그대로 동작하되 자동으로 탭별 스코프가 된다. */
@@ -1368,8 +1371,121 @@ function applyFiltersP(p,arr){
     return raw.toLowerCase().includes(fv.toLowerCase());
   }));
 }
+/* ===== [FIX] 조회조건 → 조회결과 실제 필터링 =====
+   조회조건 라벨(예: '매장명')과 조회결과 컬럼명(예: '매장명')을 이름으로 매칭해,
+   '조회' 버튼을 눌렀을 때 입력된 값으로 각 패널의 행을 걸러낸다.
+   컬럼명이 조건명과 정확히 같거나, 서로 포함 관계이면 매칭된 것으로 본다
+   (예: 조건 '매장' ↔ 컬럼 '매장명'도 매칭). 매칭되는 컬럼이 없는 조건은 그냥 무시한다. */
+function colMatchesLabel(colName,label){
+  colName=String(colName||'').trim(); label=String(label||'').trim();
+  if(!colName||!label) return false;
+  if(colName===label) return true;
+  return colName.includes(label)||label.includes(colName);
+}
+function textMatch(cellStr,val){
+  const c=String(cellStr==null?'':cellStr).trim().toLowerCase();
+  const v=String(val==null?'':val).trim().toLowerCase();
+  if(!c||!v) return false;
+  return c.includes(v)||v.includes(c);
+}
+/* 현재 화면(DOM)에 표시된 조회조건 입력값을 읽어 필터 목록으로 변환.
+   '조회' 버튼을 누른 시점의 값을 스냅샷으로 저장해 쓴다(입력 중에는 필터링하지 않음). */
+function readCondFilters(){
+  const out=[];
+  (state.conditions||[]).forEach(c=>{
+    if(c.type==='blank') return;
+    const cell=document.querySelector(`[data-cellcid="${c.id}"]`);
+    if(!cell) return;
+    const pushVals=vals=>{
+      vals=(vals||[]).map(v=>String(v==null?'':v).trim()).filter(v=>v&&v!=='전체'&&v!=='분류조회 선택');
+      if(vals.length) out.push({label:c.label,range:false,values:vals});
+    };
+    const pushRange=(min,max)=>{ min=String(min||'').trim(); max=String(max||'').trim(); if(min||max) out.push({label:c.label,range:true,min,max}); };
+    switch(c.type){
+      case 'text':{ const i=cell.querySelector('input.txt'); if(i) pushVals([i.value]); break; }
+      case 'number': case 'amount':{
+        const ins=cell.querySelectorAll('input.txt,input.num-in');
+        if(c.range&&ins.length>=2) pushRange(ins[0].value,ins[1].value); else if(ins[0]) pushVals([ins[0].value]);
+        break;
+      }
+      case 'phone': case 'bizno':{
+        const parts=[...cell.querySelectorAll('input.part-in')].map(i=>i.value.trim()).filter(Boolean);
+        if(parts.length) pushVals([parts.join('')]);
+        break;
+      }
+      case 'email':{
+        const ins=[...cell.querySelectorAll('input.txt')];
+        const id=(ins[0]&&ins[0].value.trim())||'', dom=(ins[1]&&ins[1].value.trim())||'';
+        if(id||dom) pushVals([id,dom].filter(Boolean));
+        break;
+      }
+      case 'combo':{ const s=cell.querySelector('select.cmb'); if(s) pushVals([s.value]); break; }
+      case 'year': case 'quarter': case 'week':{
+        const sels=[...cell.querySelectorAll('select.cmb')];
+        if(c.range&&sels.length>=2) pushRange(sels[0].value,sels[sels.length-1].value); else pushVals(sels.map(s=>s.value));
+        break;
+      }
+      case 'date': case 'month':{
+        const ins=[...cell.querySelectorAll('input.js-date,input.js-month')];
+        if(c.range&&ins.length>=2) pushRange(ins[0].value,ins[1].value); else if(ins[0]) pushVals([ins[0].value]);
+        break;
+      }
+      case 'datetime':{
+        const dins=[...cell.querySelectorAll('input.js-date')];
+        if(c.range&&dins.length>=2) pushRange(dins[0].value,dins[1].value); else if(dins[0]) pushVals([dins[0].value]);
+        break;
+      }
+      case 'time':{ const ins=[...cell.querySelectorAll('input.time-in')]; if(ins.length) pushVals(ins.map(i=>i.value)); break; }
+      case 'radio':{ const chk=cell.querySelector('input[type="radio"]:checked'); if(chk){const l=chk.closest('label'); pushVals([l?l.textContent:'']);} break; }
+      case 'checkbox':{ const labs=[...cell.querySelectorAll('input[type="checkbox"]:checked')].map(c2=>{const l=c2.closest('label');return l?l.textContent:'';}); if(labs.length) pushVals(labs); break; }
+      case 'segment':{ const on=cell.querySelector('.seg-btn.on'); if(on) pushVals([on.textContent]); break; }
+      case 'toggle':{ const t=cell.querySelector('.tgl'); if(t){const isOn=t.classList.contains('on'); const o=(t.dataset.opts||'').split('|'); pushVals([isOn?o[0]:o[1]]);} break; }
+      case 'multi':{ const labs=[...cell.querySelectorAll('.ms-pop input:checked')].map(c2=>{const l=c2.closest('label');return l?l.textContent:'';}); if(labs.length) pushVals(labs); break; }
+      case 'store': case 'prod': case 'cat': case 'emp': case 'vendor': case 'dept': case 'custompopup':{
+        const box=cell.querySelector('.select-box .val');
+        if(box){ const t=(box.textContent||'').trim(); if(t) pushVals([t.split(' 외 ')[0]]); }
+        break;
+      }
+      default: break;
+    }
+  });
+  return out;
+}
+/* lastFilters 를 대상 패널의 컬럼과 매칭해 행을 걸러낸다. 매칭 컬럼이 없는 조건은 건너뛴다. */
+function applyCondFilters(p,arr){
+  if(isEdit()) return arr;                 /* 편집화면은 항상 전체 데이터 표시 */
+  if(!lastFilters||!lastFilters.length) return arr;
+  const cols=colsOf(p);
+  const active=lastFilters.map(f=>({f,col:cols.find(k=>colMatchesLabel(k.name,f.label))})).filter(x=>x.col);
+  if(!active.length) return arr;
+  return arr.filter(it=>active.every(({f,col})=>{
+    const raw=String(it.r[col.id]==null?'':it.r[col.id]).trim();
+    if(f.range){
+      if(col.cellType==='date'||/일자|날짜/.test(col.name||'')){
+        if(!raw) return false;
+        if(f.min&&raw<f.min) return false;
+        if(f.max&&raw>f.max) return false;
+        return true;
+      }
+      const n=Number(raw.replace(/,/g,''));
+      if(raw!==''&&!isNaN(n)){
+        if(f.min!==''&&!isNaN(Number(String(f.min).replace(/,/g,'')))&&n<Number(String(f.min).replace(/,/g,''))) return false;
+        if(f.max!==''&&!isNaN(Number(String(f.max).replace(/,/g,'')))&&n>Number(String(f.max).replace(/,/g,''))) return false;
+        return true;
+      }
+      if(f.min&&raw<f.min) return false;
+      if(f.max&&raw>f.max) return false;
+      return true;
+    }
+    return f.values.some(v=>textMatch(raw,v));
+  }));
+}
+/* 조회영역의 [조회]/[확장조회] 버튼 클릭 시 실행되는 함수 */
+function doSearch(){ lastFilters=readCondFilters(); state.queried=true; renderResult(); updateCount(); }
+function toggleExtSearch(){ state.extShown=!state.extShown; applyExt(); }
 function displayRowsP(p){
   let arr=applyFiltersP(p,p.rows.map((r,i)=>({r,i})));
+  arr=applyCondFilters(p,arr);
   if(isEdit()||!p.sort.kid) return arr;
   const k=p.columns.find(c=>c.id===p.sort.kid); if(!k) return arr;
   const numeric=NUMERIC(k);
@@ -1752,7 +1868,7 @@ function renderPanelGrid(p){
   const total=lead+cols.length, rows=displayRowsP(p);
   if(!state.queried){ if(isEdit()) h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">조회 버튼을 눌러 조회하세요.</td></tr>`; }
   else if(!rows.length){
-    if(p.filterRow&&p.rows.length) h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">필터 조건에 맞는 데이터가 없습니다.</td></tr>`;
+    if((p.filterRow||lastFilters.length)&&p.rows.length) h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">조회조건에 맞는 데이터가 없습니다.</td></tr>`;
     else if(isEdit()) h+=`<tr><td colspan="${total}" style="color:#9aa2ac;padding:26px;">데이터가 없습니다. ‘＋ 행’·‘🎲 샘플’로 채워보세요.</td></tr>`;
   }
   else rows.forEach((it,vi)=>{
@@ -2152,13 +2268,28 @@ document.addEventListener('change', e=>{
   else if(t.classList.contains('nt-tone')){const p=findP(t.dataset.ntone);if(p){p.noticeTone=t.value;renderResult();}}
 });
 
+/* 조회조건 입력 중 Enter → 조회 버튼과 동일하게 실제 조회 실행 (미리보기 모드에서만) */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  if(isEdit()) return;
+  if(!e.target.closest('#condBody')) return;
+  if(e.target.tagName==='TEXTAREA') return;
+  e.preventDefault(); doSearch();
+});
+
 /* ================= 클릭 액션 ================= */
 document.addEventListener('click', e=>{
   const sbx=e.target.closest('[data-sbtnx]');
   if(sbx){state.searchBtns.splice(+sbx.dataset.sbtnx,1);renderSearchBtns();applyExt();e.stopPropagation();return;}
   const sb=e.target.closest('[data-sbtn]');
   if(sb){const b=state.searchBtns[+sb.dataset.sbtn];
-    if(b && !runBtnAct(b)){ if(/확장/.test(b.label)){state.extShown=!state.extShown;applyExt();} else {state.queried=true;renderResult();updateCount();} }
+    if(b){
+      const runDefault=()=>{ if(/확장/.test(b.label)){toggleExtSearch();} else {doSearch();} };
+      /* 버튼이벤트(안내창·확인창·토스트·팝업 등)가 설정돼 있으면 그 이벤트를 먼저 실행하고,
+         이벤트가 끝난 뒤(확인창은 '확인' 클릭 시) 확장조회/조회 기본 동작을 이어서 실행한다.
+         이벤트가 설정돼 있지 않으면 기본 동작만 바로 실행한다. */
+      if(!runBtnAct(b,runDefault)) runDefault();
+    }
     e.stopPropagation();return;}
   const xbx=e.target.closest('[data-xbtnx]');
   if(xbx){state.excelBtns.splice(+xbx.dataset.xbtnx,1);renderExcelBtns();e.stopPropagation();return;}
@@ -2809,7 +2940,7 @@ $('clearAll').onclick=()=>{
   state.conditions=[];state.popups=[];state.infoPopups=[];state.tabsByTop={};state.activeTabByTop={};state.charts=[];state.toolbar=null;state.searchOn=true;
   state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
   state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
-  state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;
+  state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;lastFilters=[];
   state.meta={sid:'',author:'',ver:''};state.annots=[];state.texts=[];state.topTabs=[];state.activeTopTab=0;state.rules=[];closeAnnotEditor();closeTextEditor();
   $('descArea').value='';$('titleInput').value=state.title;render();
 };
@@ -3014,7 +3145,7 @@ function applySnap(s){
   state.toolbar=o.toolbar||null;state.searchOn=o.searchOn!==false;
   state.cols=o.cols||[{flex:1}];state.panels=o.panels||[newPanel('조회결과',0)];
   state.curPanel=findP(o.curPanel)?o.curPanel:(state.panels[0]&&state.panels[0].id);
-  state.queried=o.queried!==false;state.extShown=!!o.extShown;
+  state.queried=o.queried!==false;state.extShown=!!o.extShown;lastFilters=[];
   state.meta=o.meta||{sid:'',author:'',ver:''};state.annots=o.annots||[];state.texts=o.texts||[];state.topTabs=o.topTabs||[];state.activeTopTab=o.activeTopTab||0;state.rules=o.rules||[];
   if(state.activeTopTab>=state.topTabs.length) state.activeTopTab=0;
   $('titleInput').value=state.title;$('descArea').value=state.desc;
@@ -3543,6 +3674,11 @@ document.addEventListener('click',function(e){
   var b=e.target.closest?e.target.closest('[data-actjson]'):null; if(!b) return;
   var a; try{ a=JSON.parse(b.getAttribute('data-actjson')); }catch(err){ return; }
   a.today=${JSON.stringify(todayStr())};
+  var onDone=null;
+  if(b.hasAttribute('data-sbtn')){
+    var lbl=(b.textContent||'').trim();
+    onDone = /확장/.test(lbl) ? __expToggleExt : __expDoSearch;
+  }
   __actRun(a,{ excel:function(){ var xb=b.closest('.excel-bar'); __expDoExcel(xb?xb.getAttribute('data-xpid'):''); },
     openRef:function(kind,id){
     var m=window.__EXP_MODALS[id];
@@ -3558,7 +3694,7 @@ document.addEventListener('click',function(e){
     Array.prototype.forEach.call(bx.querySelectorAll('.iform-tab'),function(t){
       t.onclick=function(){ Array.prototype.forEach.call(bx.querySelectorAll('.iform-tab'),function(y){ y.classList.remove('active'); }); t.classList.add('active'); };
     });
-  }});
+  }}, onDone);
 });
 document.addEventListener('click',function(e){
   if(e.target && e.target.id==='modalMask') __actClose();
@@ -3674,6 +3810,138 @@ window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
     bindModal(box);
   });
 })();
+/* ===== [FIX] 내보낸 화면 : 조회영역 [조회]/[확장조회] 버튼 실동작 =====
+   정적 스냅샷이라 원본 state.rows 가 없으므로, 조회조건(table.search td[data-cellcid])에서
+   입력된 값을 읽어 조건명 ↔ 결과표(table.grid) 헤더명 을 이름으로 매칭해 행을 직접 걸러낸다. */
+function __expLabelOf(th){
+  if(!th) return '';
+  var c=th.cloneNode(true);
+  Array.prototype.forEach.call(c.querySelectorAll('.req-star,.ext-badge'),function(x){ if(x.parentNode) x.parentNode.removeChild(x); });
+  return (c.textContent||'').trim();
+}
+function __expLabelMatch(a,b){
+  a=(a||'').trim(); b=(b||'').trim();
+  if(!a||!b) return false;
+  return a===b || a.indexOf(b)>=0 || b.indexOf(a)>=0;
+}
+function __expTextMatch(cell,val){
+  var c=(cell||'').trim().toLowerCase(), v=(val||'').trim().toLowerCase();
+  if(!c||!v) return false;
+  return c.indexOf(v)>=0 || v.indexOf(c)>=0;
+}
+function __expCondValues(td){
+  var vals=[];
+  var push=function(v){ v=(v==null?'':String(v)).trim(); if(v&&v!=='전체'&&v!=='분류조회 선택') vals.push(v); };
+  var box=td.querySelector('.select-box .val');
+  if(box){ push((box.textContent||'').split(' 외 ')[0]); return vals; }
+  var tgl=td.querySelector('.tgl');
+  if(tgl){ var isOn=tgl.classList.contains('on'); var o=(tgl.getAttribute('data-opts')||'').split('|'); push(isOn?o[0]:o[1]); return vals; }
+  var seg=td.querySelector('.seg-btn.on');
+  if(seg){ push(seg.textContent); return vals; }
+  var ms=td.querySelector('.ms-pop');
+  if(ms){ Array.prototype.forEach.call(ms.querySelectorAll('input:checked'),function(c){ var l=c.closest('label'); push(l?l.textContent:''); }); return vals; }
+  if(td.querySelector('input[type=radio]')){
+    var rc=td.querySelector('input[type=radio]:checked');
+    if(rc){ var l2=rc.closest('label'); push(l2?l2.textContent:''); }
+    return vals;
+  }
+  if(td.querySelector('.opt-row input[type=checkbox]')){
+    Array.prototype.forEach.call(td.querySelectorAll('.opt-row input[type=checkbox]:checked'),function(c){ var l=c.closest('label'); push(l?l.textContent:''); });
+    return vals;
+  }
+  var parts=td.querySelectorAll('input.part-in');
+  if(parts.length){ var joined=Array.prototype.map.call(parts,function(i){return i.value.trim();}).filter(Boolean).join(''); if(joined) push(joined); return vals; }
+  var jd=td.querySelectorAll('input.js-date,input.js-month');
+  if(jd.length){ Array.prototype.forEach.call(jd,function(i){push(i.value);}); return vals; }
+  var ti=td.querySelectorAll('input.time-in');
+  if(ti.length){ Array.prototype.forEach.call(ti,function(i){push(i.value);}); return vals; }
+  var sels=td.querySelectorAll('select.cmb');
+  if(sels.length){ Array.prototype.forEach.call(sels,function(s){push(s.value);}); return vals; }
+  var txts=td.querySelectorAll('input.txt,input.num-in');
+  if(txts.length){ Array.prototype.forEach.call(txts,function(i){push(i.value);}); return vals; }
+  return vals;
+}
+function __expCollectConditions(){
+  var out=[];
+  Array.prototype.forEach.call(document.querySelectorAll('table.search td[data-cellcid]'),function(td){
+    var label=__expLabelOf(td.previousElementSibling);
+    if(!label) return;
+    var vals=__expCondValues(td);
+    if(vals.length) out.push({label:label,values:vals});
+  });
+  return out;
+}
+function __expLeafHeads(tbl){
+  var thead=tbl.tHead; if(!thead) return [];
+  var rows=Array.prototype.slice.call(thead.rows).filter(function(r){ return !(r.cells[0]&&r.cells[0].classList.contains('fltcell')); });
+  var r1=rows[0], r2=rows[1]||null, leaf=[], r2i=0;
+  if(!r1) return [];
+  Array.prototype.forEach.call(r1.cells,function(c){
+    var span=c.colSpan||1;
+    if(span>1&&r2){ for(var j=0;j<span;j++){ leaf.push(r2.cells[r2i++]||null); } }
+    else leaf.push(c);
+  });
+  return leaf.map(function(c){ return c?__expLabelOf(c):''; });
+}
+function __expUpdateCounts(){
+  Array.prototype.forEach.call(document.querySelectorAll('.excel-bar'),function(xb){
+    var cnt=xb.querySelector('.count'); if(!cnt) return;
+    var pid=xb.getAttribute('data-xpid');
+    var tbl=(pid&&document.querySelector('table.grid[data-pid="'+pid+'"]'))||document.querySelector('table.grid');
+    if(!tbl||!tbl.tBodies[0]){ return; }
+    var rows=Array.prototype.filter.call(tbl.tBodies[0].rows,function(r){ return !r.hasAttribute('data-exp-empty'); });
+    var tot=rows.length, shown=rows.filter(function(r){ return r.style.display!=='none'; }).length;
+    cnt.innerHTML = shown<tot
+      ? ('총 <b>'+shown.toLocaleString('ko-KR')+'</b>건 <span style="font-weight:500;color:#8a929c;">/ 전체 '+tot.toLocaleString('ko-KR')+'건</span>')
+      : ('총 <b>'+tot.toLocaleString('ko-KR')+'</b>건');
+  });
+}
+function __expDoSearch(){
+  var filters=__expCollectConditions();
+  Array.prototype.forEach.call(document.querySelectorAll('table.grid'),function(tbl){
+    var heads=__expLeafHeads(tbl);
+    if(!heads.length) return;
+    var active=[];
+    filters.forEach(function(f){
+      for(var i=0;i<heads.length;i++){ if(__expLabelMatch(heads[i],f.label)){ active.push({idx:i,f:f}); break; } }
+    });
+    var tbody=tbl.tBodies[0]; if(!tbody) return;
+    var rows=Array.prototype.filter.call(tbody.rows,function(r){ return !r.hasAttribute('data-exp-empty'); });
+    var shown=0;
+    rows.forEach(function(tr){
+      var ok=active.every(function(a){
+        var cell=tr.cells[a.idx]; if(!cell) return true;
+        return a.f.values.some(function(v){ return __expTextMatch((cell.textContent||''),v); });
+      });
+      tr.style.display=ok?'':'none';
+      if(ok) shown++;
+    });
+    var em=tbody.querySelector('tr[data-exp-empty]');
+    if(active.length&&!shown&&rows.length){
+      if(!em){
+        var total=(tbl.tHead&&tbl.tHead.rows[0])?tbl.tHead.rows[0].cells.length:1;
+        em=document.createElement('tr'); em.setAttribute('data-exp-empty','1');
+        em.innerHTML='<td colspan="'+total+'" style="color:#9aa2ac;padding:26px;text-align:center;">조회조건에 맞는 데이터가 없습니다.</td>';
+        tbody.appendChild(em);
+      }
+      em.style.display='';
+    }else if(em){ em.style.display='none'; }
+  });
+  __expUpdateCounts();
+}
+function __expToggleExt(){
+  var rows=document.querySelectorAll('.ext-row'); if(!rows.length) return;
+  var nowHidden=!rows[0].classList.contains('ext-hidden');
+  Array.prototype.forEach.call(rows,function(r){ r.classList.toggle('ext-hidden',nowHidden); });
+}
+/* [조회]/[확장조회] 클릭 : 버튼이벤트(안내창·확인창 등)가 없으면 바로 실행,
+   있으면 위쪽 [data-actjson] 핸들러가 이벤트 실행 후 이어서 실행한다(중복 실행 방지). */
+document.addEventListener('click',function(e){
+  var b=e.target.closest?e.target.closest('[data-sbtn]'):null; if(!b) return;
+  if(b.hasAttribute('data-actjson')) return;
+  var lbl=(b.textContent||'').trim();
+  if(/확장/.test(lbl)) __expToggleExt(); else __expDoSearch();
+});
 /* ===== 내보낸 화면 : 일자·월 선택 달력 ===== */
 (function(){
   var calPop=document.getElementById('calPop'), monPop=document.getElementById('monthPop');
@@ -4092,7 +4360,7 @@ function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();st
   state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};state.charts=[];fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});
-  state.extShown=false;state.queried=true;state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}
+  state.extShown=false;state.queried=true;lastFilters=[];state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}
 
 const PRESETS={};
 PRESETS.sales=()=>{
@@ -4538,19 +4806,42 @@ function buildCat(boxId){
 }
 function buildCustomModal(p,boxId){
   const searchRows=[];for(let i=0;i<p.fields.length;i+=2)searchRows.push([p.fields[i],p.fields[i+1]||null]);
-  const fieldCtrl=f=>{if(!f)return '<td class="ml"></td><td></td>';let ctrl;if(f.type==='combo')ctrl=`<select>${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')||'<option>전체</option>'}</select>`;else if(f.type==='date')ctrl=`<input value="${todayStr()}" readonly>`;else ctrl='<input>';return `<td class="ml">${esc(f.label)}</td><td>${ctrl}</td>`;};
+  /* [FIX] data-pf 로 조건 인덱스를 마킹해, 조회 버튼 클릭 시 각 입력값을 되짚어 읽을 수 있게 한다 */
+  const fieldCtrl=(f,fi)=>{if(!f)return '<td class="ml"></td><td></td>';let ctrl;if(f.type==='combo')ctrl=`<select data-pf="${fi}">${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')||'<option>전체</option>'}</select>`;else if(f.type==='date')ctrl=`<input data-pf="${fi}" value="${todayStr()}" readonly>`;else ctrl=`<input data-pf="${fi}">`;return `<td class="ml">${esc(f.label)}</td><td>${ctrl}</td>`;};
   const cols=p.columns.length?p.columns:['코드','명칭'];
   const data=p.data&&p.data.length?p.data:[cols.map(c=>c+' 예시')];
+  const hasFields=!!p.fields.length;
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(p.name)}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
-    <table class="m-search">${searchRows.map(r=>`<tr>${fieldCtrl(r[0])}${fieldCtrl(r[1])}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input></td><td></td><td></td></tr>'}</table>
+    <table class="m-search">${searchRows.map((r,ri)=>`<tr>${fieldCtrl(r[0],ri*2)}${fieldCtrl(r[1],ri*2+1)}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input data-pf="0"></td><td></td><td></td></tr>'}</table>
     <div class="m-btns"><button class="btn btn-sm" id="crl">조회</button><button class="btn btn-primary btn-sm" id="cap2">선택</button></div>
     <div class="m-grid-wrap"><table class="m-grid"><thead><tr><th class="chk"><input type="checkbox" id="call"></th>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="cpbody"></tbody></table></div></div>`;
   bindX();const body=modalBox.querySelector('#cpbody');
   const draw=l=>{body.innerHTML=l.map((r,i)=>`<tr><td class="chk"><input type="checkbox" class="cpc" value="${i}"></td>${cols.map((c,ci)=>`<td>${esc(String(r[ci]==null?'':r[ci]))}</td>`).join('')}</tr>`).join('');body.querySelectorAll('tr').forEach(tr=>tr.onclick=e=>{if(e.target.type!=='checkbox'){const c=tr.querySelector('.cpc');c.checked=!c.checked;}});};
-  draw(data);
+  let cur=data.slice();
+  draw(cur);
   modalBox.querySelector('#call').onchange=e=>body.querySelectorAll('.cpc').forEach(c=>c.checked=e.target.checked);
-  modalBox.querySelector('#crl').onclick=()=>draw(data);
-  modalBox.querySelector('#cap2').onclick=()=>{const sel=[...body.querySelectorAll('.cpc:checked')].map(c=>data[+c.value]);if(!sel.length){alert('항목을 선택하세요.');return;}const label=r=>String(r[1]==null?r[0]:r[1]);setBoxValue(boxId,sel.length===1?label(sel[0]):`${label(sel[0])} 외 ${sel.length-1}건`);closeModal();};
+  /* [FIX] 조회 버튼 → 조건명과 컬럼명을 매칭해 입력값으로 실제 필터링 (조건이 없으면 전체 컬럼 대상 통합검색) */
+  modalBox.querySelector('#crl').onclick=()=>{
+    if(!hasFields){
+      const kw=(modalBox.querySelector('[data-pf="0"]').value||'').trim();
+      cur=kw?data.filter(row=>row.some(v=>textMatch(String(v==null?'':v),kw))):data.slice();
+      draw(cur);return;
+    }
+    const active=[];
+    p.fields.forEach((f,fi)=>{
+      const el=modalBox.querySelector(`[data-pf="${fi}"]`); if(!el) return;
+      const val=(el.value||'').trim(); if(!val||val==='전체') return;
+      const ci=cols.findIndex(c=>colMatchesLabel(c,f.label));
+      if(ci<0) return;
+      active.push({ci,val,exact:f.type==='combo'});
+    });
+    cur=active.length?data.filter(row=>active.every(a=>{
+      const cell=String(row[a.ci]==null?'':row[a.ci]);
+      return a.exact?cell.trim()===a.val:textMatch(cell,a.val);
+    })):data.slice();
+    draw(cur);
+  };
+  modalBox.querySelector('#cap2').onclick=()=>{const sel=[...body.querySelectorAll('.cpc:checked')].map(c=>cur[+c.value]);if(!sel.length){alert('항목을 선택하세요.');return;}const label=r=>String(r[1]==null?r[0]:r[1]);setBoxValue(boxId,sel.length===1?label(sel[0]):`${label(sel[0])} 외 ${sel.length-1}건`);closeModal();};
 }
 
 /* ================= 팝업 만들기(빌더) ================= */
@@ -5763,13 +6054,13 @@ function __actModalHTML(a){
     '<button class="btn btn-primary btn-sm" data-actok>'+e(a.okLabel||'확인')+'</button></div>';
   return {cls:cls, html:head+body+foot};
 }
-function __actRun(a,ctx){
+function __actRun(a,ctx,onDone){
   if(!a||!a.kind) return;
   ctx=ctx||{};
   var k=a.kind;
-  if(k==='excel'){ if(ctx.excel) ctx.excel(); else __actToast('엑셀 파일을 내려받습니다. (샘플 화면에서는 동작하지 않습니다)','info'); return; }
-  if(k==='popup'||k==='info'){ if(ctx.openRef) ctx.openRef(k,a.refId,a); return; }
-  if(k==='toast'){ __actToast(a.msg||a.title||'처리되었습니다.', a.tone||'info'); return; }
+  if(k==='excel'){ if(ctx.excel) ctx.excel(); else __actToast('엑셀 파일을 내려받습니다. (샘플 화면에서는 동작하지 않습니다)','info'); if(onDone) onDone(); return; }
+  if(k==='popup'||k==='info'){ if(ctx.openRef) ctx.openRef(k,a.refId,a); if(onDone) onDone(); return; }
+  if(k==='toast'){ __actToast(a.msg||a.title||'처리되었습니다.', a.tone||'info'); if(onDone) onDone(); return; }
   var m=__actModalHTML(a);
   __actOpen(m.cls,m.html);
   var bx=document.getElementById('modalBox');
@@ -5777,9 +6068,11 @@ function __actRun(a,ctx){
   var ok=bx.querySelector('[data-actok]');
   if(ok) ok.onclick=function(){
     __actClose();
-    if(!a.okMsg) return;
-    if(a.okAs==='toast') __actToast(a.okMsg, a.okTone||'success');
-    else setTimeout(function(){ __actRun({kind:'alert',title:a.okTitle||a.title,msg:a.okMsg,tone:a.okTone||'success',okLabel:'확인'},ctx); },60);
+    if(a.okMsg){
+      if(a.okAs==='toast') __actToast(a.okMsg, a.okTone||'success');
+      else setTimeout(function(){ __actRun({kind:'alert',title:a.okTitle||a.title,msg:a.okMsg,tone:a.okTone||'success',okLabel:'확인'},ctx); },60);
+    }
+    if(onDone) onDone();
   };
 }
 const ACT_RUNTIME_SRC=[__actEsc,__actOpen,__actClose,__actToast,__actModalHTML,__actRun].map(f=>f.toString()).join('\n');
@@ -5818,10 +6111,10 @@ function actCtx(){
     }
   };
 }
-function runBtnAct(b){
+function runBtnAct(b,onDone){
   const a=btnAct(b); if(!a) return false;
   const cp=JSON.parse(JSON.stringify(a)); cp.today=todayStr();
-  __actRun(cp,actCtx()); return true;
+  __actRun(cp,actCtx(),onDone); return true;
 }
 
 /* ---------- 버튼 목록 (이벤트 명세 대상) ---------- */

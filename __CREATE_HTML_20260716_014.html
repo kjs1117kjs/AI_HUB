@@ -3225,6 +3225,7 @@ function buildScreenExport(){
   const annotList=(state.annots||[]).length?`<div class="annot-list"><div class="al-title">📌 주석 목록</div>${state.annots.map((a,i)=>`<div class="al-row"><span class="al-n">${i+1}</span><span class="al-t">${esc(a.text||'(내용 없음)')}</span></div>`).join('')}</div>`:'';
   /* 버튼 액션이 참조하는 선택팝업·정보팝업을 미리 HTML 로 떠서 내보낸 파일에 담는다 */
   const expModals={};
+  const expCondPop={};   /* [FIX-3] 조회조건의 선택 팝업(매장·상품·분류·사원·거래처·부서·커스텀) */
   (function(){
     const capture=fn=>{
       const pv=modalBox.innerHTML, pc=modalBox.className, wasOpen=mask.classList.contains('open');
@@ -3245,6 +3246,18 @@ function buildScreenExport(){
         });
         if(cap.html) expModals[a.refId]=cap;
       }
+    });
+    /* [FIX-3] 조회조건의 선택 팝업도 미리 떠서 담는다.
+       기존에는 버튼 액션(data-actjson)이 참조하는 팝업만 담아, 내보낸 화면에서
+       [매장선택] 같은 조회조건 select-box 를 눌러도 아무 반응이 없었다. */
+    const BUILTIN_POP={cat:'cat',store:'store',prod:'prod',emp:'emp',vendor:'vendor',dept:'dept'};
+    (state.conditions||[]).forEach(c=>{
+      let key=null, type=null, pid=null;
+      if(BUILTIN_POP[c.type]){ type=BUILTIN_POP[c.type]; key=type; }
+      else if(c.type==='custompopup'&&c.popupId&&findPopup(c.popupId)){ type='custom'; pid=c.popupId; key='custom:'+pid; }
+      if(!key||expCondPop[key]) return;
+      const cap=capture(()=>{ openPopup(type,null,pid); });
+      if(cap.html) expCondPop[key]=cap;
     });
   })();
   const extra=`<style>body.export{background:#f4f6f9;}body.export .col-hd.sortable{cursor:default;}body.export table.grid thead th .sort-ar{display:none;}body.export .wrap{padding:24px 16px;}body.export .flt-in{pointer-events:none;}
@@ -3346,9 +3359,148 @@ document.addEventListener('click',function(e){
   if(e.target && e.target.id==='modalMask') __actClose();
 });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') __actClose(); });
+/* ===== 내보낸 화면 : 조회조건 선택 팝업 (매장·상품·분류·사원·거래처·부서·커스텀) ===== */
+window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
+(function(){
+  function setBox(box,text){
+    if(!box) return;
+    var v=box.querySelector('.val'); if(v) v.textContent=text;
+    var ph=box.getAttribute('data-popup')==='cat'?'분류조회 선택':'전체';
+    box.classList.toggle('empty', !text||text===ph);
+  }
+  function pickLabels(bx){
+    var out=[];
+    Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody tr'),function(tr){
+      var c=tr.querySelector('input[type=checkbox]');
+      if(c&&c.checked){ var cells=tr.cells; out.push(((cells[2]||cells[1]||{}).textContent||'').trim()); }
+    });
+    if(!out.length){   /* 분류(트리)형 팝업 등 체크박스 라벨 구조 */
+      Array.prototype.forEach.call(bx.querySelectorAll('label input[type=checkbox]'),function(c){
+        if(c.checked){ var t=(c.parentElement.textContent||'').trim(); if(t) out.push(t); }
+      });
+    }
+    return out.filter(Boolean);
+  }
+  function bindModal(box){
+    var bx=document.getElementById('modalBox'); if(!bx) return;
+    Array.prototype.forEach.call(bx.querySelectorAll('[data-x]'),function(x){ x.onclick=__actClose; });
+    Array.prototype.forEach.call(bx.querySelectorAll('.iform-tab'),function(t){
+      t.onclick=function(){ Array.prototype.forEach.call(bx.querySelectorAll('.iform-tab'),function(y){ y.classList.remove('active'); }); t.classList.add('active'); };
+    });
+    Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody tr'),function(tr){
+      tr.onclick=function(ev){ if(ev.target.type!=='checkbox'){ var c=tr.querySelector('input[type=checkbox]'); if(c) c.checked=!c.checked; } };
+    });
+    var all=bx.querySelector('.m-grid thead input[type=checkbox]');
+    if(all) all.onchange=function(){
+      Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody input[type=checkbox]'),function(c){ c.checked=all.checked; });
+    };
+    Array.prototype.forEach.call(bx.querySelectorAll('button'),function(b){
+      var t=(b.textContent||'').trim();
+      if(t!=='선택'&&t!=='확인') return;
+      b.onclick=function(){
+        var v=pickLabels(bx);
+        if(!v.length){ __actToast('항목을 선택하세요.','warn'); return; }
+        setBox(box, v.length===1 ? v[0] : v[0]+' 외 '+(v.length-1)+'건');
+        __actClose();
+      };
+    });
+  }
+  document.addEventListener('click',function(e){
+    if(!e.target.closest) return;
+    var clr=e.target.closest('[data-clear]');
+    if(clr){ var b0=document.getElementById(clr.getAttribute('data-clear')); if(b0) setBox(b0, b0.getAttribute('data-popup')==='cat'?'분류조회 선택':'전체'); return; }
+    var box=e.target.closest('.select-box[data-popup]'); if(!box) return;
+    var type=box.getAttribute('data-popup');
+    var key=type==='custom' ? 'custom:'+(box.getAttribute('data-pid')||'') : type;
+    var m=window.__EXP_CONDPOP[key];
+    if(!m){ __actToast('연결된 팝업 정보가 없습니다.','error'); return; }
+    __actOpen(m.cls,m.html);
+    bindModal(box);
+  });
+})();
+/* ===== 내보낸 화면 : 일자·월 선택 달력 ===== */
+(function(){
+  var calPop=document.getElementById('calPop'), monPop=document.getElementById('monthPop');
+  if(!calPop||!monPop) return;
+  function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  var today=fmt(new Date());
+  var cal={target:null,view:new Date()}, mon={target:null,year:new Date().getFullYear()};
+  function parseDate(s){ var p=(s||'').split('-'); var d=new Date(+p[0],(+p[1]||1)-1,+p[2]||1); return isNaN(d)?new Date():d; }
+  function closeCal(){ calPop.classList.remove('open'); }
+  function closeMon(){ monPop.classList.remove('open'); }
+  function drawCal(){
+    var y=cal.view.getFullYear(), m=cal.view.getMonth();
+    document.getElementById('calYm').textContent=y+'년 '+(m+1)+'월';
+    var start=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate(), prev=new Date(y,m,0).getDate();
+    var sel=cal.target?cal.target.value:'', cells=[], i, d;
+    for(i=start-1;i>=0;i--) cells.push({d:prev-i,mo:m-1,mute:true});
+    for(d=1;d<=days;d++) cells.push({d:d,mo:m});
+    while(cells.length%7!==0) cells.push({d:cells.length-(start+days)+1,mo:m+1,mute:true});
+    var html='';
+    cells.forEach(function(c,i){
+      if(i%7===0) html+='<tr>';
+      var ds=fmt(new Date(y,c.mo,c.d)), dow=i%7, cls='';
+      if(c.mute) cls+=' mute'; else { if(dow===0)cls+=' sun'; if(dow===6)cls+=' sat'; }
+      if(ds===today) cls+=' today';
+      if(ds===sel) cls+=' on';
+      html+='<td><button class="'+cls.trim()+'" data-date="'+ds+'">'+c.d+'</button></td>';
+      if(i%7===6) html+='</tr>';
+    });
+    var body=document.getElementById('calBody'); body.innerHTML=html;
+    Array.prototype.forEach.call(body.querySelectorAll('button'),function(b){
+      b.onclick=function(){ if(cal.target) cal.target.value=b.getAttribute('data-date'); closeCal(); };
+    });
+  }
+  function drawMon(){
+    document.getElementById('monthYr').textContent=mon.year+'년';
+    var cur=(mon.target?mon.target.value:'').split('-'), html='';
+    for(var m=1;m<=12;m++){
+      var on=(+cur[0]===mon.year&&+cur[1]===m)?'on':'';
+      html+='<button class="'+on+'" data-m="'+m+'">'+m+'월</button>';
+    }
+    var g=document.getElementById('monthGrid'); g.innerHTML=html;
+    Array.prototype.forEach.call(g.querySelectorAll('button'),function(b){
+      b.onclick=function(){ if(mon.target) mon.target.value=mon.year+'-'+String(+b.getAttribute('data-m')).padStart(2,'0'); closeMon(); };
+    });
+  }
+  document.getElementById('calPrev').onclick=function(){ cal.view.setMonth(cal.view.getMonth()-1); drawCal(); };
+  document.getElementById('calNext').onclick=function(){ cal.view.setMonth(cal.view.getMonth()+1); drawCal(); };
+  document.getElementById('calToday').onclick=function(){ if(cal.target) cal.target.value=today; closeCal(); };
+  document.getElementById('calClose').onclick=closeCal;
+  document.getElementById('monthPrev').onclick=function(){ mon.year--; drawMon(); };
+  document.getElementById('monthNext').onclick=function(){ mon.year++; drawMon(); };
+  document.getElementById('monthClose').onclick=closeMon;
+  document.addEventListener('click',function(e){
+    if(!e.target.closest) return;
+    var dh=e.target.closest('.js-date, .js-date-btn');
+    if(dh){
+      var di=dh.closest('.date-wrap').querySelector('.js-date');
+      cal.target=di; cal.view=parseDate(di.value);
+      var r=dh.closest('.date-wrap').getBoundingClientRect();
+      calPop.style.left=(window.scrollX+r.left)+'px'; calPop.style.top=(window.scrollY+r.bottom+4)+'px';
+      calPop.classList.add('open'); closeMon(); drawCal(); e.stopPropagation(); return;
+    }
+    var mh=e.target.closest('.js-month, .js-month-btn');
+    if(mh){
+      var mi=mh.closest('.month-wrap').querySelector('.js-month');
+      mon.target=mi; mon.year=+(mi.value||'').split('-')[0]||new Date().getFullYear();
+      var r2=mh.closest('.month-wrap').getBoundingClientRect();
+      monPop.style.left=(window.scrollX+r2.right-212)+'px'; monPop.style.top=(window.scrollY+r2.bottom+4)+'px';
+      monPop.classList.add('open'); closeCal(); drawMon(); e.stopPropagation(); return;
+    }
+    if(!e.target.closest('#calPop')) closeCal();
+    if(!e.target.closest('#monthPop')) closeMon();
+  });
+})();
 </scr`+`ipt>`;
   const bodyInner=`<div class="wrap">${metaLine}<div style="position:relative;">${topTabsHtml}${panel}${cnt}${result}${desc}${pins}</div>${annotList}</div>`+
-    `<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div><div id="toastWrap"></div>`;
+    `<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div><div id="toastWrap"></div>`+
+    /* [FIX-3] 일자·월 선택 달력도 함께 내보낸다 (열림 상태·좌표는 초기화) */
+    ['calPop','monthPop'].map(id=>{
+      const el=document.getElementById(id); if(!el) return '';
+      const c=el.cloneNode(true); c.classList.remove('open'); c.removeAttribute('style');
+      return c.outerHTML;
+    }).join('');
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
     `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
     `<body class="preview export">${bodyInner}${exportScript}</body></html>`;

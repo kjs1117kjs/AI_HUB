@@ -2706,7 +2706,53 @@ function doExcel(){
 }
 
 /* ================= 저장/불러오기 (프로젝트 = 여러 화면) ================= */
+
+/* [FIX-1] 불러오기 시 seq 재동기화
+   seq 는 페이지 로드 때 1 에서 시작하고 증가만 한다. 저장된 JSON 을 불러오면
+   이미 k2..k14 같은 id 가 들어있는데 seq 는 그대로 1 이라, 새 컬럼을 추가하면
+   'k2' 처럼 기존 id 와 똑같은 값이 다시 발급된다. → 같은 id 두 컬럼이 생기고
+   이동·수정·삭제가 서로 영향을 준다. 불러온 데이터의 최대 번호+1 로 seq 를 올린다. */
+const SEQ_ID_RE=/^(?:P|k|c|f|s|a|t|ch|ip|p)(\d+)$/;
+function bumpSeq(v){ if(typeof v!=='string') return; const m=SEQ_ID_RE.exec(v); if(m){ const n=+m[1]; if(n>=seq) seq=n+1; } }
+function syncSeq(node){
+  if(Array.isArray(node)){ node.forEach(syncSeq); return; }
+  if(!node||typeof node!=='object') return;
+  Object.keys(node).forEach(key=>{
+    const v=node[key];
+    if(typeof v==='string'){
+      if(key==='id'||key==='src'||key==='curPanel'||/(?:Id|Kid|kid)$/.test(key)) bumpSeq(v);
+      return;
+    }
+    if(!v||typeof v!=='object') return;
+    if(key==='valKids'&&Array.isArray(v)) v.forEach(bumpSeq);                                   /* 차트 값 컬럼 */
+    else if(key==='filters'&&!Array.isArray(v)) Object.keys(v).forEach(bumpSeq);                /* 필터 키 = 컬럼 id */
+    else if(key==='rows'&&Array.isArray(v)) v.forEach(r=>{ if(r&&typeof r==='object') Object.keys(r).forEach(bumpSeq); }); /* 행 키 = 컬럼 id */
+    else syncSeq(v);
+  });
+}
+
+/* [FIX-2] 이미 중복 id 가 저장된 파일 복구
+   같은 패널 안에서 id 가 겹치는 컬럼은 뒤쪽 것에 새 id 를 발급하고,
+   공유하던 행 데이터를 새 id 로 복사해 값이 유지되게 한다. */
+function dedupeIds(o){
+  (o.panels||[]).forEach(p=>{
+    const seen=new Set();
+    (p.columns||[]).forEach(k=>{
+      if(k.id&&!seen.has(k.id)){ seen.add(k.id); return; }
+      const old=k.id, nid='k'+(seq++);
+      k.id=nid;
+      if(old) (p.rows||[]).forEach(r=>{ if(r&&typeof r==='object'&&(old in r)) r[nid]=r[old]; });
+      seen.add(nid);
+    });
+    ['fields','stats'].forEach(key=>{
+      const s2=new Set();
+      (p[key]||[]).forEach(x=>{ if(x.id&&!s2.has(x.id)){ s2.add(x.id); return; } x.id=(key==='fields'?'f':'s')+(seq++); s2.add(x.id); });
+    });
+  });
+}
+
 function normalizeScreenObj(o){
+  syncSeq(o);   /* [FIX-1] 새 id 발급 전에 반드시 먼저 */
   o.title=o.title||'';o.conditions=o.conditions||[];o.popups=o.popups||[];o.infoPopups=o.infoPopups||[];o.desc=o.desc||'';
   o.tabs=o.tabs||[];o.activeTab=0;o.toolbar=o.toolbar||null;o.searchOn=o.searchOn!==false;
   o.searchBtns=(o.searchBtns&&o.searchBtns.length)?o.searchBtns:defSearchBtns();
@@ -2714,6 +2760,7 @@ function normalizeScreenObj(o){
   if(!o.panels){const p=newPanel('조회결과',0);p.columns=o.columns||[];p.rows=o.rows||[];p.showSum=o.showSum!==false;o.cols=[{flex:1}];o.panels=[p];}
   o.cols=o.cols||[{flex:1}];
   o.panels.forEach(p=>{if(!p.id)p.id='P'+(seq++);if(!(p.tab>=0))p.tab=0;if(o.tabs&&o.tabs.length&&p.tab>=o.tabs.length)p.tab=0;if(!p.sort)p.sort={kid:null,dir:1};if(!p.buttons)p.buttons=[];if(p.fixedCols==null)p.fixedCols=0;if(p.filterRow==null)p.filterRow=false;if(!p.filters)p.filters={};if(!p.ptype)p.ptype='grid';if(!p.fields)p.fields=[];if(!p.stats)p.stats=[];if(p.notice==null)p.notice='';if(p.noticeTone==null)p.noticeTone='';(p.columns||[]).forEach(k=>{if(!k.id)k.id='k'+(seq++);if(!k.cellType)k.cellType='text';if(!k.options)k.options=[];});});
+  dedupeIds(o);   /* [FIX-2] 이미 중복 id 로 저장된 파일 복구 */
   if(!findByIdIn(o.panels,o.curPanel)) o.curPanel=o.panels[0].id;
   o.meta=o.meta||{sid:'',author:'',ver:''};o.annots=o.annots||[];o.texts=o.texts||[];o.rules=o.rules||[];o.specSec=o.specSec||null;
   if(o.toolbar&&Array.isArray(o.toolbar.buttons)) o.toolbar.buttons=o.toolbar.buttons.map(b=>typeof b==='string'?{label:b}:b);

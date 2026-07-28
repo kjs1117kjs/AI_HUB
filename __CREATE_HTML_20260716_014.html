@@ -311,6 +311,30 @@
   .desc-box label{display:block;font-weight:700;color:#3a4551;font-size:12.5px;margin-bottom:8px;}
   .desc-box textarea{width:100%;min-height:80px;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.6;color:var(--text);resize:vertical;outline:none;}
   .desc-box textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,137,238,.12);}
+/* ===== 화면 설명 서식 툴바 · 미리보기 ===== */
+.desc-tools{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:6px;position:relative;}
+.desc-tools .dt-btn{height:24px;min-width:24px;padding:0 7px;border:1px solid var(--border);background:#fff;border-radius:3px;font-size:12px;line-height:1;cursor:pointer;color:#3a4551;}
+.desc-tools .dt-btn:hover{border-color:var(--blue);background:#f2f8ff;}
+.desc-tools .dt-btn.dt-c{font-size:14px;padding:0 6px;}
+.desc-tools .dt-pick{display:inline-flex;align-items:center;gap:5px;}
+.desc-tools .dt-bar{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.18);}
+.desc-tools .dt-sel{height:24px;border:1px solid var(--border);border-radius:3px;background:#fff;font-size:12px;color:#3a4551;padding:0 4px;cursor:pointer;font-family:inherit;}
+.dt-pop{display:none;position:absolute;z-index:60;top:28px;left:0;background:#fff;border:1px solid #cdd6e2;border-radius:5px;box-shadow:0 6px 18px rgba(30,40,55,.16);padding:8px;}
+.dt-pop.on{display:block;}
+.dt-pop .dt-grid{display:grid;grid-template-columns:repeat(6,20px);gap:5px;}
+.dt-pop .dt-sw{width:20px;height:20px;border-radius:3px;border:1px solid rgba(0,0,0,.18);cursor:pointer;padding:0;}
+.dt-pop .dt-sw:hover{outline:2px solid var(--blue);outline-offset:1px;}
+.dt-pop .dt-custom{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #eef1f5;font-size:11.5px;color:#6b7480;}
+.dt-pop .dt-custom input[type=color]{width:26px;height:22px;padding:0;border:1px solid var(--border);border-radius:3px;background:#fff;cursor:pointer;}
+.desc-tools .dt-sep{width:1px;height:16px;background:var(--border);margin:0 3px;}
+.desc-tools .dt-hint{font-size:11.5px;color:#8a929c;margin-left:4px;}
+.desc-prev{display:none;margin-top:8px;border:1px dashed #cdd6e2;border-radius:4px;padding:10px 12px;background:#fafbfc;font-size:13px;line-height:1.6;color:#333a44;white-space:pre-wrap;word-break:keep-all;}
+.desc-prev.on{display:block;}
+.desc-prev .dp-cap{display:block;font-size:11px;color:#8a929c;margin-bottom:6px;font-weight:700;}
+/* 미리보기 모드 : 편집 UI 숨기고 결과만 */
+body.preview .desc-tools,body.preview .desc-box textarea{display:none;}
+body.preview .desc-prev{border:none;background:transparent;padding:0;margin-top:0;}
+body.preview .desc-prev .dp-cap{display:none;}
   .cal{position:absolute;z-index:9999;background:#fff;border:1px solid #b9c2ce;border-radius:6px;box-shadow:0 8px 26px rgba(30,45,70,.22);padding:10px;width:240px;font-size:12px;display:none;}
   .cal.open{display:block;}
   .cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -952,7 +976,23 @@
   <div class="excel-bar"><span class="count" id="rowCount"></span><span class="xls-actions" id="excelActions"></span></div>
   <div id="resultArea"></div>
   <div id="chartArea" style="display:none;"></div>
-  <div class="desc-box"><label for="descArea">화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label><textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea></div>
+  <div class="desc-box"><label for="descArea">화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label>
+    <div class="desc-tools" id="descTools">
+      <button type="button" class="dt-btn" data-desc="b" title="굵게"><b>B</b></button>
+      <button type="button" class="dt-btn" data-desc="u" title="밑줄"><u>U</u></button>
+      <button type="button" class="dt-btn" data-desc="hl" title="형광펜(노랑)">🖍</button>
+      <span class="dt-sep"></span>
+      <button type="button" class="dt-btn dt-pick" data-pal="c" title="글자색"><span class="dt-bar" style="background:#d9534f"></span>글자색</button>
+      <button type="button" class="dt-btn dt-pick" data-pal="bg" title="배경색"><span class="dt-bar" style="background:#fff2a8"></span>배경색</button>
+      <select class="dt-sel" id="dtSize" title="글자 크기"><option value="">크기</option></select>
+      <span class="dt-sep"></span>
+      <button type="button" class="dt-btn" data-desc="clear" title="선택 영역의 서식 제거 (선택 없으면 전체)">서식 지우기</button>
+      <span class="dt-hint">글자를 선택하고 누르세요 · 미리보기·내보내기·화면정의서에 반영됩니다</span>
+      <div class="dt-pop" id="dtPop"></div>
+    </div>
+    <textarea id="descArea" placeholder="이 화면의 용도, 조회 조건, 결과 항목 등에 대한 설명을 적어주세요."></textarea>
+    <div class="desc-prev" id="descPrev"></div>
+  </div>
   <div class="annot-list" id="annotList" style="display:none;"></div>
   <div id="annotLayer"></div>
   </div>
@@ -979,6 +1019,46 @@ const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function todayStr(){return fmt(new Date());}
 function monthNowStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+/* ================= 화면 설명 서식 (색상·굵게·밑줄·형광펜) =================
+   설명은 JSON 안전을 위해 평문으로 저장하고, 표시할 때만 마크업을 HTML 로 바꾼다.
+     **굵게**   __밑줄__   [hl]형광[/hl]   [red]색상[/red] (red|blue|green|orange|gray)
+   esc() 로 이스케이프한 뒤에 치환하므로 사용자가 태그를 직접 넣어도 안전하다. */
+const DESC_COLORS={red:'#d9534f',blue:'#2f89ee',green:'#1c9e5a',orange:'#e8890c',gray:'#8a929c'};
+/* 툴바 팔레트 (원문에는 [c=#hex] 형태로 들어간다) */
+const DESC_PALETTE=['#191919','#545454','#8a929c','#d9534f','#e8890c','#c9a227','#1c9e5a','#00897b','#2f89ee','#3b4fd8','#8e44ad','#c2185b'];
+const DESC_BGS=['#fff2a8','#ffd9d6','#ffe2bf','#d9f2e3','#d9e9ff','#e6ddf7','#eceff2','#f7d9ec'];
+const DESC_SIZES=[['11','작게'],['13','기본'],['15','크게'],['18','더 크게'],['22','아주 크게']];
+const DESC_WRAP={b:['**','**'],u:['__','__'],hl:['[hl]','[/hl]'],
+  red:['[red]','[/red]'],blue:['[blue]','[/blue]'],green:['[green]','[/green]'],orange:['[orange]','[/orange]'],gray:['[gray]','[/gray]']};
+function descWrapFor(kind,arg){
+  if(kind==='c')  return ['[c='+arg+']','[/c]'];
+  if(kind==='bg') return ['[bg='+arg+']','[/bg]'];
+  if(kind==='sz') return ['[sz='+arg+']','[/sz]'];
+  return DESC_WRAP[kind];
+}
+function descHTML(s){
+  let h=esc(s||'');
+  /* 자유 지정 : 색 / 배경 / 크기. 값 형식을 엄격히 검사해 임의 CSS 가 끼어들 수 없게 한다 */
+  h=h.replace(/\[c=(#[0-9a-fA-F]{6})\]([\s\S]*?)\[\/c\]/g,(m,c,t)=>`<span style="color:${c}">${t}</span>`);
+  h=h.replace(/\[bg=(#[0-9a-fA-F]{6})\]([\s\S]*?)\[\/bg\]/g,(m,c,t)=>`<span style="background:${c};padding:0 2px;border-radius:2px;">${t}</span>`);
+  h=h.replace(/\[sz=(\d{1,2})\]([\s\S]*?)\[\/sz\]/g,(m,n,t)=>`<span style="font-size:${Math.min(32,Math.max(10,+n))}px;">${t}</span>`);
+  /* 이름 지정 (구버전 호환 · 툴바 단축) */
+  h=h.replace(/\[(red|blue|green|orange|gray)\]([\s\S]*?)\[\/\1\]/g,(m,c,t)=>`<span style="color:${DESC_COLORS[c]}">${t}</span>`);
+  h=h.replace(/\[hl\]([\s\S]*?)\[\/hl\]/g,'<mark style="background:#fff2a8;padding:0 2px;border-radius:2px;">$1</mark>');
+  h=h.replace(/\*\*([\s\S]*?)\*\*/g,'<b>$1</b>');
+  h=h.replace(/__([\s\S]*?)__/g,'<u>$1</u>');
+  return h;
+}
+/* 마크업만 걷어낸 순수 텍스트 (엑셀·검색 등 평문이 필요한 곳) */
+function descPlain(s){
+  return String(s||'')
+    .replace(/\[(?:c|bg|sz)=[^\]]*\]|\[\/(?:c|bg|sz)\]/g,'')
+    .replace(/\[\/?(?:red|blue|green|orange|gray|hl)\]/g,'')
+    .replace(/\*\*/g,'').replace(/__/g,'');
+}
+/* 서식 지우기에서 선택 영역 바깥의 마커를 찾아내기 위한 패턴 */
+const DESC_OPEN_RE=/(?:\*\*|__|\[hl\]|\[(?:red|blue|green|orange|gray)\]|\[(?:c|bg|sz)=[^\]]*\])$/;
+const DESC_CLOSE_RE=/^(?:\*\*|__|\[\/hl\]|\[\/(?:red|blue|green|orange|gray)\]|\[\/(?:c|bg|sz)\])/;
 const CAL_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5" stroke="#5b6470"/><path d="M1.5 5.5h13M5 1v3M11 1v3" stroke="#5b6470"/></svg>';
 const CARET_ICON = '<svg width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="#6b7684"/></svg>';
 
@@ -1920,7 +2000,77 @@ function renderResult(){
 function updateCount(){ if(typeof renderCharts==='function') renderCharts(); const p=curP();if(!(state.queried&&p&&p.columns.length)){$('rowCount').innerHTML='';return;}
   const shown=displayRowsP(p).length, tot=p.rows.length;
   $('rowCount').innerHTML = shown<tot ? `총 <b>${shown.toLocaleString('ko-KR')}</b>건 <span style="font-weight:500;color:#8a929c;">/ 전체 ${tot.toLocaleString('ko-KR')}건</span>` : `총 <b>${tot.toLocaleString('ko-KR')}</b>건`;}
-function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderCharts(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); renderTexts(); if(typeof renderDevSummary==='function') renderDevSummary(); if(typeof syncSpecScopeBtn==='function') syncSpecScopeBtn(); }
+function render(){ $('searchPanel').style.display = state.searchOn?'':'none'; renderSearchBtns(); renderExcelBtns(); renderConditions(); renderResult(); renderCharts(); renderPopChips(); renderInfoChips(); syncBuilder(); updateCount(); renderAnnots(); renderTexts(); if(typeof renderDevSummary==='function') renderDevSummary(); if(typeof syncSpecScopeBtn==='function') syncSpecScopeBtn(); syncDescPrev(); }
+
+/* ================= 화면 설명 서식 툴바 ================= */
+function syncDescPrev(){
+  const p=$('descPrev'); if(!p) return;
+  const v=(state&&state.desc)||'';
+  p.innerHTML = v ? '<span class="dp-cap">서식 미리보기</span>'+descHTML(v) : '';
+  p.classList.toggle('on', !!v);
+}
+function descApply(kind,arg){
+  const ta=$('descArea'); if(!ta) return;
+  const v=ta.value, s=ta.selectionStart, e=ta.selectionEnd, sel=v.slice(s,e);
+  let out, cs, ce;
+  if(kind==='clear'){
+    if(s===e){ out=descPlain(v); cs=ce=out.length; }        /* 선택 없음 → 전체 서식 해제 */
+    else{
+      /* 선택 영역을 감싸고 있는 마커까지 바깥으로 넓힌 뒤 제거.
+         (색을 넣으면 안쪽 글자가 선택된 상태라, 넓히지 않으면 마커가 그대로 남는다) */
+      let a=s,b=e,moved=true;
+      while(moved){
+        moved=false;
+        const m1=v.slice(0,a).match(DESC_OPEN_RE);  if(m1){ a-=m1[0].length; moved=true; }
+        const m2=v.slice(b).match(DESC_CLOSE_RE);   if(m2){ b+=m2[0].length; moved=true; }
+      }
+      const c=descPlain(v.slice(a,b));
+      out=v.slice(0,a)+c+v.slice(b); cs=a; ce=a+c.length;
+    }
+  }else{
+    const w=descWrapFor(kind,arg); if(!w) return;
+    const body=sel||'내용';
+    out=v.slice(0,s)+w[0]+body+w[1]+v.slice(e);
+    cs=s+w[0].length; ce=cs+body.length;   /* 서식 안쪽 글자를 선택 상태로 남김 */
+  }
+  ta.value=out;
+  ta.dispatchEvent(new Event('input',{bubbles:true}));   /* state.desc 동기화 */
+  ta.focus(); ta.setSelectionRange(cs,ce);
+  syncDescPrev();
+}
+/* ---------- 색 팔레트 popover ---------- */
+function descPalOpen(kind,btn){
+  const pop=$('dtPop'); if(!pop) return;
+  const list=kind==='bg'?DESC_BGS:DESC_PALETTE;
+  const cur=kind==='bg'?'#fff2a8':'#d9534f';
+  pop.innerHTML=`<div class="dt-grid">${list.map(c=>`<button type="button" class="dt-sw" data-pick="${kind}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>`+
+    `<label class="dt-custom">직접 선택 <input type="color" value="${cur}" data-pickc="${kind}"></label>`;
+  pop.classList.add('on');
+  pop.style.left=Math.max(0,btn.offsetLeft)+'px';
+  pop.dataset.kind=kind;
+}
+function descPalClose(){ const p=$('dtPop'); if(p) p.classList.remove('on'); }
+document.addEventListener('click', e=>{
+  const t=e.target;
+  const pick=t.closest && t.closest('.dt-sw[data-pick]');
+  if(pick){ e.preventDefault(); descApply(pick.dataset.pick, pick.dataset.c); descPalClose(); return; }
+  const pal=t.closest && t.closest('.dt-pick[data-pal]');
+  if(pal){ e.preventDefault(); const open=$('dtPop')&&$('dtPop').classList.contains('on')&&$('dtPop').dataset.kind===pal.dataset.pal;
+    descPalClose(); if(!open) descPalOpen(pal.dataset.pal,pal); return; }
+  const b=t.closest && t.closest('.dt-btn[data-desc]');
+  if(b){ e.preventDefault(); descPalClose(); descApply(b.dataset.desc); return; }
+  if(!(t.closest&&t.closest('#dtPop'))) descPalClose();
+});
+document.addEventListener('change', e=>{
+  const cp=e.target.closest && e.target.closest('input[data-pickc]');
+  if(cp){ descApply(cp.dataset.pickc, cp.value); descPalClose(); return; }
+  if(e.target.id==='dtSize'&&e.target.value){ descApply('sz', e.target.value); e.target.value=''; }
+});
+/* 크기 선택 목록 채우기 */
+(function(){
+  const sel=$('dtSize'); if(!sel) return;
+  sel.innerHTML='<option value="">크기</option>'+DESC_SIZES.map(x=>`<option value="${x[0]}">${x[1]} ${x[0]}px</option>`).join('');
+})();
 
 
 /* ================= 빌더 동기화 ================= */
@@ -1978,7 +2128,7 @@ document.addEventListener('input', e=>{
   else if(t.classList.contains('fld-lbl')){const p=findP(t.dataset.pid);const f=p&&(p.fields||[]).find(x=>x.id===t.dataset.fid);if(f)f.label=t.value;}
   else if(t.classList.contains('st-in')){const p=findP(t.dataset.pid);const s2=p&&(p.stats||[]).find(x=>x.id===t.dataset.sid);if(s2)s2[t.dataset.sf]=t.value;}
   else if(t.classList.contains('notice-ta')){const p=findP(t.dataset.pid);if(p)p.notice=t.value;}
-  else if(t.id==='descArea'){state.desc=t.value;}
+  else if(t.id==='descArea'){state.desc=t.value;syncDescPrev();}
   else if(t.id==='titleInput'){state.title=t.value;renderScreenSel();}
   else if(t.classList.contains('flt-in')&&t.tagName==='INPUT'){applyFilterInput(t);}
 });
@@ -3216,7 +3366,7 @@ function buildScreenExport(){
   }
   let panel='', result=bodyHtml; /* 아래 조립부 호환용 */
   const cnt='';
-  const desc=`<div class="desc-box"><label>화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label>${state.desc?`<div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;">${esc(state.desc)}</div>`:''}</div>`;
+  const desc=`<div class="desc-box"><label>화면 설명( <font color = 'blue'> * 모든화면은 기존화면 구성을 우선하며 설계된 항목으로 개발진행 </font> ) </label>${state.desc?`<div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333a44;word-break:keep-all;">${descHTML(state.desc)}</div>`:''}</div>`;
   const m=state.meta||{};
   const metaBits=[m.sid&&('화면ID '+esc(m.sid)), m.author&&('작성자 '+esc(m.author)), m.ver&&('버전 '+esc(m.ver))].filter(Boolean);
   const metaLine=metaBits.length?`<div style="font-size:12px;color:#7a828d;margin-bottom:10px;font-weight:600;">${metaBits.join(' · ')}</div>`:'';
@@ -3345,6 +3495,8 @@ document.addEventListener('click',function(e){
     var m=window.__EXP_MODALS[id];
     if(!m){ __actToast('연결된 팝업 정보가 없습니다.','error'); return; }
     __actOpen(m.cls,m.html);
+    /* 조회조건 팝업과 동일한 동작(닫기·행 선택·조회 필터)을 그대로 사용 */
+    if(typeof window.__expBindModal==='function'){ window.__expBindModal(null); return; }
     var bx=document.getElementById('modalBox');
     Array.prototype.forEach.call(bx.querySelectorAll('[data-x]'),function(x){ x.onclick=__actClose; });
     Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody tr'),function(tr){
@@ -3371,6 +3523,7 @@ window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
   function pickLabels(bx){
     var out=[];
     Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody tr'),function(tr){
+      if(tr.style.display==='none'||tr.hasAttribute('data-empty')) return;
       var c=tr.querySelector('input[type=checkbox]');
       if(c&&c.checked){ var cells=tr.cells; out.push(((cells[2]||cells[1]||{}).textContent||'').trim()); }
     });
@@ -3392,10 +3545,16 @@ window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
     });
     var all=bx.querySelector('.m-grid thead input[type=checkbox]');
     if(all) all.onchange=function(){
-      Array.prototype.forEach.call(bx.querySelectorAll('.m-grid tbody input[type=checkbox]'),function(c){ c.checked=all.checked; });
+      dataRows(bx).forEach(function(tr){                      /* 필터로 숨은 행은 제외 */
+        if(tr.style.display==='none') return;
+        var c=tr.querySelector('input[type=checkbox]'); if(c) c.checked=all.checked;
+      });
     };
+    /* 팝업 안의 조회·필터·검색 버튼 — 화면에 있는 행을 조건에 맞춰 걸러낸다.
+       내보낸 파일은 정적 스냅샷이라 원본 데이터가 없으므로 DOM 행을 대상으로 필터링한다. */
     Array.prototype.forEach.call(bx.querySelectorAll('button'),function(b){
       var t=(b.textContent||'').trim();
+      if(t==='조회'||t==='필터'||t==='검색'){ b.onclick=function(){ runFilter(bx); }; return; }
       if(t!=='선택'&&t!=='확인') return;
       b.onclick=function(){
         var v=pickLabels(bx);
@@ -3404,7 +3563,51 @@ window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
         __actClose();
       };
     });
+    Array.prototype.forEach.call(bx.querySelectorAll('.m-search input'),function(inp){
+      inp.onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); runFilter(bx); } };
+    });
   }
+  function dataRows(bx){
+    return Array.prototype.filter.call(bx.querySelectorAll('.m-grid tbody tr'),function(tr){ return !tr.hasAttribute('data-empty'); });
+  }
+  /* 검색 필드 ↔ 컬럼 매칭 : 필드 왼쪽 라벨(td.ml)과 같은 이름의 컬럼이 있으면 그 컬럼만 검색,
+     없으면(예: 매장 통합검색) 행 전체를 대상으로 한다. */
+  function searchFields(bx){
+    var ths=Array.prototype.map.call(bx.querySelectorAll('.m-grid thead th'),function(th){ return (th.textContent||'').trim(); });
+    return Array.prototype.map.call(bx.querySelectorAll('.m-search input, .m-search select'),function(el){
+      var td=el.closest('td'), prev=td?td.previousElementSibling:null;
+      var lab=(prev&&prev.classList.contains('ml'))?(prev.textContent||'').trim():'';
+      return {el:el, col:ths.indexOf(lab)};
+    });
+  }
+  function runFilter(bx){
+    var fs=searchFields(bx), rows=dataRows(bx), shown=0;
+    rows.forEach(function(tr){
+      var ok=fs.every(function(f){
+        var v=(f.el.value||'').trim();
+        if(!v||v==='전체') return true;
+        var cell=(f.col>=0&&tr.cells[f.col])?tr.cells[f.col]:null;
+        var hay=(cell?cell.textContent:tr.textContent)||'';
+        return hay.toLowerCase().indexOf(v.toLowerCase())>=0;
+      });
+      tr.style.display=ok?'':'none';
+      if(!ok){ var c=tr.querySelector('input[type=checkbox]'); if(c) c.checked=false; }
+      if(ok) shown++;
+    });
+    var tb=bx.querySelector('.m-grid tbody'); if(!tb) return;
+    var em=tb.querySelector('tr[data-empty]');
+    if(!shown&&rows.length){
+      if(!em){
+        var cols=bx.querySelectorAll('.m-grid thead th').length||1;
+        em=document.createElement('tr'); em.setAttribute('data-empty','1');
+        em.innerHTML='<td colspan="'+cols+'" style="text-align:center;color:#8a929c;padding:18px 0;">조회 결과가 없습니다.</td>';
+        tb.appendChild(em);
+      }
+      em.style.display='';
+    }else if(em){ em.style.display='none'; }
+    var all=bx.querySelector('.m-grid thead input[type=checkbox]'); if(all) all.checked=false;
+  }
+  window.__expBindModal=bindModal;   /* 버튼 액션으로 열리는 팝업도 같은 동작을 쓰도록 공유 */
   document.addEventListener('click',function(e){
     if(!e.target.closest) return;
     var clr=e.target.closest('[data-clear]');
@@ -3710,7 +3913,7 @@ function buildSpecExport(){
     const vals=(c.valKids&&c.valKids.length)?c.valKids.map(id=>(cols.find(k=>k.id===id)||{}).name).filter(Boolean).join(', '):'(숫자 컬럼 자동)';
     const tt=(state.topTabs&&state.topTabs.length)?`<td>${esc(state.topTabs[c.topTab==null?0:c.topTab]||'')}</td>`:'';
     return `<tr><td class="c">${i+1}</td><td>${esc(c.title)||'<span class="mut">(제목 없음)</span>'}</td><td>${esc(tnm)}</td><td>${sp?esc(sp.title||'(제목없음)'):'<span class="mut">(삭제됨)</span>'}</td><td>${esc(lab)}</td><td>${esc(vals)}</td>${tt}</tr>`;}).join('')}</tbody></table>`:'';
-  const descSec=state.desc?`<h2>§desc§. 화면 설명</h2><div class="descbx">${esc(state.desc)}</div>`:'';
+  const descSec=state.desc?`<h2>§desc§. 화면 설명</h2><div class="descbx">${descHTML(state.desc)}</div>`:'';
   const textSec=(state.texts||[]).length?`<h2>§text§. 화면 표시 문구 (${state.texts.length}건)</h2><p class="mut" style="margin:0 0 8px;">화면 위에 직접 표시되는 주의사항·안내 문구입니다.</p><table><thead><tr><th style="width:36px">No</th><th>문구</th></tr></thead><tbody>${state.texts.map((t,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;color:${esc(t.color||'#e0554e')};font-weight:600;">${esc(t.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const annotSec=(state.annots||[]).length?`<h2>§annot§. 화면 주석 (${state.annots.length}건)</h2><p class="mut" style="margin:0 0 8px;">번호는 화면(HTML 내보내기)의 빨간 핀 번호와 일치합니다.</p><table><thead><tr><th style="width:36px">No</th><th>설명</th></tr></thead><tbody>${state.annots.map((a,i)=>`<tr><td class="c">${i+1}</td><td style="white-space:pre-wrap;">${esc(a.text)||'<span class="mut">(내용 없음)</span>'}</td></tr>`).join('')}</tbody></table>`:'';
   const mm=state.meta||{};

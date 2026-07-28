@@ -1070,7 +1070,7 @@ function newPanel(title,colIndex,ptype){
     columns:[], rows:[], sort:{kid:null,dir:1}};
 }
 const defSearchBtns = () => [{label:'확장조회',primary:true,tone:'blue'},{label:'조회',primary:true,tone:'blue'}];
-const defExcelBtns  = () => [{label:'현재화면 엑셀다운로드',primary:false,tone:'soft'},{label:'조회조건 엑셀다운로드',primary:false,tone:'soft'},{label:'분할 엑셀다운로드',primary:false,tone:'soft'}];
+const defExcelBtns  = () => [{label:'현재화면 엑셀다운로드',primary:false,tone:'soft',act:{kind:'excel'}},{label:'조회조건 엑셀다운로드',primary:false,tone:'soft',act:{kind:'excel'}},{label:'분할 엑셀다운로드',primary:false,tone:'soft',act:{kind:'excel'}}];
 /* 버튼 톤 결정 : 저장된 tone > 강조(primary) > 라벨에 '엑셀' 포함 시 연파랑 > 흰색 */
 const TONES = [['blue','파랑'],['soft','연파랑'],['gray','회색'],['white','흰색']];
 const btnTone = (b,def) => b.tone || (b.primary ? 'blue' : (/엑셀/.test(b.label||'') ? 'soft' : (def||'white')));
@@ -2815,15 +2815,16 @@ $('clearAll').onclick=()=>{
 };
 $('titleInput').addEventListener('change',()=>{state.title=$('titleInput').value;});
 /* 조회영역 / 엑셀영역 버튼 구성 */
-function addBtns(inputId,arr,tone,after){
+function addBtns(inputId,arr,tone,after,defAct){
   const v=$(inputId).value.split(',').map(s=>s.trim()).filter(Boolean);
   if(!v.length){alert('버튼명을 입력하세요.');$(inputId).focus();return;}
-  v.forEach(l=>arr.push({label:l,primary:tone==='blue',tone:tone}));
+  v.forEach(l=>{const b={label:l,primary:tone==='blue',tone:tone}; if(defAct) b.act=JSON.parse(JSON.stringify(defAct)); arr.push(b);});
   $(inputId).value=''; after();
 }
 $('schBtnAdd').onclick  =()=>addBtns('schBtnName',state.searchBtns,$('schBtnTone').value,()=>{renderSearchBtns();applyExt();});
 $('schBtnReset').onclick=()=>{state.searchBtns=defSearchBtns();renderSearchBtns();applyExt();};
-$('xlsBtnAdd').onclick  =()=>addBtns('xlsBtnName',state.excelBtns,$('xlsBtnTone').value,renderExcelBtns);
+/* 엑셀영역에 새로 추가하는 버튼도 기본 클릭동작을 '엑셀 다운로드'로 지정 — HTML 내보내기에서도 동작하도록 */
+$('xlsBtnAdd').onclick  =()=>addBtns('xlsBtnName',state.excelBtns,$('xlsBtnTone').value,renderExcelBtns,{kind:'excel'});
 $('xlsBtnReset').onclick=()=>{state.excelBtns=defExcelBtns();renderExcelBtns();};
 $('panelHead').addEventListener('click',e=>{if(e.target.closest('button')||e.target.closest('input'))return;const head=$('panelHead'),body=$('searchBody');head.classList.toggle('collapsed');body.style.maxHeight=head.classList.contains('collapsed')?'0px':'1200px';});
 $('searchBody').style.maxHeight='1200px';
@@ -3343,7 +3344,7 @@ function buildScreenExport(){
     const xb=(state.excelBtns||[]).map(b=>`<button class="btn tone-${btnTone(b)}${actCls(b)}"${actAttr(b)}>${esc(b.label)}</button>`).join('');
     const p0=curP();
     const ct = (state.queried&&p0&&p0.columns.length) ? `총 <b>${p0.rows.length.toLocaleString('ko-KR')}</b>건` : '';
-    const cb = (ct||xb) ? `<div class="excel-bar"><span class="count">${ct}</span><span class="xls-actions">${xb}</span></div>` : '';
+    const cb = (ct||xb) ? `<div class="excel-bar" data-xpid="${p0?esc(p0.id):''}"><span class="count">${ct}</span><span class="xls-actions">${xb}</span></div>` : '';
     const chs=(state.charts||[]).filter(c=>topTabOK(c.topTab)).length?cloneWithValues('#chartArea'):'';
     return pnl+cb+captureResultPanes()+chs;
   }
@@ -3484,6 +3485,57 @@ document.addEventListener('change',function(e){
   }
   document.querySelectorAll('table.grid').forEach(setup);
 })();
+/* ===== 내보낸 화면 : 엑셀 다운로드 (화면에 보이는 표를 그대로 xlsx로 저장) =====
+   원본 구성기의 doExcel()은 살아있는 state(행·열 데이터)를 사용하지만,
+   내보낸 HTML은 정적 스냅샷이라 원본 데이터가 없다. 대신 현재 화면에
+   렌더링된 table.grid의 DOM(헤더·데이터)을 그대로 읽어 엑셀로 만든다. */
+function __expFindGrid(pid){
+  function visible(el){ return !!(el && el.offsetParent!==null); }
+  if(pid){
+    var byPid=document.querySelectorAll('table.grid[data-pid="'+pid+'"]');
+    for(var i=0;i<byPid.length;i++){ if(visible(byPid[i])) return byPid[i]; }
+  }
+  var all=document.querySelectorAll('table.grid');
+  for(var j=0;j<all.length;j++){ if(visible(all[j])) return all[j]; }
+  return (pid&&byPid&&byPid[0])||all[0]||null;
+}
+function __expDoExcel(pid){
+  if(typeof XLSX==='undefined'){ __actToast('엑셀 라이브러리를 불러오지 못했습니다.','error'); return; }
+  var table=__expFindGrid(pid);
+  if(!table){ __actToast('내보낼 표가 없습니다.','warn'); return; }
+  var rows=table.querySelectorAll('tbody tr');
+  if(!rows.length){ __actToast('내려받을 데이터가 없습니다.','warn'); return; }
+  /* 필터행(.fltcell)·열너비 조절핸들(.xrz) 등 화면 조작용 요소는 제외한 사본으로 변환 */
+  var work=table.cloneNode(true);
+  Array.prototype.forEach.call(work.querySelectorAll('tr'),function(tr){
+    if(tr.querySelector('th.fltcell')&&tr.parentNode) tr.parentNode.removeChild(tr);
+  });
+  Array.prototype.forEach.call(work.querySelectorAll('.xrz'),function(el){ if(el.parentNode) el.parentNode.removeChild(el); });
+  var ws=XLSX.utils.table_to_sheet(work);
+  /* 화면엔 텍스트로 보이지만 실제로는 숫자인 값(콤마·원화·퍼센트 표기)은 엑셀에서도 숫자로 인식되도록 변환 */
+  if(ws['!ref']){
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    for(var r=range.s.r;r<=range.e.r;r++){
+      for(var c=range.s.c;c<=range.e.c;c++){
+        var addr=XLSX.utils.encode_cell({r:r,c:c}), cell=ws[addr];
+        if(!cell||cell.t!=='s') continue;
+        var raw=String(cell.v||'').trim(); if(!raw||raw==='-') continue;
+        var pct=/%$/.test(raw), won=/^\u20A9/.test(raw);
+        var num=Number(raw.replace(/[\u20A9%,\s]/g,''));
+        if(!isNaN(num)&&/[0-9]/.test(raw)){
+          cell.t='n'; cell.v=num;
+          if(pct) cell.z='#,##0.0"%"';
+          else if(won) cell.z='\u20A9#,##0';
+          else if(/,/.test(raw)) cell.z='#,##0';
+        }
+      }
+    }
+  }
+  var wb=XLSX.utils.book_new();
+  var sheetName=(document.title||'화면').substring(0,28).replace(/[\\\/?*:\[\]]/g,'_')||'Sheet1';
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  XLSX.writeFile(wb,(document.title||'조회화면')+'.xlsx');
+}
 /* ===== 내보낸 화면 : 버튼 클릭 이벤트 (안내창·확인창·토스트·팝업·입력창) ===== */
 ${ACT_RUNTIME_SRC}
 window.__EXP_MODALS=${JSON.stringify(expModals)};
@@ -3491,7 +3543,8 @@ document.addEventListener('click',function(e){
   var b=e.target.closest?e.target.closest('[data-actjson]'):null; if(!b) return;
   var a; try{ a=JSON.parse(b.getAttribute('data-actjson')); }catch(err){ return; }
   a.today=${JSON.stringify(todayStr())};
-  __actRun(a,{ openRef:function(kind,id){
+  __actRun(a,{ excel:function(){ var xb=b.closest('.excel-bar'); __expDoExcel(xb?xb.getAttribute('data-xpid'):''); },
+    openRef:function(kind,id){
     var m=window.__EXP_MODALS[id];
     if(!m){ __actToast('연결된 팝업 정보가 없습니다.','error'); return; }
     __actOpen(m.cls,m.html);
@@ -3705,7 +3758,9 @@ window.__EXP_CONDPOP=${JSON.stringify(expCondPop)};
       return c.outerHTML;
     }).join('');
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
-    `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">${head}${extra}</head>`+
+    `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">`+
+    `<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>`+
+    `${head}${extra}</head>`+
     `<body class="preview export">${bodyInner}${exportScript}</body></html>`;
   state.extShown=prevExt; if(wasEdit)document.body.classList.remove('preview'); render();
   return {html, head, extra, exportScript, bodyInner, fileBase:((m.sid?m.sid+'_':'')+(state.title||'조회화면'))};

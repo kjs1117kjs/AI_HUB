@@ -37,10 +37,10 @@
 
   /* ===== 상단 메뉴바 (GNB) ===== */
   .gnb-wrap{position:relative;}
-  .gnb{display:flex;align-items:center;gap:26px;padding:14px 28px;}
-  .gnb .brand{font-size:15px;font-weight:800;}
-  .gnb .gmenu{display:flex;gap:20px;flex-wrap:wrap;}
-  .gnb .gitem{font-size:13px;font-weight:600;opacity:.88;}
+  .gnb{display:flex;align-items:center;gap:26px;padding:16px 32px;}
+  .gnb .brand{font-size:15px;font-weight:800;flex-shrink:0;}
+  .gnb .gmenu{display:flex;gap:6px;flex-wrap:wrap;}
+  .gnb .gitem{display:inline-block;font-weight:700;opacity:.88;}
   body.preview .gnb .gitem{cursor:pointer;}
   body.preview .gnb .gitem:hover{opacity:1;text-decoration:underline;text-underline-offset:4px;}
   .gnb .gitem.on{opacity:1;text-decoration:underline;text-underline-offset:4px;font-weight:800;}
@@ -50,6 +50,25 @@
   .gnb.gnb-blue{background:#2f649c;color:#fff;}
   .gnb.gnb-white{background:#fff;color:#2c3742;border-bottom:1px solid var(--border-soft);}
   body:not(.preview) .gnb-wrap:hover .gnb{outline:2px dashed #c3cddb;outline-offset:-2px;}
+  /* 폭 — 자동은 로고 옆에 내용만큼, 꽉차게는 남은 공간을 모두 차지(flex:1) */
+  .gnb.gnb-width-fill .gmenu{flex:1;}
+  /* 정렬 — 폭이 꽉차게일 때 뚜렷하게 드러남(자동일 때는 어차피 내용 크기라 육안 차이가 거의 없음) */
+  .gnb.gnb-align-left .gmenu{justify-content:flex-start;}
+  .gnb.gnb-align-center .gmenu{justify-content:center;}
+  .gnb.gnb-align-right .gmenu{justify-content:flex-end;}
+  .gnb.gnb-align-between .gmenu{justify-content:space-between;}
+  /* 꽉차게 + 가운데 정렬 — 항목들을 가운데로 뭉치지 않고, 모든 항목이 같은 폭으로 균등 분할되어 그 안에서 글자만 가운데로 온다 (탭 형태) */
+  .gnb.gnb-width-fill.gnb-align-center .gmenu{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:center;}
+  .gnb.gnb-width-fill.gnb-align-center .gwrap{min-width:0;}
+  .gnb.gnb-width-fill.gnb-align-center .gitem{display:block;width:100%;text-align:center;}
+  /* 크기 — 항목의 글자 크기 + 클릭 영역(padding) */
+  .gnb.gnb-size-sm .gitem{font-size:12.5px;padding:7px 12px;}
+  .gnb.gnb-size-md .gitem{font-size:14.5px;padding:10px 18px;}
+  .gnb.gnb-size-lg .gitem{font-size:16px;padding:12px 24px;}
+  /* 상단 고정 + 그림자 */
+  .gnb.gnb-sticky{position:sticky;top:0;z-index:150;}
+  .gnb.gnb-shadow{box-shadow:0 2px 14px rgba(20,30,50,.14);}
+
 
   /* ===== 푸터 ===== */
   .pfooter{border-top:1px solid var(--border-soft);padding:18px 28px 20px;background:#fafbfc;color:#8a94a2;font-size:12px;line-height:1.8;}
@@ -474,7 +493,7 @@
 
   /* ===== 메뉴바 좌우 풀폭(메가) 메뉴 ===== */
   .gnb{position:relative;}
-  .gnb .gwrap.mega{position:static;padding-bottom:14px;margin-bottom:-14px;}
+  .gnb .gwrap.mega{position:static;padding-bottom:16px;margin-bottom:-16px;}
   .gnb .gmega{display:none;position:absolute;left:0;right:0;top:100%;z-index:80;padding-top:0;}
   .gnb .gwrap.mega:hover .gmega{display:block;}
   .gnb .gmega-in{display:flex;gap:18px;background:#fff;border-bottom:1px solid var(--border-soft);box-shadow:0 16px 32px rgba(20,30,50,.10);padding:24px 48px 26px;}
@@ -720,7 +739,7 @@ const state = {
   pages: [ {id:'PG'+(seq++), name:'홈', rows:[], annots:[]} ],
   curPage: null,
   sel: null /* 선택된 블록 id */,
-  gnb:   { on:true, brand:'사이트명', items:[{label:'홈'},{label:'대시보드'},{label:'소개'},{label:'문의'}], tone:'dark' },
+  gnb:   { on:true, brand:'사이트명', items:[{label:'홈'},{label:'대시보드'},{label:'소개'},{label:'문의'}], tone:'dark', width:'fill', align:'between', size:'md', sticky:false, shadow:false },
   footer:{ on:true, text:'© 2026 회사명. All rights reserved.', sub:'문의: help@example.com · 02-000-0000' }
 };
 state.curPage = state.pages[0].id;
@@ -1332,15 +1351,21 @@ function gnbMenuHTML(activePid, editMode){
     return `<span class="gwrap">${item}${sub}</span>`;
   }).join('');
 }
+function gnbClass(g){ return `gnb gnb-${g.tone||'dark'} gnb-width-${g.width||'auto'} gnb-align-${g.align||'left'} gnb-size-${g.size||'md'}${g.sticky?' gnb-sticky':''}${g.shadow?' gnb-shadow':''}`; }
 function gnbHTML(ed){
   if(!state.gnb.on) return '';
   const g=state.gnb;
-  const tools = ed ? `<div class="prow-tools" style="top:6px;right:10px;">
+  const tools = ed ? `<div class="prow-tools" style="top:6px;right:10px;flex-wrap:wrap;max-width:520px;">
       <input class="tin" data-gbrand value="${esc(g.brand)}" placeholder="사이트명" style="width:90px;" title="사이트명/로고 텍스트">
       <input class="tin" data-gitems value="${esc(gnbItemsToStr(g.items))}" placeholder="메뉴 (쉼표 · 하위: 괄호/대괄호)" title="메뉴 항목을 쉼표로. 일반 드롭다운은 괄호 — 소개(연혁/팀). 좌우 풀폭(메가) 메뉴는 대괄호와 하위:설명 — 제품[포스:올인원 POS/키오스크:셀프 주문]" style="width:210px;">
       <select class="b-sel" data-gtone title="메뉴바 색">${[['dark','어두운'],['blue','파랑'],['white','흰색']].map(z=>`<option value="${z[0]}"${(g.tone||'dark')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
+      <select class="b-sel" data-gwidth title="메뉴 영역 폭 — 꽉차게를 골라야 아래 정렬 효과가 뚜렷하게 보입니다">${[['auto','자동(로고 옆)'],['fill','꽉차게']].map(z=>`<option value="${z[0]}"${(g.width||'auto')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
+      <select class="b-sel" data-galign title="메뉴 항목 정렬">${[['left','좌측 정렬'],['center','가운데 정렬'],['right','우측 정렬'],['between','양쪽 정렬(균등 배치)']].map(z=>`<option value="${z[0]}"${(g.align||'left')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
+      <select class="b-sel" data-gsize title="메뉴 글자·버튼 크기">${[['sm','작게'],['md','보통'],['lg','크게']].map(z=>`<option value="${z[0]}"${(g.size||'md')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
+      <select class="b-sel" data-gsticky title="스크롤해도 상단에 붙어있게(고정)">${[['','고정 안함'],['1','상단 고정']].map(z=>`<option value="${z[0]}"${(g.sticky?'1':'')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
+      <select class="b-sel" data-gshadow title="메뉴바 아래 그림자">${[['','그림자 없음'],['1','그림자']].map(z=>`<option value="${z[0]}"${(g.shadow?'1':'')===z[0]?' selected':''}>${z[1]}</option>`).join('')}</select>
     </div>` : '';
-  return `<div class="gnb-wrap">${tools}<div class="gnb gnb-${g.tone||'dark'}">
+  return `<div class="gnb-wrap">${tools}<div class="${gnbClass(g)}">
     <span class="brand">${esc(g.brand)}</span>
     <span class="gmenu">${gnbMenuHTML(state.curPage, ed)}</span>
   </div></div>`;
@@ -1369,6 +1394,7 @@ function render(){
   const pins = pg.annots.map((a,i)=>`<div class="annot-pin" data-apin="${a.id}" style="left:${a.x}%;top:${a.y}px;" title="주석 ${i+1}${document.body.classList.contains('annot')?' — 클릭하면 삭제':''}">${i+1}</div>`).join('');
   const notes = pg.texts.map(t=>`<div class="txt-note${t.hl?' hl':''}" data-tid="${t.id}" style="left:${t.x}%;top:${t.y}px;color:${esc(t.color||'#d9534f')};font-size:${t.size||13}px;">${esc(t.text||'(내용 없음)')}</div>`).join('');
   cv.innerHTML = gnbHTML(ed) + `<div class="rows-area">${rowsHtml}</div>` + footerHTML(ed) + pins + notes;
+  cv.style.overflow = (state.gnb.on && state.gnb.sticky) ? 'visible' : '';   /* 메뉴바 상단 고정 시 부모의 overflow:hidden이 sticky를 깨는 것 방지 */
   const al=$('annotList');
   al.style.display = pg.annots.length ? '' : 'none';
   al.innerHTML = pg.annots.length ? `<div class="al-box"><div class="al-title">📌 화면 주석 — ${esc(pg.name)} (${pg.annots.length}건)</div>${
@@ -1463,7 +1489,11 @@ function reseq(){
   if(mx>=seq) seq=mx+1;
 }
 function normGnb(g){
-  if(!g) return {on:false, brand:'사이트명', items:[{label:'홈'}], tone:'dark'};  /* 구버전 파일: 메뉴바 없음 */
+  if(!g) return {on:false, brand:'사이트명', items:[{label:'홈'}], tone:'dark', width:'auto', align:'left', size:'md', sticky:false, shadow:false};  /* 구버전 파일: 메뉴바 없음 */
+  const align=['left','center','right','between'].includes(g.align)?g.align:'left';
+  /* width(폭)는 이후 추가된 필드 — 구버전 파일엔 없었고, 그땐 center/right/between 정렬을 고르면 항상 꽉차게(flex:1)로 동작했다.
+     그래서 width가 아예 없는 구버전 파일은 align으로 자동 추정: left → 자동폭, 그 외 → 꽉차게. */
+  const width=['auto','fill'].includes(g.width) ? g.width : (align==='left'?'auto':'fill');
   return {on:!!g.on, brand:g.brand||'사이트명',
     items:(Array.isArray(g.items)?g.items:[]).filter(i=>i&&i.label).map(i=>{
       const it={label:String(i.label)};
@@ -1473,7 +1503,10 @@ function normGnb(g){
       if(kids.length){ it.children=kids; if(i.mega) it.mega=true; }
       return it;
     }),
-    tone:['dark','blue','white'].includes(g.tone)?g.tone:'dark'};
+    tone:['dark','blue','white'].includes(g.tone)?g.tone:'dark',
+    width, align,
+    size:['sm','md','lg'].includes(g.size)?g.size:'md',
+    sticky:!!g.sticky, shadow:!!g.shadow};
 }
 function normFooter(f){
   if(!f) return {on:false, text:'', sub:''};
@@ -1592,14 +1625,27 @@ body{font-family:"Pretendard",sans-serif;background:#eef1f4;color:#2c3742;font-s
 #page{max-width:1080px;margin:20px auto 80px;padding:0 16px;}
 #canvas{background:#fff;border:1px solid #e2e7ed;border-radius:6px;min-height:200px;padding:0;overflow:hidden;}
 .rows-area{padding:28px 32px;}
-.gnb{display:flex;align-items:center;gap:26px;padding:14px 28px;}
-.gnb .brand{font-size:15px;font-weight:800;}
-.gnb .gmenu{display:flex;gap:20px;flex-wrap:wrap;}
-.gnb .gitem{font-size:13px;font-weight:600;opacity:.88;}
+.gnb{display:flex;align-items:center;gap:26px;padding:16px 32px;}
+.gnb .brand{font-size:15px;font-weight:800;flex-shrink:0;}
+.gnb .gmenu{display:flex;gap:6px;flex-wrap:wrap;}
+.gnb .gitem{display:inline-block;font-weight:700;opacity:.88;}
 .gnb .gitem[data-nav]{cursor:pointer;}
 .gnb .gitem.on{opacity:1;text-decoration:underline;text-underline-offset:4px;font-weight:800;}
 .pbtn[data-nav]{cursor:pointer;}
 .gnb .gitem:hover{opacity:1;text-decoration:underline;text-underline-offset:4px;}
+.gnb.gnb-width-fill .gmenu{flex:1;}
+.gnb.gnb-align-left .gmenu{justify-content:flex-start;}
+.gnb.gnb-align-center .gmenu{justify-content:center;}
+.gnb.gnb-align-right .gmenu{justify-content:flex-end;}
+.gnb.gnb-align-between .gmenu{justify-content:space-between;}
+.gnb.gnb-width-fill.gnb-align-center .gmenu{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:center;}
+.gnb.gnb-width-fill.gnb-align-center .gwrap{min-width:0;}
+.gnb.gnb-width-fill.gnb-align-center .gitem{display:block;width:100%;text-align:center;}
+.gnb.gnb-size-sm .gitem{font-size:12.5px;padding:7px 12px;}
+.gnb.gnb-size-md .gitem{font-size:14.5px;padding:10px 18px;}
+.gnb.gnb-size-lg .gitem{font-size:16px;padding:12px 24px;}
+.gnb.gnb-sticky{position:sticky;top:0;z-index:150;}
+.gnb.gnb-shadow{box-shadow:0 2px 14px rgba(20,30,50,.14);}
 .gnb.gnb-dark{background:#2c3742;color:#fff;}
 .gnb.gnb-blue{background:#2f649c;color:#fff;}
 .gnb.gnb-white{background:#fff;color:#2c3742;border-bottom:1px solid #e8ecf1;}
@@ -1808,7 +1854,7 @@ body{font-family:"Pretendard",sans-serif;background:#eef1f4;color:#2c3742;font-s
 
 /* ===== 메뉴바 좌우 풀폭(메가) 메뉴 ===== */
 .gnb{position:relative;}
-.gnb .gwrap.mega{position:static;padding-bottom:14px;margin-bottom:-14px;}
+.gnb .gwrap.mega{position:static;padding-bottom:16px;margin-bottom:-16px;}
 .gnb .gmega{display:none;position:absolute;left:0;right:0;top:100%;z-index:80;}
 .gnb .gwrap.mega:hover .gmega{display:block;}
 .gnb .gmega-in{display:flex;gap:18px;background:#fff;border-bottom:1px solid #e4e8ed;box-shadow:0 16px 32px rgba(20,30,50,.10);padding:24px 48px 26px;}
@@ -1902,7 +1948,7 @@ function exportHTML(){
   state.curPage=savedCur;
   const body = panes.join('\n');
   const firstPg = state.pages[0];
-  const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(firstPg.id,false)}</span></div>` : '';
+  const gnbX = state.gnb.on ? `<div class="${gnbClass(state.gnb)}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(firstPg.id,false)}</span></div>` : '';
   const footX = state.footer.on ? `<div class="pfooter"><div class="fmain">${esc(state.footer.text)}</div><div>${esc(state.footer.sub)}</div></div>` : '';
   const pageSwitchJs = state.pages.length>1 ? `
 document.addEventListener('click',function(e){
@@ -1929,7 +1975,7 @@ ${EXPORT_INTERACT_JS}
 <style>${EXPORT_CSS}</style>
 </head>
 <body>
-<div id="page"><div id="canvas">
+<div id="page"><div id="canvas"${state.gnb.on&&state.gnb.sticky?' style="overflow:visible;"':''}>
 ${gnbX}
 ${body}
 ${footX}
@@ -1965,7 +2011,7 @@ ${EXPORT_INTERACT_JS}
     const p=f.p;
     state.curPage=p.id;   /* 메뉴바·사이드메뉴 활성 표시가 이 페이지 기준으로 렌더되도록 */
     const rowsX=exportRowsHTML(p.rows)||'<p style="color:#9aa2ac;text-align:center;padding:60px 0;">내용이 없습니다.</p>';
-    const gnbX = state.gnb.on ? `<div class="gnb gnb-${state.gnb.tone||'dark'}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(p.id,false)}</span></div>` : '';
+    const gnbX = state.gnb.on ? `<div class="${gnbClass(state.gnb)}"><span class="brand">${esc(state.gnb.brand)}</span><span class="gmenu">${gnbMenuHTML(p.id,false)}</span></div>` : '';
     const footX = state.footer.on ? `<div class="pfooter"><div class="fmain">${esc(state.footer.text)}</div><div>${esc(state.footer.sub)}</div></div>` : '';
     const pinX=(p.annots||[]).map((a,ai)=>`<div class="annot-pin" style="left:${a.x}%;top:${a.y}px;">${ai+1}</div>`).join('');
     const noteX=(p.texts||[]).filter(t=>t.text).map(t=>`<div class="txt-note${t.hl?' hl':''}" style="left:${t.x}%;top:${t.y}px;color:${esc(t.color||'#d9534f')};font-size:${t.size||13}px;">${esc(t.text)}</div>`).join('');
@@ -1983,7 +2029,7 @@ ${EXPORT_INTERACT_JS}
 <style>${EXPORT_CSS}</style>
 </head>
 <body>
-<div id="page"><div id="canvas">
+<div id="page"><div id="canvas"${state.gnb.on&&state.gnb.sticky?' style="overflow:visible;"':''}>
 ${gnbX}
 <div class="ppage"><div class="rows-area">${rowsX}</div></div>
 ${footX}
@@ -2340,6 +2386,11 @@ $('canvas').addEventListener('change', e => {
   if(t.dataset.gbrand!=null){ pushHist(); state.gnb.brand=t.value.trim()||'사이트명'; render(); return; }
   if(t.dataset.gitems!=null){ pushHist(); state.gnb.items=strToGnbItems(t.value); render(); return; }
   if(t.dataset.gtone!=null){ pushHist(); state.gnb.tone=t.value; render(); return; }
+  if(t.dataset.gwidth!=null){ pushHist(); state.gnb.width=t.value; render(); return; }
+  if(t.dataset.galign!=null){ pushHist(); state.gnb.align=t.value; render(); return; }
+  if(t.dataset.gsize!=null){ pushHist(); state.gnb.size=t.value; render(); return; }
+  if(t.dataset.gsticky!=null){ pushHist(); state.gnb.sticky=!!t.value; render(); return; }
+  if(t.dataset.gshadow!=null){ pushHist(); state.gnb.shadow=!!t.value; render(); return; }
   if(t.dataset.rlayout){ const r=findRow(t.dataset.rlayout); if(r){ pushHist(); relayoutRow(r, t.value); render(); } }
 });
 

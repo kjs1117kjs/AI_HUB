@@ -7,20 +7,25 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:"Pretendard",sans-serif;font-weight:500;color:#2e2e2e;background:#fff;line-height:1.75;
+  body{font-family:"Pretendard",sans-serif;font-weight:500;color:#2e2e2e;background:#fff;line-height:1.78;
     word-break:keep-all;overflow-wrap:break-word;font-feature-settings:"tnum";font-size:14.5px;}
-  .wrap{max-width:820px;margin:0 auto;padding:56px 24px 120px;}
+  .wrap{max-width:860px;margin:0 auto;padding:56px 24px 140px;}
   header{border-bottom:2px solid #191919;padding-bottom:26px;margin-bottom:30px;}
   .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#767676;font-weight:600;margin-bottom:10px;}
   h1{font-size:34px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;color:#191919;}
   .sub{margin-top:12px;font-size:14.5px;color:#545454;}
-  h2{font-size:21px;font-weight:800;color:#191919;margin-top:64px;padding-top:22px;border-top:2px solid #191919;}
+  h2{font-size:21px;font-weight:800;color:#191919;margin-top:72px;padding-top:22px;border-top:2px solid #191919;}
   h2 .no{color:#a1a1a1;margin-right:10px;}
-  h3{font-size:15.5px;font-weight:700;color:#191919;margin-top:30px;}
+  h3{font-size:15.5px;font-weight:700;color:#191919;margin-top:34px;}
+  h4{font-size:14px;font-weight:700;color:#191919;margin-top:24px;}
   p{margin-top:12px;color:#3c3c3c;}
   ul.bl{margin:12px 0 0 2px;list-style:none;}
-  ul.bl li{padding-left:16px;position:relative;margin-top:7px;color:#3c3c3c;}
+  ul.bl li{padding-left:16px;position:relative;margin-top:8px;color:#3c3c3c;}
   ul.bl li::before{content:"·";position:absolute;left:2px;color:#a1a1a1;font-weight:800;}
+  ol.steps{margin:12px 0 0 0;counter-reset:st;list-style:none;}
+  ol.steps li{position:relative;padding-left:34px;margin-top:10px;color:#3c3c3c;counter-increment:st;}
+  ol.steps li::before{content:counter(st);position:absolute;left:0;top:2px;width:22px;height:22px;border-radius:50%;
+    background:#191919;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   b{color:#191919;font-weight:700;}
   code,kbd{font-family:inherit;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:1px 7px;font-size:12.5px;color:#334;}
   kbd{background:#191919;color:#fff;border-color:#191919;}
@@ -32,6 +37,13 @@
   .tip .lb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#767676;margin-bottom:6px;}
   .note{background:rgba(15,128,246,.07);padding:16px 20px;margin-top:16px;font-size:13.5px;}
   .note .lb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2f649c;margin-bottom:6px;}
+  .warn{background:rgba(235,69,61,.07);padding:16px 20px;margin-top:16px;font-size:13.5px;}
+  .warn .lb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a03a34;margin-bottom:6px;}
+  /* 그림(도식) */
+  .fig{border:1px solid #e5e7eb;border-radius:10px;background:#fcfcfd;padding:20px 18px 14px;margin-top:18px;text-align:center;}
+  .fig svg{max-width:100%;height:auto;display:block;margin:0 auto;}
+  .fig .cap{margin-top:10px;font-size:12px;color:#767676;text-align:center;}
+  .fig .cap b{color:#545454;}
   /* TOC */
   nav.toc{background:#f8f9fa;border:1px solid #eceef1;border-radius:8px;padding:20px 24px;margin-top:26px;}
   nav.toc .t{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#767676;margin-bottom:10px;}
@@ -41,6 +53,7 @@
   nav.toc a:hover{color:#0F80F6;text-decoration:underline;text-underline-offset:3px;}
   .pill{display:inline-block;background:#eef4fb;color:#2f649c;font-size:11.5px;font-weight:700;border-radius:10px;padding:2px 10px;margin-right:4px;}
   .pill.new{background:#e8f6ee;color:#1c7a4d;}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid rgba(0,0,0,.12);}
   @media(max-width:560px){ nav.toc ol{columns:1;} h1{font-size:27px;} }
 </style>
 </head>
@@ -64,7 +77,7 @@
     <li><a href="#s4">페이지 — 추가·이동·링크 연결</a></li>
     <li><a href="#s5">행(섹션)과 열 — 레이아웃 15종</a></li>
     <li><a href="#s5b">블록·행 옮기기 — 드래그&amp;드롭</a></li>
-    <li><a href="#s6">블록 40종 한눈에</a></li>
+    <li><a href="#s6">블록 40종 상세</a></li>
     <li><a href="#s6b">새 블록 3종 — 슬라이드·팝업·HTML</a></li>
     <li><a href="#s7">데이터 블록 — 표·요약카드·그래프</a></li>
     <li><a href="#s8">메뉴바(GNB)와 푸터</a></li>
@@ -76,25 +89,152 @@
   </ol>
 </nav>
 
+<!-- ============================================================ 01 -->
 <h2 id="s1"><span class="no">01</span>이런 도구입니다</h2>
-<p><b>화면 빌더</b>는 코드를 몰라도 홈페이지·랜딩·대시보드 같은 화면을 조립할 수 있는 단일 HTML 도구입니다. 결과물은 두 가지로 뽑습니다.</p>
-<ul class="bl">
-  <li><b>🌐 HTML 내보내기</b> — 만든 화면 그대로 열리는 독립 HTML. <b>한 파일</b>로 받거나 <b>페이지별 파일</b>로 나눠 받을 수 있고(11장), 두 방식 모두 페이지 이동(메뉴·버튼·사이드메뉴 클릭)이 실제로 동작합니다. 설계 검토용은 물론 간단한 실사용 페이지로도 쓸 수 있습니다.</li>
-  <li><b>📑 화면정의서</b> — 페이지 구조·블록 목록·주석을 표로 정리한 인쇄용 문서. 개발팀에 전달하는 설계서가 됩니다.</li>
-</ul>
-<div class="note"><div class="lb">Note</div>브라우저에서 파일을 여는 것만으로 동작하며 서버·설치가 필요 없습니다. 작업 내용은 <b>JSON 저장 파일</b>로 보관하고 다시 불러올 수 있습니다.</div>
+<p><b>화면 빌더</b>는 코드를 몰라도 홈페이지·랜딩·대시보드 같은 화면을 조립할 수 있는 <b>단일 HTML 파일 도구</b>입니다. 파일을 브라우저로 여는 것만으로 바로 동작하며, 서버·설치·로그인이 전혀 필요 없습니다. 기획자가 "이런 화면이 필요하다"는 것을 말과 그림 대신 <b>실제로 클릭해 볼 수 있는 화면</b>으로 만들어 전달하는 것이 목적입니다.</p>
 
+<h3>결과물은 두 가지입니다</h3>
+<ul class="bl">
+  <li><b>🌐 HTML 내보내기</b> — 만든 화면 그대로 열리는 독립 HTML. <b>한 파일</b>로 받거나 <b>페이지별 파일</b>로 나눠 받을 수 있고(11장), 두 방식 모두 페이지 이동(메뉴·버튼·사이드메뉴 클릭)이 실제로 동작합니다. 설계 검토용은 물론, 안내 페이지·사내 공지처럼 "보여주는 화면"이라면 간단한 실사용 페이지로도 쓸 수 있습니다.</li>
+  <li><b>📑 화면정의서</b> — 페이지 구조·행/열 구성·블록 목록·주석·화면 문구를 표로 정리한 인쇄용 문서. 개발팀에 전달하는 설계서가 됩니다(12장).</li>
+</ul>
+
+<h3>전체 작업 흐름</h3>
+<div class="fig">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <g font-size="13" font-weight="700" fill="#191919" text-anchor="middle">
+      <rect x="10" y="30" width="130" height="56" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="75" y="53">① 템플릿 선택</text>
+      <text x="75" y="72" font-size="11" font-weight="500" fill="#767676">비슷한 유형 고르기</text>
+      <rect x="170" y="30" width="130" height="56" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="235" y="53">② 내용 수정</text>
+      <text x="235" y="72" font-size="11" font-weight="500" fill="#767676">클릭해 직접 입력</text>
+      <rect x="330" y="30" width="130" height="56" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="395" y="53">③ 구조 조정</text>
+      <text x="395" y="72" font-size="11" font-weight="500" fill="#767676">블록·행 추가/이동</text>
+      <rect x="490" y="30" width="130" height="56" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="555" y="53">④ 주석 달기</text>
+      <text x="555" y="72" font-size="11" font-weight="500" fill="#767676">📌 스펙 · 📝 문구</text>
+      <rect x="650" y="22" width="100" height="34" rx="8" fill="#0F80F6"/>
+      <text x="700" y="44" fill="#fff" font-size="12">🌐 HTML</text>
+      <rect x="650" y="64" width="100" height="34" rx="8" fill="#191919"/>
+      <text x="700" y="86" fill="#fff" font-size="12">📑 화면정의서</text>
+    </g>
+    <g stroke="#a1a1a1" stroke-width="1.5" fill="#a1a1a1">
+      <line x1="140" y1="58" x2="164" y2="58"/><polygon points="164,54 172,58 164,62"/>
+      <line x1="300" y1="58" x2="324" y2="58"/><polygon points="324,54 332,58 324,62"/>
+      <line x1="460" y1="58" x2="484" y2="58"/><polygon points="484,54 492,58 484,62"/>
+      <line x1="620" y1="50" x2="644" y2="42"/><polygon points="643,38 651,41 645,46"/>
+      <line x1="620" y1="66" x2="644" y2="76"/><polygon points="645,72 651,77 643,80"/>
+    </g>
+  </svg>
+  <div class="cap"><b>그림 1.</b> 기본 작업 흐름 — 템플릿에서 시작해 내용을 바꾸고, 두 가지 결과물로 내보냅니다.</div>
+</div>
+
+<div class="note"><div class="lb">Note</div>작업 내용은 브라우저에 <b>자동 저장</b>되어 탭을 닫아도 이어서 작업할 수 있고(10장), 별도로 <b>JSON 저장 파일</b>로 내려받아 다른 PC로 옮기거나 백업할 수 있습니다. 도구 HTML 파일 자체에는 작업 내용이 저장되지 않는다는 점만 기억하세요.</div>
+
+<!-- ============================================================ 02 -->
 <h2 id="s2"><span class="no">02</span>화면 구성과 두 가지 모드</h2>
-<ul class="bl">
-  <li><b>상단 도구막대</b> — 페이지 관리(추가·이름·복제·삭제·<b>순서 이동·하위 지정</b>) / 행 추가 / 메뉴바·푸터 스위치 / 템플릿 / 저장·불러오기 / 내보내기(한 파일·페이지별) / 주석 모드 / 텍스트 모드 / 실행취소. 오른쪽 끝에는 <b>마지막 자동 저장 시각</b>이 표시됩니다.</li>
-  <li><b>캔버스</b> — 실제 화면 모습 그대로 편집하는 영역. 텍스트는 <b>화면에서 직접 클릭해 입력</b>합니다(입력 후 바깥 클릭 시 저장).</li>
-  <li><b>블록 도구</b> — 블록을 <b>클릭해 선택하면</b> 우상단에 작은 도구가 나타납니다(속성 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제). 마우스만 올려도 <b>좌상단에 ⠿ 손잡이</b>가 나타나 바로 끌어 옮길 수 있습니다.</li>
-</ul>
-<h3>편집 ↔ 미리보기</h3>
-<p>우상단 <code>👁 미리보기</code>를 누르면 점선·도구가 모두 사라진 완성 모습을 확인할 수 있고, 메뉴·버튼 클릭으로 <b>페이지 이동도 실제로 동작</b>합니다. 다시 누르면 편집으로 돌아옵니다.</p>
+<p>화면은 크게 <b>상단 도구막대</b>와 <b>캔버스</b> 두 영역입니다. 캔버스는 완성될 화면의 실제 모습 그대로이며, 그 위에서 직접 클릭해 편집합니다.</p>
 
+<div class="fig">
+  <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- toolbar -->
+    <rect x="10" y="10" width="740" height="46" rx="8" fill="#191919"/>
+    <g font-size="11" fill="#fff" font-weight="600">
+      <text x="26" y="38">[페이지] 홈 ▾  ＋ ✎ ⧉ ✕  ◀▶ ⇥</text>
+      <text x="230" y="38">＋ 행 추가</text>
+      <text x="308" y="38">☑ 메뉴바 ☑ 푸터</text>
+      <text x="424" y="38">📚 템플릿</text>
+      <text x="496" y="38">💾 📂</text>
+      <text x="546" y="38">🌐 🗂 📑</text>
+      <text x="616" y="38">📌 📝 ↶</text>
+      <text x="678" y="38" fill="#8fd08f">자동 저장됨</text>
+    </g>
+    <!-- canvas -->
+    <rect x="10" y="66" width="740" height="252" rx="8" fill="#fff" stroke="#d7dbe0" stroke-width="1.4"/>
+    <text x="26" y="90" font-size="11" fill="#a1a1a1" font-weight="600">캔버스 — 실제 화면 모습 그대로 편집</text>
+    <!-- gnb -->
+    <rect x="30" y="100" width="700" height="30" fill="#2b2f36"/>
+    <text x="44" y="120" font-size="11" fill="#fff" font-weight="700">사이트명</text>
+    <text x="620" y="120" font-size="11" fill="#cfd4da">홈  소개  문의</text>
+    <!-- selected block -->
+    <rect x="30" y="144" width="700" height="66" fill="#f4f8ff" stroke="#0F80F6" stroke-width="1.6" stroke-dasharray="5 3"/>
+    <text x="46" y="182" font-size="13" fill="#191919" font-weight="700">선택된 블록 (클릭하면 파란 선택 테두리)</text>
+    <!-- handle -->
+    <rect x="18" y="150" width="22" height="22" rx="5" fill="#fff" stroke="#0F80F6" stroke-width="1.4"/>
+    <text x="29" y="166" font-size="11" fill="#0F80F6" text-anchor="middle" font-weight="800">⠿</text>
+    <text x="18" y="192" font-size="10.5" fill="#0F80F6" font-weight="700">드래그 손잡이</text>
+    <!-- block tools -->
+    <rect x="560" y="132" width="164" height="24" rx="6" fill="#fff" stroke="#c9ced4"/>
+    <text x="642" y="149" font-size="11.5" fill="#3c3c3c" text-anchor="middle" font-weight="700">속성  ▲ ▼  ⧉  ✕</text>
+    <text x="726" y="126" font-size="10.5" fill="#767676" text-anchor="end" font-weight="700">블록 도구 (우상단)</text>
+    <!-- other block -->
+    <rect x="30" y="224" width="700" height="44" fill="#fff" stroke="#e3e3e3" stroke-dasharray="4 3"/>
+    <text x="46" y="251" font-size="12" fill="#767676">일반 블록 (편집 모드에서는 옅은 점선)</text>
+    <!-- add buttons -->
+    <g font-size="11" fill="#3c3c3c" font-weight="600">
+      <rect x="30" y="280" width="70" height="24" rx="6" fill="#f3f4f6" stroke="#dfe3e8"/><text x="65" y="296" text-anchor="middle">＋ 제목</text>
+      <rect x="108" y="280" width="70" height="24" rx="6" fill="#f3f4f6" stroke="#dfe3e8"/><text x="143" y="296" text-anchor="middle">＋ 본문</text>
+      <rect x="186" y="280" width="70" height="24" rx="6" fill="#f3f4f6" stroke="#dfe3e8"/><text x="221" y="296" text-anchor="middle">＋ 카드</text>
+      <rect x="264" y="280" width="110" height="24" rx="6" fill="#f3f4f6" stroke="#dfe3e8"/><text x="319" y="296" text-anchor="middle">＋ 블록 추가… ▾</text>
+    </g>
+    <text x="390" y="296" font-size="10.5" fill="#767676">← 열 하단의 블록 추가 버튼</text>
+  </svg>
+  <div class="cap"><b>그림 2.</b> 편집 화면 구성 — 상단 도구막대, 캔버스, 그리고 블록을 선택했을 때 나타나는 도구들.</div>
+</div>
+
+<h3>상단 도구막대 — 왼쪽부터 순서대로</h3>
+<table>
+  <thead><tr><th>구역</th><th>버튼</th><th>하는 일</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="2">페이지</td><td>페이지 콤보 · <code>＋ 페이지</code> <code>✎ 이름</code> <code>⧉ 복제</code> <code>✕ 삭제</code></td><td>페이지 전환과 기본 관리(4장)</td></tr>
+    <tr><td><code>◀ 순서</code> <code>순서 ▶</code> <code>⇥ 하위</code></td><td>페이지 순서 이동, 하위(Tree) 지정(4장)</td></tr>
+    <tr><td>행</td><td>열 분할 콤보 + <code>＋ 행 추가</code></td><td>선택한 열 분할로 새 행(섹션)을 현재 페이지 맨 아래에 추가(5장)</td></tr>
+    <tr><td>공통 영역</td><td><code>☑ 메뉴바</code> <code>☑ 푸터</code></td><td>전 페이지 공통 메뉴바/푸터 켜고 끄기(8장)</td></tr>
+    <tr><td>템플릿</td><td><code>📚 예시 템플릿 (60종)…</code></td><td>화면 전체를 예시로 교체 — 실행취소 가능(3장)</td></tr>
+    <tr><td>저장</td><td><code>💾 저장(JSON)</code> <code>📂 불러오기</code></td><td>작업 전체를 파일로 보관/복원(10장)</td></tr>
+    <tr><td>내보내기</td><td><code>🌐 HTML(한 파일)</code> <code>🗂 HTML(페이지별)</code> <code>📑 화면정의서</code></td><td>결과물 출력(11·12장)</td></tr>
+    <tr><td>모드</td><td><code>📌 주석 모드</code> <code>📝 텍스트 모드</code></td><td>설계 의도 남기기(9장)</td></tr>
+    <tr><td>기타</td><td><code>↶ 실행취소</code> <code>↷ 다시실행</code> <code>🗑 초기화</code> · <b>자동 저장 시각</b></td><td>되돌리기(최대 60단계), 전체 비우기, 마지막 자동 저장 시각 표시</td></tr>
+  </tbody>
+</table>
+
+<h3>캔버스에서의 기본 조작</h3>
+<ul class="bl">
+  <li><b>텍스트 입력</b> — 제목·본문·표 셀·카드 문구 등 거의 모든 글자는 <b>화면에서 직접 클릭해 입력</b>합니다. 입력을 마치면 <b>바깥의 빈 곳을 한 번 클릭</b>해야 반영됩니다(반영 전에 페이지를 전환하면 그 글만 유실될 수 있음).</li>
+  <li><b>블록 선택</b> — 블록을 클릭하면 파란 테두리로 선택되고, <b>우상단에 블록 도구</b>(속성 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제)가 나타납니다. 동시에 <b>도구막대의 파란 영역</b>에 그 블록의 속성(크기·색·열 수 등)이 표시됩니다.</li>
+  <li><b>드래그 손잡이</b> — 블록에 마우스만 올려도 <b>좌상단에 ⠿ 손잡이</b>가 나타나 바로 끌어 옮길 수 있습니다(5-1장).</li>
+</ul>
+
+<h3>편집 ↔ 미리보기</h3>
+<p>우상단 <code>👁 미리보기</code>를 누르면 점선·손잡이·추가 버튼이 모두 사라진 <b>완성 모습</b>을 확인할 수 있고, 메뉴·버튼·사이드메뉴 클릭으로 <b>페이지 이동도 실제로 동작</b>합니다. 다시 누르면 편집 모드로 돌아옵니다.</p>
+<table>
+  <thead><tr><th>동작</th><th>편집 모드</th><th>미리보기</th><th>내보낸 HTML</th></tr></thead>
+  <tbody>
+    <tr><td>클릭의 의미</td><td>텍스트 입력 · 블록 선택</td><td>실제 화면처럼 동작</td><td>실제 화면처럼 동작</td></tr>
+    <tr><td>페이지 이동(메뉴·버튼)</td><td>✕ (편집으로 쓰임)</td><td>○</td><td>○</td></tr>
+    <tr><td>드롭다운·메가 메뉴 펼침</td><td>○ (hover)</td><td>○</td><td>○</td></tr>
+    <tr><td>슬라이드 넘김</td><td>○ (수동)</td><td>○ (수동)</td><td>○ + 자동넘김</td></tr>
+    <tr><td>팝업 표시</td><td>점선 카드로만</td><td>○ (진입 시 팝업)</td><td>○ (진입 시 팝업)</td></tr>
+    <tr><td>HTML 블록 embed 조작</td><td>✕ (클릭=선택)</td><td>○</td><td>○</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ 03 -->
 <h2 id="s3"><span class="no">03</span>가장 빠른 시작 — 예시 템플릿 60종</h2>
-<p>도구막대의 <code>📚 예시 템플릿 (60종)…</code> 콤보에서 원하는 유형을 고르면 화면 전체가 그 예시로 바뀝니다(실행취소 가능). 유명 홈페이지들의 대표 레이아웃을 본떠 만들었으므로, <b>비슷한 유형을 골라 내용만 바꾸는 것</b>이 가장 빠른 사용법입니다.</p>
+<p>빈 화면에서 시작하는 것보다 <b>비슷한 유형의 템플릿을 골라 내용만 바꾸는 것</b>이 압도적으로 빠릅니다. 도구막대의 <code>📚 예시 템플릿 (60종)…</code> 콤보에서 유형을 고르면 확인창이 뜬 뒤 화면 전체가 그 예시로 바뀝니다. 유명 홈페이지들의 대표 레이아웃을 본떠 만들었으므로, 구조는 그대로 두고 문구·데이터만 교체하면 됩니다.</p>
+
+<h3>따라 하기 — 템플릿으로 5분 만에 첫 화면 만들기</h3>
+<ol class="steps">
+  <li><code>📚 예시 템플릿</code> 콤보에서 목적에 가까운 유형을 선택합니다(예: 회사 소개면 ③, 관리 화면이면 ㉙).</li>
+  <li>확인창에서 적용을 누릅니다. 기존 작업이 있었다면 <kbd>Ctrl</kbd>+<kbd>Z</kbd>로 언제든 되돌릴 수 있습니다.</li>
+  <li>화면의 제목·본문을 클릭해 우리 내용으로 바꿉니다. 입력 후 바깥을 클릭해 반영합니다.</li>
+  <li>필요 없는 블록은 클릭 → 우상단 <code>✕</code>로 지우고, 필요한 블록은 열 하단 <code>＋ 블록 추가…</code>로 더합니다.</li>
+  <li><code>👁 미리보기</code>로 완성 모습과 페이지 이동을 확인합니다.</li>
+</ol>
+
+<h3>템플릿 전체 목록</h3>
 <table>
   <thead><tr><th>그룹</th><th>템플릿</th></tr></thead>
   <tbody>
@@ -108,44 +248,147 @@
     <tr><td>풀폭 메가 메뉴 견본 <span class="pill">010</span></td><td>46 포스 솔루션 기업(2단_좌우) · 47 IT 그룹사 홈(2단_좌우) · 48 전자제품 브랜드(2단_좌우) · 49 백화점/유통(2단_좌우) · 50 보험사(2단_좌우) · 51 통신사(2단_좌우) · 52 건설사(2단_좌우) · 53 식품 기업(2단_좌우) · 54 자동차 브랜드(2단_좌우) · 55 항공사(2단_좌우) · 56 물류/택배(2단_좌우) · 57 게임사(2단_좌우) · 58 화장품 브랜드(2단_좌우) · 59 에너지/발전(2단_좌우) · 60 방송/엔터(2단_좌우)</td></tr>
   </tbody>
 </table>
-<div class="tip"><div class="lb">Tip</div>㉚ 문서센터는 <b>사이드메뉴로 3개 페이지를 오가는 구조</b>, ㉖ 로그인은 <b>버튼으로 두 페이지가 서로 연결된 구조</b>의 견본입니다. 링크 연결 방식을 배우기에 좋습니다.</div>
-<div class="note"><div class="lb">Note — (2단) 템플릿이란 <span class="pill" style="margin-left:6px;">010</span></div>이름 뒤에 <b>(2단)</b>이 붙은 ㉛~㊺ 템플릿 15종은 상단 메뉴바가 <b>상위 메뉴 + 하위(드롭다운) 메뉴</b> 구조로 만들어진 견본입니다. 각 하위 항목이 실제 페이지와 연결되어 있어(홈 + 하위 4페이지, 총 5페이지 구성) 드롭다운 문법 <code>상위(하위1/하위2)</code>의 사용법을 그대로 참고할 수 있습니다. 자세한 문법은 8장을 보세요. ㉝ 쇼핑몰·㊶ 호텔에는 새 <b>슬라이드 블록</b>도 함께 들어 있습니다.<br><br>
-이름 뒤에 <b>(2단_좌우)</b>가 붙은 46~60번 템플릿 15종은 하위 메뉴가 작은 드롭다운 대신 <b>화면 좌우로 꽉 차는 풀폭 패널(메가 메뉴)</b>로 펼쳐지는 견본입니다 — 대기업·브랜드 홈에서 흔한 방식으로, 각 하위 항목이 <b>굵은 제목 + 회색 설명</b>으로 나란히 배치됩니다. 문법은 대괄호: <code>제품[포스:올인원 POS/키오스크:셀프 주문]</code> (8장 참고). 48 전자제품·53 식품·60 방송/엔터에는 슬라이드 블록도 함께 들어 있습니다.</div>
 
+<h3>배움용으로 특히 좋은 템플릿</h3>
+<table>
+  <thead><tr><th>템플릿</th><th>여기서 배울 수 있는 것</th></tr></thead>
+  <tbody>
+    <tr><td>㉚ 문서/도움말 센터</td><td><b>사이드메뉴로 3개 페이지를 오가는 구조.</b> 25:75 레이아웃 + 사이드 메뉴 블록의 표준 조합</td></tr>
+    <tr><td>㉖ 로그인/회원가입</td><td><b>버튼으로 두 페이지가 서로 연결된 구조.</b> <code>이름=색&gt;페이지</code> 링크 문법의 실전 예</td></tr>
+    <tr><td>㉙ 관리자 대시보드</td><td><b>요약카드 + 표→그래프 2종 연동</b>의 견본(7장)</td></tr>
+    <tr><td>㉘ 사내 인트라넷 포털</td><td>드롭다운 메뉴("회사" 항목)의 기본 예</td></tr>
+    <tr><td>㉛~㊺ (2단) 15종</td><td>상위+하위(드롭다운) 메뉴의 완성 견본. 각 하위 항목이 실제 페이지와 연결(홈 + 하위 4페이지, 총 5페이지)</td></tr>
+    <tr><td>46~60 (2단_좌우) 15종</td><td>화면 좌우로 꽉 차는 <b>풀폭 메가 메뉴</b>의 완성 견본. 대괄호 문법(8장)의 실전 예</td></tr>
+    <tr><td>㉝ 쇼핑몰 · ㊶ 호텔 · 48 전자제품 · 53 식품 · 60 방송/엔터</td><td>새 <b>슬라이드(캐러셀) 블록</b>이 함께 들어 있는 견본(6-1장)</td></tr>
+  </tbody>
+</table>
+<div class="note"><div class="lb">Note — (2단)과 (2단_좌우)의 차이 <span class="pill" style="margin-left:6px;">010</span></div>이름 뒤 <b>(2단)</b>은 상위 메뉴에 마우스를 올리면 <b>작은 드롭다운</b>이 펼쳐지는 구조 — 문법은 괄호: <code>상위(하위1/하위2)</code>. 이름 뒤 <b>(2단_좌우)</b>는 하위 메뉴가 <b>화면 좌우로 꽉 차는 풀폭 패널(메가 메뉴)</b>로 펼쳐지는 구조 — 대기업·브랜드 홈에서 흔한 방식으로, 각 하위 항목이 <b>굵은 제목 + 회색 설명</b>으로 나란히 배치됩니다. 문법은 대괄호: <code>제품[포스:올인원 POS/키오스크:셀프 주문]</code>. 자세한 문법과 그림은 8장을 보세요.</div>
+
+<!-- ============================================================ 04 -->
 <h2 id="s4"><span class="no">04</span>페이지 — 추가·이동·링크 연결</h2>
-<p>도구막대 맨 앞 <b>[페이지]</b> 섹션에서 콤보로 전환하고 <code>＋ 페이지</code> <code>✎ 이름</code> <code>⧉ 복제</code> <code>✕ 삭제</code>로 관리합니다. 메뉴바·푸터는 모든 페이지에 공통으로 표시됩니다.</p>
+<p>하나의 작업은 <b>여러 페이지</b>로 구성할 수 있습니다(홈 · 소개 · 문의 …). 도구막대 맨 앞 <b>[페이지]</b> 섹션의 콤보로 페이지를 전환하고, <code>＋ 페이지</code> <code>✎ 이름</code> <code>⧉ 복제</code> <code>✕ 삭제</code>로 관리합니다. 메뉴바·푸터는 모든 페이지에 공통으로 표시되고, 행·블록·주석·화면 문구는 페이지별로 따로 저장됩니다.</p>
+
 <h3>페이지 순서와 하위(Tree) 구조 <span class="pill">010</span></h3>
 <ul class="bl">
   <li><code>◀ 순서</code> / <code>순서 ▶</code> — 현재 페이지를 목록에서 앞/뒤로 옮깁니다. 페이지 콤보의 순서, <b>페이지별 내보내기의 파일 번호</b>(01_, 02_…), 화면정의서의 페이지 순서에 모두 반영됩니다.</li>
   <li><code>⇥ 하위</code> — 현재 페이지를 <b>하위 페이지</b>로 지정/해제합니다. 페이지 콤보에 <code>└ </code> 들여쓰기로 표시되고 화면정의서에도 반영되어, 페이지가 많을 때 <b>상위-하위 Tree</b>로 정리할 수 있습니다.</li>
-  <li>하위 지정은 <b>정리·문서화용 표시</b>입니다. 링크 연결은 여전히 "이름 맞추기" 규칙을 따릅니다 — 상위 메뉴 밑으로 묶어 이동시키려면 아래 8장의 <b>드롭다운 메뉴</b>를 함께 사용하세요.</li>
-</ul>
-<h3>링크는 "이름 맞추기"로 연결됩니다</h3>
-<ul class="bl">
-  <li><b>메뉴바 항목</b> · <b>사이드메뉴 항목</b> · <b>버튼</b>의 이름이 <b>페이지명과 같으면 자동 연결</b>됩니다. 편집 모드에서 연결된 메뉴 항목에는 작은 <b>↗</b> 표시가 붙습니다.</li>
-  <li>버튼은 <code>이름=색&gt;페이지명</code> 형식으로 직접 지정할 수도 있습니다. 예: <code>홈으로=회색&gt;홈</code></li>
-  <li>이동은 <b>미리보기</b>와 <b>내보낸 HTML</b>에서 동작합니다(편집 모드에서는 클릭이 편집으로 쓰이므로 이동하지 않음).</li>
+  <li>하위 지정은 <b>정리·문서화용 표시</b>입니다. 화면에서의 이동 경로가 자동으로 바뀌지는 않습니다 — 링크 연결은 여전히 아래의 "이름 맞추기" 규칙을 따르며, 상위 메뉴 밑으로 묶어 이동시키려면 8장의 <b>드롭다운 메뉴</b>를 함께 사용하세요.</li>
 </ul>
 
-<h2 id="s5"><span class="no">05</span>행(섹션)과 열 — 레이아웃 15종</h2>
+<h3>링크는 "이름 맞추기"로 연결됩니다</h3>
+<p>이 도구의 페이지 연결 방식은 단 하나의 규칙입니다 — <b>항목의 이름이 페이지명과 정확히 같으면(공백 포함) 자동 연결.</b> 별도의 링크 설정 화면이 없습니다.</p>
+
+<div class="fig">
+  <svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- pages -->
+    <g font-size="12" font-weight="700" text-anchor="middle">
+      <rect x="470" y="20" width="120" height="40" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/><text x="530" y="45" fill="#191919">페이지 "홈"</text>
+      <rect x="470" y="75" width="120" height="40" rx="8" fill="#eef6ff" stroke="#0F80F6" stroke-width="1.6"/><text x="530" y="100" fill="#0F80F6">페이지 "신청"</text>
+      <rect x="470" y="130" width="120" height="40" rx="8" fill="#fff" stroke="#191919" stroke-width="1.4"/><text x="530" y="155" fill="#191919">페이지 "문의"</text>
+    </g>
+    <!-- sources -->
+    <g font-size="12" text-anchor="middle">
+      <rect x="20" y="20" width="200" height="40" rx="8" fill="#2b2f36"/>
+      <text x="120" y="45" fill="#fff" font-weight="600">메뉴바 항목  「신청 ↗」</text>
+      <rect x="20" y="75" width="200" height="40" rx="8" fill="#f3f4f6" stroke="#dfe3e8"/>
+      <text x="120" y="94" fill="#191919" font-weight="700">버튼  「지금 신청=파랑&gt;신청」</text>
+      <text x="120" y="109" fill="#767676" font-size="10.5">이름=색&gt;페이지명 직접 지정</text>
+      <rect x="20" y="130" width="200" height="40" rx="8" fill="#fff" stroke="#c9ced4"/>
+      <text x="120" y="155" fill="#191919" font-weight="600">사이드메뉴 항목  「신청 ↗」</text>
+    </g>
+    <g stroke="#0F80F6" stroke-width="1.6" fill="none">
+      <path d="M220 40 C 340 40, 360 90, 462 93"/>
+      <path d="M220 95 L 462 95"/>
+      <path d="M220 150 C 340 150, 360 100, 462 97"/>
+    </g>
+    <g fill="#0F80F6"><polygon points="462,89 470,94 462,99"/></g>
+    <text x="330" y="78" font-size="11" fill="#0F80F6" font-weight="700" text-anchor="middle">이름이 같으면 자동 연결</text>
+  </svg>
+  <div class="cap"><b>그림 3.</b> 링크 연결 규칙 — 메뉴바·사이드메뉴·버튼의 이름이 페이지명과 같으면 자동 연결됩니다. 연결된 항목에는 편집 모드에서 <b>↗</b> 표시가 붙습니다.</div>
+</div>
+
 <ul class="bl">
-  <li>화면은 <b>행(가로 섹션)</b>을 위에서 아래로 쌓아 만들고, 각 행은 <b>1~6개의 열</b>로 나뉩니다. 도구막대의 열 분할 콤보에서 고르고 <code>＋ 행 추가</code>를 누릅니다.</li>
-  <li>행에 마우스를 올리면 우상단에 행 도구가 나타납니다 — <b>⠿ 손잡이</b> · <b>배경(밴드) 색</b> · 레이아웃 변경 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제.</li>
-  <li><b>행 배경</b>을 연회색/연파랑/연노랑/연초록으로 지정하면 포털·제품 홈에서 흔한 <b>색 밴드 섹션</b>이 됩니다.</li>
-  <li>레이아웃을 줄이면(예: 3열→2열) 넘치는 열의 블록은 마지막 열로 합쳐지며 사라지지 않습니다.</li>
+  <li><b>연결 여부 확인</b> — 편집 모드에서 연결된 메뉴·사이드메뉴 항목에는 작은 <b>↗</b> 표시가 붙습니다. ↗이 없으면 이름이 다른 것이니 철자·공백을 확인하세요.</li>
+  <li><b>버튼의 직접 지정</b> — 버튼은 표시 문구와 이동 대상이 다를 수 있으므로 <code>이름=색&gt;페이지명</code> 형식을 지원합니다. 예: <code>홈으로=회색&gt;홈</code>, <code>지금 신청=파랑&gt;신청</code>. <code>&gt;페이지명</code>을 생략하면 문구 자체가 페이지명과 같을 때만 연결됩니다.</li>
+  <li><b>이동이 동작하는 곳</b> — <b>미리보기</b>와 <b>내보낸 HTML</b>. 편집 모드에서는 클릭이 편집으로 쓰이므로 이동하지 않습니다.</li>
+  <li><b>페이지 이름을 바꾸면</b> 기존 메뉴·버튼과의 이름이 어긋나 연결이 끊깁니다. 이름 변경 후에는 메뉴·버튼 문구도 함께 맞춰 주세요.</li>
 </ul>
+
+<!-- ============================================================ 05 -->
+<h2 id="s5"><span class="no">05</span>행(섹션)과 열 — 레이아웃 15종</h2>
+<p>화면의 뼈대는 <b>행(가로 섹션)</b>입니다. 행을 위에서 아래로 쌓아 페이지를 만들고, 각 행은 <b>1~6개의 열</b>로 나뉘며, 열 안에 블록이 들어갑니다.</p>
+
+<div class="fig">
+  <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <text x="20" y="20" font-size="12" fill="#767676" font-weight="700">페이지 = 행을 세로로 쌓기</text>
+    <!-- row1 1col -->
+    <rect x="20" y="32" width="480" height="52" rx="6" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+    <text x="32" y="63" font-size="12" fill="#191919" font-weight="700">행 1 — 1열 (배너 · 제목 등 전체 폭)</text>
+    <!-- row2 25:75 -->
+    <g>
+      <rect x="20" y="94" width="114" height="72" rx="6" fill="#f3f6fa" stroke="#191919" stroke-width="1.3"/>
+      <rect x="140" y="94" width="360" height="72" rx="6" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+      <text x="32" y="126" font-size="11.5" fill="#191919" font-weight="700">열 25%</text>
+      <text x="32" y="142" font-size="10.5" fill="#767676">사이드 메뉴</text>
+      <text x="152" y="126" font-size="11.5" fill="#191919" font-weight="700">열 75% — 본문</text>
+      <!-- blocks inside -->
+      <rect x="152" y="134" width="336" height="10" rx="2" fill="#e6ebf1"/>
+      <rect x="152" y="149" width="250" height="10" rx="2" fill="#e6ebf1"/>
+    </g>
+    <text x="510" y="134" font-size="11" fill="#0F80F6" font-weight="700">← 행 2 — 2열 25:75</text>
+    <!-- row3 3col -->
+    <g>
+      <rect x="20" y="176" width="153" height="52" rx="6" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+      <rect x="183" y="176" width="153" height="52" rx="6" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+      <rect x="346" y="176" width="154" height="52" rx="6" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+      <text x="96" y="206" font-size="11.5" fill="#191919" text-anchor="middle" font-weight="700">카드</text>
+      <text x="259" y="206" font-size="11.5" fill="#191919" text-anchor="middle" font-weight="700">카드</text>
+      <text x="423" y="206" font-size="11.5" fill="#191919" text-anchor="middle" font-weight="700">카드</text>
+    </g>
+    <text x="510" y="206" font-size="11" fill="#0F80F6" font-weight="700">← 행 3 — 3열 균등</text>
+    <!-- row tools -->
+    <rect x="560" y="40" width="184" height="118" rx="8" fill="#fcfcfd" stroke="#e5e7eb"/>
+    <text x="572" y="62" font-size="11.5" fill="#191919" font-weight="800">행 도구 (행에 마우스 올리면)</text>
+    <g font-size="11" fill="#3c3c3c">
+      <text x="572" y="84">⠿ 손잡이 — 행 순서 드래그</text>
+      <text x="572" y="102">배경(밴드) 색 지정</text>
+      <text x="572" y="120">레이아웃 변경 · ▲▼ 이동</text>
+      <text x="572" y="138">⧉ 복제 · ✕ 삭제</text>
+    </g>
+  </svg>
+  <div class="cap"><b>그림 4.</b> 행·열 구조 — 행을 쌓고, 행 안을 열로 나누고, 열 안에 블록을 넣습니다.</div>
+</div>
+
+<h3>행 추가와 관리</h3>
+<ol class="steps">
+  <li>도구막대의 <b>열 분할 콤보</b>에서 원하는 레이아웃(예: 2열 25:75)을 고릅니다.</li>
+  <li><code>＋ 행 추가</code>를 누르면 현재 페이지 맨 아래에 새 행이 생깁니다.</li>
+  <li>행에 마우스를 올리면 우상단에 <b>행 도구</b>가 나타납니다 — <b>⠿ 손잡이</b>(드래그 이동) · <b>배경(밴드) 색</b> · 레이아웃 변경 · ▲▼ 이동 · ⧉ 복제 · ✕ 삭제.</li>
+  <li>각 열 하단의 <code>＋ 제목</code> <code>＋ 본문</code> <code>＋ 카드</code> 또는 <code>＋ 블록 추가…</code>로 블록을 채웁니다.</li>
+</ol>
+
+<h3>레이아웃 15종</h3>
 <table>
   <thead><tr><th>구분</th><th>레이아웃</th><th>쓰임새 예</th></tr></thead>
   <tbody>
     <tr><td>1열</td><td>1열</td><td>제목·배너·표 등 전체 폭 콘텐츠</td></tr>
-    <tr><td>2열 (7종)</td><td>50:50 · 25:75 · 75:25 · 30:70 · 70:30 · 40:60 · 60:40</td><td>사이드메뉴+본문(25:75), 이미지+설명(40:60) 등</td></tr>
+    <tr><td>2열 (7종)</td><td>50:50 · 25:75 · 75:25 · 30:70 · 70:30 · 40:60 · 60:40</td><td>사이드메뉴+본문(25:75), 이미지+설명(40:60), 본문+보조(70:30) 등</td></tr>
     <tr><td>3열 (4종)</td><td>균등 · 25:50:25 · 50:25:25 · 25:25:50</td><td>카드 3개, 본문+보조 2단 구성</td></tr>
     <tr><td>4~6열</td><td>4열 균등 · 5열 균등 · 6열 균등</td><td>아이콘·로고·요약 수치 나열</td></tr>
   </tbody>
 </table>
 
+<h3>알아두면 좋은 규칙</h3>
+<ul class="bl">
+  <li><b>행 배경(밴드)</b> — 연회색/연파랑/연노랑/연초록 중에서 지정하면 포털·제품 홈에서 흔한 <b>색 밴드 섹션</b>이 됩니다. 밴드로 섹션의 시작·끝을 시각적으로 구분하면 긴 페이지가 읽기 좋아집니다.</li>
+  <li><b>레이아웃을 줄여도 블록은 사라지지 않습니다</b> — 예: 3열→2열로 바꾸면 넘치는 열의 블록은 마지막 열로 합쳐집니다.</li>
+  <li><b>모바일 자동 대응</b> — 내보낸 HTML은 좁은 화면에서 열이 자동으로 세로로 쌓입니다. 별도 설정이 필요 없습니다.</li>
+</ul>
+
+<!-- ============================================================ 05-1 -->
 <h2 id="s5b"><span class="no">05-1</span>블록·행 옮기기 — 드래그&amp;드롭 <span class="pill new">최신 추가</span></h2>
-<p>블록과 행은 <b>⠿ 손잡이</b>를 잡고 끌어서 옮깁니다. 손잡이는 마우스를 올렸을 때만 나타나므로 평소에는 화면을 가리지 않고, 손잡이를 잡았을 때만 드래그가 시작되므로 <b>글자 편집이나 선택과 부딪히지 않습니다</b>.</p>
+<p>블록과 행은 <b>⠿ 손잡이</b>를 잡고 끌어서 옮깁니다. 손잡이는 마우스를 올렸을 때만 나타나므로 평소에는 화면을 가리지 않고, 손잡이를 잡았을 때만 드래그가 시작되므로 <b>글자 편집이나 블록 선택과 부딪히지 않습니다</b>.</p>
+
 <table>
   <thead><tr><th>대상</th><th>손잡이 위치</th><th>옮길 수 있는 범위</th></tr></thead>
   <tbody>
@@ -153,6 +396,40 @@
     <tr><td>행(섹션)</td><td>행 도구막대 <b>맨 앞</b></td><td>페이지 안에서 위아래 순서 변경</td></tr>
   </tbody>
 </table>
+
+<div class="fig">
+  <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- source column -->
+    <rect x="20" y="20" width="330" height="190" rx="8" fill="#fff" stroke="#c9ced4"/>
+    <text x="34" y="42" font-size="11.5" fill="#767676" font-weight="700">열 A (원래 자리)</text>
+    <rect x="34" y="52" width="300" height="36" rx="5" fill="#fff" stroke="#e3e3e3"/>
+    <text x="48" y="75" font-size="12" fill="#3c3c3c">블록 1</text>
+    <!-- dragging origin faded -->
+    <rect x="34" y="96" width="300" height="36" rx="5" fill="#f5f6f8" stroke="#e3e3e3" stroke-dasharray="4 3"/>
+    <text x="48" y="119" font-size="12" fill="#b6bcc4">블록 2 (원래 자리 — 흐려짐)</text>
+    <rect x="34" y="140" width="300" height="36" rx="5" fill="#fff" stroke="#e3e3e3"/>
+    <text x="48" y="163" font-size="12" fill="#3c3c3c">블록 3</text>
+    <!-- target column highlighted -->
+    <rect x="410" y="20" width="330" height="190" rx="8" fill="#f7fbff" stroke="#0F80F6" stroke-width="2"/>
+    <text x="424" y="42" font-size="11.5" fill="#0F80F6" font-weight="700">열 B (받는 열 — 파란 테두리)</text>
+    <rect x="424" y="52" width="300" height="36" rx="5" fill="#fff" stroke="#e3e3e3"/>
+    <text x="438" y="75" font-size="12" fill="#3c3c3c">블록 ㄱ</text>
+    <!-- drop line -->
+    <line x1="424" y1="100" x2="724" y2="100" stroke="#0F80F6" stroke-width="3"/>
+    <circle cx="424" cy="100" r="4" fill="#0F80F6"/>
+    <text x="580" y="94" font-size="11" fill="#0F80F6" font-weight="700" text-anchor="middle">파란 가로선 = 놓일 자리</text>
+    <rect x="424" y="112" width="300" height="36" rx="5" fill="#fff" stroke="#e3e3e3"/>
+    <text x="438" y="135" font-size="12" fill="#3c3c3c">블록 ㄴ</text>
+    <!-- ghost following cursor -->
+    <g opacity="0.65">
+      <rect x="330" y="150" width="240" height="36" rx="5" fill="#fff" stroke="#0F80F6" stroke-width="1.6"/>
+      <text x="346" y="173" font-size="12" fill="#0F80F6" font-weight="700">⠿ 블록 2 (반투명 사본)</text>
+    </g>
+    <path d="M576 176 l10 20 5-8 9 4 -8-18z" fill="#191919"/>
+  </svg>
+  <div class="cap"><b>그림 5.</b> 드래그 중 화면 표시 — 반투명 사본이 커서를 따라오고, 받는 열은 파란 테두리, 놓일 자리는 파란 가로선으로 표시됩니다.</div>
+</div>
+
 <h3>끄는 동안 보이는 표시</h3>
 <ul class="bl">
   <li><b>반투명 사본</b>이 커서를 따라옵니다 — 지금 무엇을 옮기는 중인지 알려줍니다.</li>
@@ -160,6 +437,7 @@
   <li>받는 열은 <b>파란 테두리</b>로 강조되고, 원래 자리의 블록은 흐려집니다.</li>
   <li>빈 열 위로 가져가도 선이 표시되며, 그대로 놓으면 그 열의 첫 블록이 됩니다.</li>
 </ul>
+
 <h3>알아두면 편한 동작</h3>
 <ul class="bl">
   <li><b>자동 스크롤</b> — 화면 위아래 가장자리로 끌면 페이지가 저절로 스크롤됩니다. 긴 화면에서 멀리 떨어진 곳으로 옮길 때 쓰세요. 상단 도구막대에 가려진 구간도 이때 드러납니다.</li>
@@ -170,119 +448,356 @@
 <div class="note"><div class="lb">Note</div>기존 <code>▲▼</code> 버튼은 그대로 있습니다. <b>한 칸씩 정확히</b> 옮길 때는 버튼이, <b>멀리 또는 다른 열로</b> 옮길 때는 드래그가 편합니다. 열을 넘나드는 이동은 드래그로만 가능합니다.</div>
 <div class="tip"><div class="lb">Tip</div>⠿ 손잡이가 보이지 않는다면 <b>미리보기 모드</b>이거나 <b>주석(📌)·텍스트(📝) 모드</b>가 켜져 있는 경우입니다. 이 모드에서는 화면 클릭이 핀·문구 추가로 쓰이기 때문에 드래그가 꺼집니다. 편집 모드로 돌아오면 다시 나타납니다.</div>
 
-<h2 id="s6"><span class="no">06</span>블록 40종 한눈에</h2>
-<p>각 열 하단의 <code>＋ 제목</code> <code>＋ 본문</code> <code>＋ 카드</code> 버튼 또는 <code>＋ 블록 추가…</code> 콤보(그룹별 40종)로 추가합니다.</p>
+<!-- ============================================================ 06 -->
+<h2 id="s6"><span class="no">06</span>블록 40종 상세</h2>
+<p>블록은 각 열 하단의 <code>＋ 제목</code> <code>＋ 본문</code> <code>＋ 카드</code> 버튼(자주 쓰는 3종 바로가기) 또는 <code>＋ 블록 추가…</code> 콤보(그룹별 40종 전체)로 추가합니다. 추가된 블록을 클릭하면 도구막대 파란 영역에 그 블록의 <b>속성</b>이 나타나고, 우상단 도구로 ▲▼ 이동 · ⧉ 복제 · ✕ 삭제할 수 있습니다.</p>
+
+<h3>기본 그룹 (7종)</h3>
 <table>
-  <thead><tr><th>그룹</th><th>블록</th><th>주요 기능</th></tr></thead>
+  <thead><tr><th>블록</th><th>주요 기능 · 속성</th></tr></thead>
   <tbody>
-    <tr><td rowspan="7">기본</td><td>제목</td><td>H1/H2/H3 크기 · 정렬 · 색</td></tr>
-    <tr><td>본문</td><td>여러 줄 텍스트 · 크기/정렬/글자색/배경색</td></tr>
-    <tr><td>이미지</td><td>URL 입력(없으면 자리표시) · 너비 · 정렬</td></tr>
-    <tr><td>버튼</td><td>쉼표로 여러 개 · 14색 · <code>이름=색&gt;페이지</code> 링크</td></tr>
-    <tr><td>안내 박스</td><td>파랑/노랑/빨강/회색 4톤</td></tr>
-    <tr><td>구분선 · 여백</td><td>실선/점선/굵은선 · 높이(px)</td></tr>
-    <tr><td>HTML 코드 <span class="pill">010</span></td><td>임의 HTML을 그대로 렌더링 — 유튜브 iframe · 지도 embed 등 (6-1장 참고)</td></tr>
-    <tr><td rowspan="7">홈페이지</td><td>배너(히어로)</td><td>제목+부제+버튼 · 어두운/파랑/밝은 배경 · 정렬</td></tr>
-    <tr><td>슬라이드(캐러셀) <span class="pill">010</span></td><td>여러 장의 배너를 ‹ ›·점으로 넘김 · 자동넘김 · 슬라이드별 배경 이미지 (6-1장 참고)</td></tr>
-    <tr><td>검색창</td><td>크게(중앙)/작게 · 안내 문구 · 버튼 문구</td></tr>
-    <tr><td>뉴스/공지 목록</td><td>날짜+제목 행, ＋/－항목, 화면에서 직접 입력</td></tr>
-    <tr><td>로고 스트립</td><td>고객사/파트너명 쉼표 입력 → 회색 로고 배지</td></tr>
-    <tr><td>요금제</td><td>2~4개 카드 · "추천" 강조 위치 · 카드 안 직접 편집</td></tr>
-    <tr><td>FAQ</td><td>Q/A 목록, ＋/－질문</td></tr>
-    <tr><td rowspan="3">데이터</td><td>표</td><td>헤더·셀 직접 입력 · ＋행/－행/＋열/－열 · 숫자열 자동 우측정렬</td></tr>
-    <tr><td>요약카드(KPI)</td><td>지표명+큰 값+보조설명 · 값 색 5종 · ＋/－지표</td></tr>
-    <tr><td>그래프</td><td>같은 페이지의 표를 원본으로 7종 그래프 (7장 참고)</td></tr>
-    <tr><td rowspan="5">구성요소</td><td>사이드 메뉴</td><td>세로 메뉴 · 페이지 자동 연결 · 현재 페이지 강조</td></tr>
-    <tr><td>타임라인(연혁)</td><td>연도+제목+설명 세로 연혁선 · ＋/－항목</td></tr>
-    <tr><td>갤러리 · 프로필(팀)</td><td>2~4열 그리드 · 캡션/이름·직책 직접 입력</td></tr>
-    <tr><td>후기/인용 · 동영상 자리</td><td>인용 박스 · 16:9 ▶ 플레이스홀더</td></tr>
-    <tr><td>입력 폼 · 진행 단계</td><td>필드 쉼표 입력('내용/문의'는 큰 칸) · ①→②→③ 단계</td></tr>
-    <tr><td rowspan="9">화면 요소</td><td>탭</td><td>탭 항목(쉼표) · 활성 탭 지정 — 상세 화면 구획</td></tr>
-    <tr><td>경로(브레드크럼) · 페이지네이션</td><td>홈 › 게시판 › 상세 경로 · 페이지 수/현재 페이지 지정</td></tr>
-    <tr><td>띠 배너(공지바)</td><td>파랑/노랑/빨강/검정 4톤 · 우측 링크 문구 · 화면 상단 공지에 적합</td></tr>
-    <tr><td>팝업(모달) <span class="pill">010</span></td><td>페이지 진입 시 중앙 모달/우하단 카드로 표시 · 닫기 동작 (6-1장 참고)</td></tr>
-    <tr><td>로그인 박스</td><td>ID/PW 입력칸·버튼 문구 편집 · 아이디저장·찾기 링크 포함</td></tr>
-    <tr><td>첨부파일 · 진행률 바</td><td>드래그앤드롭 영역+허용 형식 안내 · 항목별 라벨/% 편집(＋/－항목)</td></tr>
-    <tr><td>체크리스트 · 자료 다운로드</td><td>✓ 목록(쉼표) · 파일명+용량+다운로드 버튼(＋/－항목)</td></tr>
-    <tr><td>댓글 목록</td><td>작성자·날짜·내용 화면에서 직접 편집 · ＋/－항목</td></tr>
-    <tr><td>달력 · 지도 자리</td><td>월 제목·1일의 요일·말일·강조 날짜 지정 · 📍 자리표시+주소 문구</td></tr>
+    <tr><td>제목</td><td>H1/H2/H3 크기 · 좌/중/우 정렬 · 글자 색. 페이지·섹션의 제목에 사용</td></tr>
+    <tr><td>본문</td><td>여러 줄 텍스트. 글자 크기·정렬·글자색·배경색 지정 가능</td></tr>
+    <tr><td>이미지</td><td>이미지 URL 입력(비우면 회색 자리표시) · 너비(px, 비우면 100%) · 정렬. 설계 단계에서는 자리표시로 두고 나중에 URL만 넣어도 됩니다</td></tr>
+    <tr><td>버튼</td><td>쉼표로 여러 개 · <b>14색</b> · <code>이름=색&gt;페이지</code> 링크(아래 참고)</td></tr>
+    <tr><td>안내 박스</td><td>파랑/노랑/빨강/회색 4톤. 안내·주의·경고 문구 박스</td></tr>
+    <tr><td>구분선 · 여백</td><td>구분선: 실선/점선/굵은선. 여백: 높이(px) 지정 — 섹션 사이 호흡 조절</td></tr>
+    <tr><td>HTML 코드 <span class="pill">010</span></td><td>임의 HTML을 그대로 렌더링 — 유튜브 iframe · 지도 embed 등 (6-1장 상세)</td></tr>
   </tbody>
 </table>
-<div class="tip"><div class="lb">Tip</div>블록을 클릭해 선택하면 도구막대 파란 영역에 그 블록의 <b>속성</b>(크기·색·열 수 등)이 나타납니다. 이동 ▲▼ / 복제 ⧉ / 삭제 ✕ 는 블록 우상단 도구를 사용합니다.</div>
 
+<h4>버튼 색 14종과 링크 문법</h4>
+<p>버튼 블록의 입력칸에 <b>쉼표로 여러 개</b>를 나열하고, 각 버튼은 <code>이름=색</code> 형식으로 색을, <code>이름=색&gt;페이지명</code> 형식으로 이동 대상을 지정합니다. 예: <code>저장=초록, 취소=회색</code> · <code>지금 신청=파랑&gt;신청</code></p>
+<table>
+  <thead><tr><th>계열</th><th>색 이름</th></tr></thead>
+  <tbody>
+    <tr><td>진한 색</td><td><span class="sw" style="background:#2563eb"></span>파랑 · <span class="sw" style="background:#1e3a8a"></span>남색 · <span class="sw" style="background:#0d9488"></span>청록 · <span class="sw" style="background:#16a34a"></span>초록 · <span class="sw" style="background:#ea8a1a"></span>주황 · <span class="sw" style="background:#dc2626"></span>빨강 · <span class="sw" style="background:#7c3aed"></span>보라 · <span class="sw" style="background:#191919"></span>검정</td></tr>
+    <tr><td>연한 색</td><td><span class="sw" style="background:#dbeafe"></span>연파랑 · <span class="sw" style="background:#dcfce7"></span>연초록 · <span class="sw" style="background:#ffedd5"></span>연주황 · <span class="sw" style="background:#fee2e2"></span>연빨강</td></tr>
+    <tr><td>무채색</td><td><span class="sw" style="background:#e5e7eb"></span>회색 · <span class="sw" style="background:#fff"></span>흰색(테두리형)</td></tr>
+  </tbody>
+</table>
+<div class="tip"><div class="lb">Tip</div>주 동작(저장·신청)은 진한 색 1개, 보조 동작(취소·뒤로)은 회색으로 — 화면당 진한 색 버튼을 1~2개로 제한하면 시선이 명확해집니다.</div>
+
+<h3>홈페이지 그룹 (7종)</h3>
+<table>
+  <thead><tr><th>블록</th><th>주요 기능 · 속성</th></tr></thead>
+  <tbody>
+    <tr><td>배너(히어로)</td><td>큰 제목+부제+버튼. 배경 톤(어두운/파랑/밝은) · 정렬. 버튼 문구를 비우면 버튼 없음</td></tr>
+    <tr><td>슬라이드(캐러셀) <span class="pill">010</span></td><td>여러 장의 배너를 ‹ ›·점으로 넘김 · 자동넘김 · 슬라이드별 배경 이미지 (6-1장 상세)</td></tr>
+    <tr><td>검색창</td><td>크게(중앙 배치)/작게 · 안내 문구 · 버튼 문구. 포털형 홈의 중심 요소</td></tr>
+    <tr><td>뉴스/공지 목록</td><td>날짜+제목 행 목록. ＋/－항목, 화면에서 직접 입력</td></tr>
+    <tr><td>로고 스트립</td><td>고객사/파트너명을 쉼표로 나열 → 회색 로고 배지로 가로 배열</td></tr>
+    <tr><td>요금제</td><td>2~4개 카드 · "추천" 강조 위치 지정 · 카드 안 문구 직접 편집</td></tr>
+    <tr><td>FAQ</td><td>Q/A 목록. ＋/－질문, 화면에서 직접 입력</td></tr>
+  </tbody>
+</table>
+
+<h3>데이터 그룹 (3종)</h3>
+<table>
+  <thead><tr><th>블록</th><th>주요 기능 · 속성</th></tr></thead>
+  <tbody>
+    <tr><td>표</td><td>헤더·셀 직접 입력 · ＋행/－행/＋열/－열 · 숫자열은 자동 우측 정렬</td></tr>
+    <tr><td>요약카드(KPI)</td><td>지표명+큰 값+보조설명 카드 나열 · 값 색 5종 · ＋/－지표</td></tr>
+    <tr><td>그래프</td><td>같은 페이지의 표를 원본으로 7종 그래프를 그림 (7장 상세)</td></tr>
+  </tbody>
+</table>
+
+<h3>구성요소 그룹 (8종)</h3>
+<table>
+  <thead><tr><th>블록</th><th>주요 기능 · 속성</th></tr></thead>
+  <tbody>
+    <tr><td>사이드 메뉴</td><td>세로 메뉴 목록. 항목명이 페이지명과 같으면 자동 연결(↗) · 현재 페이지 강조. 25:75 레이아웃의 좁은 열에 두는 것이 표준</td></tr>
+    <tr><td>타임라인(연혁)</td><td>연도+제목+설명의 세로 연혁선 · ＋/－항목</td></tr>
+    <tr><td>갤러리</td><td>2~4열 이미지 그리드 · 캡션 직접 입력</td></tr>
+    <tr><td>프로필(팀)</td><td>2~4열 인물 카드 · 이름·직책 직접 입력</td></tr>
+    <tr><td>후기/인용</td><td>인용 박스 — 고객 후기·추천사</td></tr>
+    <tr><td>동영상 자리</td><td>16:9 비율의 ▶ 플레이스홀더. 실제 재생이 필요하면 HTML 코드 블록 사용(6-1장)</td></tr>
+    <tr><td>입력 폼</td><td>필드명을 쉼표로 입력. 필드명에 '내용'/'문의'가 들어가면 자동으로 큰 입력칸</td></tr>
+    <tr><td>진행 단계</td><td>①→②→③ 단계 표시 — 신청 절차·프로세스 안내</td></tr>
+  </tbody>
+</table>
+
+<h3>화면 요소 그룹 (15종)</h3>
+<table>
+  <thead><tr><th>블록</th><th>주요 기능 · 속성</th></tr></thead>
+  <tbody>
+    <tr><td>탭</td><td>탭 항목(쉼표) · 활성 탭 지정 — 상세 화면의 구획 표현</td></tr>
+    <tr><td>경로(브레드크럼)</td><td>홈 › 게시판 › 상세 형태의 현재 위치 경로</td></tr>
+    <tr><td>페이지네이션</td><td>페이지 수 · 현재 페이지 지정 — 목록 화면 하단</td></tr>
+    <tr><td>띠 배너(공지바)</td><td>파랑/노랑/빨강/검정 4톤 · 우측 링크 문구(비우면 숨김) · 화면 상단 공지에 적합</td></tr>
+    <tr><td>팝업(모달) <span class="pill">010</span></td><td>페이지 진입 시 중앙 모달/우하단 카드로 표시 · 닫기 동작 (6-1장 상세)</td></tr>
+    <tr><td>로그인 박스</td><td>ID/PW 입력칸 문구·버튼 문구 편집 · 아이디저장·찾기 링크 포함</td></tr>
+    <tr><td>첨부파일</td><td>드래그앤드롭 영역 + 허용 형식 안내 문구</td></tr>
+    <tr><td>진행률 바</td><td>항목별 라벨/%(0~100) 편집 · ＋/－항목</td></tr>
+    <tr><td>체크리스트</td><td>✓ 목록(쉼표 입력)</td></tr>
+    <tr><td>자료 다운로드</td><td>파일명+용량+다운로드 버튼 목록 · ＋/－항목</td></tr>
+    <tr><td>댓글 목록</td><td>작성자·날짜·내용 화면에서 직접 편집 · ＋/－항목</td></tr>
+    <tr><td>달력</td><td>월 제목 · 1일의 요일 · 말일(28~31) · 강조 날짜(0=없음) 지정</td></tr>
+    <tr><td>지도 자리</td><td>📍 자리표시 + 주소 문구. 실제 지도가 필요하면 HTML 코드 블록 사용(6-1장)</td></tr>
+  </tbody>
+</table>
+<div class="tip"><div class="lb">Tip</div>블록을 클릭해 선택하면 도구막대 파란 영역에 그 블록의 <b>속성</b>(크기·색·열 수 등)이 나타납니다. 어떤 속성이 있는지 궁금하면 일단 블록을 클릭해 보세요 — 속성이 없는 블록은 없습니다.</div>
+
+<!-- ============================================================ 06-1 -->
 <h2 id="s6b"><span class="no">06-1</span>새 블록 3종 자세히 — 슬라이드 · 팝업 · HTML <span class="pill">010</span></h2>
 
 <h3>슬라이드(캐러셀)</h3>
+<p>여러 장의 배너를 한 자리에서 넘겨 보여주는 블록입니다. 그룹 <b>홈페이지</b>에서 추가합니다. 쇼핑몰·포털 홈 상단의 회전 배너를 표현할 때 씁니다.</p>
+<ol class="steps">
+  <li>블록을 추가하면 슬라이드 2장이 기본으로 들어 있습니다.</li>
+  <li><b>‹ › 화살표</b>나 아래 <b>점(인디케이터)</b>을 눌러 편집할 슬라이드로 이동합니다.</li>
+  <li>제목·설명을 <b>화면에서 직접 클릭해 입력</b>합니다.</li>
+  <li>우상단 도구에서 <code>＋슬라이드</code>/<code>－슬라이드</code>로 장수를 조절하고, 속성에서 <b>배경 톤</b>(어두운/파랑/밝은) · <b>자동넘김/수동</b> · <b>현재 슬라이드의 배경 이미지 URL</b>(비우면 색 배경)을 지정합니다.</li>
+</ol>
 <ul class="bl">
-  <li>여러 장의 배너를 한 자리에서 넘겨 보여주는 블록입니다. 그룹 <b>홈페이지</b>에서 추가합니다.</li>
-  <li>편집: ‹ › 화살표나 아래 점을 눌러 원하는 슬라이드로 이동한 뒤, <b>제목·설명을 화면에서 직접 입력</b>합니다. 우상단 도구에서 <code>＋슬라이드</code>/<code>－슬라이드</code>, 배경 톤(어두운/파랑/밝은), <b>자동넘김/수동</b>, <b>현재 슬라이드의 배경 이미지 URL</b>을 지정합니다.</li>
-  <li>미리보기·내보낸 HTML에서는 화살표·점 클릭이 실제로 동작하고, <b>자동넘김</b>이면 내보낸 HTML에서 5초마다 다음 장으로 넘어갑니다(마우스를 올린 동안은 정지).</li>
+  <li>미리보기·내보낸 HTML에서는 화살표·점 클릭이 실제로 동작합니다.</li>
+  <li><b>자동넘김</b>을 켜면 <b>내보낸 HTML에서</b> 5초마다 다음 장으로 넘어가고, 마우스를 올린 동안은 정지합니다. 편집·미리보기에서는 자동으로 넘어가지 않습니다(편집 방해 방지).</li>
 </ul>
 
 <h3>팝업(모달)</h3>
+<p>공지·이벤트 팝업을 표현하는 블록입니다. 그룹 <b>화면 요소</b>에서 추가합니다.</p>
 <ul class="bl">
-  <li>공지·이벤트 팝업을 표현하는 블록입니다. 그룹 <b>화면 요소</b>에서 추가합니다.</li>
-  <li>편집 화면에서는 보라 점선 카드로 표시되어 제목·내용을 직접 입력합니다. 속성에서 표시 위치(<b>중앙 모달</b> / <b>우하단 카드</b>)와 닫기 버튼 문구를 지정합니다.</li>
-  <li><b>미리보기·내보낸 HTML</b>에서는 팝업 블록이 놓인 <b>페이지에 들어올 때</b> 떠 있는 창으로 표시되고, ✕나 닫기 버튼으로 닫힙니다. "오늘 하루 보지 않기" 문구는 설계 표시용(모양만)입니다.</li>
-  <li>팝업 블록은 페이지당 1개를 권장합니다. 여러 개 두면 겹쳐서 표시됩니다.</li>
+  <li><b>편집 화면에서는</b> 내용이 가려지지 않도록 <b>보라 점선 카드</b>로 표시되며, 제목·내용을 직접 입력합니다.</li>
+  <li>속성에서 <b>표시 위치</b>(중앙 모달 / 우하단 카드)와 <b>닫기 버튼 문구</b>를 지정합니다.</li>
+  <li><b>미리보기·내보낸 HTML에서는</b> 팝업 블록이 놓인 <b>페이지에 들어올 때</b> 떠 있는 창으로 표시되고, ✕나 닫기 버튼으로 닫힙니다. "오늘 하루 보지 않기" 문구는 설계 표시용(모양만)입니다.</li>
+  <li>팝업 블록은 <b>페이지당 1개</b>를 권장합니다. 여러 개 두면 겹쳐서 표시됩니다.</li>
 </ul>
+
+<div class="fig">
+  <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- edit mode -->
+    <rect x="20" y="20" width="340" height="160" rx="8" fill="#fff" stroke="#c9ced4"/>
+    <text x="36" y="44" font-size="12" fill="#767676" font-weight="700">편집 모드</text>
+    <rect x="60" y="60" width="260" height="90" rx="8" fill="#faf7ff" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <text x="190" y="94" font-size="12.5" fill="#7c3aed" text-anchor="middle" font-weight="700">팝업 블록 (보라 점선 카드)</text>
+    <text x="190" y="114" font-size="11" fill="#767676" text-anchor="middle">제목·내용을 여기서 직접 입력</text>
+    <!-- preview mode -->
+    <rect x="400" y="20" width="340" height="160" rx="8" fill="#fff" stroke="#c9ced4"/>
+    <text x="416" y="44" font-size="12" fill="#767676" font-weight="700">미리보기 / 내보낸 HTML</text>
+    <rect x="400" y="50" width="340" height="130" rx="0" fill="#000" opacity="0.28"/>
+    <rect x="470" y="66" width="200" height="98" rx="10" fill="#fff" stroke="#d7dbe0"/>
+    <text x="655" y="86" font-size="13" fill="#767676" text-anchor="end" font-weight="700">✕</text>
+    <text x="570" y="98" font-size="12.5" fill="#191919" text-anchor="middle" font-weight="800">공지 제목</text>
+    <text x="570" y="118" font-size="11" fill="#545454" text-anchor="middle">페이지 진입 시 팝업으로 표시</text>
+    <rect x="530" y="132" width="80" height="22" rx="6" fill="#191919"/>
+    <text x="570" y="147" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">닫기</text>
+  </svg>
+  <div class="cap"><b>그림 6.</b> 팝업 블록 — 편집 중에는 점선 카드, 미리보기·내보낸 HTML에서는 실제 팝업으로 뜹니다.</div>
+</div>
 
 <h3>HTML 코드</h3>
-<ul class="bl">
-  <li>임의의 HTML을 그대로 렌더링하는 블록입니다. 그룹 <b>기본</b>에서 추가한 뒤, 우상단 도구의 <code>〈/〉 코드</code> 버튼으로 코드 편집창을 엽니다.</li>
-  <li><b>유튜브</b>: 영상의 [공유 → 퍼가기]에서 복사한 <code>&lt;iframe …&gt;</code> 코드를 붙여넣으면 실제 재생되는 영상이 들어갑니다. <b>지도</b>: 구글지도·네이버지도의 embed(퍼가기) 코드도 같은 방식입니다.</li>
-  <li>지도·동영상 "자리" 블록이 모양만 잡는 것과 달리, HTML 블록은 <b>실제로 동작하는 embed</b>를 넣는 용도입니다.</li>
-</ul>
-<div class="note"><div class="lb">Note</div>안전을 위해 <b>편집 화면에서는 script가 실행되지 않고</b>, 코드 영역 클릭은 블록 선택으로 쓰입니다(iframe 조작 불가). <b>내보낸 HTML에서는 붙여넣은 코드가 그대로 실행</b>되므로, 신뢰할 수 있는 코드만 사용하세요.</div>
+<p>임의의 HTML을 그대로 렌더링하는 블록입니다. 그룹 <b>기본</b>에서 추가합니다. "자리" 블록(동영상 자리·지도 자리)이 모양만 잡는 것과 달리, HTML 블록은 <b>실제로 동작하는 embed</b>를 넣는 용도입니다.</p>
+<ol class="steps">
+  <li>블록을 추가한 뒤, 우상단 도구의 <code>〈/〉 코드</code> 버튼으로 코드 편집창을 엽니다.</li>
+  <li><b>유튜브</b> — 영상 페이지의 [공유 → 퍼가기]에서 복사한 <code>&lt;iframe …&gt;</code> 코드를 붙여넣습니다.</li>
+  <li><b>지도</b> — 구글지도·네이버지도의 embed(퍼가기) 코드도 같은 방식입니다.</li>
+  <li>저장하면 캔버스에 실제 embed가 표시됩니다. 재생·조작 확인은 미리보기나 내보낸 HTML에서 합니다.</li>
+</ol>
+<div class="warn"><div class="lb">주의</div>안전을 위해 <b>편집 화면에서는 script가 실행되지 않고</b>, 코드 영역 클릭은 블록 선택으로 쓰입니다(iframe 조작 불가). <b>내보낸 HTML에서는 붙여넣은 코드가 그대로 실행</b>되므로, 출처를 신뢰할 수 있는 코드만 사용하세요.</div>
 
+<!-- ============================================================ 07 -->
 <h2 id="s7"><span class="no">07</span>데이터 블록 — 표·요약카드·그래프</h2>
-<h3>표 → 그래프 연동</h3>
-<ul class="bl">
-  <li>먼저 <b>표 블록</b>을 만들고 데이터를 입력합니다. 첫 컬럼이 라벨(예: 월), 숫자가 많은 컬럼이 값 시리즈로 자동 인식됩니다.</li>
-  <li><b>그래프 블록</b>을 추가하고 속성에서 <b>원본 표</b>와 <b>유형</b>(막대·가로막대·누적막대·꺾은선·영역·원형·도넛)·높이를 선택합니다.</li>
-  <li><b>표 값을 고치면 그래프가 즉시 다시 그려집니다.</b> 컬럼명을 바꾸면 범례에도 반영됩니다.</li>
-  <li>내보낸 HTML에는 그래프가 <b>정적 SVG</b>로 담겨 오프라인에서도 그대로 보입니다.</li>
-</ul>
-<div class="note"><div class="lb">Note</div>㉙ 관리자 대시보드 템플릿이 "요약카드 + 표→그래프 2종" 연동의 견본입니다.</div>
+<p>대시보드·보고 화면의 핵심은 데이터 3종 블록입니다. 특히 <b>표 → 그래프 연동</b>은 이 도구의 가장 강력한 기능 중 하나로, 표의 값을 고치면 그래프가 즉시 다시 그려집니다.</p>
 
-<h2 id="s8"><span class="no">08</span>메뉴바(GNB)와 푸터</h2>
+<div class="fig">
+  <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- table -->
+    <rect x="20" y="30" width="270" height="150" rx="8" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+    <text x="36" y="54" font-size="12" fill="#191919" font-weight="800">① 표 블록</text>
+    <g font-size="11">
+      <rect x="36" y="64" width="238" height="24" fill="#efefef"/>
+      <text x="46" y="80" font-weight="700" fill="#191919">월</text><text x="130" y="80" font-weight="700" fill="#191919">매출</text><text x="210" y="80" font-weight="700" fill="#191919">비용</text>
+      <text x="46" y="104" fill="#3c3c3c">1월</text><text x="130" y="104" fill="#3c3c3c">120</text><text x="210" y="104" fill="#3c3c3c">80</text>
+      <text x="46" y="126" fill="#3c3c3c">2월</text><text x="130" y="126" fill="#3c3c3c">150</text><text x="210" y="126" fill="#3c3c3c">90</text>
+      <text x="46" y="148" fill="#3c3c3c">3월</text><text x="130" y="148" fill="#3c3c3c">180</text><text x="210" y="148" fill="#3c3c3c">85</text>
+    </g>
+    <text x="36" y="172" font-size="10.5" fill="#767676">첫 컬럼=라벨 · 숫자 컬럼=값 시리즈</text>
+    <!-- arrow -->
+    <g stroke="#0F80F6" stroke-width="2" fill="#0F80F6">
+      <line x1="292" y1="105" x2="342" y2="105"/><polygon points="342,99 354,105 342,111"/>
+    </g>
+    <text x="322" y="92" font-size="10.5" fill="#0F80F6" font-weight="700" text-anchor="middle">원본 지정</text>
+    <!-- chart -->
+    <rect x="360" y="30" width="270" height="150" rx="8" fill="#fff" stroke="#191919" stroke-width="1.3"/>
+    <text x="376" y="54" font-size="12" fill="#191919" font-weight="800">② 그래프 블록</text>
+    <g>
+      <line x1="386" y1="160" x2="606" y2="160" stroke="#c9ced4"/>
+      <rect x="400" y="112" width="24" height="48" fill="#0F80F6"/>
+      <rect x="428" y="128" width="24" height="32" fill="#a9cdf5"/>
+      <rect x="470" y="100" width="24" height="60" fill="#0F80F6"/>
+      <rect x="498" y="124" width="24" height="36" fill="#a9cdf5"/>
+      <rect x="540" y="88" width="24" height="72" fill="#0F80F6"/>
+      <rect x="568" y="126" width="24" height="34" fill="#a9cdf5"/>
+    </g>
+    <text x="376" y="176" font-size="10.5" fill="#767676">표 값을 고치면 즉시 다시 그려짐</text>
+    <!-- export -->
+    <g stroke="#a1a1a1" stroke-width="1.5" fill="#a1a1a1">
+      <line x1="632" y1="105" x2="668" y2="105"/><polygon points="668,100 678,105 668,110"/>
+    </g>
+    <rect x="682" y="80" width="62" height="50" rx="8" fill="#f3f4f6" stroke="#dfe3e8"/>
+    <text x="713" y="102" font-size="10.5" fill="#191919" text-anchor="middle" font-weight="700">내보내기</text>
+    <text x="713" y="118" font-size="10" fill="#767676" text-anchor="middle">정적 SVG</text>
+  </svg>
+  <div class="cap"><b>그림 7.</b> 표 → 그래프 연동 — 표가 원본, 그래프는 그 표를 바라보는 뷰입니다.</div>
+</div>
+
+<h3>따라 하기 — 표에서 그래프 만들기</h3>
+<ol class="steps">
+  <li><b>표 블록</b>을 먼저 만들고 데이터를 입력합니다. <b>첫 컬럼이 라벨</b>(예: 월), <b>숫자가 많은 컬럼이 값 시리즈</b>로 자동 인식됩니다.</li>
+  <li>같은 페이지에 <b>그래프 블록</b>을 추가합니다.</li>
+  <li>그래프 블록을 클릭 → 속성에서 <b>원본 표</b>(같은 페이지의 표 목록에서 선택)와 <b>유형</b> · <b>높이</b>를 고릅니다.</li>
+  <li>이후 <b>표 값을 고치면 그래프가 즉시 다시 그려집니다.</b> 컬럼명을 바꾸면 범례에도 반영됩니다.</li>
+</ol>
+
+<h3>그래프 유형 7종</h3>
+<table>
+  <thead><tr><th>유형</th><th>어울리는 데이터</th></tr></thead>
+  <tbody>
+    <tr><td>막대 · 가로막대</td><td>항목 간 크기 비교. 라벨이 길면 가로막대가 읽기 좋음</td></tr>
+    <tr><td>누적막대</td><td>항목별 합계와 그 구성(시리즈)을 함께 볼 때</td></tr>
+    <tr><td>꺾은선 · 영역</td><td>시간에 따른 추이. 영역은 누적 규모감을 줄 때</td></tr>
+    <tr><td>원형 · 도넛</td><td>전체 대비 비중(구성비). 항목 5개 이내 권장</td></tr>
+  </tbody>
+</table>
 <ul class="bl">
-  <li>도구막대의 <b>메뉴바</b>/<b>푸터</b> 체크박스로 켜고 끕니다. 둘 다 <b>모든 페이지 공통</b>입니다.</li>
-  <li>메뉴바에 마우스를 올리면 사이트명 · 메뉴 항목(쉼표) · 톤(어두운/파랑/밝은)을 편집하는 미니 도구가 나타납니다.</li>
-  <li>푸터의 두 줄은 화면에서 직접 클릭해 수정합니다.</li>
+  <li>내보낸 HTML에는 그래프가 <b>정적 SVG</b>로 담겨, 인터넷이 없는 환경에서도 그대로 보입니다.</li>
+  <li>표에 숫자 컬럼이 하나도 없으면 그래프를 그릴 수 없습니다("표를 선택하세요" 안내가 유지됨).</li>
 </ul>
+<div class="note"><div class="lb">Note</div>㉙ 관리자 대시보드 템플릿이 "요약카드(KPI) + 표→그래프 2종" 연동의 견본입니다. 대시보드 화면을 설계할 때 이 템플릿에서 시작하는 것을 권장합니다.</div>
+
+<!-- ============================================================ 08 -->
+<h2 id="s8"><span class="no">08</span>메뉴바(GNB)와 푸터</h2>
+<p>메뉴바와 푸터는 <b>모든 페이지 공통</b> 영역입니다. 도구막대의 <b>메뉴바</b>/<b>푸터</b> 체크박스로 켜고 끕니다.</p>
+
+<h3>메뉴바 편집 — 미니 도구</h3>
+<p>편집 모드에서 <b>메뉴바에 마우스를 올리면</b> 미니 도구가 나타나 다음을 지정할 수 있습니다.</p>
+<table>
+  <thead><tr><th>항목</th><th>선택지</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td>사이트명/로고</td><td>텍스트 입력</td><td>좌측 로고 자리의 문구</td></tr>
+    <tr><td>메뉴 항목</td><td>쉼표 입력</td><td>드롭다운은 괄호, 풀폭 메뉴는 대괄호 문법(아래 참고)</td></tr>
+    <tr><td>톤</td><td>어두운 / 파랑 / 밝은</td><td>메뉴바 배경 색</td></tr>
+    <tr><td>폭</td><td>자동(로고 옆) / 꽉차게</td><td><b>꽉차게</b>를 골라야 아래 정렬 효과가 뚜렷하게 보입니다</td></tr>
+    <tr><td>정렬</td><td>좌측 / 가운데 / 우측 / 양쪽(균등 배치)</td><td>메뉴 항목의 가로 배치</td></tr>
+    <tr><td>크기</td><td>작게 / 보통 / 크게</td><td>메뉴 글자·버튼 크기</td></tr>
+    <tr><td>상단 고정</td><td>고정 안함 / 상단 고정</td><td>스크롤해도 메뉴바가 화면 상단에 붙어 있게(sticky)</td></tr>
+    <tr><td>그림자</td><td>없음 / 그림자</td><td>메뉴바 아래 옅은 그림자</td></tr>
+  </tbody>
+</table>
+<p>푸터의 두 줄(회사 문구·연락처)은 화면에서 직접 클릭해 수정합니다.</p>
+
 <h3>하위(드롭다운) 메뉴 <span class="pill">010</span></h3>
 <ul class="bl">
   <li>메뉴 입력칸에서 <b>괄호와 /</b>로 하위 메뉴를 지정합니다 — 예: <code>홈, 회사(소개/문의), 고객센터</code> → "회사"에 마우스를 올리면 소개·문의 드롭다운이 펼쳐집니다.</li>
   <li>하위 항목도 상위와 똑같이 <b>이름이 페이지명과 같으면 자동 연결</b>됩니다(편집 모드에서 ↗ 표시). 상위 항목은 자체 페이지 없이 <b>묶음 제목</b>으로만 써도 됩니다.</li>
-  <li>드롭다운은 편집 캔버스·미리보기·내보낸 HTML(한 파일/페이지별) 모두에서 hover로 동작합니다. ㉘ 인트라넷 포털 템플릿에 예시("회사" 메뉴)가 있고, <b>㉛~㊺ (2단) 템플릿 15종</b>이 드롭다운 구조의 완성 견본입니다(3장 참고).</li>
+  <li>드롭다운은 편집 캔버스·미리보기·내보낸 HTML(한 파일/페이지별) 모두에서 hover로 동작합니다.</li>
 </ul>
+
 <h3>좌우 풀폭(메가) 메뉴 <span class="pill">010</span></h3>
 <ul class="bl">
   <li>하위 메뉴를 작은 드롭다운 대신 <b>화면 좌우로 꽉 차는 풀폭 패널</b>로 펼치고 싶으면 괄호 대신 <b>대괄호 [ ]</b>를 씁니다 — 예: <code>제품·솔루션[링크포스:올인원 POS/키오스크:셀프 주문·결제/포스 하드웨어:단말기·주변기기]</code></li>
   <li>각 하위 항목은 <code>이름:설명</code> 형식으로, 패널에 <b>굵은 제목 + 회색 설명</b>으로 나란히 배치됩니다. 설명(<code>:설명</code>)은 생략할 수 있습니다.</li>
   <li>하위 항목의 <b>이름</b>이 페이지명과 같으면 자동 연결됩니다(설명은 표시용). 상위에 마우스를 올리면 메뉴바 바로 아래에 흰색 풀폭 패널이 펼쳐지며, 편집·미리보기·양쪽 내보내기 모두에서 동작합니다.</li>
-  <li>한 메뉴바에서 일반 드롭다운(괄호)과 풀폭 메뉴(대괄호)를 <b>섞어 쓸 수 있습니다</b>. 항목이 2~3개면 드롭다운, 항목마다 설명을 붙여 소개하고 싶으면 풀폭이 어울립니다.</li>
-  <li><b>46~60번 (2단_좌우) 템플릿 15종</b>이 풀폭 메뉴의 완성 견본입니다(3장 참고).</li>
+  <li>한 메뉴바에서 일반 드롭다운(괄호)과 풀폭 메뉴(대괄호)를 <b>섞어 쓸 수 있습니다</b>.</li>
 </ul>
 
+<div class="fig">
+  <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- dropdown -->
+    <text x="20" y="20" font-size="12" fill="#191919" font-weight="800">일반 드롭다운 — 괄호 ( )</text>
+    <text x="20" y="38" font-size="11" fill="#767676">회사(소개/문의)</text>
+    <rect x="20" y="48" width="340" height="30" fill="#2b2f36"/>
+    <text x="34" y="68" font-size="11" fill="#fff" font-weight="700">사이트명</text>
+    <text x="200" y="68" font-size="11" fill="#cfd4da">홈</text>
+    <text x="240" y="68" font-size="11" fill="#fff" font-weight="700">회사 ▾</text>
+    <text x="310" y="68" font-size="11" fill="#cfd4da">고객센터</text>
+    <rect x="232" y="78" width="90" height="56" rx="6" fill="#fff" stroke="#c9ced4"/>
+    <text x="246" y="99" font-size="11" fill="#191919">소개 ↗</text>
+    <text x="246" y="121" font-size="11" fill="#191919">문의 ↗</text>
+    <!-- mega -->
+    <text x="400" y="20" font-size="12" fill="#191919" font-weight="800">풀폭 메가 메뉴 — 대괄호 [ ]</text>
+    <text x="400" y="38" font-size="11" fill="#767676">제품[포스:올인원 POS/키오스크:셀프 주문]</text>
+    <rect x="400" y="48" width="340" height="30" fill="#2b2f36"/>
+    <text x="414" y="68" font-size="11" fill="#fff" font-weight="700">사이트명</text>
+    <text x="560" y="68" font-size="11" fill="#fff" font-weight="700">제품 ▾</text>
+    <text x="630" y="68" font-size="11" fill="#cfd4da">고객지원</text>
+    <rect x="400" y="78" width="340" height="76" fill="#fff" stroke="#c9ced4"/>
+    <g>
+      <text x="424" y="104" font-size="11.5" fill="#191919" font-weight="800">포스 ↗</text>
+      <text x="424" y="122" font-size="10.5" fill="#767676">올인원 POS</text>
+      <text x="560" y="104" font-size="11.5" fill="#191919" font-weight="800">키오스크 ↗</text>
+      <text x="560" y="122" font-size="10.5" fill="#767676">셀프 주문</text>
+    </g>
+    <text x="570" y="172" font-size="10.5" fill="#0F80F6" text-anchor="middle" font-weight="700">메뉴바 아래 화면 좌우로 꽉 차는 흰색 패널</text>
+    <!-- syntax summary -->
+    <rect x="20" y="192" width="720" height="52" rx="8" fill="#f8f9fa" stroke="#eceef1"/>
+    <text x="36" y="214" font-size="11.5" fill="#191919" font-weight="700">문법 요약</text>
+    <text x="36" y="233" font-size="11" fill="#3c3c3c">일반 항목: <tspan font-weight="700">홈, 소개</tspan>   ·   드롭다운: <tspan font-weight="700">상위(하위1/하위2)</tspan>   ·   풀폭: <tspan font-weight="700">상위[하위1:설명/하위2:설명]</tspan>   ·   섞어 쓰기 가능</text>
+  </svg>
+  <div class="cap"><b>그림 8.</b> 드롭다운(괄호) vs 풀폭 메가 메뉴(대괄호) — 하위 항목 이름이 페이지명과 같으면 자동 연결(↗)됩니다.</div>
+</div>
+
+<div class="tip"><div class="lb">Tip — 어느 쪽을 쓸까</div>하위 항목이 2~3개면 <b>드롭다운(괄호)</b>, 항목마다 설명을 붙여 소개하고 싶거나 항목이 많으면 <b>풀폭(대괄호)</b>이 어울립니다. ㉘ 인트라넷 포털에 드롭다운의 기본 예("회사" 메뉴)가, <b>㉛~㊺ (2단)</b>·<b>46~60 (2단_좌우)</b> 템플릿 30종에 완성 견본이 있습니다(3장).</div>
+
+<!-- ============================================================ 09 -->
 <h2 id="s9"><span class="no">09</span>주석(📌)과 텍스트 모드(📝) — 설계 의도 남기기</h2>
-<h3>주석 모드 (📌) — 번호 핀 + 설명 목록</h3>
-<ul class="bl">
-  <li><code>📌 주석 모드</code>를 켜고 화면 아무 곳이나 클릭하면 <b>빨간 번호 핀</b>이 찍히고, 캔버스 아래 목록에서 설명을 입력합니다.</li>
-  <li>핀을 다시 클릭하면 삭제됩니다. 주석은 <b>페이지별로 따로</b> 저장됩니다.</li>
-  <li>"이 버튼을 누르면 어떤 API를 호출" 같은 <b>지점별 동작 스펙</b>을 남기는 용도입니다.</li>
-</ul>
-<h3>텍스트 모드 (📝) — 화면 위에 문구 직접 표시</h3>
-<ul class="bl">
-  <li><code>📝 텍스트 모드</code>를 켜고 화면을 클릭하면 그 자리에 <b>문구를 직접 표시</b>합니다. 편집 창에서 <b>글자 색 5종</b>(빨강·파랑·초록·회색·검정) · <b>크기</b>(12~20px) · <b>형광펜</b> 배경을 지정할 수 있습니다.</li>
-  <li>문구를 <b>드래그해 위치를 옮기고</b>, 클릭하면 다시 편집합니다. 내용을 비우고 저장하면 자동 삭제됩니다.</li>
-  <li>"※ 마감 후에는 수정 불가" 같이 <b>화면에 상시 보여야 할 규칙·주의 문구</b>를 위치 그대로 전달하는 용도입니다. 주석과 마찬가지로 <b>페이지별</b>로 저장됩니다.</li>
-  <li>주석 모드와 텍스트 모드는 동시에 켤 수 없습니다 — 한쪽을 켜면 다른 쪽이 자동으로 꺼집니다.</li>
-</ul>
-<div class="note"><div class="lb">Note</div>핀·설명 목록·텍스트 문구는 모두 <b>내보낸 HTML(한 파일·페이지별)과 화면정의서에 포함</b>됩니다. 화면정의서에는 "📌 주석"과 "📝 화면 문구"가 각각 표로 정리됩니다.</div>
+<p>화면 모양만으로는 전달되지 않는 <b>동작 스펙</b>과 <b>화면 규칙</b>을 남기는 두 가지 모드입니다. 둘 다 페이지별로 따로 저장되고, 내보낸 HTML과 화면정의서에 포함됩니다.</p>
 
+<div class="fig">
+  <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- screen -->
+    <rect x="20" y="20" width="440" height="170" rx="8" fill="#fff" stroke="#c9ced4"/>
+    <rect x="36" y="36" width="408" height="26" fill="#2b2f36"/>
+    <text x="48" y="53" font-size="10.5" fill="#fff" font-weight="700">사이트명</text>
+    <rect x="36" y="74" width="200" height="24" rx="4" fill="#f3f4f6" stroke="#dfe3e8"/>
+    <text x="48" y="90" font-size="10.5" fill="#a1a1a1">검색어 입력</text>
+    <rect x="244" y="74" width="56" height="24" rx="4" fill="#2563eb"/>
+    <text x="272" y="90" font-size="10.5" fill="#fff" text-anchor="middle" font-weight="700">검색</text>
+    <!-- pin 1 -->
+    <circle cx="304" cy="72" r="10" fill="#dc2626"/>
+    <text x="304" y="76" font-size="10.5" fill="#fff" text-anchor="middle" font-weight="800">1</text>
+    <!-- text note -->
+    <rect x="36" y="118" width="290" height="22" rx="4" fill="rgba(252,246,131,.6)"/>
+    <text x="44" y="133" font-size="10.5" fill="#c02b24" font-weight="700">※ 마감 후에는 수정 불가 (📝 화면 문구)</text>
+    <rect x="36" y="150" width="408" height="28" rx="4" fill="#fff" stroke="#e3e3e3" stroke-dasharray="4 3"/>
+    <text x="48" y="168" font-size="10.5" fill="#767676">본문 블록 …</text>
+    <!-- annot list -->
+    <rect x="490" y="20" width="250" height="170" rx="8" fill="#fcfcfd" stroke="#e5e7eb"/>
+    <text x="506" y="44" font-size="12" fill="#191919" font-weight="800">📌 화면 주석 — 홈 (1건)</text>
+    <circle cx="514" cy="66" r="9" fill="#dc2626"/>
+    <text x="514" y="70" font-size="10" fill="#fff" text-anchor="middle" font-weight="800">1</text>
+    <text x="532" y="70" font-size="11" fill="#3c3c3c">검색 버튼 클릭 시</text>
+    <text x="532" y="86" font-size="11" fill="#3c3c3c">GET /api/search 호출,</text>
+    <text x="532" y="102" font-size="11" fill="#3c3c3c">결과 20건 페이징</text>
+    <text x="506" y="136" font-size="10.5" fill="#767676">캔버스 아래 목록에서 설명 입력</text>
+    <text x="506" y="154" font-size="10.5" fill="#767676">핀을 다시 클릭하면 삭제</text>
+  </svg>
+  <div class="cap"><b>그림 9.</b> 📌 번호 핀(지점별 동작 스펙)과 📝 화면 문구(상시 표시 규칙) — 내보낸 HTML·화면정의서에 모두 포함됩니다.</div>
+</div>
+
+<h3>주석 모드 (📌) — 번호 핀 + 설명 목록</h3>
+<ol class="steps">
+  <li><code>📌 주석 모드</code>를 켭니다(버튼이 "켜짐" 상태로 바뀜).</li>
+  <li>화면에서 설명이 필요한 지점을 클릭하면 <b>빨간 번호 핀</b>이 찍힙니다.</li>
+  <li>캔버스 아래 목록에서 각 번호의 설명을 입력합니다 — "이 버튼을 누르면 어떤 API를 호출" 같은 <b>지점별 동작 스펙</b>.</li>
+  <li>핀을 <b>다시 클릭하면 삭제</b>됩니다. 다 달았으면 모드를 꺼서 편집으로 돌아옵니다.</li>
+</ol>
+
+<h3>텍스트 모드 (📝) — 화면 위에 문구 직접 표시</h3>
+<ol class="steps">
+  <li><code>📝 텍스트 모드</code>를 켜고 화면을 클릭하면 그 자리에 <b>문구 입력창</b>이 열립니다.</li>
+  <li>편집 창에서 <b>글자 색 5종</b>(빨강·파랑·초록·회색·검정) · <b>크기</b>(12~20px) · <b>형광펜</b> 배경을 지정합니다.</li>
+  <li>문구를 <b>드래그해 위치를 옮기고</b>, 클릭하면 다시 편집합니다. 내용을 비우고 저장하면 자동 삭제됩니다.</li>
+</ol>
+<ul class="bl">
+  <li>"※ 마감 후에는 수정 불가" 같이 <b>화면에 상시 보여야 할 규칙·주의 문구</b>를 위치 그대로 전달하는 용도입니다.</li>
+  <li>주석 모드와 텍스트 모드는 <b>동시에 켤 수 없습니다</b> — 한쪽을 켜면 다른 쪽이 자동으로 꺼집니다.</li>
+</ul>
+<div class="note"><div class="lb">Note — 둘의 역할 구분</div><b>📌 주석</b>은 "이 지점이 어떻게 동작해야 하는가"(개발 스펙, 번호로 참조), <b>📝 텍스트</b>는 "화면에 이 문구가 이 위치에 보여야 한다"(화면 자체의 요구사항)입니다. 핀·설명 목록·텍스트 문구는 모두 <b>내보낸 HTML(한 파일·페이지별)과 화면정의서에 포함</b>되며, 화면정의서에는 "📌 주석"과 "📝 화면 문구"가 각각 별도의 표로 정리됩니다.</div>
+
+<!-- ============================================================ 10 -->
 <h2 id="s10"><span class="no">10</span>저장 · 자동 저장 · 실행취소</h2>
+
 <h3>자동 저장 — 닫아도 이어서 작업 <span class="pill new">최신 추가</span></h3>
 <p>편집을 멈추면 <b>1초 안에</b> 현재 작업 전체(페이지·블록·메뉴바·푸터·주석·텍스트 문구)가 브라우저에 보관됩니다. 탭을 실수로 닫거나 새로고침해도 <b>다음에 열 때 그대로 이어서</b> 작업할 수 있습니다.</p>
 <ul class="bl">
@@ -291,51 +806,113 @@
   <li>처음부터 새로 시작하려면 그 알림줄의 <code>기본 예시로 새로 시작</code>을 누릅니다(확인창이 뜨고, 보관된 이전 내용도 함께 지워집니다). 알림줄만 치우려면 <code>✕</code>.</li>
   <li>드래그로 옮긴 순서, 화면에서 직접 입력한 글자도 모두 함께 보관됩니다.</li>
 </ul>
-<div class="note"><div class="lb">Note</div>자동 저장은 <b>이 컴퓨터의 이 브라우저 안에서만</b> 유효합니다. 다른 PC로 옮기거나 백업·공유하려면 <code>💾 저장(JSON)</code>을 쓰세요. 사생활 보호 모드처럼 보관이 막힌 환경에서는 자동 저장이 꺼지고, 도구막대에 <b>빨간 글씨로 그 사실이 표시</b>됩니다 — 그때는 JSON 저장으로 직접 보관하세요.</div>
+<div class="warn"><div class="lb">주의 — 자동 저장의 한계</div>자동 저장은 <b>이 컴퓨터의 이 브라우저 안에서만</b> 유효합니다. 다른 PC·다른 브라우저로 옮기거나 백업·공유하려면 <code>💾 저장(JSON)</code>을 쓰세요. 사생활 보호(시크릿) 모드처럼 보관이 막힌 환경에서는 자동 저장이 꺼지고, 도구막대에 <b>빨간 글씨로 그 사실이 표시</b>됩니다 — 그때는 JSON 저장으로 직접 보관하세요. 또한 브라우저의 "인터넷 사용 기록 삭제"로 사이트 데이터를 지우면 자동 저장분도 함께 사라집니다.</div>
+
 <h3>저장(JSON)·불러오기</h3>
 <ul class="bl">
   <li><code>💾 저장</code> — 전체 작업을 <code>page_builder_날짜.json</code>으로 내려받습니다. <b>다른 사람에게 넘기거나 다른 PC에서 이어서 작업할 때</b>, 그리고 중요한 시점을 따로 보관할 때 씁니다.</li>
-  <li><code>📂 불러오기</code> — 저장한 JSON을 다시 엽니다. 이전 버전(001~009)에서 저장한 파일도 자동 변환되어 열립니다.</li>
+  <li><code>📂 불러오기</code> — 저장한 JSON을 다시 엽니다. <b>이전 버전(001~009)에서 저장한 파일도 자동 변환</b>되어 열립니다.</li>
 </ul>
+
 <h3>실행취소·초기화</h3>
 <ul class="bl">
-  <li><code>↶ 실행취소</code> / <code>↷ 다시실행</code> — 최대 60단계. 단축키 <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>. 템플릿 적용·페이지 삭제·드래그 이동도 되돌릴 수 있습니다.</li>
-  <li><code>🗑 초기화</code> — 모든 페이지를 지우고 빈 화면으로 시작합니다.</li>
+  <li><code>↶ 실행취소</code> / <code>↷ 다시실행</code> — 최대 <b>60단계</b>. 단축키 <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>. 텍스트 수정은 물론 <b>템플릿 적용·페이지 삭제·드래그 이동</b>도 되돌릴 수 있습니다.</li>
+  <li><code>🗑 초기화</code> — 모든 페이지를 지우고 빈 화면으로 시작합니다(확인창 후 실행).</li>
 </ul>
-<div class="tip"><div class="lb">Tip</div>두 저장은 역할이 다릅니다. <b>자동 저장</b>은 "실수로 닫아도 잃지 않게" 하는 안전망이고, <b>JSON 저장</b>은 "옮기고 나누고 되돌아갈 수 있는" 보관본입니다. 하루 작업을 마칠 때나 큰 변경 전에는 JSON을 한 번 받아 두세요.</div>
+<div class="tip"><div class="lb">Tip — 두 저장의 역할</div><b>자동 저장</b>은 "실수로 닫아도 잃지 않게" 하는 안전망이고, <b>JSON 저장</b>은 "옮기고 나누고 되돌아갈 수 있는" 보관본입니다. 하루 작업을 마칠 때, 템플릿을 갈아엎기 전, 큰 구조 변경 전에는 JSON을 한 번 받아 두세요.</div>
 
-
+<!-- ============================================================ 11 -->
 <h2 id="s11"><span class="no">11</span>HTML 내보내기 — 한 파일 / 페이지별</h2>
 <p>두 방식 모두 편집 흔적(점선·버튼·입력 표시) 없이 완성된 화면만 담기고, 주석 핀·설명 목록·텍스트 문구도 포함됩니다. 좁은 화면(모바일)에서는 열이 자동으로 세로로 쌓입니다.</p>
-<div class="note"><div class="lb">Note — 내보낸 HTML에서 실제로 동작하는 것 <span class="pill" style="margin-left:6px;">010</span></div>페이지 이동(메뉴·버튼·사이드메뉴)에 더해 <b>드롭다운 메뉴 펼침</b>, <b>슬라이드 넘김·자동재생</b>, <b>팝업 표시·닫기</b>, <b>HTML 블록의 embed(유튜브·지도 등)</b>가 내보낸 파일에서 그대로 동작합니다.</div>
+<div class="note"><div class="lb">Note — 내보낸 HTML에서 실제로 동작하는 것 <span class="pill" style="margin-left:6px;">010</span></div>페이지 이동(메뉴·버튼·사이드메뉴)에 더해 <b>드롭다운·메가 메뉴 펼침</b>, <b>슬라이드 넘김·자동재생</b>, <b>팝업 표시·닫기</b>, <b>HTML 블록의 embed(유튜브·지도 등)</b>가 내보낸 파일에서 그대로 동작합니다. 반면 검색창·입력 폼·로그인 박스는 모양만 있는 설계용입니다(FAQ 참고).</div>
+
+<div class="fig">
+  <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard,sans-serif">
+    <!-- single -->
+    <text x="20" y="24" font-size="12.5" fill="#191919" font-weight="800">🌐 한 파일</text>
+    <rect x="20" y="36" width="150" height="150" rx="10" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+    <text x="95" y="62" font-size="11.5" fill="#191919" text-anchor="middle" font-weight="700">site.html</text>
+    <g font-size="10.5" fill="#3c3c3c" text-anchor="middle">
+      <rect x="40" y="76" width="110" height="24" rx="5" fill="#eef6ff" stroke="#a9cdf5"/><text x="95" y="92">페이지: 홈</text>
+      <rect x="40" y="106" width="110" height="24" rx="5" fill="#f3f4f6" stroke="#dfe3e8"/><text x="95" y="122">페이지: 신청</text>
+      <rect x="40" y="136" width="110" height="24" rx="5" fill="#f3f4f6" stroke="#dfe3e8"/><text x="95" y="152">페이지: 문의</text>
+    </g>
+    <text x="95" y="178" font-size="10" fill="#767676" text-anchor="middle">파일 안에서 화면 전환</text>
+    <text x="20" y="208" font-size="10.5" fill="#767676">메일·메신저로 1개만 전달 — 공유 간편</text>
+    <!-- divider -->
+    <line x1="230" y1="30" x2="230" y2="200" stroke="#eceef1"/>
+    <!-- multi -->
+    <text x="270" y="24" font-size="12.5" fill="#191919" font-weight="800">🗂 페이지별</text>
+    <g font-size="11" text-anchor="middle" font-weight="700">
+      <rect x="270" y="60" width="130" height="60" rx="10" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="335" y="86" fill="#191919">01_홈.html</text>
+      <rect x="440" y="36" width="130" height="60" rx="10" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="505" y="62" fill="#191919">02_신청.html</text>
+      <rect x="440" y="126" width="130" height="60" rx="10" fill="#fff" stroke="#191919" stroke-width="1.4"/>
+      <text x="505" y="152" fill="#191919">03_문의.html</text>
+    </g>
+    <g stroke="#0F80F6" stroke-width="1.6" fill="none">
+      <path d="M400 78 C 420 70, 424 66, 434 64"/>
+      <path d="M400 102 C 420 116, 424 138, 434 148"/>
+    </g>
+    <g fill="#0F80F6"><polygon points="432,60 441,64 434,70"/><polygon points="434,142 441,150 432,152"/></g>
+    <text x="418" y="52" font-size="10" fill="#0F80F6" font-weight="700">"신청" 클릭</text>
+    <g font-size="10.5" fill="#3c3c3c">
+      <text x="277" y="106" text-anchor="start" font-size="9.5" fill="#767676">메뉴에 현재 페이지 밑줄</text>
+    </g>
+    <rect x="600" y="60" width="144" height="100" rx="10" fill="#fcfcfd" stroke="#e5e7eb"/>
+    <text x="672" y="84" font-size="11" fill="#191919" text-anchor="middle" font-weight="800">📁 같은 폴더 필수</text>
+    <text x="672" y="104" font-size="10" fill="#767676" text-anchor="middle">파일 간 링크로 이동하므로</text>
+    <text x="672" y="120" font-size="10" fill="#767676" text-anchor="middle">한 폴더에 함께 두고</text>
+    <text x="672" y="136" font-size="10" fill="#767676" text-anchor="middle">전달 시 폴더째 압축</text>
+  </svg>
+  <div class="cap"><b>그림 10.</b> 한 파일(파일 안 전환) vs 페이지별(파일 간 실제 링크) — 페이지별은 같은 폴더에 두어야 이동이 동작합니다.</div>
+</div>
+
 <h3>🌐 HTML (한 파일)</h3>
 <ul class="bl">
   <li>모든 페이지가 <b>파일 하나</b>에 담깁니다. 메뉴·버튼·사이드메뉴를 클릭하면 파일 안에서 페이지가 전환됩니다.</li>
   <li>파일 한 개만 보내면 되므로 <b>메신저·메일 공유에 편리</b>합니다.</li>
 </ul>
+
 <h3>🗂 HTML (페이지별)</h3>
 <ul class="bl">
-  <li>페이지마다 파일이 따로 내려갑니다. 파일명은 <b>순번+페이지명</b> — 예: <code>01_홈.html</code>, <code>02_신청.html</code> (폴더에서 페이지 순서대로 정렬됨).</li>
+  <li>페이지마다 파일이 따로 내려갑니다. 파일명은 <b>순번+페이지명</b> — 예: <code>01_홈.html</code>, <code>02_신청.html</code> (폴더에서 페이지 순서대로 정렬됨. 순번은 4장의 페이지 순서를 따름).</li>
   <li>메뉴·버튼·사이드메뉴의 페이지 연결이 <b>파일 간 실제 링크</b>로 변환되어, <code>01_홈.html</code>에서 "신청"을 누르면 <code>02_신청.html</code>로 이동합니다. 각 파일의 메뉴바에는 현재 페이지에 밑줄이 표시됩니다.</li>
   <li>여러 파일이 순차로 내려가므로 브라우저가 <b>"여러 파일 다운로드 허용"</b>을 물으면 허용해 주세요.</li>
-  <li><b>파일들을 같은 폴더에 두어야</b> 페이지 간 이동이 동작합니다. 개발자에게 전달할 때는 <b>폴더째 압축</b>해서 보내세요.</li>
+  <li><b>파일들을 같은 폴더에 두어야</b> 페이지 간 이동이 동작합니다. 파일 이름을 바꾸면 링크가 끊깁니다. 개발자에게 전달할 때는 <b>폴더째 압축</b>해서 보내세요.</li>
 </ul>
-<div class="tip"><div class="lb">Tip</div>페이지별 개발 담당자가 다르거나 화면 단위로 리뷰·이슈를 관리한다면 <b>페이지별</b>이, 빠른 전체 공유에는 <b>한 파일</b>이 편합니다.</div>
+<div class="tip"><div class="lb">Tip — 어느 방식을 쓸까</div>페이지별 개발 담당자가 다르거나 화면 단위로 리뷰·이슈를 관리한다면 <b>페이지별</b>이, 빠른 전체 공유·모바일에서 열어보기에는 <b>한 파일</b>이 편합니다. 둘 다 받아서 용도에 맞게 쓰는 것도 방법입니다.</div>
 
+<!-- ============================================================ 12 -->
 <h2 id="s12"><span class="no">12</span>화면정의서 출력</h2>
-<p><code>📑 화면정의서</code>를 누르면 <code>spec_날짜.html</code> 문서가 내려받아집니다. 구성:</p>
+<p><code>📑 화면정의서</code>를 누르면 <code>spec_날짜.html</code> 문서가 내려받아집니다. 화면을 만들면서 자동으로 축적된 구조 정보를 표로 정리한 문서로, 별도로 다시 작성할 필요가 없습니다.</p>
+<h3>문서 구성</h3>
+<table>
+  <thead><tr><th>구역</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td>0. 공통 영역</td><td>메뉴바 구성(항목별 페이지 연결 여부 포함), 푸터 문구</td></tr>
+    <tr><td rowspan="4">페이지별<br>(페이지 순서·Tree 반영)</td><td><b>행 구조</b> — 행마다 열 분할 비율</td></tr>
+    <tr><td><b>블록 목록 표</b> — No · 위치(행-열) · 유형 · 내용 요약</td></tr>
+    <tr><td><b>📌 주석 표</b> — 번호 핀별 설명</td></tr>
+    <tr><td><b>📝 화면 문구 표</b> — 화면 위 문구 목록</td></tr>
+  </tbody>
+</table>
 <ul class="bl">
-  <li><b>0. 공통 영역</b> — 메뉴바 구성(항목별 페이지 연결 여부), 푸터 문구.</li>
-  <li><b>페이지별</b> — 행 구조(열 분할 비율), 블록 목록 표(No · 위치(행-열) · 유형 · 내용 요약), 📌 주석 표, 📝 화면 문구 표.</li>
   <li>블록 요약은 유형에 맞게 정리됩니다. 예: 표는 "컬럼명 — N행", 그래프는 "꺾은선 — 원본: 표(월·매출)", 버튼은 링크 대상까지.</li>
+  <li>브라우저 인쇄(<kbd>Ctrl</kbd>+<kbd>P</kbd>)로 <b>PDF 저장</b>하면 그대로 배포 문서가 됩니다.</li>
 </ul>
-<p>브라우저 인쇄(<kbd>Ctrl</kbd>+<kbd>P</kbd>)로 PDF 저장하면 그대로 배포 문서가 됩니다.</p>
+<div class="tip"><div class="lb">Tip — 개발팀 전달 세트</div><b>내보낸 HTML(화면 그대로) + 화면정의서(구조·스펙 표)</b>를 한 벌로 전달하면, 개발자는 HTML로 화면을 눈으로 확인하고 정의서로 목록·스펙을 참조할 수 있어 별도 기획서 없이도 전달력이 높습니다. 📌 주석에 동작 스펙, 📝 문구에 화면 규칙까지 담아 두면 완성입니다.</div>
 
+<!-- ============================================================ 13 -->
 <h2 id="s13"><span class="no">13</span>자주 묻는 질문(FAQ)</h2>
+
 <h3>Q. 메뉴를 눌러도 페이지가 안 바뀌어요.</h3>
 <p>편집 모드에서는 클릭이 편집으로 쓰입니다. <b>미리보기</b>로 전환하거나 내보낸 HTML에서 확인하세요. 그래도 안 되면 메뉴 항목명과 페이지명이 정확히 같은지(공백 포함) 확인하세요 — 연결된 항목에는 편집 모드에서 ↗ 표시가 붙습니다.</p>
+
 <h3>Q. 그래프가 "표를 선택하세요"라고만 나와요.</h3>
 <p>그래프는 <b>같은 페이지의 표 블록</b>을 원본으로 사용합니다. 표를 먼저 추가하고, 그래프 블록을 클릭 → 속성의 원본 콤보에서 표를 선택하세요. 표에 숫자 컬럼이 하나도 없으면 그릴 수 없습니다.</p>
+
 <h3>Q. 입력한 글이 사라졌어요.</h3>
 <p>텍스트는 입력 후 <b>바깥을 클릭</b>해야 반영됩니다. 반영되기 전에 페이지를 전환하면 그 글만 유실될 수 있으니, 입력을 마치면 빈 곳을 한 번 클릭하는 습관을 들이세요. 반영된 뒤에는 자동 저장이 받아 두므로 새로고침해도 남아 있습니다.</p>
 
@@ -350,18 +927,25 @@
 
 <h3>Q. 회사 PC에서 하던 작업을 집에서 이어서 하려면?</h3>
 <p>자동 저장은 <b>그 브라우저 안에만</b> 남습니다. <code>💾 저장(JSON)</code>으로 파일을 받아 옮긴 뒤, 다른 PC에서 <code>📂 불러오기</code>로 여세요. 도구 HTML 파일만 복사해서는 작업 내용이 따라가지 않습니다.</p>
+
 <h3>Q. 템플릿을 골랐는데 원래 작업이 지워졌어요.</h3>
 <p><kbd>Ctrl</kbd>+<kbd>Z</kbd>(실행취소)로 되돌릴 수 있습니다. 템플릿 적용 전 확인창이 뜨므로, 작업 중에는 먼저 JSON 저장을 권장합니다.</p>
+
 <h3>Q. 페이지를 추가했는데 상단 메뉴바에 안 보여요.</h3>
-<p>메뉴바 항목은 자동으로 생기지 않습니다. 편집 모드에서 <b>메뉴바에 마우스를 올리면</b> 우측 상단에 나타나는 메뉴 입력칸에 새 페이지 이름을 쉼표로 추가하세요. 페이지명과 정확히 같으면(공백 포함) 자동 연결되어 ↗ 표시가 붙습니다.</p>
+<p>메뉴바 항목은 자동으로 생기지 않습니다. 편집 모드에서 <b>메뉴바에 마우스를 올리면</b> 나타나는 메뉴 입력칸에 새 페이지 이름을 쉼표로 추가하세요. 페이지명과 정확히 같으면(공백 포함) 자동 연결되어 ↗ 표시가 붙습니다.</p>
+
 <h3>Q. 페이지별 내보내기를 받았는데 파일에서 메뉴를 눌러도 이동이 안 돼요.</h3>
 <p>페이지별 파일들은 <b>같은 폴더 안에 함께 있어야</b> 서로 이동합니다. 파일 하나만 옮겼거나 이름을 바꾸면 링크가 끊깁니다. 또한 브라우저가 "여러 파일 다운로드"를 차단해 일부 파일만 받아졌을 수 있으니, 내보내기 시 안내된 파일 개수와 실제 받은 개수를 확인하세요.</p>
+
 <h3>Q. 슬라이드가 편집 화면에서는 자동으로 안 넘어가요.</h3>
 <p>자동넘김은 <b>내보낸 HTML에서만</b> 동작합니다(편집·미리보기 중 화면이 저절로 바뀌면 편집을 방해하기 때문). 편집·미리보기에서는 ‹ › 화살표와 점으로 직접 넘겨 확인하세요.</p>
+
 <h3>Q. 팝업이 편집 화면에서는 카드로만 보여요.</h3>
 <p>의도된 동작입니다. 편집 중에는 내용이 가려지지 않도록 <b>점선 카드</b>로 표시되고, <b>미리보기</b>나 내보낸 HTML에서 페이지에 들어올 때 실제 팝업으로 뜹니다.</p>
+
 <h3>Q. HTML 블록에 붙여넣은 유튜브가 편집 화면에서 클릭이 안 돼요.</h3>
 <p>편집 중에는 embed 영역 클릭이 <b>블록 선택</b>으로 쓰입니다(그래야 블록을 옮기고 지울 수 있습니다). 재생·조작은 미리보기나 내보낸 HTML에서 확인하세요.</p>
+
 <h3>Q. 실제 서비스로 그대로 써도 되나요?</h3>
 <p>내보낸 HTML은 정적 화면입니다. 검색창·입력 폼·로그인 박스는 <b>모양만 있는 설계용</b>이라 실제 동작하지 않습니다. 안내형 페이지·랜딩·사내 공지처럼 "보여주는 화면"은 그대로 사용 가능하고, 기능이 필요한 화면은 이 HTML을 개발 시안으로 전달하면 됩니다. 이때 📌 주석으로 동작 스펙을, 📝 텍스트 모드로 화면 규칙 문구를 함께 담아 보내면 별도 기획서 없이도 전달력이 높아집니다.</p>
 

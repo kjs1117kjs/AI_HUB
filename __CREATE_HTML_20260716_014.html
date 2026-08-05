@@ -1075,7 +1075,7 @@ const defExcelBtns  = () => [{label:'현재화면 엑셀다운로드',primary:fa
 const TONES = [['blue','파랑'],['soft','연파랑'],['gray','회색'],['white','흰색']];
 const btnTone = (b,def) => b.tone || (b.primary ? 'blue' : (/엑셀/.test(b.label||'') ? 'soft' : (def||'white')));
 const state = {
-  title:'화면 제목을 입력하세요', desc:'', extShown:false, queried:true,
+  titleByTop:{0:'화면 제목을 입력하세요'}, desc:'', extShown:false, queried:true,
   conditions:[], popups:[], infoPopups:[],
   searchBtns: defSearchBtns(), excelBtns: defExcelBtns(),
   tabsByTop:{}, activeTabByTop:{}, charts:[], toolbar:null, searchOn:true,
@@ -1098,6 +1098,15 @@ Object.defineProperty(state,'activeTab',{
   get(){ return state.activeTabByTop[topKey()]||0; },
   set(v){ state.activeTabByTop[topKey()]=v||0; }
 });
+/* ===== 화면 제목을 맨위 탭별로 독립 저장 =====
+   state.title 도 getter/setter — 현재 활성 맨위 탭의 제목을 가리킨다.
+   맨위 탭이 없으면 key 0 사용. 기존 코드(state.title 참조)는 그대로 동작하되 자동으로 탭별 스코프가 된다. */
+Object.defineProperty(state,'title',{
+  get(){ const k=topKey(); if(state.titleByTop[k]==null) state.titleByTop[k]='화면 제목을 입력하세요'; return state.titleByTop[k]; },
+  set(v){ state.titleByTop[topKey()]=v; }
+});
+/* 파일명·화면정의서 제목 등 화면 전체를 대표하는 제목 = 첫 번째 맨위 탭의 제목 (탭 없으면 그냥 제목) */
+function repTitle(){ return state.titleByTop[0]!=null ? state.titleByTop[0] : state.title; }
 /* 패널 p가 속한 맨위 탭의 결과 탭 목록 (topTab=null 공통 패널은 현재 맨위 탭 기준) */
 const tabsFor = p => state.tabsByTop[(state.topTabs&&state.topTabs.length)?(p&&p.topTab!=null?p.topTab:state.activeTopTab):0]||[];
 /* 다중 화면 관리 : 현재 화면은 state에, 나머지는 screens[i].data에 보관 */
@@ -2221,7 +2230,7 @@ function syncBuilder(){
 function renderScreenSel(){
   const sel=$('screenSel'); if(!sel) return;
   sel.innerHTML=screens.map((s,i)=>{
-    const t=i===curScreen?(state.title||'화면'):((s.data&&s.data.title)||'화면');
+    const t=i===curScreen?(repTitle()||'화면'):((s.data&&s.data.title)||'화면');
     const sid=i===curScreen?(state.meta&&state.meta.sid):(s.data&&s.data.meta&&s.data.meta.sid);
     return `<option value="${i}">${i+1}. ${esc(t)}${sid?' ['+esc(sid)+']':''}</option>`;
   }).join('');
@@ -2304,6 +2313,7 @@ document.addEventListener('click', e=>{
   const ttab=e.target.closest('[data-toptab]');
   if(ttab){
     state.activeTopTab=+ttab.dataset.toptab;
+    $('titleInput').value=state.title;   /* 맨위 탭별 화면 제목 동기화 */
     const cur=curP();
     if(!cur||!topTabOK(cur.topTab)){
       const first=state.panels.find(p=>topTabOK(p.topTab)&&(!state.tabs.length||(p.tab||0)===state.activeTab));
@@ -2992,6 +3002,14 @@ $('applyTopTabs').onclick=()=>{
   if(state.topTabs.length){
     Object.keys(state.tabsByTop).forEach(k=>{ if(+k>=state.topTabs.length){ delete state.tabsByTop[k]; delete state.activeTabByTop[k]; } });
   }
+  /* 화면 제목도 맨위 탭별 분리 — 삭제된 탭의 제목 정리. 탭 해제 시 첫 번째 탭 제목만 유지 */
+  if(state.topTabs.length){
+    Object.keys(state.titleByTop).forEach(k=>{ if(+k>=state.topTabs.length) delete state.titleByTop[k]; });
+  }else{
+    const t0=state.titleByTop[0];
+    state.titleByTop={0:(t0!=null?t0:'화면 제목을 입력하세요')};
+  }
+  $('titleInput').value=state.title;
   state.panels.forEach(p=>{ const tl=tabsFor(p); if(tl.length&&(p.tab||0)>=tl.length) p.tab=0; });
   render();
 };
@@ -3012,7 +3030,7 @@ $('clearAll').onclick=()=>{
   state.conditions=[];state.popups=[];state.infoPopups=[];state.tabsByTop={};state.activeTabByTop={};state.charts=[];state.toolbar=null;state.searchOn=true;
   state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
   state.cols=[{flex:1}];state.panels=[newPanel('조회결과',0)];state.curPanel=state.panels[0].id;
-  state.desc='';state.title='화면 제목을 입력하세요';state.queried=true;lastFilters=[];
+  state.desc='';state.titleByTop={0:'화면 제목을 입력하세요'};state.queried=true;lastFilters=[];
   state.meta={sid:'',author:'',ver:''};state.annots=[];state.texts=[];state.topTabs=[];state.activeTopTab=0;state.rules=[];closeAnnotEditor();closeTextEditor();
   $('descArea').value='';$('titleInput').value=state.title;render();
 };
@@ -3159,7 +3177,7 @@ function findByIdIn(arr,id){return (arr||[]).find(x=>x.id===id);}
 $('saveCfg').onclick=()=>{
   syncCurScreen();
   const data=JSON.stringify({project:true,ver:2,cur:curScreen,screens:screens.map(s=>({data:s.data}))},null,2);
-  const first=(screens[0].data&&screens[0].data.title)||state.title||'화면구성';
+  const first=(screens[0].data&&screens[0].data.title)||repTitle()||'화면구성';
   const nm=screens.length>1?first+' 외 '+(screens.length-1)+'건':first;
   const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nm+'.json';a.click();
 };
@@ -3182,7 +3200,7 @@ $('loadFile').onchange=e=>{
 /* ================= 실행취소 / 다시실행 (Undo/Redo) ================= */
 const hist={stack:[],pos:-1,lock:false,timer:null,MAX:80};
 function snapState(){
-  return JSON.stringify({title:state.title,desc:state.desc,conditions:state.conditions,popups:state.popups,infoPopups:state.infoPopups,
+  return JSON.stringify({title:repTitle(),titleByTop:state.titleByTop,desc:state.desc,conditions:state.conditions,popups:state.popups,infoPopups:state.infoPopups,
     searchBtns:state.searchBtns,excelBtns:state.excelBtns,tabsByTop:state.tabsByTop,activeTabByTop:state.activeTabByTop,charts:state.charts,toolbar:state.toolbar,
     searchOn:state.searchOn,cols:state.cols,panels:state.panels,curPanel:state.curPanel,queried:state.queried,extShown:state.extShown,
     meta:state.meta,annots:state.annots,texts:state.texts,topTabs:state.topTabs,activeTopTab:state.activeTopTab,rules:state.rules,specSec:state.specSec});
@@ -3202,7 +3220,7 @@ function updateHistBtns(){ $('undoBtn').disabled=hist.pos<=0; $('redoBtn').disab
 function applySnap(s){
   const o=JSON.parse(s);
   hist.lock=true;
-  state.title=o.title||'';state.desc=o.desc||'';state.conditions=o.conditions||[];state.popups=o.popups||[];state.infoPopups=o.infoPopups||[];
+  state.desc=o.desc||'';state.conditions=o.conditions||[];state.popups=o.popups||[];state.infoPopups=o.infoPopups||[];
   state.searchBtns=o.searchBtns||defSearchBtns();state.excelBtns=o.excelBtns||defExcelBtns();
   /* 결과 탭: 맨위 탭별 저장(tabsByTop). 구버전 전역 tabs 는 모든 맨위 탭에 복사해 마이그레이션 */
   if(o.tabsByTop){ state.tabsByTop=o.tabsByTop; state.activeTabByTop=o.activeTabByTop||{}; }
@@ -3220,6 +3238,13 @@ function applySnap(s){
   state.queried=o.queried!==false;state.extShown=!!o.extShown;lastFilters=[];
   state.meta=o.meta||{sid:'',author:'',ver:''};state.annots=o.annots||[];state.texts=o.texts||[];state.topTabs=o.topTabs||[];state.activeTopTab=o.activeTopTab||0;state.rules=o.rules||[];
   if(state.activeTopTab>=state.topTabs.length) state.activeTopTab=0;
+  /* 화면 제목: 맨위 탭별 저장(titleByTop). 구버전 전역 title 은 모든 맨위 탭에 복사해 마이그레이션 */
+  if(o.titleByTop){ state.titleByTop=o.titleByTop; }
+  else{
+    state.titleByTop={};
+    const tt=(state.topTabs&&state.topTabs.length)?state.topTabs.length:1;
+    for(let i=0;i<tt;i++) state.titleByTop[i]=o.title||'';
+  }
   $('titleInput').value=state.title;$('descArea').value=state.desc;
   render();
   hist.lock=false;
@@ -3251,7 +3276,7 @@ function captureScreen(){ return JSON.parse(snapState()); }
 function syncCurScreen(){ if(screens[curScreen]) screens[curScreen].data=captureScreen(); }
 function freshScreenData(){
   const p=newPanel('조회결과',0);
-  return {title:'화면 제목을 입력하세요',desc:'',conditions:[],popups:[],infoPopups:[],
+  return {title:'화면 제목을 입력하세요',titleByTop:{0:'화면 제목을 입력하세요'},desc:'',conditions:[],popups:[],infoPopups:[],
     searchBtns:defSearchBtns(),excelBtns:defExcelBtns(),tabsByTop:{},activeTabByTop:{},charts:[],toolbar:null,searchOn:true,
     cols:[{flex:1}],panels:[p],curPanel:p.id,queried:true,extShown:false,
     meta:{sid:'',author:'',ver:''},annots:[],texts:[],topTabs:[],activeTopTab:0,rules:[]};
@@ -3275,6 +3300,7 @@ $('scrDup').onclick=()=>{
   syncCurScreen(); closeAnnotEditor(); closeTextEditor();
   const cp=captureScreen();
   cp.title=(cp.title||'화면')+' 복사';
+  if(cp.titleByTop&&cp.titleByTop[0]!=null) cp.titleByTop[0]=cp.titleByTop[0]+' 복사';
   screens.splice(curScreen+1,0,{data:cp});
   curScreen=curScreen+1;
   applySnap(JSON.stringify(cp));
@@ -3282,7 +3308,7 @@ $('scrDup').onclick=()=>{
 };
 $('scrDel').onclick=()=>{
   if(screens.length<=1){alert('최소 1개의 화면은 필요합니다.');return;}
-  if(!confirm(`화면 "${state.title||'(제목없음)'}"을(를) 삭제할까요?`))return;
+  if(!confirm(`화면 "${repTitle()||'(제목없음)'}"을(를) 삭제할까요?`))return;
   closeAnnotEditor(); closeTextEditor();
   screens.splice(curScreen,1);
   if(curScreen>=screens.length) curScreen=screens.length-1;
@@ -3557,10 +3583,10 @@ function buildScreenExport(){
     if(state.topTabs.length>1){
       const savedTop=state.activeTopTab, tpanes=[];
       for(let ti=0; ti<state.topTabs.length; ti++){
-        state.activeTopTab=ti; renderConditions(); renderResult(); renderCharts();
+        state.activeTopTab=ti; $('titleInput').value=state.title; renderConditions(); renderResult(); renderCharts();
         tpanes.push(`<div class="toppane" data-toppane="${ti}" style="${ti===savedTop?'':'display:none;'}">${captureBody()}</div>`);
       }
-      state.activeTopTab=savedTop; renderConditions(); renderResult(); renderCharts();
+      state.activeTopTab=savedTop; $('titleInput').value=state.title; renderConditions(); renderResult(); renderCharts();
       bodyHtml=tpanes.join('');
     }else{
       bodyHtml=captureBody();
@@ -4097,13 +4123,13 @@ document.addEventListener('click',function(e){
       const c=el.cloneNode(true); c.classList.remove('open'); c.removeAttribute('style');
       return c.outerHTML;
     }).join('');
-  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(state.title||'조회화면')}</title>`+
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(repTitle()||'조회화면')}</title>`+
     `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">`+
     `<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>`+
     `${head}${extra}</head>`+
     `<body class="preview export">${bodyInner}${exportScript}</body></html>`;
   state.extShown=prevExt; if(wasEdit)document.body.classList.remove('preview'); render();
-  return {html, head, extra, exportScript, bodyInner, fileBase:((m.sid?m.sid+'_':'')+(state.title||'조회화면'))};
+  return {html, head, extra, exportScript, bodyInner, fileBase:((m.sid?m.sid+'_':'')+(repTitle()||'조회화면'))};
 }
 $('exportHtml').onclick=()=>{ const r=buildScreenExport(); dlHtml(r.html, r.fileBase+'.html'); };
 
@@ -4324,15 +4350,15 @@ function buildSpecExport(){
   if(!bodyHtml.trim()) bodyHtml='<p class="mut">출력할 항목이 선택되지 않았습니다. 「⚙ 정의서 범위」에서 항목을 선택하세요.</p>';
   const scopeBit=state.specSec?' · 출력범위 '+specScopeLabel():'';
   const inner=`<div class="doc">
-<h1>${esc(state.title||'조회화면')}</h1>
+<h1>${esc(repTitle()||'조회화면')}</h1>
 <div class="meta">화면정의서${metaBits2.length?' · '+metaBits2.join(' · '):''} · 작성일 ${specDateStr()} · 조회조건 ${state.conditions.length}건 · 패널 ${state.panels.length}개${scopeBit}</div>
 ${bodyHtml}
 </div>`;
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(state.title||'조회화면')} — 화면정의서</title>
+<title>${esc(repTitle()||'조회화면')} — 화면정의서</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>html,body{margin:0;padding:0;background:#fff;}${SPEC_CSS}</style></head><body><div class="specdoc">${inner}</div></body></html>`;
-  return {html, inner, fileBase:((mm.sid?mm.sid+'_':'')+(state.title||'조회화면'))};
+  return {html, inner, fileBase:((mm.sid?mm.sid+'_':'')+(repTitle()||'조회화면'))};
 }
 $('exportSpec').onclick=()=>{ const r=buildSpecExport(); dlHtml(r.html, r.fileBase+'_화면정의서.html'); };
 
@@ -4388,7 +4414,7 @@ body.combo .specdoc .doc{background:#fff;border:1px solid #e3e8ef;border-radius:
 $('exportBoth').onclick=()=>{
   const scr=buildScreenExport();
   const spc=buildSpecExport();
-  const ttl=esc(state.title||'조회화면');
+  const ttl=esc(repTitle()||'조회화면');
   const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${ttl} — 화면 + 화면정의서</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -4429,7 +4455,7 @@ function FF(label,o){o=o||{};return{id:'f'+(seq++),label,ftype:o.t||'text',requi
 function ST(label,value,o){o=o||{};return{id:'s'+(seq++),label,value,sub:o.sub||'',tone:o.tone||''};}
 function CD(type,label,o){o=o||{};return{id:'c'+(seq++),type,label,range:!!o.range,ext:!!o.ext,required:!!o.req,options:o.opts||[],popupId:o.popupId||null,btns:(o.btns||[]).map(b=>typeof b==='string'?parseCondBtn(b):b)};}
 function applyPreset(fn){state.infoPopups=[];state.searchBtns=defSearchBtns();state.excelBtns=defExcelBtns();
-  state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};state.charts=[];fn();
+  state.topTabs=[];state.activeTopTab=0;state.tabsByTop={};state.activeTabByTop={};state.titleByTop={};state.charts=[];fn();
   /* 확장조건이 있는 프리셋은 확장조회 버튼을 자동으로 앞에 둔다 */
   if(state.conditions.some(c=>c.ext)&&!hasExtBtn()) state.searchBtns.unshift({label:'확장조회',primary:true,tone:'blue'});
   state.extShown=false;state.queried=true;lastFilters=[];state.activeTab=0;state.curPanel=state.panels[0].id;$('titleInput').value=state.title;$('descArea').value=state.desc;render();closeModal();}

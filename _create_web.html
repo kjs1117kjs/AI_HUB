@@ -122,6 +122,27 @@
   .move-btns{display:flex; gap:6px; margin-top:7px;}
   .move-btns .tbtn{flex:1; padding:6px 0; font-size:11.5px;}
 
+  /* ---------- 텍스트로 구성 (자연어 생성) ---------- */
+  .gen-body{flex:1; min-height:0; display:grid; grid-template-columns:1fr 340px; gap:14px;}
+  .gen-panel{background:var(--ed-panel); border:1px solid var(--ed-line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; min-height:0;}
+  .gen-panel h3{color:var(--ed-ink); font-size:12.5px; font-weight:800;}
+  .gen-panel .hint{color:var(--ed-ink-3); font-size:11.5px; line-height:1.6;}
+  #gen-text{flex:1; min-height:180px; resize:none; background:var(--ed-panel-2); border:1px solid var(--ed-line); border-radius:8px; color:var(--ed-ink); font-family:var(--font); font-size:13px; line-height:1.7; padding:12px; outline:none;}
+  #gen-text:focus{border-color:var(--ed-blue);}
+  .gen-ex-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .gen-ex{background:var(--ed-panel-2); border:1px solid var(--ed-line); border-radius:20px; color:var(--ed-ink-2); font-size:11.5px; padding:5px 11px; cursor:pointer;}
+  .gen-ex:hover{color:var(--ed-ink); border-color:var(--ed-blue);}
+  #gen-plan{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px;}
+  .gen-plan-item{display:flex; align-items:center; gap:9px; background:var(--ed-panel-2); border:1px solid var(--ed-line); border-radius:8px; padding:9px 11px;}
+  .gen-plan-item .gi{font-size:14px; flex-shrink:0;}
+  .gen-plan-item .gn{color:var(--ed-ink); font-size:12.5px; font-weight:700;}
+  .gen-plan-item .gd{color:var(--ed-ink-3); font-size:11px; margin-top:1px;}
+  .gen-plan-item .gcond{margin-left:auto; flex-shrink:0; font-size:10.5px; color:var(--ed-blue); border:1px solid var(--ed-blue); border-radius:10px; padding:2px 8px;}
+  .gen-empty{color:var(--ed-ink-3); font-size:12px; text-align:center; padding:30px 0;}
+  .gen-apply{background:var(--ed-blue); border:none; border-radius:8px; color:#fff; font-family:var(--font); font-size:13px; font-weight:800; padding:11px; cursor:pointer;}
+  .gen-apply:disabled{opacity:0.4; cursor:default;}
+  .gen-apply:not(:disabled):hover{filter:brightness(1.1);}
+
   /* ===================== 프리뷰 스타일 (내보내기 CSS와 동일 소스, JS가 .pv 접두어로 주입) ===================== */
   .pv{background:#F6F7F9; border-radius:14px; padding:26px 22px 34px; min-height:200px;}
 
@@ -301,6 +322,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <button class="tbtn" onclick="openGen()" title="문장으로 화면 흐름을 설명하면 자동으로 화면을 만듭니다">✨ 텍스트로 구성</button>
       <button class="tbtn" onclick="openHelp()" title="사용설명서 · 생성 가이드">? 도움말</button>
       <button class="tbtn" onclick="openFlowMap()">⛓ 플로우 맵</button>
       <button class="tbtn" onclick="openPreview()">▶ 미리보기</button>
@@ -373,6 +395,40 @@
 </div>
 
 <input type="file" id="file-input" accept=".json" style="display:none">
+
+<div class="preview-overlay" id="gen-overlay">
+  <div class="preview-bar">
+    <div class="preview-titlebox">
+      <span class="preview-dot" style="background:var(--ed-blue);"></span>
+      <span class="ptitle">텍스트로 구성</span>
+      <span class="phint">화면 흐름을 문장으로 설명하면 자동으로 화면·분기를 만듭니다 — 생성 후 Ctrl+Z로 되돌릴 수 있습니다</span>
+    </div>
+    <div class="preview-actions">
+      <button class="tbtn" onclick="closeGen()">닫기 (Esc)</button>
+    </div>
+  </div>
+  <div class="gen-body">
+    <div class="gen-panel">
+      <h3>흐름 설명</h3>
+      <textarea id="gen-text" placeholder="예) 로그인 화면. 로그인 성공하면 대시보드, 실패하면 실패 화면&#10;&#10;줄바꿈 · 화살표(→) · 마침표로 화면을 이어서 쓰세요.&#10;'성공하면/실패하면 ○○' 처럼 쓰면 시나리오 분기를 자동으로 만듭니다." oninput="genPreview()"></textarea>
+      <div class="hint">인식 키워드: 로그인 · 대시보드 · 목록 · 상세 · 약관/동의 · 회원가입/입력 폼 · 결제 · 본인인증/OTP · 완료 · 실패/오류 &nbsp;|&nbsp; 분기: 성공/실패/승인/반려/취소 + 하면·되면·시 &nbsp;|&nbsp; 콘텐츠 프리셋: SMS · 가입 · 비밀번호 · 탈퇴 · 결제 · 승인</div>
+      <div class="gen-ex-row">
+        <select class="example-select" id="gen-example-select" onchange="if(this.value!==''){genExample(Number(this.value)); this.value='';}">
+          <option value="">자연어 입력 예시 불러오기…</option>
+        </select>
+      </div>
+    </div>
+    <div class="gen-panel">
+      <h3>만들어질 화면</h3>
+      <div id="gen-plan"><div class="gen-empty">왼쪽에 흐름을 입력하세요</div></div>
+      <label class="hint" style="display:flex; align-items:center; gap:7px; cursor:pointer;">
+        <input type="checkbox" id="gen-keep" style="accent-color:var(--ed-blue);">
+        기존 화면 유지하고 뒤에 추가 (해제 시 새 문서로 교체)
+      </label>
+      <button class="gen-apply" id="gen-apply" disabled onclick="applyGen()">화면 생성</button>
+    </div>
+  </div>
+</div>
 
 <div class="preview-overlay" id="help-overlay">
   <div class="preview-bar">
@@ -4071,6 +4127,7 @@ document.addEventListener('keydown', e => {
     if (document.getElementById('preview-overlay').classList.contains('open')) closePreview();
     if (document.getElementById('flow-overlay').classList.contains('open')) closeFlowMap();
     if (document.getElementById('help-overlay').classList.contains('open')) closeHelp();
+    if (document.getElementById('gen-overlay').classList.contains('open')) closeGen();
   }
 });
 
@@ -9242,6 +9299,435 @@ function seed(){
 }
 /* ---------- 도움말 (내장 사용설명서) ---------- */
 const MANUAL_HTML = "<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>화면구성기 사용설명서</title>\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css\" />\n<style>\n*{box-sizing:border-box; margin:0; padding:0;}\nbody{font-family:\"Pretendard\",sans-serif; background:#F4F5F7; color:#3C4049; font-size:14px; line-height:1.7; -webkit-font-smoothing:antialiased; word-break:keep-all; padding:48px 24px 100px;}\n.wrap{max-width:820px; margin:0 auto;}\nh1{font-size:26px; font-weight:800; color:#171A21; letter-spacing:-0.01em;}\n.sub{margin-top:8px; color:#8A8F98; font-size:13px;}\nh2{font-size:19px; font-weight:800; color:#171A21; margin:52px 0 14px; padding-top:24px; border-top:2px solid #171A21;}\nh3{font-size:15px; font-weight:800; color:#171A21; margin:28px 0 10px;}\nh4{font-size:13.5px; font-weight:800; color:#4A4E57; margin:20px 0 8px;}\np{margin:8px 0;}\n.card{background:#fff; border:1px solid #E3E5EA; border-radius:12px; padding:18px 22px; margin:14px 0;}\n.toc{background:#fff; border:1px solid #E3E5EA; border-radius:12px; padding:18px 22px; margin:26px 0;}\n.toc a{display:block; color:#1B5EE3; text-decoration:none; font-weight:600; font-size:13px; padding:3px 0;}\n.toc a:hover{text-decoration:underline;}\n.toc .toc-sub{padding-left:16px; font-weight:500; color:#4A6FB8;}\ntable{width:100%; border-collapse:collapse; font-size:13px; margin:10px 0;}\nth{text-align:left; padding:9px 12px; background:#F4F5F7; color:#6B7078; font-weight:700; font-size:12px; border-bottom:1px solid #E3E5EA;}\ntd{padding:9px 12px; border-bottom:1px solid #F0F1F4; vertical-align:top;}\ncode{background:#EFF0F3; border-radius:5px; padding:1px 7px; font-size:12.5px; color:#B03530; font-family:ui-monospace,Consolas,monospace;}\npre{background:#171A21; color:#E8ECF3; border-radius:10px; padding:14px 18px; font-size:12.5px; line-height:1.8; overflow-x:auto; font-family:ui-monospace,Consolas,monospace; margin:10px 0;}\npre code{background:none; color:inherit; padding:0;}\nkbd{background:#fff; border:1px solid #C7CAD1; border-bottom-width:2px; border-radius:5px; padding:1px 7px; font-size:12px; font-weight:700; color:#4A4E57; font-family:inherit;}\n.tip{background:#E8F0FE; border-radius:10px; padding:12px 16px; margin:12px 0; font-size:13px; color:#174a9c;}\n.warn{background:#FDF3E1; border-radius:10px; padding:12px 16px; margin:12px 0; font-size:13px; color:#8a5a10;}\n.step{display:flex; gap:14px; margin:16px 0; align-items:flex-start;}\n.step-n{flex-shrink:0; width:28px; height:28px; border-radius:50%; background:#171A21; color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:2px;}\n.step-body{flex:1; min-width:0;}\n.step-body b{color:#171A21;}\n.badge{display:inline-block; font-size:11px; font-weight:700; background:#E8F0FE; color:#1B5EE3; border-radius:100px; padding:2px 9px; margin-right:4px;}\n.chip{display:inline-block; font-size:11.5px; font-weight:700; background:#fff; border:1px solid #C7CAD1; border-radius:6px; padding:2px 8px; color:#4A4E57;}\nul{padding-left:20px; margin:8px 0;}\nli{margin:4px 0;}\n.divider{margin:44px 0 0; border:none; border-top:1px dashed #C7CAD1;}\n.fig{background:#fff; border:1px solid #E3E5EA; border-radius:12px; padding:16px; margin:14px 0; text-align:center;}\n.fig svg{max-width:100%; height:auto;}\n.fig-cap{margin-top:8px; font-size:12px; color:#8A8F98;}\n.io{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0;}\n.io > div{background:#fff; border:1px solid #E3E5EA; border-radius:10px; padding:12px 14px;}\n.io h5{font-size:11.5px; font-weight:800; color:#8A8F98; margin-bottom:8px;}\n.io pre{margin:0;}\n.io .out{font-size:12.5px; line-height:1.8;}\n.dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px;}\n@media(max-width:640px){ .io{grid-template-columns:1fr;} }\n@media print{ body{background:#fff; padding:12px;} h2{break-before:page;} h2:first-of-type{break-before:auto;} }\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n\n<h1>화면구성기 사용설명서</h1>\n<div class=\"sub\">_create_web.html · 컴포넌트 32종 · 패턴 4종 · 예시 30종 · 2026.08 기준</div>\n\n<div class=\"toc\">\n  <a href=\"#s1\">1. 화면구성기란</a>\n  <a href=\"#s2\">2. 화면 구성 한눈에 보기</a>\n  <a href=\"#s3\">3. 기본 사용법 — 화면·블록·속성</a>\n  <a href=\"#s4\">4. 흐름 만들기 — 버튼·모달·시나리오·탭</a>\n  <a href=\"#s5\">5. 문서 도구 — 변수·테마·필터</a>\n  <a href=\"#s6\">6. 특수 문법 모음표</a>\n  <a href=\"#s7\">7. 검증 — 플로우 맵과 무결성 검사</a>\n  <a href=\"#s8\">8. 내보내기 6종</a>\n  <a href=\"#s9\">9. 컴포넌트 카탈로그 (32종 + 패턴 4종)</a>\n  <a href=\"#g1\">가이드 A. SMS 사용 등록 3화면 — 처음부터 따라 만들기</a>\n  <a href=\"#g2\">가이드 B. 운영 대시보드 — 탭·사이드바·연동 테이블</a>\n  <a href=\"#g3\">가이드 C. 요금제 변경 — 테마·하단 바·결제 분기</a>\n  <a href=\"#g4\">가이드 D. 매장 예약 — 마감 상태·필수/선택 동의 (㉝)</a>\n  <a href=\"#g5\">가이드 E. 2단계 인증 활성화 — QR·코드 검증 분기 (㉟)</a>\n  <a href=\"#g6\">가이드 F. 장애 접수 헬프데스크 — 3화면 순환 (㊳)</a>\n  <a href=\"#g7\">가이드 G. 매출 리포트 — 커스텀 차트·PDF 요청 (㊴)</a>\n  <a href=\"#g8\">가이드 H. 등급 심사 — 승인/반려 이중 모달 (㊵)</a>\n  <a href=\"#g9\">가이드 I. 세션 만료 재인증 — OTP 모달 왕복 (⑩)</a>\n  <a href=\"#g10\">가이드 J. 파일 보관함 — 시나리오 3상태 전환 (⑰)</a>\n  <a href=\"#g11\">가이드 K. 멤버 초대 — 토글 권한·모달→토스트→이동 (⑱)</a>\n  <a href=\"#g12\">가이드 L. 재고 입고 — 입력 필드 모달 (㉑)</a>\n  <a href=\"#g13\">가이드 M. 서비스 점검 — 조건부 진입 팝업·화면 전환 (㉗)</a>\n</div>\n\n<!-- ============================================================ -->\n<h2 id=\"s1\">1. 화면구성기란</h2>\n<p>기획·검토용 <b>화면 목업을 조립하는 단일 HTML 도구</b>입니다. 브라우저에서 파일을 열면 바로 동작하며, 설치·서버·인터넷이 필요 없습니다(폰트만 온라인에서 조금 더 예쁘게 로드됩니다).</p>\n<div class=\"card\">\n  <b>만들 수 있는 것</b>\n  <ul>\n    <li>클릭 가능한 <b>인터랙티브 목업 HTML</b> — 화면 이동, 모달, 인증 분기, 동의 게이트가 실제로 동작</li>\n    <li><b>화면정의서</b> — 화면 그림 + ①번호 마커 + 요소별 설명 표</li>\n    <li><b>화면 명세서 · 전체 나열 보드 · 화면별 PNG</b> — 기획서 첨부용 문서들</li>\n  </ul>\n</div>\n<div class=\"tip\">💡 처음이라면 상단 <b>예시 불러오기…</b>에서 아무 예시나 열고, <b>▶ 미리보기</b>를 눌러 결과부터 보세요. 그다음 캔버스의 블록을 클릭해 속성이 어떻게 연결되는지 보면 절반은 배운 겁니다.</div>\n\n<!-- ============================================================ -->\n<h2 id=\"s2\">2. 화면 구성 한눈에 보기</h2>\n<div class=\"fig\">\n<svg viewBox=\"0 0 760 300\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Pretendard,sans-serif\">\n  <rect x=\"8\" y=\"8\" width=\"744\" height=\"40\" rx=\"8\" fill=\"#171A21\"/>\n  <text x=\"24\" y=\"33\" fill=\"#fff\" font-size=\"13\" font-weight=\"700\">① 상단바</text>\n  <text x=\"120\" y=\"33\" fill=\"#9AA0AB\" font-size=\"11.5\">제목 · 예시 불러오기 · PC/모바일 · 도움말 · 플로우 맵 · 미리보기 · 불러오기 · 내보내기 ▾ · HTML 내보내기</text>\n  <rect x=\"8\" y=\"56\" width=\"150\" height=\"236\" rx=\"8\" fill=\"#fff\" stroke=\"#E3E5EA\"/>\n  <text x=\"20\" y=\"80\" fill=\"#171A21\" font-size=\"12.5\" font-weight=\"800\">② 좌측 패널</text>\n  <text x=\"20\" y=\"103\" fill=\"#4A4E57\" font-size=\"11\">화면 목록 (+템플릿)</text>\n  <text x=\"20\" y=\"123\" fill=\"#4A4E57\" font-size=\"11\">시나리오</text>\n  <text x=\"20\" y=\"143\" fill=\"#4A4E57\" font-size=\"11\">변수</text>\n  <text x=\"20\" y=\"163\" fill=\"#4A4E57\" font-size=\"11\">테마</text>\n  <rect x=\"166\" y=\"56\" width=\"420\" height=\"236\" rx=\"8\" fill=\"#F0F2F5\" stroke=\"#E3E5EA\"/>\n  <text x=\"182\" y=\"80\" fill=\"#171A21\" font-size=\"12.5\" font-weight=\"800\">③ 캔버스</text>\n  <rect x=\"182\" y=\"92\" width=\"240\" height=\"18\" rx=\"9\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <text x=\"192\" y=\"105\" fill=\"#8A8F98\" font-size=\"9.5\">상태 필터 (탭·시나리오)</text>\n  <rect x=\"212\" y=\"122\" width=\"330\" height=\"150\" rx=\"10\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"228\" y=\"138\" width=\"298\" height=\"26\" rx=\"6\" fill=\"#F4F5F7\"/>\n  <rect x=\"228\" y=\"172\" width=\"298\" height=\"26\" rx=\"6\" fill=\"#E8F0FE\" stroke=\"#1B5EE3\"/>\n  <text x=\"240\" y=\"189\" fill=\"#1B5EE3\" font-size=\"10\" font-weight=\"700\">선택된 블록 (클릭)</text>\n  <rect x=\"228\" y=\"206\" width=\"298\" height=\"26\" rx=\"6\" fill=\"#F4F5F7\"/>\n  <rect x=\"594\" y=\"56\" width=\"158\" height=\"236\" rx=\"8\" fill=\"#fff\" stroke=\"#E3E5EA\"/>\n  <text x=\"606\" y=\"80\" fill=\"#171A21\" font-size=\"12.5\" font-weight=\"800\">④ 우측 패널</text>\n  <text x=\"606\" y=\"103\" fill=\"#4A4E57\" font-size=\"11\">팔레트 (그룹·검색)</text>\n  <rect x=\"606\" y=\"112\" width=\"64\" height=\"34\" rx=\"6\" fill=\"#F4F5F7\"/><rect x=\"678\" y=\"112\" width=\"64\" height=\"34\" rx=\"6\" fill=\"#F4F5F7\"/>\n  <line x1=\"606\" y1=\"162\" x2=\"740\" y2=\"162\" stroke=\"#E3E5EA\"/>\n  <text x=\"606\" y=\"184\" fill=\"#4A4E57\" font-size=\"11\" font-weight=\"700\">인스펙터</text>\n  <text x=\"606\" y=\"203\" fill=\"#8A8F98\" font-size=\"10\">선택한 블록/화면의</text>\n  <text x=\"606\" y=\"219\" fill=\"#8A8F98\" font-size=\"10\">속성을 여기서 편집</text>\n</svg>\n<div class=\"fig-cap\">에디터 4영역 — 캔버스에서 블록을 클릭하면 ④ 인스펙터에 그 블록의 속성이 뜹니다</div>\n</div>\n<table>\n  <tr><th style=\"width:150px;\">영역</th><th>역할</th></tr>\n  <tr><td><b>① 상단바</b></td><td>문서 제목 · 예시 불러오기 · <span class=\"chip\">PC</span><span class=\"chip\">모바일</span> 뷰포트 토글 · <b>? 도움말</b>(이 설명서) · ⛓ 플로우 맵 · ▶ 미리보기 · 불러오기(JSON 복원) · 내보내기 ▾(보드/정의서/명세서/PNG/JSON + 옵션) · <b>HTML 내보내기</b>(주 산출물)</td></tr>\n  <tr><td><b>② 좌측 패널</b></td><td>화면 목록(<kbd>+</kbd> = 템플릿 선택) → 시나리오(스위치 라벨 + 목록) → 변수(<code>이름|값</code>) → 테마(색·라운드·글자)</td></tr>\n  <tr><td><b>③ 캔버스</b></td><td>선택한 화면의 실제 모습. 버튼·모달·토스트에는 <b>연결 칩</b>(→ 이동 대상)이 상시 표시되고 끊어진 참조는 빨간 칩으로 보입니다. <b>블록 클릭=선택 · 드래그=순서</b> · 블록 우상단 호버 툴바(<kbd>↑</kbd><kbd>↓</kbd><kbd>⧉</kbd><kbd>✕</kbd>) · 앱 셸 상단바 클릭=셸 편집 · 캔버스 위 <b>상태 필터</b>로 탭/시나리오별 미리보기</td></tr>\n  <tr><td><b>④ 우측 패널</b></td><td>위: 팔레트 — 맨 위 <b>패턴(블록 세트)</b> 4종 + 6그룹 32종, 그룹 접기, 이름 검색. 클릭하면 선택된 블록 아래(없으면 맨 아래)에 삽입<br>아래: <b>인스펙터</b> — 선택 대상의 속성. 블록 미선택 시엔 화면 속성(레이아웃·셸·진입 동작)</td></tr>\n</table>\n<p><b>기본 리듬</b>: 화면을 만들고 → 팔레트에서 블록을 쌓고 → 인스펙터로 내용을 채우고 → (필요 시 흐름·조건 연결) → 미리보기 확인 → 내보내기.</p>\n\n<!-- ============================================================ -->\n<h2 id=\"s3\">3. 기본 사용법 — 화면·블록·속성</h2>\n\n<h3>3-1. 화면 다루기</h3>\n<h4>추가 — 템플릿 9종</h4>\n<p>화면 목록의 <kbd>+</kbd>를 누르면 템플릿 메뉴가 열립니다. 완성 상태로 생성되니 <b>템플릿에서 시작해 깎는</b> 편이 빈 화면보다 대체로 빠릅니다.</p>\n<table>\n  <tr><th style=\"width:150px;\">템플릿</th><th>생성되는 구성</th></tr>\n  <tr><td>빈 화면</td><td>블록 없음 — 직접 조립</td></tr>\n  <tr><td>관리자 대시보드</td><td>앱 셸+사이드바 · 통계 · 검색 · 테이블 · 페이지네이션</td></tr>\n  <tr><td>목록 관리</td><td>앱 셸 · 검색 · 상태 배지 리스트 · 페이지네이션</td></tr>\n  <tr><td>단계 폼</td><td>페이지 헤드 · 스테퍼 · 폼 그룹 · 다음 버튼</td></tr>\n  <tr><td>약관 동의</td><td>동의 카드(상세 펼침) · 동의 게이트 버튼</td></tr>\n  <tr><td>결제 확인</td><td>주문·결제수단 정보 카드 · 하단 고정 결제 바</td></tr>\n  <tr><td>로그인</td><td>중앙 로그인 카드 · 하단 링크</td></tr>\n  <tr><td>상세 (탭)</td><td>앱 셸(브레드크럼) · 탭 — 기본 정보 / 처리 이력</td></tr>\n  <tr><td>완료</td><td>완료 카드 · 결과 정보 · 이동 버튼(첫 화면 자동 연결)</td></tr>\n</table>\n<h4>항목 조작</h4>\n<ul>\n  <li>화면 항목에 마우스를 올리면 <b>✎ 이름 변경 · ⧉ 복제 · ✕ 삭제</b> 버튼이 나타납니다. 복제는 화면 안 모달·토스트 <b>연결까지 새 사본으로</b> 이어줍니다</li>\n  <li>항목을 잡고 드래그하면 순서 변경(파란 선 = 삽입 위치). 화면 순서는 [다음/이전] 이동의 기준이므로 흐름 순서대로 정렬해 두세요</li>\n</ul>\n<h4>레이아웃 3종과 화면 속성</h4>\n<div class=\"fig\">\n<svg viewBox=\"0 0 760 190\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Pretendard,sans-serif\">\n  <rect x=\"10\" y=\"10\" width=\"230\" height=\"150\" rx=\"10\" fill=\"#F0F2F5\" stroke=\"#E3E5EA\"/>\n  <rect x=\"40\" y=\"30\" width=\"170\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"40\" y=\"64\" width=\"170\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"40\" y=\"98\" width=\"170\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <text x=\"125\" y=\"150\" text-anchor=\"middle\" fill=\"#4A4E57\" font-size=\"11.5\" font-weight=\"700\">일반 (카드 스택)</text>\n  <rect x=\"265\" y=\"10\" width=\"230\" height=\"150\" rx=\"10\" fill=\"#F0F2F5\" stroke=\"#E3E5EA\"/>\n  <rect x=\"320\" y=\"35\" width=\"120\" height=\"80\" rx=\"8\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"334\" y=\"49\" width=\"92\" height=\"10\" rx=\"3\" fill=\"#F4F5F7\"/>\n  <rect x=\"334\" y=\"65\" width=\"92\" height=\"10\" rx=\"3\" fill=\"#F4F5F7\"/>\n  <rect x=\"334\" y=\"85\" width=\"92\" height=\"14\" rx=\"4\" fill=\"#1B5EE3\"/>\n  <text x=\"380\" y=\"150\" text-anchor=\"middle\" fill=\"#4A4E57\" font-size=\"11.5\" font-weight=\"700\">로그인 (중앙 카드)</text>\n  <rect x=\"520\" y=\"10\" width=\"230\" height=\"150\" rx=\"10\" fill=\"#F0F2F5\" stroke=\"#E3E5EA\"/>\n  <rect x=\"530\" y=\"20\" width=\"210\" height=\"20\" rx=\"5\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"530\" y=\"46\" width=\"56\" height=\"104\" rx=\"5\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"594\" y=\"46\" width=\"146\" height=\"46\" rx=\"5\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"594\" y=\"100\" width=\"146\" height=\"50\" rx=\"5\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <text x=\"635\" y=\"150\" text-anchor=\"middle\" fill=\"#4A4E57\" font-size=\"11.5\" font-weight=\"700\">앱 셸 (상단바+사이드)</text>\n</svg>\n<div class=\"fig-cap\">화면 속성(캔버스 빈 곳 클릭)에서 레이아웃 선택 — 앱 셸은 상단바를 클릭해도 바로 편집할 수 있습니다</div>\n</div>\n<ul>\n  <li><b>일반</b>: 블록이 세로로 쌓이는 기본형 — 폼·안내·완료 화면</li>\n  <li><b>로그인</b>: 중앙 420px 카드 — 로그인 폼·OTP 블록·로그인 푸터와 세트</li>\n  <li><b>앱 셸</b>: 상단바(로고형 또는 브레드크럼형) + 사이드 메뉴 + 본문 — 관리자·백오피스 화면. 사이드 메뉴는 한 줄에 하나, <code>#제목</code>=구분 헤더, <code>*항목</code>=현재 활성</li>\n  <li><b>진입 동작</b>: 화면이 열릴 때 모달 자동 열기(+시나리오 조건) — 4-6절 참고</li>\n</ul>\n\n<h3>3-2. 블록 다루기</h3>\n<ul>\n  <li><b>추가</b>: 팔레트 클릭 → <b>선택된 블록 바로 아래</b>에 삽입됩니다(선택이 없으면 맨 아래). 위에서부터 순서대로 클릭만 하면 자리가 잡히고, 필요하면 드래그(또는 <kbd>↑</kbd>)로 조정합니다. 팔레트 맨 위 <b>패턴 (블록 세트)</b> 그룹은 버튼·모달·토스트가 연결 완료된 체인을 한 번에 생성합니다 — 확인/진행/삭제/입력 모달 4종. 그 아래는 기본 / 폼·입력 / 데이터 표시 / 인증·동의 / 오버레이 / 구조 6그룹이고, 상단 검색창으로 패턴·컴포넌트 이름 검색(\"배지\", \"탭\" 등)</li>\n  <li><b>선택/해제</b>: 블록 클릭=선택(파란 테두리), 캔버스 빈 곳 클릭=해제(화면 속성으로 전환)</li>\n  <li><b>블록 툴바</b>: 선택/호버 시 우상단에 <kbd>↑</kbd><kbd>↓</kbd> 순서 · <kbd>⧉</kbd> 복제 · <kbd>✕</kbd> 삭제</li>\n  <li><b>연결 칩</b>: 화면 이동·모달·토스트 연결이 있는 블록에는 대상이 칩으로 상시 표시됩니다 — 파랑=화면 이동, 회색=모달/토스트, <b>빨강=연결 끊김</b>(해당 블록의 참조를 다시 지정하세요)</li>\n  <li><b>다른 화면으로</b>: 화면이 2개 이상이면 인스펙터 맨 아래에 [다른 화면으로] 섹션 — 대상 선택 후 <b>이동</b>(원본 제거) 또는 <b>복사</b>. 모달·토스트처럼 참조로 연결된 블록을 옮기면 연결이 끊길 수 있고, 이 경우 내보내기 전 검사가 알려줍니다</li>\n  <li><b>모달·토스트·OTP 모달</b>은 캔버스에 점선 프레임으로 \"펼쳐진 채\" 표시됩니다 — 편집을 위해서이고, 내보낸 파일에서만 실제로 떠오릅니다</li>\n</ul>\n\n<h3>3-3. 속성 편집</h3>\n<p>인스펙터의 입력은 네 가지 형태입니다:</p>\n<table>\n  <tr><th style=\"width:140px;\">형태</th><th>예</th><th>규칙</th></tr>\n  <tr><td>한 줄 텍스트</td><td>제목, 버튼 문구</td><td>즉시 캔버스 반영</td></tr>\n  <tr><td>여러 줄 텍스트</td><td>설명, 모달 본문</td><td>줄바꿈 유지</td></tr>\n  <tr><td><b>목록형</b></td><td>행 목록, 항목, 단계</td><td><b>한 줄 = 한 항목</b>, <code>|</code> = 열 구분. 특수 문법은 6장</td></tr>\n  <tr><td>선택(셀렉트)</td><td>동작, 톤, 참조 대상</td><td>선택에 따라 관련 필드가 나타나거나 사라짐 (예: 동작=특정 화면 → 대상 선택 등장)</td></tr>\n</table>\n<p>모든 블록 공통으로 <b>[정의서 설명]</b> 칸이 있습니다 — 화면정의서의 설명 컬럼에 들어가며, 비우면 블록 내용 요약이 자동 사용됩니다.</p>\n<h4>실행취소와 단축키</h4>\n<table>\n  <tr><th style=\"width:220px;\">키</th><th>동작</th></tr>\n  <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>되돌리기 — 블록·화면 편집, 속성 입력, 예시 불러오기까지 최근 <b>60단계</b></td></tr>\n  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> 또는 <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>다시 실행</td></tr>\n  <tr><td><kbd>Esc</kbd></td><td>플로우 맵 · 미리보기 · 도움말 팝업 닫기</td></tr>\n</table>\n<div class=\"tip\">💡 <b>입력창에 커서가 있는 동안</b>의 <kbd>Ctrl</kbd>+<kbd>Z</kbd>는 그 입력창 안 텍스트만 되돌리는 브라우저 기본 동작입니다. 문서 단위로 되돌리려면 입력창 밖(캔버스 등)을 한 번 클릭한 뒤 누르세요.</div>\n<div class=\"warn\">⚠ 자동 저장은 없습니다. 작업 중간중간 <b>내보내기 ▾ → JSON 저장</b>으로 백업하고, 이어서 할 때 <b>불러오기</b>로 여세요. 브라우저를 닫으면 저장하지 않은 작업은 사라집니다.</div>\n\n<!-- ============================================================ -->\n<h2 id=\"s4\">4. 흐름 만들기 — 버튼·모달·시나리오·탭</h2>\n\n<h3>4-1. 화면 이동</h3>\n<p><b>버튼 행 / 하단 고정 바 / 로그인 폼 / 상태 카드 버튼</b>의 [동작] 속성으로 정합니다:</p>\n<table>\n  <tr><th style=\"width:150px;\">동작</th><th>의미</th></tr>\n  <tr><td>다음 화면으로</td><td>화면 목록 순서 기준 다음 화면 (마지막 화면이면 이동 없음)</td></tr>\n  <tr><td>이전 화면으로</td><td>순서 기준 이전 화면 (첫 화면이면 이동 없음)</td></tr>\n  <tr><td>특정 화면으로</td><td>[이동할 화면]에서 대상 선택 — 순환·건너뛰기용</td></tr>\n  <tr><td>모달 열기</td><td>[열 모달]에서 같은 화면의 모달/OTP 모달 선택</td></tr>\n  <tr><td>동작 없음</td><td>시각만 있는 버튼 — 가급적 실제 동작을 연결하세요(검사 대상은 아니지만 \"빈 프로세스\"가 됨)</td></tr>\n</table>\n\n<h3>4-2. 모달 → 토스트 체인</h3>\n<div class=\"fig\">\n<svg viewBox=\"0 0 760 120\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Pretendard,sans-serif\">\n  <rect x=\"10\" y=\"35\" width=\"130\" height=\"50\" rx=\"10\" fill=\"#1B5EE3\"/>\n  <text x=\"75\" y=\"58\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"12\" font-weight=\"700\">버튼</text>\n  <text x=\"75\" y=\"74\" text-anchor=\"middle\" fill=\"#CFE0FC\" font-size=\"9.5\">동작=모달 열기</text>\n  <path d=\"M145 60 h40\" stroke=\"#8A8F98\" stroke-width=\"2\" marker-end=\"url(#ar)\"/>\n  <rect x=\"190\" y=\"35\" width=\"150\" height=\"50\" rx=\"10\" fill=\"#fff\" stroke=\"#171A21\" stroke-width=\"1.5\"/>\n  <text x=\"265\" y=\"58\" text-anchor=\"middle\" fill=\"#171A21\" font-size=\"12\" font-weight=\"700\">모달</text>\n  <text x=\"265\" y=\"74\" text-anchor=\"middle\" fill=\"#8A8F98\" font-size=\"9.5\">확인 동작=토스트 표시</text>\n  <path d=\"M345 60 h40\" stroke=\"#8A8F98\" stroke-width=\"2\" marker-end=\"url(#ar)\"/>\n  <rect x=\"390\" y=\"35\" width=\"150\" height=\"50\" rx=\"10\" fill=\"#fff\" stroke=\"#171A21\" stroke-width=\"1.5\"/>\n  <text x=\"465\" y=\"58\" text-anchor=\"middle\" fill=\"#171A21\" font-size=\"12\" font-weight=\"700\">토스트</text>\n  <text x=\"465\" y=\"74\" text-anchor=\"middle\" fill=\"#8A8F98\" font-size=\"9.5\">사라진 후=다음/특정 화면</text>\n  <path d=\"M545 60 h40\" stroke=\"#8A8F98\" stroke-width=\"2\" marker-end=\"url(#ar)\"/>\n  <rect x=\"590\" y=\"35\" width=\"150\" height=\"50\" rx=\"10\" fill=\"#E8F0FE\" stroke=\"#1B5EE3\"/>\n  <text x=\"665\" y=\"63\" text-anchor=\"middle\" fill=\"#1B5EE3\" font-size=\"12\" font-weight=\"700\">다음 화면</text>\n  <defs><marker id=\"ar\" markerWidth=\"8\" markerHeight=\"8\" refX=\"6\" refY=\"4\" orient=\"auto\"><path d=\"M0 0L8 4L0 8z\" fill=\"#8A8F98\"/></marker></defs>\n</svg>\n<div class=\"fig-cap\">각 화살표가 곧 속성입니다 — 버튼의 [열 모달], 모달의 [표시할 토스트], 토스트의 [사라진 후 동작]</div>\n</div>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\"><b>순서는 자유입니다</b> — 참조 선택 목록 맨 아래의 <b>＋ 새 모달/토스트 만들어 연결</b>을 고르면 대상 블록이 즉시 생성·연결됩니다. 버튼부터 시작해 버튼 → 모달 → 토스트 순으로 앞으로 나아가며 만들어도 됩니다. 더 빠르게는 팔레트 맨 위 <b>패턴</b> 그룹(확인/진행/삭제/입력 모달 체인)을 클릭하면 세 블록이 연결 완료 상태로 한 번에 생성됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">응용 3가지: <b>입력 모달</b> — [입력 필드 플레이스홀더]를 채우면 입력창 있는 모달(수량·사유 입력 등, 가이드 L·H). <b>위험 동작</b> — 확인 버튼 톤=위험(빨강, 삭제·해지·반려). <b>단일 버튼 안내 팝업</b> — 취소 버튼 문구를 비우면 확인만 남습니다(가이드 M)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">토스트 [사라진 후 동작]=<b>동작 없음</b>이면 제자리 완결(저장·발송 알림), 이동을 걸면 다음 단계로 진행. <b>OTP 인증 모달</b>은 별도 블록으로 성공 코드·최대 실패·실패 시 이동을 가집니다(가이드 I)</div></div>\n\n<h3>4-3. 시나리오 — 상태 분기의 핵심</h3>\n<div class=\"fig\">\n<svg viewBox=\"0 0 760 150\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Pretendard,sans-serif\">\n  <rect x=\"240\" y=\"10\" width=\"280\" height=\"34\" rx=\"17\" fill=\"#171A21\"/>\n  <text x=\"266\" y=\"32\" fill=\"#9AA0AB\" font-size=\"11\">상태(데모)</text>\n  <rect x=\"345\" y=\"15\" width=\"60\" height=\"24\" rx=\"12\" fill=\"#1C9A5B\"/>\n  <text x=\"375\" y=\"31\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"11\" font-weight=\"700\">정상</text>\n  <text x=\"452\" y=\"32\" text-anchor=\"middle\" fill=\"#9AA0AB\" font-size=\"11\">점검 중</text>\n  <path d=\"M320 44 L200 78\" stroke=\"#8A8F98\" stroke-width=\"1.6\" marker-end=\"url(#ar2)\"/>\n  <path d=\"M440 44 L560 78\" stroke=\"#8A8F98\" stroke-width=\"1.6\" stroke-dasharray=\"4 3\" marker-end=\"url(#ar2)\"/>\n  <rect x=\"60\" y=\"84\" width=\"280\" height=\"52\" rx=\"10\" fill=\"#fff\" stroke=\"#1C9A5B\" stroke-width=\"1.5\"/>\n  <text x=\"200\" y=\"107\" text-anchor=\"middle\" fill=\"#171A21\" font-size=\"12\" font-weight=\"700\">조건 없는 블록 + [정상] 조건 블록</text>\n  <text x=\"200\" y=\"124\" text-anchor=\"middle\" fill=\"#1C9A5B\" font-size=\"10.5\">현재 시나리오 → 표시</text>\n  <rect x=\"420\" y=\"84\" width=\"280\" height=\"52\" rx=\"10\" fill=\"#F4F5F7\" stroke=\"#C7CAD1\" stroke-dasharray=\"5 4\"/>\n  <text x=\"560\" y=\"107\" text-anchor=\"middle\" fill=\"#8A8F98\" font-size=\"12\" font-weight=\"700\">[점검 중] 조건 블록</text>\n  <text x=\"560\" y=\"124\" text-anchor=\"middle\" fill=\"#B0B4BB\" font-size=\"10.5\">다른 시나리오 → 숨김</text>\n  <defs><marker id=\"ar2\" markerWidth=\"8\" markerHeight=\"8\" refX=\"6\" refY=\"4\" orient=\"auto\"><path d=\"M0 0L8 4L0 8z\" fill=\"#8A8F98\"/></marker></defs>\n</svg>\n<div class=\"fig-cap\">내보낸 파일의 시나리오 스위치 — 조건 없는 블록은 항상, 조건 블록은 일치할 때만 표시</div>\n</div>\n<p>좌측 [시나리오 목록]에 한 줄에 하나씩 정의합니다. <b>첫 줄이 기본값</b>이고, 비워두면 내보낸 파일에 스위치 자체가 생기지 않습니다. 이름만 바꾸면(줄 추가/삭제 없이) 이를 참조하는 표시 조건·인증 분기·OTP 조건·진입 조건이 <b>자동으로 새 이름을 따라갑니다</b>. 시나리오를 조건으로 쓰는 곳은 네 군데:</p>\n<table>\n  <tr><th style=\"width:190px;\">위치</th><th>동작</th></tr>\n  <tr><td>블록의 <b>[표시 조건 시나리오]</b></td><td>그 시나리오일 때만 블록 표시 — 상태별 배너, 빈/로딩 상태 전환 (가이드 J)</td></tr>\n  <tr><td><b>본인인증 박스</b> 분기</td><td><code>시나리오|fail:메시지</code>(빨간 실패 박스+재시도) / <code>시나리오|error:메시지</code>(에러 노트, 제자리) — 목록에 없는 시나리오는 성공 → 다음 화면</td></tr>\n  <tr><td><b>로그인 폼</b> OTP 조건</td><td>특정 시나리오에서만 OTP 블록 노출 (기본 샘플)</td></tr>\n  <tr><td>화면 <b>진입 조건</b></td><td>특정 시나리오로 화면에 들어올 때만 진입 모달 (가이드 M)</td></tr>\n</table>\n<div class=\"tip\">💡 내보낸 파일에서 시나리오를 바꾸면 화면 상태(동의 체크, 인증 결과, 검색·페이지, 열린 모달 등)가 <b>초기 상태로 리셋</b>됩니다 — 각 시나리오를 처음부터 재현해볼 수 있게 하기 위한 의도된 동작입니다.</div>\n\n<h3>4-4. 동의 게이트</h3>\n<p>버튼의 [동의 필요]를 켜면 같은 화면 <b>동의 카드</b>의 체크 상태를 검사합니다. 규칙은 카드 구성에 따라 셋:</p>\n<table>\n  <tr><th style=\"width:220px;\">동의 카드 구성</th><th>버튼 활성 조건</th></tr>\n  <tr><td><code>[필수]</code> + <code>[선택]</code> 혼합</td><td><b>필수만 전부 체크</b> — 선택은 체크/해제와 무관</td></tr>\n  <tr><td><code>[선택]</code>만 있음</td><td><b>처음부터 활성</b> — 게이트가 막지 않음</td></tr>\n  <tr><td>배지 없는 일반 항목</td><td>전부 체크해야 활성 (배지를 쓰지 않은 카드의 안전 기본값)</td></tr>\n</table>\n<ul>\n  <li><b>전체 동의</b> 행을 켜면 선택 포함 전부 체크/해제</li>\n  <li>시나리오·탭 조건으로 <b>숨겨진 항목은 게이트 계산에서 자동 제외</b></li>\n</ul>\n\n<h3>4-5. 탭</h3>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\"><b>탭</b> 블록 추가 — 탭 이름 한 줄에 하나, <code>*</code>가 기본 활성 탭</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">같은 화면의 다른 블록을 선택하면 인스펙터에 <b>[소속 탭]</b>이 생깁니다 — 어느 탭에서 보일지 지정 (미지정=모든 탭에서 표시)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">캔버스는 전 탭 블록을 노란 태그와 함께 모두 보여주고, 내보낸 파일에서 실제 전환됩니다. 캔버스 상단 <b>상태 필터</b>로 특정 탭만 보며 편집하세요</div></div>\n<div class=\"warn\">💡 탭 이름을 바꾸면 그 이름에 소속됐던 블록들의 [소속 탭]이 <b>자동으로 새 이름을 따라갑니다</b> (줄 추가/삭제 없이 이름만 바꿀 때). 탭을 통째로 지우면 소속이 남으니, 그 경우엔 내보내기 전 검사가 알려줍니다.</div>\n\n<h3>4-6. 화면 진입 동작</h3>\n<p>화면 속성(캔버스 빈 곳 클릭)의 [진입 동작] = <b>모달 자동 열기</b>: 이 화면이 열릴 때(내보낸 파일에서 어떤 경로로든 진입 시) 지정한 모달이 자동으로 뜹니다. <b>[진입 조건 시나리오]</b>를 지정하면 그 시나리오일 때만 — 점검 안내, 세션 만료 재인증(OTP 모달), 필수 공지에 쓰는 패턴입니다 (가이드 I·M).</p>\n\n<!-- ============================================================ -->\n<h2 id=\"s5\">5. 문서 도구 — 변수·테마·필터</h2>\n<h3>5-1. 문서 변수</h3>\n<p>좌측 [변수]에 <code>이름|값</code> 한 줄에 하나로 정의하고, <b>어떤 텍스트 속성에서든</b>(셸의 사용자 표시 포함) <code>{{이름}}</code>으로 씁니다.</p>\n<div class=\"io\">\n  <div><h5>변수 정의</h5><pre>사용자명|kimstore01\n금액|178,000원</pre></div>\n  <div><h5>블록 속성에서 사용</h5><pre>아이디|{{사용자명}}\n결제 금액|{{금액}}</pre></div>\n</div>\n<ul>\n  <li>값 하나만 바꾸면 캔버스·모든 내보내기에 즉시 전체 반영 — 이름·금액·매장명처럼 <b>여러 화면에 반복되는 값</b>은 처음부터 변수로 두는 게 좋습니다</li>\n  <li><b>미정의 변수</b>는 캔버스에 빨간 토큰으로 표시되고, 내보내기 전 검사가 \"01 화면 — 정의되지 않은 변수 {{X}} 사용\" 형식으로 경고합니다</li>\n  <li>화면 명세서·정의서 문서 상단에는 변수 표가 함께 실립니다</li>\n</ul>\n<h3>5-2. 테마</h3>\n<ul>\n  <li><b>주 색상</b> — 버튼·탭·활성 상태·강조가 한 번에 바뀝니다. <b>연한 강조색은 자동 계산</b>(주 색상을 흰색과 9:1로 섞은 톤)이라 배경 칩·소프트 배지도 따라옵니다</li>\n  <li><b>라운드</b>(0~24px) — 카드·버튼 모서리. <b>글자 크기</b>(13/14/15px) — 본문 기준 크기</li>\n  <li>커스텀 HTML에서 <code>var(--blue)</code>, <code>var(--blue-soft)</code> 토큰을 쓰면 테마를 따라옵니다 (가이드 G의 차트가 그 예)</li>\n  <li>테마는 undo 대상이고 JSON에 저장됩니다 — 브랜드별 문서를 만들 때 색만 바꿔 재사용 (예시 ⑮ 보라 · ㉖ 오렌지 · ㉘ 그린)</li>\n</ul>\n<h3>5-3. 캔버스 상태 필터</h3>\n<ul>\n  <li>현재 화면에 탭이 있거나 문서에 시나리오가 있으면 캔버스 위에 필터 바가 자동 표시 — 선택하면 <b>그 상태의 블록만</b> 보며 편집</li>\n  <li>탭 필터와 시나리오 필터는 <b>중첩</b>됩니다(\"주문 목록 탭 × 점검 중\" 같은 조합 확인)</li>\n  <li>에디터 전용이라 내보내기에는 영향 없고, 다른 화면으로 이동하면 유효하지 않은 탭 필터는 자동 해제됩니다</li>\n</ul>\n\n<!-- ============================================================ -->\n<h2 id=\"s6\">6. 특수 문법 모음표</h2>\n<table>\n  <tr><th style=\"width:170px;\">문법</th><th style=\"width:180px;\">쓰는 곳</th><th>의미</th></tr>\n  <tr><td><code>값|값|값</code></td><td>목록형 속성 전반</td><td>한 줄이 한 항목, <code>|</code>가 열 구분</td></tr>\n  <tr><td><code>*항목</code></td><td>선택 입력·탭·타임라인·사이드 메뉴·아코디언</td><td>기본 선택 / 활성 / 강조 / 기본 펼침</td></tr>\n  <tr><td><code>[필수]</code> <code>[선택]</code></td><td>동의 카드 항목 제목 앞</td><td>빨강/회색 배지 자동 + 게이트 대상 여부 (4-4)</td></tr>\n  <tr><td>들여쓰기 줄</td><td>동의 카드 상세 · 아코디언 답변</td><td>바로 위 항목의 펼침 내용 — 아래 예시 참고</td></tr>\n  <tr><td><code>---</code></td><td>테이블 행 목록</td><td>페이지 세트 구분 — 같은 화면 페이지네이션·검색과 자동 연동</td></tr>\n  <tr><td><code>#제목</code></td><td>앱 셸 사이드 메뉴</td><td>구분 헤더</td></tr>\n  <tr><td><code>{{이름}}</code></td><td>모든 텍스트 속성</td><td>문서 변수 치환 (5-1)</td></tr>\n  <tr><td><code>상태:green</code></td><td>상태 배지 리스트</td><td>색 직접 지정 — 아래 예시 참고</td></tr>\n  <tr><td><code>시나리오|fail:…</code><br><code>시나리오|error:…</code></td><td>본인인증 박스 분기</td><td>fail=실패 박스(재시도), error=에러 노트(제자리)</td></tr>\n  <tr><td><code>+12%</code> / <code>-3%</code></td><td>통계 카드 증감</td><td>초록 ▲ / 빨강 ▼ 칩 자동</td></tr>\n  <tr><td><code>*라벨|힌트|타입</code></td><td>폼 그룹 필드</td><td><code>*</code>=필수 별표, 타입: text·tel·email·password·number·date·textarea</td></tr>\n</table>\n<h4>들여쓰기 상세 — 세 형식</h4>\n<div class=\"io\">\n  <div><h5>입력 (동의 카드 항목)</h5><pre>[필수] 개인정보 수집·이용 동의\n  수집항목: 휴대폰 번호, 이름\n  - 인증번호는 3분간 유효합니다.\n  ! 번호 변경 시 재등록이 필요합니다.</pre></div>\n  <div><h5>결과 (\"자세히\" 펼침 안)</h5><div class=\"out\">\n    <b>수집항목</b> 휴대폰 번호, 이름 &nbsp;<span style=\"color:#8A8F98\">← <code>키: 값</code>은 표 행</span><br>\n    • 인증번호는 3분간 유효합니다. &nbsp;<span style=\"color:#8A8F98\">← <code>-&nbsp;</code>는 불릿</span><br>\n    <span style=\"background:#FDF3E1; padding:1px 6px; border-radius:4px;\">번호 변경 시 재등록이 필요합니다.</span> &nbsp;<span style=\"color:#8A8F98\">← <code>!&nbsp;</code>는 강조 노트</span>\n  </div></div>\n</div>\n<h4>상태 배지 색 — 자동 판정과 직접 지정</h4>\n<div class=\"io\">\n  <div><h5>입력 (배지 리스트 행)</h5><pre>정산 지급|08.10|대기\n초대 발송|08.02|수락:green\n지난 초대|07.30|만료:gray</pre></div>\n  <div><h5>결과</h5><div class=\"out\">\n    <span class=\"dot\" style=\"background:#E0A030\"></span>대기 — 키워드 자동(대기·검토=호박, 완료·승인·정상=초록, 실패·반려·오류=빨강, 진행=파랑)<br>\n    <span class=\"dot\" style=\"background:#1C9A5B\"></span>수락 — <code>:green</code> 직접 지정<br>\n    <span class=\"dot\" style=\"background:#8A8F98\"></span>만료 — <code>:gray</code> 직접 지정 (green/blue/amber/red/gray)\n  </div></div>\n</div>\n\n<!-- ============================================================ -->\n<h2 id=\"s7\">7. 검증 — 플로우 맵과 무결성 검사</h2>\n<h3>7-1. ⛓ 플로우 맵</h3>\n<p>화면마다 나가는 연결(버튼→목적지, 진입 동작, 인증 분기, 모달·토스트 체인)을 목록 도식으로 보여줍니다. 캔버스의 연결 칩과 같은 정보를 <b>문서 전체 단위</b>로 모아 보는 화면입니다. 칩 색의 의미:</p>\n<ul>\n  <li><span class=\"chip\" style=\"background:#E8F0FE; border-color:#1B5EE3; color:#1B5EE3;\">파란 화면 칩</span> — 클릭하면 그 화면으로 점프 &nbsp; <span class=\"chip\">회색 칩</span> — 모달·토스트 등 오버레이 &nbsp; <span class=\"chip\" style=\"border-style:dashed;\">점선 칩</span> — 제자리(닫기·유지)</li>\n  <li><span class=\"chip\" style=\"background:#FDE2E1; border-color:#B03530; color:#B03530;\">빨간 칩</span> — <b>끊어진 연결</b>(삭제된 화면/모달 참조) — 여기부터 고치면 됩니다</li>\n</ul>\n<h3>7-2. 무결성 검사</h3>\n<p>내보내기·미리보기 직전에 자동 실행됩니다. 경고 창에서 <b>취소=수정하러 돌아가기 / 확인=그대로 진행</b>을 고를 수 있습니다.</p>\n<table>\n  <tr><th style=\"width:190px;\">검사 항목</th><th>경고 예시</th></tr>\n  <tr><td>끊어진/미선택 참조</td><td>「삭제」 버튼 — 연결된 모달이 없습니다</td></tr>\n  <tr><td>존재하지 않는 탭 소속</td><td>정보 카드: 존재하지 않는 탭 [기본]에 속해 있습니다</td></tr>\n  <tr><td>미정의 변수</td><td>정의되지 않은 변수 {{사용자명}} 사용</td></tr>\n  <tr><td>미정의 시나리오</td><td>정의되지 않은 시나리오 [실패] 분기</td></tr>\n  <tr><td>빈 화면</td><td>03 화면 — 블록이 없는 빈 화면입니다</td></tr>\n  <tr><td>무의미한 동의 게이트</td><td>동의 게이트가 설정됐지만 동의 카드가 없습니다</td></tr>\n  <tr><td><b>도달 불가 화면</b></td><td>05 메인 — 어느 화면의 버튼·연결로도 도달할 수 없습니다</td></tr>\n</table>\n<div class=\"tip\">💡 \"도달 불가\"는 첫 화면에서 버튼·모달·토스트 연결만으로 갈 수 없는 화면을 뜻합니다. 화면들을 만들어 두고 아직 잇기 전이라면 정상적인 중간 상태이니, 연결을 마친 뒤 사라지는지 확인하세요.</div>\n\n<!-- ============================================================ -->\n<h2 id=\"s8\">8. 내보내기 6종</h2>\n<table>\n  <tr><th style=\"width:190px;\">종류</th><th>내용 · 용도</th></tr>\n  <tr><td><b>HTML 내보내기</b></td><td>인터랙티브 목업 — 화면 이동·모달·게이트·분기가 실제 동작. 우상단에 화면/시나리오 데모 스위치</td></tr>\n  <tr><td>전체 나열 (보드)</td><td>모든 화면 세로 나열 정적 HTML — 회의 자료·인쇄</td></tr>\n  <tr><td><b>화면정의서</b> (.def)</td><td>화면 그림 + ①번호 마커 + 요소별 설명 표 + 동작 정의 — 아래 구조도 참고</td></tr>\n  <tr><td>화면 명세서 (.spec)</td><td>그림 없이 컴포넌트 구성 표 + 동작 정의 문서</td></tr>\n  <tr><td>화면 스크린샷 PNG</td><td>화면별 2배율 PNG 일괄 저장 (<code>제목_01_화면명.png</code>) — 피그마·문서 붙여넣기용</td></tr>\n  <tr><td>JSON 저장</td><td>구성 데이터 백업 — [불러오기]로 복원 (이어서 작업)</td></tr>\n</table>\n<div class=\"fig\">\n<svg viewBox=\"0 0 760 210\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Pretendard,sans-serif\">\n  <rect x=\"40\" y=\"12\" width=\"380\" height=\"120\" rx=\"10\" fill=\"#F0F2F5\" stroke=\"#D3D6DB\"/>\n  <rect x=\"60\" y=\"28\" width=\"340\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <circle cx=\"60\" cy=\"28\" r=\"10\" fill=\"#171A21\"/><text x=\"60\" y=\"32\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"10\" font-weight=\"800\">1</text>\n  <rect x=\"60\" y=\"62\" width=\"340\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <circle cx=\"60\" cy=\"62\" r=\"10\" fill=\"#171A21\"/><text x=\"60\" y=\"66\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"10\" font-weight=\"800\">2</text>\n  <rect x=\"60\" y=\"96\" width=\"340\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <circle cx=\"60\" cy=\"96\" r=\"10\" fill=\"#171A21\"/><text x=\"60\" y=\"100\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"10\" font-weight=\"800\">3</text>\n  <text x=\"230\" y=\"152\" text-anchor=\"middle\" fill=\"#4A4E57\" font-size=\"11.5\" font-weight=\"700\">화면 그림 + 번호 배지</text>\n  <rect x=\"450\" y=\"12\" width=\"270\" height=\"120\" rx=\"10\" fill=\"#fff\" stroke=\"#D3D6DB\"/>\n  <rect x=\"450\" y=\"12\" width=\"270\" height=\"26\" rx=\"10\" fill=\"#F4F5F7\"/>\n  <text x=\"466\" y=\"29\" fill=\"#6B7078\" font-size=\"10\" font-weight=\"700\">번호 · 컴포넌트 · 설명 · 동작 · 조건</text>\n  <text x=\"466\" y=\"58\" fill=\"#4A4E57\" font-size=\"10.5\">① 페이지 헤드 — …</text>\n  <text x=\"466\" y=\"80\" fill=\"#4A4E57\" font-size=\"10.5\">② 동의 카드 — 필수 2건 체크 시 활성</text>\n  <text x=\"466\" y=\"102\" fill=\"#4A4E57\" font-size=\"10.5\">③ 버튼 행 — 다음 → 02 (동의 게이트)</text>\n  <text x=\"585\" y=\"152\" text-anchor=\"middle\" fill=\"#4A4E57\" font-size=\"11.5\" font-weight=\"700\">요소 정의 표 (+동작 정의)</text>\n  <text x=\"380\" y=\"190\" text-anchor=\"middle\" fill=\"#8A8F98\" font-size=\"11\">설명 컬럼 = 각 블록의 [정의서 설명] (비우면 자동 요약)</text>\n</svg>\n<div class=\"fig-cap\">화면정의서 구조 — 그림의 번호 배지와 표의 번호가 1:1로 대응합니다</div>\n</div>\n<h4>검토 모드 (#review)</h4>\n<p>내보낸 HTML 파일을 연 뒤 <b>주소창 끝에 <code>#review</code>를 붙이고 새로고침</b>하면(또는 처음부터 <code>파일명.html#review</code> 링크로 공유) 데모 스위치가 숨겨진 깔끔한 검토 화면이 됩니다 — 버튼·모달 등 동작은 그대로. 이해관계자 공유용.</p>\n<h4>내보내기 옵션 (내보내기 ▾ 상단)</h4>\n<table>\n  <tr><th style=\"width:170px;\">옵션</th><th>효과</th></tr>\n  <tr><td>시작 화면</td><td>내보낸 파일이 그 화면부터 시작 (기본: 첫 화면). 특정 화면 검토를 바로 시키고 싶을 때</td></tr>\n  <tr><td>데모 스위치 위치</td><td>우상단(기본) / 우하단 — 상단 배너·콘텐츠와 겹칠 때 아래로</td></tr>\n  <tr><td>파일명에 날짜</td><td><code>제목_20260804.html</code> 형식 — 모든 내보내기·PNG에 적용, 버전 관리용</td></tr>\n</table>\n\n<!-- ============================================================ -->\n<h2 id=\"s9\">9. 컴포넌트 카탈로그 (32종 + 패턴 4종)</h2>\n<table>\n  <tr><th style=\"width:120px;\">그룹</th><th>컴포넌트 — 핵심 포인트</th></tr>\n  <tr><td><b>패턴 (4)</b></td><td><b>확인 체인</b> 버튼→모달→토스트 제자리 완결 · <b>진행 체인</b> 토스트 후 다음 화면 · <b>삭제 체인</b> 위험 톤 · <b>입력 모달 체인</b> 수량·사유 입력 — 클릭 한 번에 연결 완료 상태로 생성</td></tr>\n  <tr><td>기본 (8)</td><td><b>페이지 헤드</b> 제목+설명 · <b>스테퍼</b> 단계 표시 · <b>안내 노트</b> 4색 · <b>배너</b> 상단 알림(닫기·4톤) · <b>버튼 행</b> 이동/모달/게이트 · <b>하단 고정 바</b> 금액+CTA 고정 · <b>완료 카드</b> · <b>상태 카드</b> 빈/로딩/오류</td></tr>\n  <tr><td>폼·입력 (6)</td><td><b>폼 그룹</b> 여러 필드 한 카드 · <b>입력 카드</b> 단일 입력+버튼 · <b>선택 입력</b> 라디오/토글/셀렉트 · <b>검색 바</b> 테이블 연동 · <b>파일 업로드</b> 드롭존+목록 · <b>날짜/기간</b> 프리셋 칩</td></tr>\n  <tr><td>데이터 (8)</td><td><b>정보 카드</b> 라벨|값 · <b>테이블</b> <code>---</code> 페이지 세트 · <b>통계 카드</b> 증감 칩 · <b>상태 배지 리스트</b> 색 자동 · <b>타임라인</b> 강조 점 · <b>진행률</b> 색 4종 · <b>아코디언</b> 클릭 펼침 · <b>페이지네이션</b> 테이블 연동</td></tr>\n  <tr><td>인증·동의 (5)</td><td><b>동의 카드</b> 배지+상세 펼침 · <b>본인인증 박스</b> 시나리오 분기 · <b>로그인 폼</b> · <b>OTP 블록</b> · <b>로그인 푸터</b></td></tr>\n  <tr><td>오버레이 (3)</td><td><b>모달</b> 입력·위험톤·체인 · <b>OTP 인증 모달</b> 성공코드/최대실패 · <b>토스트</b> 사라진 후 이동</td></tr>\n  <tr><td>구조 (2)</td><td><b>탭</b> 블록 소속 전환 · <b>커스텀 HTML</b> 무엇이든(기존 클래스·토큰 사용 가능)</td></tr>\n</table>\n<div class=\"tip\">💡 각 컴포넌트의 살아있는 용례는 예시 40종에 있습니다 — 팔레트에서 이름을 확인하고, 그 컴포넌트를 쓰는 예시를 불러와 블록을 클릭해 속성을 보는 것이 가장 빠른 학습법입니다.</div>\n\n<hr class=\"divider\">\n\n<!-- ============================================================ -->\n<h2 id=\"g1\">가이드 A. SMS 사용 등록 3화면 — 처음부터 따라 만들기</h2>\n<p>예시 ①(SMS 사용 등록)을 빈 문서에서 <b>그대로 재현</b>합니다. 동의 게이트, 시나리오 분기 2종(fail/error), 모달→토스트 체인이 모두 들어가는 가장 좋은 첫 연습입니다. 아래 값을 그대로 입력하면 <b>예시 불러오기 → ① SMS 사용 등록</b>과 동일한 결과가 나옵니다.</p>\n\n<h3>준비</h3>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">처음 열면 기본 샘플이 로드되어 있습니다 — 화면 목록에서 기존 화면을 모두 <b>✕로 삭제</b>해 빈 문서로 만든 뒤, 상단 문서 제목에 <b>SMS 사용 등록</b> 입력</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">좌측 스위치 라벨에 <b>본인인증 결과</b>, [시나리오 목록]에 세 줄 입력 — 화면 2의 분기에서 사용합니다 (첫 줄이 기본값):\n<pre>인증 성공\n인증 실패\n번호 중복</pre></div></div>\n\n<h3>화면 1 — 약관 동의</h3>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">화면 목록 <kbd>+</kbd> → <b>빈 화면</b> → ✎로 이름을 <b>약관 동의</b>로</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>페이지 헤드</b> 추가 → 제목 <b>SMS 사용 등록</b>, 설명 <b>문자 발송 서비스 이용을 위한 등록 절차입니다.</b></div></div>\n<div class=\"step\"><span class=\"step-n\">5</span><div class=\"step-body\"><b>스테퍼</b> 추가 → 단계 목록(한 줄에 하나) <code>약관 동의 / 본인인증 / 등록 완료</code>, 현재 단계 <b>1</b></div></div>\n<div class=\"step\"><span class=\"step-n\">6</span><div class=\"step-body\"><b>동의 카드</b> 추가 → 제목 <b>약관 동의</b>, <b>안내문(intro)</b>에 <b>SMS 사용 등록을 위해 아래 약관 동의가 필요합니다.</b> 입력. 항목에는 아래를 그대로 붙여넣습니다. <code>[필수]</code>가 배지+게이트 대상이 되고, <b>들여쓴 줄</b>이 \"자세히\" 펼침 내용이 됩니다 (<code>키: 값</code>=표, <code>- </code>=불릿, <code>! </code>=강조 노트):\n<pre>[필수] 개인정보 수집·이용 동의\n  수집항목: 휴대폰 번호, 이름, 생년월일\n  수집목적: SMS 인증 로그인 및 본인 확인\n  보유기간: SMS 사용 등록 삭제 시까지\n[필수] SMS 인증 로그인 이용약관 동의\n  - 인증번호는 발송 후 3분간 유효합니다.\n  - 인증번호를 5회 이상 잘못 입력하면 자동으로 로그아웃됩니다.\n  ! 인증 휴대폰 번호가 변경되면 SMS 사용 등록을 다시 진행해야 합니다.</pre></div></div>\n<div class=\"step\"><span class=\"step-n\">7</span><div class=\"step-body\">동의 카드의 [정의서 설명]에 <b>필수 2건 모두 체크해야 다음 버튼 활성 (동의 게이트).</b> 를 입력한 뒤, <b>버튼 행</b> 추가 → 주 버튼 <b>다음</b>, 보조 버튼은 비우고, [동의 필요] = <b>예</b> — 필수 2건을 다 체크해야 버튼이 살아납니다</div></div>\n\n<h3>화면 2 — 본인인증 (시나리오 분기 2종)</h3>\n<div class=\"step\"><span class=\"step-n\">8</span><div class=\"step-body\"><kbd>+</kbd> 빈 화면 → 이름 <b>본인인증</b>. <b>페이지 헤드</b>(제목 <b>SMS 사용 등록</b>, 설명 <b>휴대폰 본인인증으로 SMS 수신 번호를 확인합니다.</b>)와 <b>스테퍼</b>(단계 목록 동일, 현재 단계 <b>2</b>) 추가</div></div>\n<div class=\"step\"><span class=\"step-n\">9</span><div class=\"step-body\"><b>본인인증 박스</b> 추가 → 제목 <b>본인인증</b>, 본문(2줄):\n<pre>SMS 수신·로그인에 사용할 휴대폰 번호 확인을 위해\n본인인증이 필요합니다.</pre>\n버튼 문구 <b>본인인증 시작</b>, [시나리오 분기]에 <b>두 줄</b>:\n<pre>인증 실패|fail:본인인증에 실패했습니다. 다시 시도해주세요.\n번호 중복|error:이미 다른 계정에 등록된 휴대폰 번호입니다.</pre>\n의미: [인증 실패]는 빨간 <b>실패 박스</b>(다시 시도 버튼), [번호 중복]은 <b>에러 노트</b>(제자리 유지), [인증 성공]은 자동으로 다음 화면. fail과 error 두 형태를 한 블록에서 구분해 쓰는 게 이 화면의 포인트입니다. [정의서 설명]에는 <b>[본인인증 실패] 시나리오에서는 실패 박스, 그 외엔 성공 → 다음 화면.</b> 입력</div></div>\n<div class=\"step\"><span class=\"step-n\">10</span><div class=\"step-body\"><b>버튼 행</b> 추가 → 주 버튼 <b>다음</b> / 보조 <b>이전</b> (인증을 건너뛰고 눌러보는 검토자용 우회 버튼)</div></div>\n\n<h3>화면 3 — 등록 완료 (모달 → 토스트 체인)</h3>\n<div class=\"step\"><span class=\"step-n\">11</span><div class=\"step-body\"><kbd>+</kbd> 빈 화면 → 이름 <b>등록 완료</b>. <b>페이지 헤드</b>(제목 <b>SMS 사용 등록</b>, 설명 <b>등록 결과를 확인하세요.</b>) + <b>스테퍼</b>(현재 단계 <b>3</b>) 추가 — 완료 화면에도 헤드·스테퍼를 유지해 3단계 흐름을 끝까지 보여줍니다</div></div>\n<div class=\"step\"><span class=\"step-n\">12</span><div class=\"step-body\"><b>완료 카드</b>(제목 <b>SMS 사용 등록이 완료되었습니다</b>, 설명 <b>이제 SMS 인증으로 안전하게 로그인할 수 있습니다.</b>) + <b>정보 카드</b>(제목 <b>등록 정보</b>) 추가, 정보 카드 행:\n<pre>아이디|kimstore01\n인증 휴대폰|010-••••-5821\n등록일시|2026.07.29 14:32</pre></div></div>\n<div class=\"step\"><span class=\"step-n\">13</span><div class=\"step-body\"><b>안내 노트</b>(파랑 톤) 추가:\n<pre>발신번호는 위 인증된 휴대폰 번호로만 [휴대폰본인인증] 하여 추가 등록할 수 있습니다.</pre></div></div>\n<div class=\"step\"><span class=\"step-n\">14</span><div class=\"step-body\"><b>버튼 행</b> 추가 → 주 버튼 <b>SMS 사용 등록 삭제</b>, 스타일 <b>위험</b>, [동작] <b>모달 열기</b> → [열 모달]에서 <b>＋ 새 모달 만들어 연결</b> 선택. 모달이 생성·연결되고 곧바로 편집 상태로 열립니다</div></div>\n<div class=\"step\"><span class=\"step-n\">15</span><div class=\"step-body\">방금 열린 <b>모달</b>을 채웁니다 → 제목 <b>SMS 사용 등록을 삭제할까요?</b>, 본문:\n<pre>삭제하시면 현재 등록되어 있는 발신번호도 함께 모두 삭제됩니다. 이후 다시 문자를 발송하시려면 본인인증부터 새로 진행해 발신번호를 재등록하셔야 합니다.</pre>\n아이콘 <b>경고</b>, 취소 <b>취소</b> / 확인 <b>삭제</b>(위험 톤), [확인 동작] <b>토스트 표시</b> → [표시할 토스트]에서 <b>＋ 새 토스트 만들어 연결</b> 선택</div></div>\n<div class=\"step\"><span class=\"step-n\">16</span><div class=\"step-body\">이어서 열린 <b>토스트</b>를 채웁니다 → 문구 <b>삭제되었습니다</b>, [사라진 후 동작] <b>특정 화면으로</b> → <b>01 약관 동의</b>, 지속 시간 <b>1.3</b>초. 이제 <b>버튼 → 확인 모달 → 토스트 → 처음 화면</b> 체인 완성 — 캔버스의 버튼·모달·토스트 위 <b>연결 칩</b>으로 바로 확인됩니다. 참고: 팔레트의 <b>패턴 → 삭제 체인</b>을 클릭하고 문구만 고쳐도 같은 결과입니다</div></div>\n\n<h3>확인과 내보내기</h3>\n<div class=\"step\"><span class=\"step-n\">17</span><div class=\"step-body\"><b>⛓ 플로우 맵</b>으로 연결 확인 — 빨간 칩이 없어야 합니다. <b>▶ 미리보기</b>에서 실제로 눌러보세요: 동의 게이트, 시나리오를 [인증 실패]/[번호 중복]으로 바꿔 두 분기, 삭제 체인까지</div></div>\n<div class=\"step\"><span class=\"step-n\">18</span><div class=\"step-body\"><b>HTML 내보내기</b>로 목업 저장. 필요하면 <b>내보내기 ▾ → 화면정의서</b>로 문서화 — 각 블록의 [정의서 설명]을 채우면 표가 더 좋아집니다. 결과가 예시 ①과 같은지 <b>예시 불러오기 → ①</b>로 비교해보세요</div></div>\n\n<hr class=\"divider\">\n\n<!-- ============================================================ -->\n<h2 id=\"g2\">가이드 B. 운영 대시보드 — 탭·사이드바·연동 테이블</h2>\n<p>예시 ⑪ 스타일의 관리자 화면입니다. 이번엔 처음부터가 아니라 <b>템플릿에서 시작해 깎는</b> 실전 방식으로.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\"><kbd>+</kbd> → <b>관리자 대시보드</b> 템플릿 — 앱 셸+사이드바+통계+검색+테이블+페이지네이션이 한 번에 생성됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">캔버스 <b>상단바를 클릭</b>해 화면 속성으로 → 로고·사용자 표시 수정, [사이드 메뉴]를 원하는 구조로:\n<pre>#관리\n*대시보드\n주문 관리\n정산</pre>\n<code>#</code>=구분 헤더, <code>*</code>=활성 메뉴</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>탭</b> 블록을 추가해 맨 위로 드래그 → 탭 목록 <code>*개요 / 주문 목록</code>. 이후 통계·진행률 블록의 [소속 탭]=<b>개요</b>, 검색·테이블·페이지네이션은 <b>주문 목록</b>으로 지정</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\">테이블 행에 <code>---</code>로 페이지를 나눕니다:\n<pre>ORD-1031|무선 스캐너|89,000원|배송 중\nORD-1030|영수증 프린터|129,000원|결제 완료\n---\nORD-1028|거치대|24,000원|취소</pre>\n같은 화면의 <b>페이지네이션 클릭 = 세트 전환</b>, <b>검색 바 = 전체 페이지에서 행 필터</b>가 자동으로 연동됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">5</span><div class=\"step-body\">시나리오 <code>정상 운영 / 점검 예정</code>을 정의하고, <b>배너</b>(주의 톤)를 추가해 [표시 조건 시나리오]=<b>점검 예정</b> — 점검 상태에서만 뜨는 공지 완성. 캔버스 상단 <b>상태 필터</b>로 탭·시나리오별 모습을 확인하며 다듬으세요</div></div>\n\n<hr class=\"divider\">\n\n<!-- ============================================================ -->\n<h2 id=\"g3\">가이드 C. 요금제 변경 — 테마·하단 바·결제 분기</h2>\n<p>예시 ⑮의 뼈대입니다. 브랜드가 다른 서비스 목업을 만들 때의 요령.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">좌측 [테마]에서 주 색상을 브랜드 색(예: 보라 <code>#7C3AED</code>)으로 — 버튼·탭·칩·활성색이 문서 전체에서 한 번에 바뀝니다</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">화면 1: <b>선택 입력</b>(라디오)으로 요금제 목록 — <code>*프로 (월 29,900원)|월 발송 10만 건 · 상세 통계 · API</code> 처럼 <code>라벨|설명</code>, <code>*</code>=기본 선택. <b>진행률</b>로 사용량 94%를 <code>|red</code> 색 지정해 업그레이드 근거 표현</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>하단 고정 바</b> 추가 — 좌측 라벨 <b>변경 후 월 요금</b> / 값 <b>29,900원</b>, 주 버튼 [다음]. 내보내면 화면 하단에 고정되고, 모바일 뷰포트 토글로 확인하면 좋습니다</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\">화면 2: 시나리오 <code>결제 승인 / 한도 초과</code> 정의 후 <b>본인인증 박스</b>를 결제 진행으로 사용 — 분기 <code>한도 초과|fail:카드 한도가 초과되었습니다. 다른 카드로 시도해주세요.</code>. 화면 3은 <b>완료</b> 템플릿으로 마무리하고 [처음으로] 버튼이 화면 1을 가리키는지 확인</div></div>\n\n<hr class=\"divider\">\n\n<h2 id=\"g4\">가이드 D. 매장 예약 — 마감 상태·필수/선택 동의 (예시 ㉝)</h2>\n<p>고객용 예약 흐름입니다. 핵심 학습 포인트는 두 가지 — <b>시나리오로 \"마감\" 상태를 표현</b>하는 법과, <b>[필수]/[선택] 동의가 게이트에서 다르게 동작</b>하는 것.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">문서 제목 <b>매장 예약</b>. 시나리오 라벨 <b>예약 상태</b>, 목록에 <code>예약 가능</code> / <code>예약 마감</code> 두 줄. 변수에 <code>매장|성수 플래그십</code> — 제목·설명·완료 화면에서 <code>{{매장}}</code>으로 재사용합니다</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\"><b>화면 1 (날짜·인원)</b>: 페이지 헤드(제목에 <code>{{매장}} 방문 예약</code>) → <b>날짜/기간</b>(방문 날짜) → <b>선택 입력</b> 라디오 2개(인원 / 시간대, <code>*2명</code>처럼 기본값 지정) → 버튼 행 [다음]</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>마감 상태 만들기</b>: ① <b>상태 카드</b>(빈 상태, \"이 날짜는 예약이 마감되었습니다\") 추가 → [표시 조건 시나리오] = <b>예약 마감</b>. ② 날짜·인원·시간대·[다음] 버튼 4개 블록은 전부 [표시 조건] = <b>예약 가능</b>. 이제 캔버스 상단 상태 필터로 두 상태를 오가며 확인해보세요 — 마감 상태에선 안내만, 가능 상태에선 선택 UI만 보입니다</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>화면 2 (정보·동의)</b>: 폼 그룹(<code>*이름|실명 입력|text</code> / <code>*휴대폰|숫자만 입력|tel</code>) → <b>동의 카드</b>에 필수와 선택을 섞습니다:\n<pre>[필수] 개인정보 수집·이용 동의\n  수집항목: 이름, 휴대폰 번호\n  보유기간: 방문일 후 3개월\n[선택] 마케팅 정보 수신 동의\n  - 신제품·이벤트 소식을 월 2회 이내로 보내드립니다.</pre>\n버튼 행 [예약하기]에 [동의 필요] = 예. <b>결과: 필수 1건만 체크하면 활성 — 선택은 안 눌러도 됩니다</b></div></div>\n<div class=\"step\"><span class=\"step-n\">5</span><div class=\"step-body\"><b>화면 3 (완료)</b>: 완료 카드 → <b>커스텀 HTML</b>로 예약번호 대형 표기(예시 ㉝의 블록을 복사해 오면 빠릅니다. <code>var(--blue)</code> 토큰을 쓰면 테마 색을 따라감) → [새 예약] 버튼 = 특정 화면 → 01. 미리보기에서 마감 시나리오, 선택 미체크 예약, 전체 흐름을 확인하세요</div></div>\n\n<h2 id=\"g5\">가이드 E. 2단계 인증 활성화 — QR·코드 검증 분기 (예시 ㉟)</h2>\n<p>설정 화면 → 인증 앱 등록 → 완료 3화면. <b>본인인증 박스를 \"로그인 외 검증\"에 응용</b>하는 패턴과, 커스텀 HTML로 QR 자리를 잡는 법을 익힙니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">시나리오 라벨 <b>인증 결과</b>, 목록 <code>코드 일치</code> / <code>코드 불일치</code>. 변수 <code>이메일|kim.sec@company.com</code></div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\"><b>화면 1 (보안 설정)</b>: 레이아웃 <b>앱 셸</b>, 사이드 메뉴에 <code>*보안 설정</code> 활성. <b>배너</b>(안내 톤, 2FA 권장) → <b>선택 입력 토글</b>(새 기기 알림* / 2단계 인증 / 자동 로그아웃*) → 정보 카드(최근 로그인 3줄) → [2단계 인증 활성화] 버튼 = 다음</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>화면 2 (인증 앱 등록)</b>: <b>커스텀 HTML</b>로 QR 자리표시 + 수동 키를 만듭니다 — 예시 ㉟ 블록을 열어 복사하는 게 가장 빠르고, 핵심은 기존 클래스(<code>card</code>, <code>card-body</code>)와 토큰(<code>var(--ink)</code> 등)을 그대로 쓰는 것</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>본인인증 박스</b> 추가 → 제목 <b>코드 확인</b>, 버튼 <b>코드 검증</b>, 분기:\n<pre>코드 불일치|fail:코드가 일치하지 않습니다. 앱의 시간 동기화를 확인하고 다시 시도해주세요.</pre>\n로그인·본인확인이 아니어도, \"버튼 → 검증 → 성공/실패 분기\"가 필요한 곳엔 어디든 이 블록을 쓰면 됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">5</span><div class=\"step-body\"><b>화면 3 (완료)</b>: 완료 카드 + <b>호박색 노트로 복구 코드 보관 안내</b>(보안 흐름의 마무리 관례) + [보안 설정으로] = 특정 화면 → 01. 시나리오를 [코드 불일치]로 두고 검증 버튼을 눌러 실패 박스를 확인하세요</div></div>\n\n<h2 id=\"g6\">가이드 F. 장애 접수 헬프데스크 — 3화면 순환 (예시 ㊳)</h2>\n<p>접수 → 완료 → 내 목록 → 다시 접수로 <b>돌고 도는 3화면 순환 구조</b>. 무결성 검사의 \"도달 불가\" 경고 없이 여러 화면을 잇는 감각을 익히기 좋습니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\"><b>화면 1 (접수하기)</b>: 페이지 헤드 → <b>선택 입력 라디오</b>로 우선순위(긴급/높음*/보통 — 설명 칸에 대응 기준을 적으면 정의서에도 그대로 감) → 폼 그룹(제목*·상세 내용*<code>textarea</code>·연락처<code>tel</code>) → <b>파일 업로드</b>(스크린샷)</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\"><b>접수 체인</b>: 토스트(\"접수되었습니다 (티켓 HD-2214)\", 사라진 후 = <b>다음 화면</b>) → 모달(\"장애를 접수할까요?\", 확인 동작 = 토스트) → [접수하기] 버튼 = 모달 열기. 버튼부터 만들어도 됩니다 — [동작]=모달 열기에서 <b>＋ 새 모달 만들어 연결</b>, 이어서 모달의 확인 동작에서 <b>＋ 새 토스트 만들어 연결</b>을 고르면 체인이 앞 방향으로 완성됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>화면 2 (접수 완료)</b>: 완료 카드 → 정보 카드(티켓 번호·우선순위) → <b>타임라인</b>으로 처리 단계 예고:\n<pre>*방금 전|접수 완료|자동 확인 문자 발송\n대기|담당자 배정|IT 운영팀\n대기|처리·회신|</pre>\n<code>*</code>이 현재 단계 강조 점. [내 접수 목록] 버튼 = 특정 화면 → 03</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>화면 3 (내 접수 목록)</b>: 레이아웃 <b>앱 셸(브레드크럼)</b>. <b>상태 배지 리스트</b>에 색을 직접 지정합니다:\n<pre>포스 결제 승인 지연|HD-2214 · 방금 접수|배정 대기:amber\n영수증 출력 안 됨|HD-2201 · 08.01|처리 중:blue\n바코드 인식 오류|HD-2188 · 07.29|완료:green</pre>\n[새 장애 접수] = 특정 화면 → 01. ⛓ 플로우 맵을 열면 1→2→3→1 순환 고리가 보입니다</div></div>\n\n<h2 id=\"g7\">가이드 G. 매출 리포트 — 커스텀 차트·PDF 요청 (예시 ㊴)</h2>\n<p>단일 화면 리포트. <b>커스텀 HTML로 간단 막대 차트</b>를 만들고, \"화면에 없는 산출물(PDF)\"은 <b>요청 모달 → 발송 토스트</b>로 표현하는 관례를 익힙니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">앱 셸(브레드크럼 <code>통계 &gt; 월간 리포트</code>) + <b>날짜/기간</b>(프리셋 <code>이번 달/지난달/3개월</code>, 활성 <code>지난달</code>) + 통계 카드(증감 <code>+4.2%</code>/<code>-1.1%</code>는 자동으로 초록▲/빨강▼)</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\"><b>커스텀 HTML 차트</b>: flex 컨테이너에 막대 4개 — 각 막대는 <code>height:62%</code> 식으로 값 비율, 색은 <code>var(--blue-soft)</code>, <b>강조하고 싶은 막대만 <code>var(--blue)</code></b>. 예시 ㊴ 블록을 복사한 뒤 높이 %만 데이터에 맞게 바꾸면 됩니다. 진짜 차트 라이브러리가 아니라 \"리포트 느낌\"을 내는 목업 관례입니다</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">테이블(카테고리별, <code>---</code>로 2페이지) + 페이지네이션 — 내보내면 자동 연동</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>PDF 요청</b>: 토스트(\"PDF 리포트가 이메일로 발송됩니다\", 사라진 후 = <b>동작 없음</b> — 화면 이동이 필요 없는 완결 동작) → 모달(안내 문구에 생성 시간 명시) → [PDF 리포트 요청] 버튼 = 모달. 화면 밖에서 일어나는 일(이메일 발송)은 이렇게 모달 문구로 설명하는 게 정석입니다</div></div>\n\n<h2 id=\"g8\">가이드 H. 등급 심사 — 승인/반려 이중 모달 (예시 ㊵)</h2>\n<p>관리자 심사 화면의 정석: <b>긍정 동작(승인)과 위험 동작(반려)이 한 화면에 공존</b>하고, 반려에는 <b>사유 입력</b>이 붙습니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">시나리오 <code>서류 완비</code> / <code>서류 미비</code>. <b>빨간 노트</b>(\"사업자등록증 누락…\") 추가 후 [표시 조건] = <b>서류 미비</b> — 심사자가 상태에 따라 다른 안내를 보는 구조</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">정보 카드(신청 정보) + <b>상태 배지 리스트</b>(제출 서류: 확인 완료:green / 검토 중:amber) + 타임라인(심사 이력)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>승인 체인</b>: 토스트(사라진 후 = 다음 화면) → 모달(확인 톤, 혜택 안내) → [VIP 승인] 버튼(기본 톤) = 모달</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\"><b>반려 체인</b>: 토스트(\"반려 처리되었습니다\", 사라진 후 = <b>동작 없음</b> — 반려 후엔 같은 화면에서 다른 건 처리) → 모달: 아이콘 <b>경고</b>, 확인 버튼 <b>반려</b>(위험 톤), <b>[입력 필드 플레이스홀더]에 \"반려 사유 입력 (회원에게 전달됨)\"</b> → 입력창 있는 모달이 됩니다 → [반려] 버튼(위험 톤) = 모달. 승인=이동, 반려=제자리라는 결과 차이를 체인 설계로 표현한 것이 포인트</div></div>\n<div class=\"step\"><span class=\"step-n\">5</span><div class=\"step-body\"><b>화면 2 (승인 완료)</b>: 완료 카드 + 적용 내역 + [심사 목록으로] = 특정 화면 → 01. 미리보기에서 두 버튼의 톤 차이(파랑/빨강)와 반려 모달의 입력창을 확인하세요</div></div>\n\n<h2 id=\"g9\">가이드 I. 세션 만료 재인증 — OTP 모달 왕복 (예시 ⑩)</h2>\n<p>업무 화면에서 세션이 만료됐을 때 <b>OTP 인증 모달</b>로 재인증하고, 성공하면 제자리·실패가 쌓이면 로그인으로 쫓겨나는 패턴입니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">화면 1 = <b>로그인</b> 템플릿, 화면 2 = 업무 화면(노트 + 정보 카드). 로그인 폼 [동작] = 다음</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">화면 2에 <b>OTP 인증 모달</b> 블록 추가 → [성공 코드] <code>000000</code>, [최대 실패 횟수] <code>3</code>, [성공 동작] = <b>닫기(제자리)</b>, [실패 초과 시 이동] = <b>01 로그인</b> — \"성공하면 하던 일 계속, 3회 틀리면 강제 로그아웃\"이 이 네 속성으로 완성됩니다</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">화면 2의 <b>화면 속성</b>(캔버스 빈 곳 클릭) → [진입 동작] = <b>모달 자동 열기</b> → 방금 만든 OTP 모달 선택. 이제 화면 2에 들어올 때마다 재인증 팝업이 뜹니다</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\">내보내서 실험: 로그인 → 화면 2 진입 → OTP 팝업 → <code>000000</code> 입력 = 팝업만 닫힘 / 아무 값 3회 = 로그인 화면으로. 정의서를 뽑으면 이 조건들이 동작 정의에 그대로 표로 나옵니다</div></div>\n\n<h2 id=\"g10\">가이드 J. 파일 보관함 — 시나리오 3상태 전환 (예시 ⑰)</h2>\n<p>같은 화면이 <b>파일 있음 / 비어 있음 / 불러오는 중</b> 세 얼굴을 갖는, 상태별 화면 정의의 표준 패턴입니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">시나리오 라벨 <b>데이터 상태</b>, 목록 <code>파일 있음</code> / <code>비어 있음</code> / <code>불러오는 중</code> (첫 줄이 기본)</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">앱 셸 화면에 검색 바(조건 무관, 항상 표시) → <b>테이블</b>(파일 목록) [표시 조건] = <b>파일 있음</b> → <b>상태 카드 (빈 상태)</b> [표시 조건] = <b>비어 있음</b> → <b>상태 카드 (로딩)</b> [표시 조건] = <b>불러오는 중</b> → 파일 업로드(항상 표시)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">요령: <b>\"항상 보이는 것\"과 \"상태마다 바뀌는 것\"을 먼저 나누고</b>, 바뀌는 블록에만 조건을 답니다. 캔버스 상태 필터로 세 상태를 눌러가며 각 상태의 완성 모습을 검수하세요</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\">내보내면 우상단 [데이터 상태] 스위치로 검토자가 직접 전환해봅니다 — 기획 리뷰에서 \"빈 화면은 어떻게 되나요?\"라는 질문에 클릭 한 번으로 답하는 구성입니다</div></div>\n\n<h2 id=\"g11\">가이드 K. 멤버 초대 — 토글 권한·모달→토스트→이동 (예시 ⑱)</h2>\n<p>폼 + 권한 토글 + 3단 체인. <b>배지 리스트의 색 지정 문법</b>까지 한 번에.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\"><b>화면 1</b>: 폼 그룹(<code>*이메일|example@company.com|email</code> / 이름 선택) → <b>선택 입력 토글</b>:\n<pre>*주문 조회|주문 목록과 상세를 볼 수 있습니다\n상품 관리|상품 등록·수정·삭제\n정산 조회|정산 내역과 세금계산서</pre>\n<code>*</code> = 기본 켜짐, <code>|</code> 뒤는 권한 설명</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">체인(앞 방향): [초대하기] 버튼([동작]=모달 열기 → <b>＋ 새 모달</b>) → 모달(링크 유효기간 안내, [확인 동작]=토스트 → <b>＋ 새 토스트</b>) → 토스트(\"초대 메일을 보냈습니다\", [사라진 후] = <b>다음 화면</b>)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\"><b>화면 2</b>: 완료 카드 + <b>상태 배지 리스트</b> — 색 지정과 자동 판정을 섞어서:\n<pre>example@company.com|방금 발송|대기\nkim.dev@company.com|08.02 발송|수락:green\nlee.pm@company.com|07.30 발송|만료:gray</pre>\n\"대기\"는 키워드 자동(호박), <code>:green</code>/<code>:gray</code>는 직접 지정. [추가 초대] = 특정 화면 → 01로 순환</div></div>\n\n<h2 id=\"g12\">가이드 L. 재고 입고 — 입력 필드 모달 (예시 ㉑)</h2>\n<p>모달에 <b>입력창을 넣는</b> 유일한 속성, [입력 필드 플레이스홀더] 사용법입니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">앱 셸 화면: 통계 카드(전체 SKU/품절 임박/품절) → 검색 바 → 테이블(재고 목록, <code>---</code> 페이지) → 페이지네이션</div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\">토스트(\"입고가 등록되었습니다\") → <b>모달</b>: 제목 \"입고 등록\", <b>[입력 필드 플레이스홀더]에 \"입고 수량 (숫자만)\"</b> 입력 — 이 속성을 채우는 순간 확인 모달이 입력 모달로 바뀝니다. 확인 동작 = 토스트</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">[입고 등록] 버튼 = 모달 열기. 내보내서 열면: 버튼 → 수량 입력창 모달 → 등록 → 토스트. 반려 사유(가이드 H)·답글 작성(예시 ㉔)처럼 <b>\"짧은 값 하나 받는\" 자리엔 전부 이 패턴</b>을 쓰면 됩니다</div></div>\n\n<h2 id=\"g13\">가이드 M. 서비스 점검 — 조건부 진입 팝업·화면 전환 (예시 ㉗)</h2>\n<p>화면 [진입 동작]에 <b>시나리오 조건</b>을 걸어 \"점검 중일 때만 자동 팝업\"을 만들고, 본문도 통째로 갈아끼웁니다.</p>\n<div class=\"step\"><span class=\"step-n\">1</span><div class=\"step-body\">시나리오 <code>정상</code> / <code>점검 중</code>. 정상용 블록(통계·구성 요소 상태 테이블)에 [표시 조건] = <b>정상</b>, 점검용 블록(<b>커스텀 HTML 점검 패널</b> + 점검 로그 타임라인)에 [표시 조건] = <b>점검 중</b></div></div>\n<div class=\"step\"><span class=\"step-n\">2</span><div class=\"step-body\"><b>모달</b> 추가(\"서비스 점검 중입니다\", 확인 = <b>닫기</b>, 취소 버튼 문구는 비워 확인 단일 버튼으로)</div></div>\n<div class=\"step\"><span class=\"step-n\">3</span><div class=\"step-body\">화면 속성 → [진입 동작] = 모달 자동 열기 → 위 모달 선택 → <b>[진입 조건 시나리오] = 점검 중</b>. 정상 상태에선 아무 일 없고, 점검 중 상태로 이 화면에 들어오면 팝업부터 뜹니다</div></div>\n<div class=\"step\"><span class=\"step-n\">4</span><div class=\"step-body\">내보내서 스위치를 [점검 중]으로 → 팝업 확인 → 닫으면 점검 패널 화면. 공지 팝업, 필수 업데이트 안내, 권한 없음 경고 등 <b>\"들어오자마자 조건부로 알려야 하는 것\"에 두루 쓰는 패턴</b>입니다</div></div>\n\n<div class=\"tip\">💡 <b>더 배우기</b>: 예시 30종이 곧 패턴 사전입니다 — 입력 모달(㉑), 결재 타임라인(㉓), 상태 3전환(⑰), 진입 팝업(㉗), 코드 블록 커스텀 HTML(㉙), 세션 만료 왕복(⑩). 원하는 패턴의 예시를 불러와 블록을 하나씩 클릭해 보는 게 가장 빠른 학습법입니다.</div>\n\n</div>\n<script>\n/* srcdoc(도구 내 팝업)에서도 목차 앵커가 동작하도록 스크롤로 처리 */\ndocument.addEventListener('click', function(e){\n  var a = e.target.closest('a[href^=\"#\"]');\n  if (!a) return;\n  var t = document.querySelector(a.getAttribute('href'));\n  if (t){ e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }\n});\n<\/script>\n</body>\n</html>";
+/* ============================================================
+   텍스트로 구성 — 자연어 흐름 설명 → 화면 자동 생성
+   - 완전 오프라인 규칙 기반: 키워드로 화면 종류를 인식하고,
+     "성공하면/실패하면 ○○" 패턴을 시나리오 분기로 변환.
+   ============================================================ */
+const GEN_KINDS = [
+  { re: /로그인/,                     kind: 'login',     icon: '🔑', name: '로그인' },
+  { re: /대시보드|어드민|관리자/,      kind: 'dashboard', icon: '📊', name: '대시보드' },
+  { re: /실패|오류|에러/,             kind: 'error',     icon: '⚠️', name: '실패' },
+  { re: /약관|동의/,                  kind: 'consent',   icon: '📋', name: '약관 동의' },
+  { re: /결제|주문/,                  kind: 'payment',   icon: '💳', name: '결제 확인' },
+  { re: /본인\s*인증|인증\s*번호|OTP/i, kind: 'verify',  icon: '🪪', name: '본인인증' },
+  { re: /완료|성공/,                  kind: 'done',      icon: '✅', name: '완료' },
+  { re: /회원\s*가입|가입/,           kind: 'form',      icon: '📝', name: '회원가입' },
+  { re: /입력|폼|등록|신청|작성/,      kind: 'form',      icon: '📝', name: '정보 입력' },
+  { re: /상세/,                       kind: 'detail',    icon: '🔎', name: '상세' },
+  { re: /목록|리스트/,                kind: 'listing',   icon: '📄', name: '목록' },
+];
+const GEN_COND_RE = /(.*?)(성공|실패|오류|에러|완료|취소|거절|반려|승인)\s*(?:하면|되면|이면|일\s?때|인\s?경우|하는\s?경우|시(?:엔|에는)?)\s*(.*)/;
+/* 자연어 입력 예시 — 내장 '예시 불러오기' 구성을 문장으로 옮긴 것.
+   exRef가 있는 예시는 텍스트가 그대로 입력되면 내장 예시 데이터를 그대로 가져와
+   결과가 100% 동일하게 생성된다. 텍스트를 수정하면 규칙 기반 생성으로 전환. */
+const GEN_EXAMPLES = [
+  { name: '로그인 — 성공/실패 분기',
+    text: '로그인 화면. 로그인 성공하면 대시보드, 실패하면 실패 화면' },
+  { name: 'SMS 사용 등록 (3화면)', exRef: 'ex1',
+    text: '문자 발송 약관 동의 → 본인인증 → SMS 등록 완료' },
+  { name: '회원가입 (4단계)', exRef: 'ex4',
+    text: '회원가입 약관 동의 → 정보 입력 → 본인인증 → 가입 완료' },
+  { name: '비밀번호 재설정', exRef: 'ex5',
+    text: '비밀번호 본인 확인 입력 → 새 비밀번호 입력 → 변경 완료' },
+  { name: '주문 결제 — 결과 분기', exRef: 'ex7',
+    text: '주문 확인 → 결제. 결제 성공하면 결제 완료' },
+  { name: '백오피스 권한 승인', exRef: 'ex8',
+    text: '권한 요청 상세에서 승인 또는 반려 처리' },
+  { name: '계정 탈퇴', exRef: 'ex6',
+    text: '탈퇴 약관 동의 → 탈퇴 완료' },
+  { name: '자동 로그인 — 인증 팝업', exRef: 'ex3',
+    text: '메인 화면에서 자동 로그인. 인증번호 확인 팝업 표시' },
+];
+function genNorm(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
+/* 입력 텍스트가 exRef 예시 문장과 일치하면 해당 내장 예시 반환 */
+function genExampleMatch(text){
+  const n = genNorm(text);
+  const hit = GEN_EXAMPLES.find(x => x.exRef && genNorm(x.text) === n);
+  return hit ? { key: hit.exRef, ex: EXAMPLES[hit.exRef] } : null;
+}
+/* 내장 예시를 현재 상태에 append — 화면·블록 id를 새로 발급하고 참조(…Ref) 재연결 */
+function genImportExample(ex){
+  const clone = JSON.parse(JSON.stringify(ex));
+  const idMap = {};
+  clone.screens.forEach(sc => {
+    const ns = 's' + Date.now().toString(36) + '_' + (++uid);
+    idMap[sc.id] = ns; sc.id = ns;
+    sc.blocks.forEach(b => { const nb = nid(); idMap[b.id] = nb; b.id = nb; });
+  });
+  clone.screens.forEach(sc => sc.blocks.forEach(b => {
+    Object.keys(b.props || {}).forEach(k => {
+      if (/Ref$/.test(k) && idMap[b.props[k]]) b.props[k] = idMap[b.props[k]];
+    });
+  }));
+  return clone;
+}
+
+function genCleanName(s){
+  return s.replace(/(이|가)?\s*(떠|뜸|뜨기|나옴|나오기|나와|출력|표시|노출)\.?$/,'')
+          .replace(/(으로|로)\s*(이동|넘어감|넘어가기)?\.?$/,'')
+          .replace(/(을|를)\s*(표시|노출|보여줌|보여주기|띄움|띄우기|띄워)\.?$/,'')
+          .trim()
+          .replace(/(화면|페이지)$/,'').trim();
+}
+function genDetect(frag){
+  for (const k of GEN_KINDS) if (k.re.test(frag)) return k;
+  return null;
+}
+function genItemOf(frag, cond){
+  let k = genDetect(frag);
+  const clean = genCleanName(frag);
+  /* "결제 완료", "처리 완료"처럼 '완료'로 끝나면 항상 완료 화면
+     (앞 단어의 결제/주문 등 키워드보다 우선) */
+  if (/(완료|성공)$/.test(clean)) k = GEN_KINDS.find(g => g.kind === 'done');
+  const name = (clean && clean.length <= 14) ? clean : (k ? k.name : (frag.slice(0, 14) || '화면'));
+  return { frag, cond: cond || null, kind: k ? k.kind : 'custom', icon: k ? k.icon : '🗂', name };
+}
+/* 텍스트 → 생성 계획 (화면 목록 + 분기 정보) */
+function genParse(text){
+  const frags = String(text || '')
+    .split(/\n|→|->|\./).flatMap(s => s.split(/,|、/))
+    .map(s => s.trim()).filter(Boolean);
+  const plan = [];
+  let lastSrc = -1;                 // 마지막 '조건 없는' 화면 = 분기 출발점
+  frags.forEach(frag => {
+    const m = frag.match(GEN_COND_RE);
+    if (m && m[3] && m[3].trim()){
+      const pre = m[1].replace(/(하고|한\s?뒤|한\s?후|후에?|다음에?)\s*$/,'').trim();
+      const preKind = pre ? genDetect(pre) : null;
+      /* "로그인하고 실패하면 …" — 앞부분이 화면이면 먼저 생성.
+         단, 직전 화면과 같은 종류면 중복 생성하지 않고 그 화면을 분기 출발점으로 사용
+         ("로그인 화면. 로그인 성공하면 …" 케이스). */
+      if (preKind && !(lastSrc >= 0 && plan[lastSrc].kind === preKind.kind)){
+        plan.push(genItemOf(pre, null));
+        lastSrc = plan.length - 1;
+      }
+      const condWord = /실패|오류|에러/.test(m[2]) ? '실패'
+                     : /성공|완료/.test(m[2]) ? '성공' : m[2];
+      const it = genItemOf(m[3].trim(), condWord);
+      it.srcIndex = lastSrc;
+      plan.push(it);
+    } else {
+      plan.push(genItemOf(frag, null));
+      lastSrc = plan.length - 1;
+    }
+  });
+  return plan;
+}
+/* 도메인 콘텐츠 프리셋 — 입력 텍스트에서 도메인을 감지하면
+   내장 예시(ex①④⑤⑥⑦⑧)의 실제 콘텐츠로 화면 내용을 채운다.
+   kinds[kind] = { desc: 페이지 헤드 설명, blocks: it => [본문 블록…] } */
+const GEN_PRESETS = [
+  { key: 'sms', name: 'SMS 사용 등록', re: /SMS|문자/i, title: 'SMS 사용 등록', kinds: {
+    consent: { desc: '문자 발송 서비스 이용을 위한 등록 절차입니다.', blocks: () => [
+      mkBlock('consentCard', { title: '약관 동의', intro: 'SMS 사용 등록을 위해 아래 약관 동의가 필요합니다.',
+        items: '[필수] 개인정보 수집·이용 동의\n  수집항목: 휴대폰 번호, 이름, 생년월일\n  수집목적: SMS 인증 로그인 및 본인 확인\n  보유기간: SMS 사용 등록 삭제 시까지\n[필수] SMS 인증 로그인 이용약관 동의\n  - 인증번호는 발송 후 3분간 유효합니다.' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '', action: 'next', requireConsent: 'yes' })] },
+    verify: { desc: '휴대폰 본인인증으로 SMS 수신 번호를 확인합니다.', blocks: () => [
+      mkBlock('verifyCard', { title: '본인인증', text: 'SMS 수신·로그인에 사용할 휴대폰 번호 확인을 위해\n본인인증이 필요합니다.', button: '본인인증 시작' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] },
+    done: { desc: '등록 결과를 확인하세요.', blocks: () => [
+      mkBlock('doneCard', { title: 'SMS 사용 등록이 완료되었습니다', desc: '이제 SMS 인증으로 안전하게 로그인할 수 있습니다.' }),
+      mkBlock('fieldCard', { title: '등록 정보', rows: '아이디|kimstore01\n인증 휴대폰|010-••••-5821\n등록일시|2026.07.29 14:32' }),
+      mkBlock('note', { text: '발신번호는 위 인증된 휴대폰 번호로만 추가 등록할 수 있습니다.', tone: 'blue' })] },
+  } },
+  { key: 'withdraw', name: '계정 탈퇴', re: /탈퇴/, title: '계정 탈퇴', kinds: {
+    consent: { desc: '탈퇴 전 아래 내용을 꼭 확인해주세요.', blocks: () => [
+      mkBlock('note', { text: '탈퇴 즉시 모든 서비스 이용이 중단되며, 소멸된 포인트·쿠폰은 복구되지 않습니다.', tone: 'red' }),
+      mkBlock('fieldCard', { title: '탈퇴 대상 계정', rows: '아이디|kimstore01\n가입일|2023.02.14\n보유 포인트|12,400P\n보유 쿠폰|3장' }),
+      mkBlock('consentCard', { title: '탈퇴 유의사항 동의', intro: '아래 항목을 모두 확인하고 동의해야 탈퇴할 수 있습니다.',
+        items: '[필수] 포인트·쿠폰 소멸에 동의합니다\n  소멸 대상: 보유 포인트 12,400P, 쿠폰 3장\n  ! 소멸된 혜택은 재가입해도 복구되지 않습니다.\n[필수] 30일간 재가입 제한에 동의합니다' }),
+      mkBlock('buttonRow', { primary: '탈퇴 진행', secondary: '', action: 'next', tone: 'danger', requireConsent: 'yes' })] },
+    verify: { desc: '본인 확인 후 탈퇴가 진행됩니다.', blocks: () => [
+      mkBlock('verifyCard', { title: '본인인증', text: '계정 소유자 확인을 위해\n휴대폰 본인인증이 필요합니다.', button: '본인인증 시작' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] },
+    done: { desc: '탈퇴 처리가 끝났습니다.', blocks: () => [
+      mkBlock('doneCard', { title: '탈퇴가 완료되었습니다', desc: '그동안 이용해주셔서 감사합니다.' }),
+      mkBlock('note', { text: '30일 이내에 고객센터를 통해 탈퇴 철회를 요청할 수 있습니다.', tone: 'blue' })] },
+  } },
+  { key: 'pwreset', name: '비밀번호 재설정', re: /비밀번호/, title: '비밀번호 재설정', kinds: {
+    form: { desc: '', blocks: it => /새\s?비밀번호/.test(it.name)
+      ? [ mkBlock('inputCard', { title: '새 비밀번호', label: '새 비밀번호', placeholder: '영문·숫자·특수문자 조합 8자 이상', button: '', timer: '' }),
+          mkBlock('inputCard', { title: '', label: '새 비밀번호 확인', placeholder: '한 번 더 입력하세요', button: '', timer: '' }),
+          mkBlock('note', { text: '이전에 사용한 비밀번호는 다시 사용할 수 없습니다.', tone: 'amber' }),
+          mkBlock('buttonRow', { primary: '변경하기', secondary: '이전', action: 'next' }) ]
+      : [ mkBlock('inputCard', { title: '계정 확인', label: '아이디', placeholder: '가입한 아이디를 입력하세요', button: '', timer: '' }),
+          mkBlock('inputCard', { title: '', label: '휴대폰 번호', placeholder: '숫자만 입력 (예: 01012345678)', button: '인증번호 받기', timer: '' }),
+          mkBlock('otpBlock', { label: '전송된 인증번호 6자리를 입력해주세요.', placeholder: '인증번호', buttonText: '재전송', timer: '인증번호는 |03:00| 동안만 유효합니다.', visible: 'always' }),
+          mkBlock('buttonRow', { primary: '인증 확인', secondary: '', action: 'next' }) ] },
+    done: { desc: '', blocks: () => [
+      mkBlock('doneCard', { title: '비밀번호가 변경되었습니다', desc: '새 비밀번호로 다시 로그인해주세요.' }),
+      mkBlock('note', { text: '본인이 변경한 것이 아니라면 고객센터(1544-0000)로 즉시 연락해주세요.', tone: 'red' })] },
+  } },
+  { key: 'approve', name: '승인 처리', re: /승인|반려|권한/, title: '권한 요청 승인', kinds: {
+    detail: { desc: '', blocks: () => [
+      mkBlock('note', { text: '처리 대기 중인 권한 요청 1건이 있습니다.', tone: 'amber' }),
+      mkBlock('fieldCard', { title: '요청 정보', rows: '요청자|박대리 (sales02)\n소속|영업1팀\n요청 권한|정산 조회\n요청 사유|월말 정산 보고서 작성을 위해 조회 권한이 필요합니다.\n요청 일시|2026.08.04 09:41' }),
+      mkBlock('fieldCard', { title: '요청자 현재 권한', rows: '주문 조회|보유\n상품 관리|보유\n정산 조회|미보유' }),
+      mkBlock('buttonRow', { primary: '처리', secondary: '', action: 'next' })] },
+    done: { desc: '', blocks: () => [
+      mkBlock('doneCard', { title: '처리가 완료되었습니다', desc: '요청자에게 결과 알림이 발송되었습니다.' }),
+      mkBlock('fieldCard', { title: '처리 내역', rows: '요청 권한|정산 조회\n처리 결과|승인\n처리 일시|2026.08.04 10:05' })] },
+  } },
+  { key: 'order', name: '주문 결제', re: /결제|주문/, title: '주문 결제', kinds: {
+    payment: { desc: '주문 내용을 확인하고 결제를 진행하세요.', blocks: () => [
+      mkBlock('fieldCard', { title: '주문 내역', rows: '상품|무선 바코드 스캐너 BS-200\n수량|2개\n상품 금액|178,000원\n배송비|무료\n결제 금액|178,000원' }),
+      mkBlock('fieldCard', { title: '배송지', rows: '받는 분|김상점\n연락처|010-••••-5821\n주소|서울시 강남구 테헤란로 123, 5층' }),
+      mkBlock('fieldCard', { title: '결제 수단', rows: '카드|현대카드 (••••-3342)\n할부|일시불' }),
+      mkBlock('buttonRow', { primary: '결제하기', secondary: '', action: 'next' })] },
+    done: { desc: '결제가 끝났습니다.', blocks: () => [
+      mkBlock('doneCard', { title: '결제가 완료되었습니다', desc: '주문하신 상품은 1~2일 내 출고됩니다.' }),
+      mkBlock('fieldCard', { title: '승인 내역', rows: '주문번호|ORD-20260804-0917\n승인 금액|178,000원\n승인 일시|2026.08.04 10:32\n승인 번호|88213304' }),
+      mkBlock('note', { text: '주문 상세와 배송 조회는 마이페이지 > 주문 내역에서 확인할 수 있습니다.', tone: 'blue' })] },
+  } },
+  { key: 'signup', name: '회원가입', re: /회원\s?가입|가입/, title: '회원가입', kinds: {
+    consent: { desc: '서비스 이용을 위한 계정을 만듭니다.', blocks: () => [
+      mkBlock('consentCard', { title: '약관 동의', intro: '회원가입을 위해 아래 약관 동의가 필요합니다.',
+        items: '[필수] 서비스 이용약관 동의\n  - 만 14세 이상만 가입할 수 있습니다.\n  - 계정은 본인만 사용해야 하며 양도할 수 없습니다.\n[필수] 개인정보 수집·이용 동의\n  수집항목: 이름, 휴대폰 번호, 이메일\n  수집목적: 회원 식별 및 서비스 제공' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '', action: 'next', requireConsent: 'yes' })] },
+    form: { desc: '로그인에 사용할 계정 정보를 입력하세요.', blocks: () => [
+      mkBlock('inputCard', { title: '아이디', label: '아이디', placeholder: '영문·숫자 6~20자', button: '중복 확인', timer: '' }),
+      mkBlock('inputCard', { title: '비밀번호', label: '비밀번호', placeholder: '영문·숫자·특수문자 조합 8자 이상', button: '', timer: '비밀번호는 90일마다 변경을 권장합니다.' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] },
+    verify: { desc: '휴대폰 본인인증으로 실명 확인을 진행합니다.', blocks: () => [
+      mkBlock('verifyCard', { title: '본인인증', text: '가입자 확인을 위해\n휴대폰 본인인증이 필요합니다.', button: '본인인증 시작' }),
+      mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] },
+    done: { desc: '가입이 끝났습니다.', blocks: () => [
+      mkBlock('doneCard', { title: '회원가입이 완료되었습니다', desc: '지금 바로 로그인하여 서비스를 이용할 수 있습니다.' }),
+      mkBlock('fieldCard', { title: '가입 정보', rows: '아이디|newuser01\n가입일시|2026.08.04 10:20\n인증 휴대폰|010-••••-3342' }),
+      mkBlock('note', { text: '가입 축하 쿠폰이 마이페이지에 지급되었습니다.', tone: 'blue' })] },
+  } },
+];
+function genPresetOf(text){
+  return GEN_PRESETS.find(p => p.re.test(String(text || ''))) || null;
+}
+
+function genBuildScreen(it, preset){
+  /* 도메인 프리셋이 이 화면 종류의 콘텐츠를 제공하면 그 내용으로 구성
+     (페이지 헤드 제목은 흐름 제목, 설명은 프리셋 문구 — 내장 예시와 동일한 톤) */
+  const pk = preset && preset.kinds[it.kind];
+  if (pk){
+    return { name: it.name, blocks: [
+      mkBlock('pageHead', { title: preset.title, desc: pk.desc || '' }),
+      ...pk.blocks(it) ] };
+  }
+  if (it.kind === 'error'){
+    return { name: it.name, blocks: [
+      mkBlock('pageHead',  { title: it.name, desc: '요청을 처리하지 못했습니다.' }),
+      mkBlock('stateCard', { kind: 'error', title: '처리에 실패했습니다',
+        desc: '잠시 후 다시 시도해주세요.', button: '다시 시도', buttonAction: 'prev' })] };
+  }
+  if (it.kind === 'verify'){
+    return { name: it.name, blocks: [
+      mkBlock('pageHead', { title: it.name, desc: '본인 확인이 필요합니다.' }),
+      mkBlock('verifyCard'),
+      mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] };
+  }
+  const tpl = SCREEN_TEMPLATES.find(t => t.key === it.kind);
+  if (tpl){
+    const sc = tpl.build();
+    sc.name = it.name;
+    /* 내장 예시와 톤을 맞추기 — 페이지 헤드 제목을 파싱된 화면 이름으로 동기화 */
+    const ph = sc.blocks.find(b => b.type === 'pageHead');
+    if (ph) ph.props.title = it.name;
+    return sc;
+  }
+  return { name: it.name, blocks: [
+    mkBlock('pageHead', { title: it.name, desc: '' }),
+    mkBlock('buttonRow', { primary: '다음', secondary: '이전', action: 'next' })] };
+}
+function genPreview(){
+  const text = document.getElementById('gen-text').value;
+  const box = document.getElementById('gen-plan');
+  /* 내장 예시와 일치 — 실제 예시 화면 목록을 그대로 미리보기 */
+  const match = genExampleMatch(text);
+  if (match){
+    document.getElementById('gen-apply').disabled = false;
+    box.innerHTML = `
+      <div class="gen-plan-item" style="border-color:var(--ed-blue);">
+        <span class="gi">🎯</span>
+        <div><div class="gn">내장 예시와 동일 생성</div>
+        <div class="gd">[${esc(match.ex.title)}] 예시가 그대로 만들어집니다</div></div>
+        <span class="gcond">동일</span>
+      </div>` + match.ex.screens.map(sc => `
+      <div class="gen-plan-item">
+        <span class="gi">🖥</span>
+        <div><div class="gn">${esc(sc.name)}</div>
+        <div class="gd">블록 ${sc.blocks.length}개</div></div>
+      </div>`).join('') + (match.ex.scenarios && match.ex.scenarios.length ? `
+      <div class="gen-plan-item">
+        <span class="gi">🔀</span>
+        <div><div class="gn">${esc(match.ex.scenarioLabel || '시나리오')}</div>
+        <div class="gd">${esc(match.ex.scenarios.join(' · '))}</div></div>
+      </div>` : '');
+    return;
+  }
+  const plan = genParse(text);
+  document.getElementById('gen-apply').disabled = !plan.length;
+  if (!plan.length){ box.innerHTML = '<div class="gen-empty">왼쪽에 흐름을 입력하세요</div>'; return; }
+  const preset = genPresetOf(text);
+  box.innerHTML = (preset ? `
+    <div class="gen-plan-item" style="border-color:var(--ed-blue);">
+      <span class="gi">🎁</span>
+      <div><div class="gn">${esc(preset.name)} 콘텐츠</div>
+      <div class="gd">약관·필드·문구를 도메인 내용으로 채웁니다</div></div>
+      <span class="gcond">프리셋</span>
+    </div>` : '') + plan.map(it => `
+    <div class="gen-plan-item">
+      <span class="gi">${it.icon}</span>
+      <div><div class="gn">${esc(it.name)}</div>
+      <div class="gd">${it.cond && it.srcIndex >= 0 ? esc(plan[it.srcIndex].name) + ' 화면에서 분기' : '순차 흐름'}</div></div>
+      ${it.cond ? `<span class="gcond">${esc(it.cond)}</span>` : ''}
+    </div>`).join('');
+}
+function genExample(i){
+  const ex = GEN_EXAMPLES[i];
+  if (!ex) return;
+  document.getElementById('gen-text').value = ex.text;
+  genPreview();
+}
+function applyGen(){
+  const text = document.getElementById('gen-text').value;
+  const keep = document.getElementById('gen-keep').checked;
+  /* 교체 모드(기본): 예시 불러오기와 동일하게 문서 전체를 새로 구성.
+     기존 화면·시나리오와 섞이지 않아 미리보기/데모 분기가 예시와 동일하게 작동한다. */
+  if (!keep && state.screens.length &&
+      !confirm('현재 구성을 생성 결과로 교체할까요? 저장하지 않은 내용은 사라집니다.\n(기존 화면을 유지하려면 취소 후 "기존 화면 유지" 옵션을 켜세요)')) return;
+  /* 자연어 예시 문장이 그대로면 내장 예시를 그대로 가져와 결과를 100% 동일하게 */
+  const match = genExampleMatch(text);
+  if (match){
+    pushHistory();
+    if (!keep){
+      /* loadExample과 동일 경로 — 문서 교체라 id 재발급 불필요 */
+      state = JSON.parse(JSON.stringify(EXAMPLES[match.key]));
+      if (!state.vars || typeof state.vars !== 'object') state.vars = {};
+      state.theme = Object.assign({}, THEME_DEFAULTS, state.theme || {});
+      state.exportOpts = Object.assign({}, EXPORT_OPT_DEFAULTS, state.exportOpts || {});
+      currentScreen = 0;
+    } else {
+      const firstNew = state.screens.length;
+      const imp = genImportExample(match.ex);
+      state.screens.push(...imp.screens);
+      if (imp.scenarios && imp.scenarios.length){
+        if (!state.scenarios.length && imp.scenarioLabel) state.scenarioLabel = imp.scenarioLabel;
+        imp.scenarios.forEach(s => { if (!state.scenarios.includes(s)) state.scenarios.push(s); });
+      }
+      if (!state.title || state.title === '새 화면 설계') state.title = imp.title || state.title;
+      currentScreen = firstNew;
+    }
+    selectedBlock = null;
+    closeGen();
+    syncTopInputs();
+    render();
+    edNotice(`텍스트 구성 완료 — 내장 예시 [${match.ex.title}]와 동일하게 화면 ${match.ex.screens.length}개 생성${keep ? ' (기존 화면 뒤에 추가)' : ''}`);
+    return;
+  }
+  const plan = genParse(text);
+  if (!plan.length) return;
+  pushHistory();
+  const preset = genPresetOf(text);
+  if (!keep){
+    state = { title: preset ? preset.title : '새 화면 설계', scenarioLabel: '시나리오',
+      scenarios: [], screens: [], vars: {},
+      theme: Object.assign({}, THEME_DEFAULTS),
+      exportOpts: Object.assign({}, EXPORT_OPT_DEFAULTS) };
+  }
+  const firstNew = state.screens.length;
+  /* 1) 화면 생성 */
+  plan.forEach((it, i) => {
+    const sc = genBuildScreen(it, preset);
+    sc.id = 's' + Date.now().toString(36) + '_' + (++uid);
+    it.screenId = sc.id;
+    state.screens.push(sc);
+  });
+  /* 2) 순차 단계 흐름(3화면 이상)이면 내장 예시처럼 스테퍼 자동 구성
+        — 단계명은 실제 화면 이름, 현재 단계는 위치에 따라 자동 표시 */
+  const STEP_KINDS = ['consent', 'form', 'verify', 'done', 'custom'];
+  let stepRun = [];
+  const flushStepRun = () => {
+    if (stepRun.length >= 2){
+      const names = stepRun.map(pi => plan[pi].name);
+      stepRun.forEach((pi, idx) => {
+        const sc = state.screens[firstNew + pi];
+        const props = { steps: names.join('\n'), current: String(idx + 1) };
+        const si = sc.blocks.findIndex(b => b.type === 'stepper');
+        if (si >= 0) Object.assign(sc.blocks[si].props, props);
+        else {
+          const at = sc.blocks.findIndex(b => b.type === 'pageHead');
+          sc.blocks.splice(at >= 0 ? at + 1 : 0, 0, { id: nid(), type: 'stepper',
+            props: Object.assign(JSON.parse(JSON.stringify(COMPONENTS.stepper.defaults)), props) });
+        }
+      });
+    }
+    stepRun = [];
+  };
+  plan.forEach((it, i) => {
+    if (!it.cond && STEP_KINDS.includes(it.kind)) stepRun.push(i);
+    else flushStepRun();
+  });
+  flushStepRun();
+  /* 3) 분기 → 시나리오 + 화면별 이동 버튼 (_scn 복제) */
+  const branches = {};   // srcIndex → [{cond, screenId}]
+  plan.forEach(it => {
+    if (it.cond && it.srcIndex >= 0)
+      (branches[it.srcIndex] = branches[it.srcIndex] || []).push(it);
+  });
+  let scenariosAdded = false;
+  Object.keys(branches).forEach(srcIdx => {
+    const src = state.screens[firstNew + Number(srcIdx)];
+    const conds = branches[srcIdx];
+    /* 시나리오 등록 */
+    if (!state.scenarios.length) state.scenarioLabel = '결과';
+    conds.forEach(c => {
+      if (!state.scenarios.includes(c.cond)){ state.scenarios.push(c.cond); scenariosAdded = true; }
+    });
+    /* 출발 화면의 이동 담당 블록(loginForm/buttonRow) 탐색 — 없으면 buttonRow 추가 */
+    let navIdx = -1;
+    for (let i = src.blocks.length - 1; i >= 0; i--)
+      if (['loginForm', 'buttonRow'].includes(src.blocks[i].type)){ navIdx = i; break; }
+    if (navIdx < 0){
+      src.blocks.push({ id: nid(), type: 'buttonRow',
+        props: JSON.parse(JSON.stringify(COMPONENTS.buttonRow.defaults)) });
+      navIdx = src.blocks.length - 1;
+    }
+    const orig = src.blocks[navIdx];
+    /* 시나리오별로 복제해 각각 다른 화면으로 이동 */
+    const clones = conds.map(c => {
+      const b = JSON.parse(JSON.stringify(orig));
+      b.id = nid();
+      b.props._scn = c.cond;
+      b.props.action = 'go';
+      b.props.goRef = c.screenId;
+      if (b.type === 'loginForm'){ b.props.otpRef = ''; b.props.modalRef = ''; }
+      /* 승인/반려/거절/취소 분기는 버튼 자체가 행위 — 라벨·톤을 조건명에 맞춤 */
+      if (b.type === 'buttonRow' && ['승인', '반려', '거절', '취소'].includes(c.cond)){
+        b.props.primary = c.cond;
+        b.props.tone = c.cond === '승인' ? 'primary' : 'danger';
+        b.props.secondary = '';
+      }
+      return b;
+    });
+    src.blocks.splice(navIdx, 1, ...clones);
+  });
+  currentScreen = firstNew;
+  selectedBlock = null;
+  closeGen();
+  syncTopInputs();
+  render();
+  edNotice(`텍스트 구성 완료 — 화면 ${plan.length}개 생성${preset ? ` · [${preset.name}] 콘텐츠 프리셋 적용` : ''}${scenariosAdded ? ' · 시나리오 분기 적용 (데모 스위치로 전환)' : ''}`);
+}
+function openGen(){
+  const sel = document.getElementById('gen-example-select');
+  if (sel.options.length <= 1)
+    GEN_EXAMPLES.forEach((ex, i) => sel.add(new Option(`${i + 1}. ${ex.name}`, String(i))));
+  document.getElementById('gen-overlay').classList.add('open');
+  genPreview();
+  document.getElementById('gen-text').focus();
+}
+function closeGen(){
+  document.getElementById('gen-overlay').classList.remove('open');
+}
+
 function openHelp(){
   const frame = document.getElementById('help-frame');
   if (!frame.srcdoc) frame.srcdoc = MANUAL_HTML;   // 최초 1회만 로드

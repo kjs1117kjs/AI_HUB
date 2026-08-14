@@ -57,6 +57,10 @@ input::placeholder{color:var(--ink-4);font-weight:500}
 .tool-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tool-note{font-size:12px;color:var(--ink-4);font-weight:600;margin-top:10px}
 .hidden{display:none!important}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:56px}
+.pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:inherit;font-size:12px;font-weight:700;color:var(--ink-4);background:transparent;border:none;cursor:pointer;padding:6px 8px;border-radius:6px}
+.pw-eye:hover{color:var(--ink);background:var(--accent-soft)}
 .notice{background:var(--accent-soft);border-radius:10px;padding:14px 16px;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:16px}
 .notice b{color:var(--accent)}
 @media(max-width:480px){
@@ -88,7 +92,10 @@ input::placeholder{color:var(--ink-4);font-weight:500}
         </div>
         <div>
           <label class="label" for="fPw">비밀번호</label>
-          <input type="text" id="fPw" placeholder="비밀번호" autocomplete="off">
+          <div class="pw-wrap">
+            <input type="password" id="fPw" placeholder="비밀번호" autocomplete="new-password" spellcheck="false">
+            <button type="button" class="pw-eye" data-for="fPw" aria-label="비밀번호 표시">보기</button>
+          </div>
         </div>
       </div>
       <div>
@@ -135,7 +142,10 @@ input::placeholder{color:var(--ink-4);font-weight:500}
       </div>
       <div>
         <label class="label" for="encPw">페이지 비밀번호</label>
-        <input type="text" id="encPw" placeholder="이 페이지를 열 때 필요한 비밀번호" autocomplete="off">
+        <div class="pw-wrap">
+          <input type="password" id="encPw" placeholder="이 페이지를 열 때 필요한 비밀번호" autocomplete="new-password" spellcheck="false">
+          <button type="button" class="pw-eye" data-for="encPw" aria-label="비밀번호 표시">보기</button>
+        </div>
         <div class="field-note">보통 이 페이지를 등록할 링크 번호의 비밀번호와 같게 설정합니다 — 받는 사람이 비밀번호 하나만 기억하면 됩니다.</div>
       </div>
       <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">
@@ -163,6 +173,28 @@ input::placeholder{color:var(--ink-4);font-weight:500}
       </div>
       <div class="msg" id="encImgMsg"></div>
     </div>
+  </div>
+
+  <div class="card">
+    <label class="label">PDF 변환 — 이력서 등 HTML을 PDF로 만들기</label>
+    <div class="admin-form">
+      <div>
+        <label class="label">원본 HTML 파일</label>
+        <div class="tool-row">
+          <button class="btn btn-ghost" id="pdfFileBtn">HTML 파일 선택</button>
+          <span class="field-note" id="pdfFileName" style="margin:0">선택된 파일 없음</span>
+        </div>
+        <input type="file" id="pdfFile" accept=".html,.htm,text/html" class="hidden">
+      </div>
+      <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">
+        <button class="btn btn-accent" id="btnPdf">PDF 다운로드</button>
+      </div>
+    </div>
+    <div class="tool-note">
+      페이지 전체를 렌더링해 <b>A4 세로 여러 장</b>으로 잘라 PDF로 저장합니다. 이력서처럼 세로로 긴 문서에 적합합니다.<br>
+      텍스트가 이미지로 변환되므로 PDF 안에서 글자 선택·검색은 되지 않습니다. 페이지가 외부 이미지를 쓰면 일부가 빠질 수 있습니다.
+    </div>
+    <div class="msg" id="pdfMsg"></div>
   </div>
 
   <div class="card">
@@ -296,6 +328,7 @@ function delEntry(num){
   entries = entries.filter(e => String(e.num) !== num);
   if(editingNum === num) resetForm();
   renderList();
+  markDirty();
   showMsg('adminMsg','ok','삭제되었습니다. links.json을 다시 다운로드해 커밋해야 반영됩니다.');
 }
 
@@ -382,7 +415,7 @@ $('btnEncrypt').onclick = async () => {
   if(!encFileData){ showMsg('encMsg','err','먼저 HTML 파일을 선택하세요.'); return; }
   const pw = $('encPw').value;
   if(!pw){ showMsg('encMsg','err','페이지 비밀번호를 입력하세요.'); return; }
-  if(pw.length < 4){ showMsg('encMsg','err','비밀번호는 4자 이상으로 설정하세요.'); return; }
+  if(pw.length < 4){ showMsg('encMsg','err','비밀번호는 4자 이상으로 설정하세요. (8자 이상 권장)'); return; }
 
   $('btnEncrypt').disabled = true;
   $('btnEncrypt').textContent = '암호화 중…';
@@ -524,7 +557,7 @@ $('btnEncryptImg').onclick = async () => {
   if(!encFileData){ showMsg('encMsg','err','먼저 HTML 파일을 선택하세요.'); return; }
   const pw = $('encPw').value;
   if(!pw){ showMsg('encMsg','err','페이지 비밀번호를 입력하세요.'); return; }
-  if(pw.length < 4){ showMsg('encMsg','err','비밀번호는 4자 이상으로 설정하세요.'); return; }
+  if(pw.length < 4){ showMsg('encMsg','err','비밀번호는 4자 이상으로 설정하세요. (8자 이상 권장)'); return; }
 
   const btn = $('btnEncryptImg');
   btn.disabled = true;
@@ -663,6 +696,201 @@ $('btnEncryptImgFile').onclick = async () => {
   }
 };
 
+
+
+/* ---------- 보안·편의 보강 ---------- */
+/* 비밀번호 보기 토글 */
+document.querySelectorAll('.pw-eye').forEach(btn => {
+  btn.onclick = () => {
+    const inp = $(btn.dataset.for);
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.textContent = show ? '숨김' : '보기';
+  };
+});
+
+/* 저장하지 않은 변경(다운로드 전 이탈) 경고 */
+let dirty = false;
+function markDirty(){ dirty = true; }
+function markSaved(){ dirty = false; }
+window.addEventListener('beforeunload', e => {
+  if(!dirty) return;
+  e.preventDefault();
+  e.returnValue = '';   /* 브라우저 기본 "변경사항이 저장되지 않을 수 있습니다" 표시 */
+});
+
+/* ---------- HTML → PDF (A4 다중 페이지) ---------- */
+let pdfFileData = null;   // {name, text}
+let jsPdfLoading = null;
+function loadJsPDF(){
+  if(window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+  if(jsPdfLoading) return jsPdfLoading;
+  jsPdfLoading = new Promise((res, rej) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    sc.onload = res;
+    sc.onerror = () => rej(new Error('jsPDF 로드 실패'));
+    document.head.appendChild(sc);
+  });
+  return jsPdfLoading;
+}
+
+$('pdfFileBtn').onclick = () => $('pdfFile').click();
+$('pdfFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    pdfFileData = { name: file.name, text: await file.text() };
+    $('pdfFileName').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + 'KB)';
+  }catch(err){
+    pdfFileData = null;
+    $('pdfFileName').textContent = '선택된 파일 없음';
+    showMsg('pdfMsg','err','파일을 읽지 못했습니다.');
+  }
+});
+
+/* HTML 텍스트를 숨김 iframe에 렌더링 → 전체 페이지 캡처 → canvas 반환
+   ❗ 핵심: 뷰포트(iframe 높이·windowHeight)는 A4 비율로 "고정"한다.
+   문서 전체 높이로 늘리면 vh 단위(예: 커버 min-height:60vh)가 문서 높이 기준으로 폭증하여
+   커버가 수 페이지를 덮는 문제가 생긴다. 캡처 높이(height)만 전체 문서 높이로 준다. */
+async function renderToCanvas(htmlText, widthPx){
+  await loadHtml2Canvas();
+  const viewH = Math.round(widthPx * 297 / 210);   /* A4 비율 뷰포트 (1000px → 1414px) */
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + widthPx + 'px;height:' + viewH + 'px;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+  try{
+    await new Promise((res, rej) => {
+      const t = setTimeout(()=>rej(new Error('페이지 로드 시간 초과')), 20000);
+      iframe.onload = () => { clearTimeout(t); res(); };
+      iframe.srcdoc = htmlText;
+    });
+    const doc = iframe.contentDocument;
+    /* 캡처에 방해되는 고정 요소(사이드 네비, 플로팅 버튼) 숨김 + 애니메이션 정지 */
+    try{
+      const st = doc.createElement('style');
+      st.textContent = '.side-nav,.scroll-top{display:none!important}'
+        + 'html{scroll-behavior:auto!important}'
+        + '*{transition:none!important;animation:none!important}';
+      doc.head.appendChild(st);
+    }catch(e){}
+    if(doc.fonts && doc.fonts.ready){ try{ await doc.fonts.ready; }catch(e){} }
+    await new Promise(r => setTimeout(r, 800));
+    /* 뷰포트는 그대로 두고(vh 안정), 문서 전체 높이만 측정 */
+    const fullH = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0, 400);
+    return await html2canvas(doc.documentElement, {
+      width: widthPx, height: fullH, windowWidth: widthPx, windowHeight: viewH,
+      scrollX: 0, scrollY: 0,
+      scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false
+    });
+  }finally{
+    iframe.remove();
+  }
+}
+
+$('btnPdf').onclick = async () => {
+  if(!pdfFileData){ showMsg('pdfMsg','err','먼저 HTML 파일을 선택하세요.'); return; }
+  const btn = $('btnPdf');
+  btn.disabled = true;
+  try{
+    btn.textContent = '페이지 렌더링 중…';
+    await loadJsPDF();
+    /* A4 비율 기준 렌더 폭 — 210mm에 대응하는 1000px 고정 (기존 이미지 변환과 동일한 레이아웃) */
+    const RENDER_W = 1000;
+    const canvas = await renderToCanvas(pdfFileData.text, RENDER_W);
+
+    btn.textContent = 'PDF 생성 중…';
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageWmm = 210, pageHmm = 297;
+    /* canvas를 A4 페이지 높이 단위(px)로 잘라서 각 페이지에 배치 */
+    const pageHpx = Math.floor(canvas.width * (pageHmm / pageWmm));
+    const cctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    /* ── 스마트 페이지 나누기 ──
+       이상적인 절단선(y) 근처에서 위로 거슬러 올라가며 "완전히 흰 줄(여백)"을 찾아 거기서 자른다.
+       카드·문단 한가운데가 잘리는 것을 방지. 최대 페이지 높이의 30%까지만 양보. */
+    function isWhiteRow(y){
+      if(y <= 0 || y >= canvas.height) return true;
+      const row = cctx.getImageData(0, y, canvas.width, 1).data;
+      for(let x = 0; x < canvas.width; x += 4){        /* 4px 간격 샘플링 */
+        const i = x * 4;
+        if(row[i] < 246 || row[i+1] < 246 || row[i+2] < 246) return false;
+      }
+      return true;
+    }
+    function findBreak(idealY){
+      if(idealY >= canvas.height) return canvas.height;
+      const minY = idealY - Math.floor(pageHpx * 0.3);  /* 최대 30%까지 위로 양보 */
+      /* 흰 줄 하나로는 부족(글줄 사이 행간도 흰 줄) → 연속 6px 이상 흰 구간의 중앙을 절단점으로 */
+      let run = 0;
+      for(let y = idealY; y > minY; y--){
+        if(isWhiteRow(y)){
+          run++;
+          if(run >= 6) return y + Math.floor(run / 2);
+        }else{
+          run = 0;
+        }
+      }
+      return idealY;                                    /* 여백을 못 찾으면 기존 방식대로 */
+    }
+
+    /* 슬라이스가 사실상 빈 페이지(거의 전부 흰색)인지 검사 */
+    function isBlankSlice(slice){
+      const w = slice.width, h = slice.height;
+      const ctx = slice.getContext('2d');
+      const STEP = 8;
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let nonWhite = 0, sampled = 0;
+      for(let y = 0; y < h; y += STEP){
+        for(let x = 0; x < w; x += STEP){
+          const i = (y * w + x) * 4;
+          sampled++;
+          if(data[i] < 246 || data[i+1] < 246 || data[i+2] < 246) nonWhite++;
+        }
+      }
+      return sampled > 0 && (nonWhite / sampled) < 0.002;
+    }
+
+    /* 절단점 목록 계산 */
+    const breaks = [0];
+    while(breaks[breaks.length - 1] < canvas.height){
+      const top = breaks[breaks.length - 1];
+      const cut = findBreak(top + pageHpx);
+      breaks.push(Math.max(cut, top + Math.floor(pageHpx * 0.5)));  /* 안전장치: 최소 반 페이지는 전진 */
+    }
+
+    let added = 0;
+    for(let p = 0; p < breaks.length - 1; p++){
+      const top = breaks[p];
+      const sliceH = Math.min(breaks[p + 1], canvas.height) - top;
+      if(sliceH <= 0) break;
+      const slice = document.createElement('canvas');
+      slice.width = canvas.width;
+      slice.height = sliceH;
+      const ctx = slice.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, top, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      /* 마지막 페이지가 거의 비어 있으면 제외 (첫 페이지는 항상 유지) */
+      if(p === breaks.length - 2 && added > 0 && isBlankSlice(slice)) continue;
+      const img = slice.toDataURL('image/jpeg', 0.92);
+      if(added > 0) pdf.addPage();
+      pdf.addImage(img, 'JPEG', 0, 0, pageWmm, sliceH * (pageWmm / canvas.width));
+      added++;
+    }
+    const outName = pdfFileData.name.replace(/\.html?$/i, '') + '.pdf';
+    pdf.save(outName);
+    showMsg('pdfMsg','ok','PDF 생성 완료 (' + added + '페이지) — ' + outName + ' 을(를) 다운로드했습니다.');
+  }catch(err){
+    showMsg('pdfMsg','err','PDF 변환에 실패했습니다: ' + (err.message || '알 수 없는 오류'));
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'PDF 다운로드';
+  }
+};
+
 /* ---------- links.json 다운로드 / 불러오기 ---------- */
 $('btnDownload').onclick = () => {
   if(!entries.length){ showMsg('dataMsg','err','다운로드할 링크가 없습니다.'); return; }
@@ -673,6 +901,7 @@ $('btnDownload').onclick = () => {
   a.download = 'links.json';
   a.click();
   URL.revokeObjectURL(a.href);
+  markSaved();
   showMsg('dataMsg','ok','links.json을 다운로드했습니다. 저장소에 커밋·푸시하세요.');
 };
 
@@ -686,11 +915,15 @@ $('loadFile').addEventListener('change', async e => {
     const arr = Array.isArray(data.entries) ? data.entries : (Array.isArray(data) ? data : null);
     if(!arr) throw new Error();
     const valid = arr.filter(x => x && x.num && x.salt && x.iv && x.data);
-    entries = valid;
+    /* 번호 중복 시 뒤의 항목이 우선 (파일 병합 실수 대비) */
+    const map = new Map();
+    valid.forEach(x => map.set(String(x.num), x));
+    entries = [...map.values()];
     sortEntries();
     resetForm();
     renderList();
-    showMsg('dataMsg','ok', valid.length + '개 링크를 불러왔습니다.');
+    markSaved();
+    showMsg('dataMsg','ok', entries.length + '개 링크를 불러왔습니다.' + (valid.length !== entries.length ? ' (중복 번호 ' + (valid.length - entries.length) + '개 정리)' : ''));
   }catch(err){
     showMsg('dataMsg','err','links.json 형식이 아닙니다. 이 페이지에서 다운로드한 파일을 사용하세요.');
   }

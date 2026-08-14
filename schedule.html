@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>일정관리</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f5f8; --panel:#ffffff; --line:#d6dce4; --line-soft:#e8edf3;
+    --ink:#1c2733; --ink-soft:#5b6b7c; --accent:#0f6b54; --accent-soft:#e2f2ed;
+    --star:#e8a417; --danger:#c0392b; --head:#eef2f6;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Malgun Gothic","Apple SD Gothic Neo",-apple-system,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:13px; height:100vh;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  /* ── 상단바 ─────────────────────────── */
+  header{
+    background:var(--panel); border-bottom:1px solid var(--line);
+    padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  header h1{font-size:17px; font-weight:700; letter-spacing:-.3px;}
+  header h1 span{color:var(--accent);}
+  .tabs{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  .tabs button{
+    border:0; background:var(--panel); padding:7px 18px; font-size:13px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; font-family:inherit;
+  }
+  .tabs button.on{background:var(--accent); color:#fff;}
+  .tabs button:not(.on):hover{background:var(--line-soft);}
+  .tab-count{font-weight:400; opacity:.8; margin-left:4px;}
+
+  .toolbar{display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap;}
+  .toolbar input[type=search]{
+    border:1px solid var(--line); border-radius:5px; padding:6px 9px; font-size:12.5px;
+    font-family:inherit; background:#fff; color:var(--ink); outline:none; width:180px;
+  }
+  .toolbar input[type=search]:focus{border-color:var(--accent);}
+  .btn{
+    border:1px solid var(--line); background:#fff; border-radius:5px; padding:6px 12px;
+    font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink);
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--line-soft);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.warn{border-color:#e8a417; color:#a06a00; background:#fff8e8;}
+  .btn.bell{border-color:var(--star); color:#a06a00; background:#fffaf0;}
+  .btn:disabled{opacity:.45; cursor:default;}
+  .btn:focus-visible, .tabs button:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .menu-group{display:flex; border:1px solid var(--line); border-radius:5px; overflow:hidden;}
+  .menu-group .btn{border:0; border-radius:0;}
+  .menu-group .btn + .btn{border-left:1px solid var(--line);}
+
+  /* ── 표 영역 ─────────────────────────── */
+  main{flex:1; overflow:auto; position:relative;}
+  table{border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; background:#fff;}
+  thead th{
+    position:sticky; top:0; z-index:3; background:var(--head);
+    border-bottom:2px solid var(--line); border-right:1px solid var(--line);
+    padding:7px 6px 7px 8px; font-size:12px; font-weight:700; color:#33414f;
+    white-space:nowrap; text-align:center;
+  }
+  th .flt{
+    border:0; background:transparent; cursor:pointer; font-size:11px; color:#8b98a5;
+    padding:1px 3px; margin-left:3px; border-radius:3px; font-family:inherit;
+  }
+  th .flt:hover{background:#dde4ec; color:var(--ink);}
+  th .flt.on{background:var(--accent); color:#fff;}
+  tbody td{
+    border-bottom:1px solid var(--line-soft); border-right:1px solid var(--line-soft);
+    padding:6px 8px; vertical-align:top; background:#fff; min-width:52px;
+  }
+  tbody tr:hover td{background:#f8fafc;}
+  tbody tr.important td{background:#fffaf0;}
+  tbody tr.important:hover td{background:#fdf4de;}
+  td.num{text-align:right;}
+  td.wrap{white-space:pre-wrap; min-width:220px; max-width:420px; word-break:break-word;}
+  td.nowrap{white-space:nowrap;}
+  /* 셀 내용 래퍼: 기본은 2줄까지만 보이고, 행을 클릭(.expanded)하면 전체 높이로 펼쳐짐 */
+  .cv{outline:none; min-height:1.4em;}
+  tbody tr:not(.expanded) td .cv{
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
+  }
+  tbody tr.expanded td{background:#eef6f2;}
+  tbody tr.expanded:hover td{background:#e6f2ed;}
+  tbody tr.expanded.important td{background:#fdf4de;}
+  @keyframes rowFlash{0%{background:#cfe9df;}100%{background:transparent;}}
+  tbody tr.flash td{animation:rowFlash 1.4s ease-out;}
+  .cv:focus{outline:2px solid var(--accent); outline-offset:-2px; background:#fff; border-radius:2px;}
+  .star{cursor:pointer; font-size:15px; color:#c9d2db; user-select:none; text-align:center;}
+  .star.on{color:var(--star);}
+  .del{cursor:pointer; color:#b7c2cd; font-weight:700; text-align:center;}
+  .del:hover{color:var(--danger);}
+  .badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:600;}
+  .b-접수{background:#eef2f6; color:#4a5a6a;}
+  .b-진행{background:#e3edfb; color:#1c5db3;}
+  .b-완료{background:var(--accent-soft); color:var(--accent);}
+  .b-대기{background:#fdeee5; color:#c05621;}
+  .b-보류{background:#f3e8fb; color:#7a3fae;}
+  .empty{padding:60px 20px; text-align:center; color:var(--ink-soft); font-size:13.5px;}
+
+  /* ── 컬럼 필터 팝업 ── */
+  #fpop{
+    position:fixed; z-index:30; background:#fff; border:1px solid var(--line);
+    border-radius:8px; box-shadow:0 8px 28px rgba(20,35,50,.18); width:250px;
+    display:flex; flex-direction:column; font-size:12.5px;
+  }
+  #fpop[hidden]{display:none;}
+  #fpop .fp-head{padding:9px 12px 6px; font-weight:700; border-bottom:1px solid var(--line-soft);}
+  #fpop .fp-body{padding:8px 12px; display:flex; flex-direction:column; gap:7px;}
+  #fpop input[type=text]{
+    border:1px solid var(--line); border-radius:5px; padding:5px 8px; width:100%;
+    font-family:inherit; font-size:12.5px; outline:none;
+  }
+  #fpop input[type=text]:focus{border-color:var(--accent);}
+  #fpop .fp-range{display:flex; align-items:center; gap:5px;}
+  #fpop .fp-range input{flex:1; min-width:0;}
+  #fpop .fp-list{border:1px solid var(--line-soft); border-radius:5px; max-height:200px; overflow:auto;}
+  #fpop .fp-list label{
+    display:flex; align-items:center; gap:6px; padding:4px 8px; cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #fpop .fp-list label:hover{background:var(--line-soft);}
+  #fpop .fp-all{border-bottom:1px solid var(--line-soft); font-weight:700; position:sticky; top:0; background:#fff;}
+  #fpop .fp-more{padding:5px 8px; color:var(--ink-soft); font-size:11.5px;}
+  #fpop .fp-foot{display:flex; gap:6px; padding:8px 12px; border-top:1px solid var(--line-soft); justify-content:flex-end;}
+  #fpop .fp-foot .btn{padding:5px 12px;}
+
+  /* ── 중요일정 알림 모달 ── */
+  #nwrap{
+    position:fixed; inset:0; z-index:50; background:rgba(20,32,44,.45);
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #nwrap[hidden]{display:none;}
+  #nmodal{
+    background:#fff; border-radius:10px; box-shadow:0 16px 48px rgba(10,25,40,.35);
+    width:min(880px, 100%); max-height:88vh; display:flex; flex-direction:column;
+  }
+  #nmodal .nm-head{
+    display:flex; align-items:center; gap:10px; padding:13px 18px;
+    border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  #nmodal .nm-head h2{font-size:15px; color:#a06a00;}
+  #nmodal .nm-head h2::before{content:"🔔 ";}
+  #autoNote{font-size:12px; color:var(--danger); font-weight:700;}
+  #nmodal .nm-tabs{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-left:auto;}
+  #nmodal .nm-tabs button{
+    border:0; background:#fff; padding:5px 13px; font-size:12.5px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; font-family:inherit;
+  }
+  #nmodal .nm-tabs button.on{background:var(--star); color:#fff;}
+  #nmodal .nm-body{overflow:auto; flex:1;}
+  #nmodal table{width:100%; min-width:680px;}
+  #nmodal thead th{position:sticky; top:0;}
+  #nmodal td.center{text-align:center;}
+  #nmodal td[contenteditable]:focus{outline:2px solid var(--accent); outline-offset:-2px; background:#fff;}
+  #nmodal tr.noti-off td{color:#9aa6b1; background:#fafbfc;}
+  /* 개발완료예정 마감 강조: 오늘 기준 도래·경과 */
+  #nmodal td.due-ok{background:#fdeee5; color:#c05621; font-weight:700;}     /* 지났지만 완료됨 */
+  #nmodal tr.overdue td{background:#fdecea;}                                  /* 지났는데 미완료 → 행 전체 */
+  #nmodal tr.overdue:hover td{background:#fbdcd9;}
+  #nmodal td.due-hot{background:var(--danger) !important; color:#fff !important; font-weight:700;}
+  #nmodal td.noti-go{cursor:pointer; color:var(--accent); font-weight:700; text-decoration:underline;}
+  #nmodal td.noti-go:hover{background:var(--accent-soft);}
+  #nmodal .src{
+    display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px;
+  }
+  .src-row{background:#e3edfb; color:#1c5db3;}
+  .src-memo{background:#f3e8fb; color:#7a3fae;}
+  #nmodal .nm-foot{
+    display:flex; align-items:center; gap:10px; padding:11px 18px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--ink-soft); flex-wrap:wrap;
+  }
+  #nmodal .nm-foot .btn{margin-left:auto;}
+  .nm-empty{padding:40px; text-align:center; color:var(--ink-soft);}
+
+  /* ── 안내 팝업(저장위치/자동저장) ── */
+  #pwrap{
+    position:fixed; inset:0; z-index:58; background:rgba(20,32,44,.45);
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #pwrap[hidden]{display:none;}
+  #pmodal{
+    background:#fff; border-radius:10px; box-shadow:0 16px 48px rgba(10,25,40,.35);
+    width:min(420px,100%); padding:18px; display:flex; flex-direction:column; gap:14px;
+  }
+  #pmodal .p-title{font-size:14.5px; font-weight:700; color:#a06a00;}
+  #pmodal .p-title::before{content:"💾 ";}
+  #pmodal .p-msg{font-size:12.5px; line-height:1.6; color:var(--ink); white-space:pre-line;}
+  #pmodal .p-msg code{font-family:Consolas,monospace; background:var(--line-soft); padding:1px 5px; border-radius:4px;}
+  #pmodal .p-btns{display:flex; gap:6px; justify-content:flex-end;}
+
+  /* ── 저장 위치 설정 모달 ── */
+  #swrap{
+    position:fixed; inset:0; z-index:55; background:rgba(20,32,44,.45);
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #swrap[hidden]{display:none;}
+  #smodal{
+    background:#fff; border-radius:10px; box-shadow:0 16px 48px rgba(10,25,40,.35);
+    width:min(460px,100%); display:flex; flex-direction:column;
+  }
+  #smodal .sm-head{padding:13px 18px; border-bottom:1px solid var(--line); font-size:15px; font-weight:700;}
+  #smodal .sm-body{padding:16px 18px; display:flex; flex-direction:column; gap:13px; font-size:12.5px;}
+  #smodal .sm-row{display:flex; flex-direction:column; gap:5px;}
+  #smodal .sm-row b{font-size:12px; color:#33414f;}
+  #smodal .sm-cur{
+    display:flex; align-items:center; gap:8px; background:var(--line-soft);
+    border-radius:6px; padding:8px 10px;
+  }
+  #smodal .sm-cur code{
+    font-family:Consolas,monospace; font-size:12px; color:var(--accent); font-weight:700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;
+  }
+  #smodal input[type=text]{
+    border:1px solid var(--line); border-radius:5px; padding:7px 9px;
+    font-family:inherit; font-size:12.5px; outline:none;
+  }
+  #smodal input[type=text]:focus{border-color:var(--accent);}
+  #smodal .sm-note{color:var(--ink-soft); line-height:1.55;}
+  #smodal .sm-note code{font-family:Consolas,monospace; background:var(--line-soft); padding:1px 5px; border-radius:4px;}
+  #smodal .sm-foot{
+    display:flex; gap:6px; padding:12px 18px; border-top:1px solid var(--line); justify-content:flex-end;
+  }
+
+  #loading{
+    position:fixed; inset:0; background:rgba(255,255,255,.7); z-index:60;
+    display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--accent);
+    font-size:14px; backdrop-filter:blur(1px);
+  }
+  #loading[hidden]{display:none;}
+
+  /* ── 하단 ── */
+  footer{
+    background:var(--panel); border-top:1px solid var(--line); padding:6px 16px;
+    font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .pager{display:flex; align-items:center; gap:6px;}
+  .pager .btn{padding:4px 10px;}
+  .pager input{
+    width:52px; text-align:center; border:1px solid var(--line); border-radius:5px;
+    padding:4px; font-family:inherit; font-size:12px;
+  }
+  footer select{border:1px solid var(--line); border-radius:5px; padding:4px 6px; font-size:12px; font-family:inherit;}
+  #fileName{color:var(--accent); font-weight:700;}
+  #idleLeft{color:#a06a00; font-weight:700; white-space:nowrap;}
+  #idleLeft.soon{color:var(--danger);}
+  .hint{margin-left:auto;}
+  @media (max-width:720px){ .toolbar input[type=search]{width:120px;} header{gap:8px;} .hint{display:none;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>일정<span>관리</span></h1>
+
+  <div class="tabs" role="tablist">
+    <button id="tabAll" class="on" onclick="setTab('all')">전체일정<span class="tab-count" id="cntAll"></span></button>
+    <button id="tabImp" onclick="setTab('imp')">중요일정<span class="tab-count" id="cntImp"></span></button>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn bell" onclick="openNoti('on', false)" title="중요일정 알림 목록을 엽니다 (5분간 화면 동작이 없으면 자동으로 표시됩니다)">🔔 중요알림<span id="cntNoti"></span></button>
+    <input type="search" id="q" placeholder="전체 검색">
+    <button class="btn warn" id="btnClearF" onclick="clearFilters()" hidden>필터 해제</button>
+    <button class="btn primary" onclick="addRow()">＋ 행 추가</button>
+    <div class="menu-group">
+      <button class="btn" onclick="loadJson()" title="저장해둔 데이터파일(.json)을 불러옵니다">데이터 불러오기</button>
+      <button class="btn" onclick="saveJson()" title="지정해둔 폴더에 바로 저장합니다 (미지정 시 최초 1회 폴더 선택창이 뜹니다)">데이터 저장</button>
+      <button class="btn" onclick="openSettings()" title="데이터가 저장될 폴더와 파일명을 지정합니다">저장 위치 설정</button>
+    </div>
+    <div class="menu-group">
+      <button class="btn" onclick="xlsxInput.click()">엑셀 가져오기</button>
+      <button class="btn" onclick="exportExcel()">엑셀 내보내기</button>
+    </div>
+    <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" hidden>
+    <input type="file" id="jsonInput" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <table id="grid">
+    <thead><tr id="headRow"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>표시할 일정이 없습니다. 필터를 확인하거나 [＋ 행 추가], [데이터 불러오기], [엑셀 가져오기]로 시작하세요.</div>
+</main>
+
+<!-- 컬럼 필터 팝업 -->
+<div id="fpop" hidden>
+  <div class="fp-head" id="fpTitle"></div>
+  <div class="fp-body">
+    <div class="fp-range" id="fpRangeWrap" hidden>
+      <input type="text" id="fpMin" placeholder="최소 (예: 20240101)">
+      <span>~</span>
+      <input type="text" id="fpMax" placeholder="최대">
+    </div>
+    <input type="text" id="fpSearch" placeholder="목록에서 검색">
+    <div class="fp-list" id="fpList"></div>
+  </div>
+  <div class="fp-foot">
+    <button class="btn" onclick="fpClear()">지우기</button>
+    <button class="btn" onclick="fpClose()">취소</button>
+    <button class="btn primary" onclick="fpApply()">확인</button>
+  </div>
+</div>
+
+<!-- 중요일정 알림 모달 -->
+<div id="nwrap" hidden>
+  <div id="nmodal">
+    <div class="nm-head">
+      <h2>중요일정 알림</h2>
+      <span id="autoNote" hidden>5분간 화면 동작이 없어 자동으로 표시되었습니다</span>
+      <div class="nm-tabs">
+        <button id="nfAll" onclick="setNFilter('all')">전체<span id="nCntAll"></span></button>
+        <button id="nfOn" class="on" onclick="setNFilter('on')">표시<span id="nCntOn"></span></button>
+        <button id="nfOff" onclick="setNFilter('off')">미표시<span id="nCntOff"></span></button>
+      </div>
+      <button class="btn primary" onclick="addMemo()">＋ 직접입력 추가</button>
+    </div>
+    <div class="nm-body">
+      <table>
+        <thead>
+          <tr>
+            <th title="체크된 항목만 자동 알림에 나타납니다">알림</th>
+            <th>출처</th><th>No</th><th>제목</th><th>접수일자</th>
+            <th>상세구분</th><th>개발완료예정</th><th>개발완료</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="ntbody"></tbody>
+      </table>
+      <div class="nm-empty" id="nEmpty" hidden></div>
+    </div>
+    <div class="nm-foot">
+      <span>[알림] 체크를 해제하면 자동 알림에는 나오지 않습니다 · <span style="background:#fdeee5;color:#c05621;font-weight:700;padding:1px 6px;border-radius:4px;">주황</span> 완료예정일 경과(완료됨) · <span style="background:#c0392b;color:#fff;font-weight:700;padding:1px 6px;border-radius:4px;">빨강</span> 완료예정일이 지났는데 미완료</span>
+      <button class="btn" onclick="closeNoti()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 안내 팝업 (저장위치 미지정 / 자동저장 권한) -->
+<div id="pwrap" hidden>
+  <div id="pmodal">
+    <div class="p-title" id="pTitle">저장 위치 확인</div>
+    <div class="p-msg" id="pMsg"></div>
+    <div class="p-btns" id="pBtns"></div>
+  </div>
+</div>
+
+<!-- 저장 위치 설정 모달 -->
+<div id="swrap" hidden>
+  <div id="smodal">
+    <div class="sm-head">⚙ 저장 위치 설정</div>
+    <div class="sm-body">
+      <div class="sm-row">
+        <b>현재 저장 폴더</b>
+        <div class="sm-cur">
+          <code id="curFolder">(지정 안 됨)</code>
+          <button class="btn primary" onclick="pickFolder()">폴더 선택</button>
+        </div>
+      </div>
+      <div class="sm-row">
+        <b>저장 파일명</b>
+        <input type="text" id="fnameInput" value="일정관리_data.json" spellcheck="false">
+      </div>
+      <div class="sm-row">
+        <b>두레이 API 토큰 <span style="font-weight:400;color:var(--ink-soft)">(선택 — CODE에 두레이 링크 붙여넣기 시 제목·내용·요청 자동 입력)</span></b>
+        <input type="text" id="doorayToken" placeholder="두레이 관리자/개인 설정에서 발급한 API 토큰" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="sm-row">
+        <b>두레이 프로젝트 ID <span style="font-weight:400;color:var(--ink-soft)">(선택 — 자동 조회 실패 시에만 입력)</span></b>
+        <input type="text" id="doorayProject" placeholder="예: 1234567890 (프로젝트 설정 화면 URL의 숫자)" spellcheck="false">
+      </div>
+      <div class="sm-note">
+        기본 저장 위치는 <code>E:\_work\_github\link-vault</code> 입니다.
+        [폴더 선택]에서 이 폴더(또는 원하는 다른 폴더)를 <b>한 번만</b> 지정해두면,
+        이후 [데이터 저장]을 누를 때마다 대화창 없이 해당 폴더의 위 파일명으로 바로 저장·덮어쓰기됩니다.
+        [데이터 불러오기]도 같은 파일을 자동으로 읽습니다.
+        (브라우저 보안상 폴더는 최초 1회 직접 선택해야 하며, 브라우저를 다시 열면 접근 허용을 한 번 확인할 수 있습니다.)
+      </div>
+    </div>
+    <div class="sm-foot">
+      <button class="btn" onclick="disconnectFolder()">지정 해제</button>
+      <button class="btn primary" onclick="closeSettings()">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading" hidden>처리 중…</div>
+
+<footer>
+  <div class="pager">
+    <button class="btn" id="pgFirst" title="첫 페이지">«</button>
+    <button class="btn" id="pgPrev" title="이전 페이지">‹</button>
+    <input id="pgInput" inputmode="numeric" value="1"> <span id="pgTotal">/ 1</span>
+    <button class="btn" id="pgNext" title="다음 페이지">›</button>
+    <button class="btn" id="pgLast" title="마지막 페이지">»</button>
+  </div>
+  <div class="pager">
+    <button class="btn" onclick="jumpToTitled(false)" title="제목이 입력된 첫 번째 일정으로 이동">⇤ 처음</button>
+    <button class="btn" onclick="jumpToTitled(true)" title="제목이 입력된 마지막 일정으로 이동">끝 ⇥</button>
+  </div>
+  <label>페이지당
+    <select id="pageSize">
+      <option>50</option><option selected>100</option><option>200</option><option>500</option>
+    </select>건
+  </label>
+  <span id="stat"></span>
+  <span>파일: <span id="fileName">(지정 안 됨)</span></span>
+  <span id="idleLeft" title="화면 동작이 없으면 이 시간 뒤 중요알림이 자동으로 표시됩니다. 마우스·키보드를 움직이면 다시 5분부터 셉니다."></span>
+  <span class="hint">★ 등록 또는 [직접입력]으로 중요일정 알림을 관리하세요</span>
+</footer>
+
+<script>
+"use strict";
+/* ── 컬럼 정의: 엑셀 시트(PROJECT)와 동일한 순서 ── */
+const COLS = ["CODEHIDDEN","CODE","PROJECT","No","제목","내용","요청","접수","접수일자","구분","상세구분",
+              "책임","개발자","개발시작","개발완료예정","개발완료","배포일자","비고","공수day","연계"];
+const WRAP  = new Set(["제목","내용","비고","연계"]);
+const NUMS  = new Set(["No","공수day"]);
+const DATES = new Set(["접수일자","개발시작","개발완료예정","개발완료","배포일자"]);
+const STATUS_BADGE = new Set(["접수","진행","완료","대기","보류"]);
+const BLANK_LABEL = "(빈 값)";
+/* 알림 표시 컬럼 + 직접입력(메모) 컬럼 */
+const NOTI_COLS = ["No","제목","접수일자","상세구분","개발완료예정","개발완료"];
+const IDLE_MS = 5*60*1000;                      // 5분 무동작 → 자동 알림
+const AUTOSAVE_MS = 5*60*1000;                  // 5분마다 변경사항 있으면 자동 저장
+const MAX_BACKUPS = 5;                          // 이전 파일(백업) 보관 개수
+
+let dirty = false;                               // 마지막 저장 이후 변경 여부
+function markDirty(){ dirty = true; }
+
+let tab = "all";
+let page = 1;
+let pageSize = 100;
+let colFilters = {};
+let nFilter = "on";                              // 알림 모달 필터: all/on/off
+let memos = [];                                  // 직접입력 중요일정 [{No,제목,접수일자,상세구분,개발완료예정,개발완료,noti}]
+let data = [
+  {imp:true, noti:true, CODEHIDDEN:"-", CODE:"NXPOS_20200703_10__250", PROJECT:"NXPOS", No:250,
+   "제목":"[내부][W][-대기-] 메뉴 수정 필요",
+   "내용":"[내부][W][-대기-] 메뉴 수정 필요\n1. 일부 진행완료 후 대기상태로 변경됨",
+   "요청":"솔비포스","접수":"김중선","접수일자":"20200703","구분":"개발","상세구분":"접수",
+   "책임":"김중선","개발자":"김중선","개발시작":"","개발완료예정":"","개발완료":"","배포일자":"",
+   "비고":"","공수day":"","연계":"[NXPOS-250] [내부][W][-대기-] 메뉴 수정 필요"},
+  {imp:false, noti:true, CODEHIDDEN:"-", CODE:"NXPOS_20200703_10__251", PROJECT:"NXPOS", No:251,
+   "제목":"[W][내부][-대기-] 화면 레이아웃/스타일 수정",
+   "내용":"[W][내부][-대기-] 화면 레이아웃/스타일 수정\n2021.07.08 추가확인\n1. 현재 개발된 모바일 용 CSS로 진행예정\n2. 일부 진행완료 후 대기상태로 변경됨",
+   "요청":"솔비포스","접수":"김중선","접수일자":"20200703","구분":"개발","상세구분":"접수",
+   "책임":"김중선","개발자":"이다솜","개발시작":"","개발완료예정":"","개발완료":"","배포일자":"",
+   "비고":"","공수day":"","연계":"[NXPOS-251] [W][내부][-대기-] 화면 레이아웃/스타일 수정"},
+  {imp:false, noti:true, CODEHIDDEN:"-", CODE:"링크POS_1_10__8134", PROJECT:"링크POS", No:8134,
+   "제목":"","내용":"","요청":"김중선","접수":"김중선","접수일자":"1","구분":"개발","상세구분":"접수",
+   "책임":"김중선","개발자":"","개발시작":"","개발완료예정":"","개발완료":"","배포일자":"",
+   "비고":"","공수day":"","연계":"[링크POS-8134]"}
+];
+
+/* ── 값 정리 ── */
+function clean(v){
+  if(v === null || v === undefined) return "";
+  if(v instanceof Date){
+    if(isNaN(v)) return "";
+    const p = n => String(n).padStart(2,"0");
+    return `${v.getFullYear()}${p(v.getMonth()+1)}${p(v.getDate())}`;
+  }
+  if(typeof v === "number") return v;
+  let s = String(v);
+  s = s.replace(/\r\n?/g,"\n");
+  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"");
+  s = s.replace(/\u00a0/g," ");
+  return s;
+}
+function normRow(src){
+  const r = {imp: !!src.imp, noti: src.noti !== false && !offMark(src["알림"])};
+  for(const c of COLS){
+    let v = clean(src[c]);
+    if(NUMS.has(c) && v!=="" && typeof v!=="number" && !isNaN(v)) v = Number(v);
+    r[c] = v;
+  }
+  return r;
+}
+function normMemo(src){
+  const m = {noti: src.noti !== false && !offMark(src["알림"])};
+  for(const c of NOTI_COLS){
+    let v = clean(src[c]);
+    if(c==="No" && v!=="" && typeof v!=="number" && !isNaN(v)) v = Number(v);
+    m[c] = v;
+  }
+  return m;
+}
+function offMark(v){ return ["N","n","FALSE","false","미표시","X","x"].includes(String(v??"").trim()); }
+function esc(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function toNum(v){
+  const n = parseFloat(String(v).replace(/[^\d.-]/g,""));
+  return isNaN(n) ? null : n;
+}
+
+/* ── 로딩 ── */
+function busy(msg, fn){
+  const el = document.getElementById("loading");
+  el.textContent = msg; el.hidden = false;
+  setTimeout(async ()=>{
+    try{ await fn(); }
+    catch(err){ if(err && err.name!=="AbortError") alert("오류가 발생했습니다: " + err.message); }
+    finally{ el.hidden = true; }
+  }, 30);
+}
+
+/* ── 검색 ── */
+let searchTimer = null;
+document.getElementById("q").addEventListener("input", ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ page = 1; render(); }, 250);
+});
+
+/* ── 컬럼 필터 ── */
+function filterActive(c){
+  const f = colFilters[c];
+  return !!(f && ((f.sel && f.sel.size) || f.min!=="" || f.max!==""));
+}
+function anyFilterActive(){ return COLS.some(filterActive); }
+function passFilter(r, c){
+  const f = colFilters[c]; if(!f) return true;
+  const raw = r[c] ?? ""; const s = String(raw);
+  if(f.sel && f.sel.size && !f.sel.has(s)) return false;
+  if(f.min!=="" || f.max!==""){
+    const n = toNum(raw);
+    if(n===null) return false;
+    if(f.min!==""){ const m=toNum(f.min); if(m!==null && n<m) return false; }
+    if(f.max!==""){ const m=toNum(f.max); if(m!==null && n>m) return false; }
+  }
+  return true;
+}
+function visibleRows(excludeCol){
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const out = [];
+  outer:
+  for(let i=0;i<data.length;i++){
+    const r = data[i];
+    if(tab==="imp" && !r.imp) continue;
+    for(const c of COLS){
+      if(c===excludeCol) continue;
+      if(filterActive(c) && !passFilter(r,c)) continue outer;
+    }
+    if(q){
+      let hit = false;
+      for(const c of COLS){
+        if(String(r[c]??"").toLowerCase().includes(q)){ hit=true; break; }
+      }
+      if(!hit) continue;
+    }
+    out.push(i);
+  }
+  return out;
+}
+
+/* ── 헤더 + 렌더링 ── */
+function buildHead(){
+  const h = [`<th title="중요일정 표시">★</th>`];
+  for(const c of COLS){
+    h.push(`<th>${esc(c)}<button class="flt ${filterActive(c)?"on":""}" data-c="${esc(c)}" title="${esc(c)} 필터">▾</button></th>`);
+  }
+  h.push(`<th></th>`);
+  headRow.innerHTML = h.join("");
+  btnClearF.hidden = !anyFilterActive();
+  if(!btnClearF.hidden){
+    btnClearF.textContent = `필터 해제 (${COLS.filter(filterActive).length})`;
+  }
+}
+function cellHtml(r, i, c){
+  const v = r[c] ?? "";
+  const cls = [
+    WRAP.has(c)?"wrap":"", NUMS.has(c)?"num":"",
+    (DATES.has(c)||c==="CODE"||c==="CODEHIDDEN")?"nowrap":""
+  ].filter(Boolean).join(" ");
+  const s = String(v).trim();
+  if(c==="상세구분" && STATUS_BADGE.has(s)){
+    return `<td class="${cls}" style="text-align:center"><div class="cv" contenteditable data-i="${i}" data-c="${c}"><span class="badge b-${s}">${esc(s)}</span></div></td>`;
+  }
+  return `<td class="${cls}"><div class="cv" contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div></td>`;
+}
+function notiCount(){
+  return data.filter(r=>r.imp && r.noti!==false).length + memos.filter(m=>m.noti!==false).length;
+}
+function render(){
+  buildHead();
+  const rows = visibleRows();
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  if(page > totalPages) page = totalPages;
+  if(page < 1) page = 1;
+  const start = (page-1)*pageSize;
+  const slice = rows.slice(start, start + pageSize);
+
+  const html = [];
+  for(const i of slice){
+    const r = data[i];
+    html.push(`<tr class="${r.imp?"important":""}" data-i="${i}">`,
+      `<td class="star ${r.imp?"on":""}" data-i="${i}" title="중요일정 표시">${r.imp?"★":"☆"}</td>`);
+    for(const c of COLS) html.push(cellHtml(r,i,c));
+    html.push(`<td class="del" data-i="${i}" title="행 삭제">✕</td></tr>`);
+  }
+  tbody.innerHTML = html.join("");
+  expTr = null;                                  // 재렌더 시 확장 상태 초기화
+
+  empty.hidden = rows.length>0;
+  grid.style.display = rows.length? "" : "none";
+  cntAll.textContent = ` ${data.length.toLocaleString()}`;
+  cntImp.textContent = ` ${data.filter(r=>r.imp).length.toLocaleString()}`;
+  cntNoti.textContent = ` ${notiCount().toLocaleString()}`;
+  stat.textContent = `표시 ${rows.length.toLocaleString()}건 / 전체 ${data.length.toLocaleString()}건`;
+  pgInput.value = page;
+  pgTotal.textContent = `/ ${totalPages.toLocaleString()}`;
+  pgFirst.disabled = pgPrev.disabled = (page<=1);
+  pgNext.disabled  = pgLast.disabled = (page>=totalPages);
+}
+
+/* ── 컬럼 필터 팝업 ── */
+let fpCol = null;
+const fpop = document.getElementById("fpop");
+headRow.addEventListener("click", e=>{
+  const btn = e.target.closest(".flt"); if(!btn) return;
+  openFilter(btn.dataset.c, btn);
+});
+function openFilter(c, anchor){
+  fpCol = c;
+  fpTitle.textContent = `${c} 필터`;
+  const isRange = DATES.has(c) || NUMS.has(c);
+  fpRangeWrap.hidden = !isRange;
+  const f = colFilters[c] || {};
+  fpMin.value = f.min || ""; fpMax.value = f.max || "";
+  fpSearch.value = "";
+  buildFpList();
+  fpop.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const w = 250, pad = 8;
+  let x = Math.min(r.left, window.innerWidth - w - pad);
+  fpop.style.left = Math.max(pad,x)+"px";
+  fpop.style.top  = Math.min(r.bottom+4, window.innerHeight-320)+"px";
+  fpSearch.focus();
+}
+function fpValues(){
+  const rows = visibleRows(fpCol);
+  const counts = new Map();
+  for(const i of rows){
+    const s = String(data[i][fpCol] ?? "");
+    counts.set(s, (counts.get(s)||0)+1);
+  }
+  return [...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0],"ko"));
+}
+function buildFpList(){
+  const f = colFilters[fpCol];
+  const selected = f && f.sel ? f.sel : null;
+  const kw = fpSearch.value.trim().toLowerCase();
+  const values = fpValues();
+  const CAP = 500;
+  let shown = 0;
+  const h = [`<label class="fp-all"><input type="checkbox" id="fpAll"> (모두 선택)</label>`];
+  for(const [v,cnt] of values){
+    const label = v==="" ? BLANK_LABEL : v;
+    if(kw && !label.toLowerCase().includes(kw)) continue;
+    if(++shown > CAP){ h.push(`<div class="fp-more">…항목이 많아 ${CAP}개까지만 표시합니다. 목록 검색으로 좁혀보세요.</div>`); break; }
+    const chk = selected ? selected.has(v) : true;
+    h.push(`<label><input type="checkbox" class="fpv" data-v="${esc(v)}" ${chk?"checked":""}> <span style="overflow:hidden;text-overflow:ellipsis;">${esc(label)}</span> <span style="color:#98a4b0;margin-left:auto">${cnt}</span></label>`);
+  }
+  if(shown===0) h.push(`<div class="fp-more">일치하는 항목이 없습니다.</div>`);
+  fpList.innerHTML = h.join("");
+  syncFpAll();
+  document.getElementById("fpAll").addEventListener("change", e=>{
+    fpList.querySelectorAll(".fpv").forEach(cb=>cb.checked = e.target.checked);
+  });
+  fpList.querySelectorAll(".fpv").forEach(cb=>cb.addEventListener("change", syncFpAll));
+}
+function syncFpAll(){
+  const boxes = [...fpList.querySelectorAll(".fpv")];
+  const all = document.getElementById("fpAll");
+  if(!all) return;
+  all.checked = boxes.length>0 && boxes.every(cb=>cb.checked);
+}
+fpSearch.addEventListener("input", buildFpList);
+function fpApply(){
+  const boxes = [...fpList.querySelectorAll(".fpv")];
+  const checked = boxes.filter(cb=>cb.checked).map(cb=>cb.dataset.v);
+  const min = fpRangeWrap.hidden ? "" : fpMin.value.trim();
+  const max = fpRangeWrap.hidden ? "" : fpMax.value.trim();
+  let sel = null;
+  if(boxes.length && checked.length < boxes.length){
+    if(checked.length===0){ alert("하나 이상 선택하세요."); return; }
+    const prev = colFilters[fpCol] && colFilters[fpCol].sel;
+    const visible = new Set(boxes.map(cb=>cb.dataset.v));
+    sel = new Set(checked);
+    if(prev) for(const v of prev) if(!visible.has(v)) sel.add(v);
+  }
+  if(sel || min!=="" || max!=="") colFilters[fpCol] = {sel, min, max};
+  else delete colFilters[fpCol];
+  page = 1; fpClose(); render();
+}
+function fpClear(){ delete colFilters[fpCol]; page = 1; fpClose(); render(); }
+function fpClose(){ fpop.hidden = true; fpCol = null; }
+document.addEventListener("mousedown", e=>{
+  if(!fpop.hidden && !fpop.contains(e.target) && !e.target.closest(".flt")) fpClose();
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){
+    if(!fpop.hidden) fpClose();
+    else if(!nwrap.hidden) closeNoti();
+  }
+});
+function clearFilters(){
+  colFilters = {};
+  document.getElementById("q").value = "";
+  page = 1; render();
+}
+
+/* ── 페이지네이션 ── */
+function totalPagesNow(){ return Math.max(1, Math.ceil(visibleRows().length / pageSize)); }
+pgFirst.onclick = ()=>{ page=1; render(); };
+pgPrev.onclick  = ()=>{ page--; render(); };
+pgNext.onclick  = ()=>{ page++; render(); };
+pgLast.onclick  = ()=>{ page=totalPagesNow(); render(); };
+pgInput.addEventListener("change", ()=>{
+  const n = parseInt(pgInput.value,10);
+  page = isNaN(n)? 1 : n; render();
+});
+document.getElementById("pageSize").addEventListener("change", e=>{
+  pageSize = parseInt(e.target.value,10); page = 1; render();
+});
+/* 제목이 입력된 처음/마지막 일정으로 이동 */
+function jumpToTitled(last){
+  const vis = visibleRows();
+  const titled = vis.filter(i => String(data[i]["제목"] ?? "").trim() !== "");
+  if(!titled.length){ alert("제목이 입력된 일정이 없습니다."); return; }
+  const target = last ? titled[titled.length-1] : titled[0];
+  page = Math.floor(vis.indexOf(target) / pageSize) + 1;
+  render();
+  const tr = tbody.querySelector(`tr[data-i="${target}"]`);
+  if(tr){
+    tr.scrollIntoView({block:"center"});
+    tr.classList.add("flash");
+    setTimeout(()=>tr.classList.remove("flash"), 1500);
+  }
+}
+
+/* 알림에서 특정 업무(행)로 이동: 필터·검색·탭 때문에 안 보이면 자동 해제 후 이동 */
+function gotoRow(i){
+  if(!data[i]) return;
+  let vis = visibleRows();
+  if(!vis.includes(i)){
+    tab = "all";
+    tabAll.classList.add("on"); tabImp.classList.remove("on");
+    colFilters = {};
+    document.getElementById("q").value = "";
+    vis = visibleRows();
+    stat.textContent = "이동을 위해 필터·검색을 해제했습니다";
+  }
+  const pos = vis.indexOf(i);
+  if(pos < 0){ render(); return; }
+  page = Math.floor(pos / pageSize) + 1;
+  render();
+  const tr = tbody.querySelector(`tr[data-i="${i}"]`);
+  if(tr){
+    tr.scrollIntoView({block:"center"});
+    expandRow(tr);
+    tr.classList.add("flash");
+    setTimeout(()=>tr.classList.remove("flash"), 1500);
+  }
+}
+
+function setTab(t){
+  tab = t; page = 1;
+  tabAll.classList.toggle("on", t==="all");
+  tabImp.classList.toggle("on", t==="imp");
+  render();
+}
+
+/* ── 행 확장/축소: 클릭한 행은 내용 전체 높이로, 다른 곳 클릭 시 기본 2줄로 ── */
+let expTr = null;
+function collapseRow(){
+  if(expTr){ expTr.classList.remove("expanded"); expTr = null; }
+}
+function expandRow(tr){
+  if(tr === expTr) return;
+  collapseRow();
+  if(tr){ tr.classList.add("expanded"); expTr = tr; }
+}
+document.addEventListener("mousedown", e=>{
+  const tr = e.target.closest("#tbody tr");
+  if(tr === expTr) return;
+  /* 필터/알림/설정 팝업 안 클릭은 행 상태에 영향 없음 */
+  if(e.target.closest("#fpop, #nwrap, #swrap, #pwrap")) return;
+  expandRow(tr);                                 // tr이 null이면(표 밖 클릭) 축소만 수행
+});
+tbody.addEventListener("focusin", e=>{           // 키보드 이동으로 셀 진입 시에도 확장
+  const tr = e.target.closest("tr");
+  if(tr) expandRow(tr);
+});
+
+/* ── 그리드 셀 편집 ── */
+tbody.addEventListener("focusout", e=>{
+  const el = e.target.closest(".cv"); if(!el) return;
+  const i = +el.dataset.i, c = el.dataset.c;
+  if(!data[i]) return;
+  let v = clean(el.innerText).replace(/\n+$/,"");
+  if(!WRAP.has(c)) v = v.replace(/\n/g," ").trim();
+  if(NUMS.has(c) && v!=="" && !isNaN(v)) v = Number(v);
+  if(String(data[i][c]??"") === String(v)) return;
+  data[i][c] = v;
+  markDirty();
+  if(c==="상세구분"){
+    const s = String(v).trim();
+    el.innerHTML = STATUS_BADGE.has(s)
+      ? `<span class="badge b-${s}">${esc(s)}</span>` : esc(v);
+    el.parentElement.style.textAlign = STATUS_BADGE.has(s) ? "center" : "";
+  }
+  stat.textContent = `수정됨 — 5분 내 자동 저장되며, [데이터 저장]으로 바로 저장할 수도 있습니다`;
+});
+tbody.addEventListener("paste", e=>{
+  const el = e.target.closest(".cv"); if(!el) return;
+  e.preventDefault();
+  const t = clean((e.clipboardData || window.clipboardData).getData("text"));
+  /* 북마클릿([DOORAY업무] 형식)으로 복사한 내용을 CODE 칸에 붙여넣으면 자동 분배 */
+  if(el.dataset.c === "CODE" && t.trimStart().startsWith("[DOORAY업무]")){
+    applyDoorayText(+el.dataset.i, t);
+    el.blur();
+    return;
+  }
+  document.execCommand("insertText", false, t);
+  /* CODE 칸에 두레이 업무 링크를 붙여넣으면 제목·내용·요청 자동 입력 */
+  if(el.dataset.c === "CODE"){
+    const m = t.trim().match(/^https?:\/\/([\w.-]+)\.dooray\.com\/(?:project\/)?(?:tasks|posts)\/(\d+)/);
+    if(m) doorayFill(+el.dataset.i, t.trim(), m[2]);
+  }
+});
+
+/* 북마클릿으로 복사된 텍스트 파싱
+   - 제목줄 "#(코드)/번호 | 실제제목 : NHN : Dooray!" → CODEHIDDEN + 제목
+   - 링크 → CODE, 제목 → 제목·내용, 등록자 이름 → 요청, 등록일(05.28 등) → 접수일자 */
+function applyDoorayText(i, text){
+  if(!data[i]) return;
+  const lines = text.split("\n");
+  let url="", rawTitle="", rawWriter="", body="", mode="";
+  for(let k=1; k<lines.length; k++){
+    const L = lines[k];
+    if(mode==="body"){ body += (body?"\n":"") + L; continue; }
+    if(L.startsWith("링크:"))       url      = L.slice(3).trim();
+    else if(L.startsWith("제목:"))   rawTitle = L.slice(3).trim();
+    else if(L.startsWith("등록자:")) rawWriter= L.slice(4).trim();
+    else if(L.startsWith("내용:"))   mode     = "body";
+  }
+  const pad = n => String(n).padStart(2,"0");
+  const guessYear = (mm,dd)=>{                     // 연도 없는 날짜: 오늘보다 미래면 작년으로 판단
+    const now = new Date();
+    let y = now.getFullYear();
+    if(Number(mm)*100+Number(dd) > (now.getMonth()+1)*100+now.getDate()) y -= 1;
+    return `${y}${pad(mm)}${pad(dd)}`;
+  };
+
+  /* 1) 제목줄 분해: "#CODEHIDDEN | 제목 : NHN : Dooray!" */
+  let codehidden = "", title = rawTitle;
+  const tm = rawTitle.match(/^#?\s*(.+?)\s*\|\s*(.+)$/);
+  if(tm){ codehidden = tm[1].trim(); title = tm[2]; }
+  title = title
+    .replace(/\s*:\s*[^:|]+\s*:\s*Dooray!?\s*$/,"")   // " : NHN : Dooray!" 제거
+    .replace(/\s*:\s*Dooray!?\s*$/,"")
+    .trim();
+
+  /* 2) 등록자·등록일: "임근주(05.28" 또는 본문 '등록자' 다음 줄에서 추출 */
+  let writer = rawWriter, dateStr = "";
+  let dm = rawWriter.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  if(dm) dateStr = dm[1]+pad(dm[2])+pad(dm[3]);
+  else{
+    dm = rawWriter.match(/\((\d{1,2})\.(\d{1,2})/);
+    if(dm) dateStr = guessYear(dm[1], dm[2]);
+  }
+  writer = writer.split("(")[0].trim();
+  const bl = body.split("\n").map(s=>s.trim());
+  const gi = bl.indexOf("등록자");
+  if(gi >= 0){
+    if(!writer && bl[gi+1]) writer = bl[gi+1].split("(")[0].trim();
+    if(!dateStr){
+      for(let k=gi; k<Math.min(gi+4, bl.length); k++){
+        let d = bl[k].match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+        if(d){ dateStr = d[1]+pad(d[2])+pad(d[3]); break; }
+        d = bl[k].match(/\((\d{1,2})\.(\d{1,2})/);
+        if(d){ dateStr = guessYear(d[1], d[2]); break; }
+      }
+    }
+  }
+
+  /* 3) 각 칸에 배정 */
+  if(codehidden) data[i].CODEHIDDEN = codehidden;
+  if(url)        data[i].CODE       = url;
+  if(title){     data[i]["제목"]     = title;
+                 data[i]["내용"]     = title; }      // 내용 = 제목과 동일하게
+  if(writer)     data[i]["요청"]     = writer;
+  if(dateStr)    data[i]["접수일자"]  = dateStr;
+  markDirty(); render();
+  stat.textContent = `두레이 업무 입력 완료: ${title || "(제목 없음)"}${writer ? " · 등록자 " + writer : ""}${dateStr ? " · 접수 " + dateStr : ""}`;
+}
+
+/* ── 두레이 업무 정보 자동 입력 ──
+   CODE에 두레이 링크가 처음 붙여넣어지면 Open API로 업무를 조회해
+   제목→제목, 내용→내용, 등록자→요청 에 채워 넣습니다. (설정에 API 토큰 필요) */
+async function doorayFill(i, url, taskId){
+  if(!data[i]) return;
+  data[i].CODE = url;                                       // 링크는 CODE에 그대로 유지
+  if(!doorayToken){
+    stat.textContent = "두레이 링크 감지됨 — [저장 위치 설정]에 두레이 API 토큰을 넣으면 제목·내용·요청이 자동 입력됩니다";
+    markDirty();
+    return;
+  }
+  stat.textContent = "두레이 업무 정보 가져오는 중…";
+  /* 프로젝트 ID를 아는 경우와 모르는 경우 모두 시도 */
+  const tries = [];
+  if(doorayProject) tries.push(`https://api.dooray.com/project/v1/projects/${encodeURIComponent(doorayProject)}/posts/${taskId}`);
+  tries.push(`https://api.dooray.com/project/v1/posts/${taskId}`);
+  let post = null, lastErr = "";
+  for(const api of tries){
+    try{
+      const res = await fetch(api, {headers:{"Authorization":"dooray-api "+doorayToken}});
+      if(!res.ok){ lastErr = `HTTP ${res.status}`; continue; }
+      const j = await res.json();
+      post = j.result || j;
+      if(post) break;
+    }catch(err){ lastErr = err.message; }
+  }
+  if(!post){
+    markDirty(); render();
+    stat.textContent = `두레이 조회 실패(${lastErr || "응답 없음"}) — 토큰/프로젝트 ID를 확인하거나, 회사망·브라우저 보안(CORS) 정책으로 차단된 경우 직접 입력해주세요`;
+    return;
+  }
+  /* 응답 필드는 환경에 따라 다를 수 있어 여러 경로를 안전하게 시도 */
+  const subject = clean(post.subject ?? post.title ?? "");
+  let content = post.body?.content ?? post.body ?? post.content ?? "";
+  if(typeof content === "object") content = content.content ?? "";
+  content = clean(content);
+  const writer = clean(
+    post.users?.from?.member?.name ?? post.users?.from?.name ??
+    post.creator?.name ?? post.registrant?.name ?? "");
+  if(subject) data[i]["제목"] = subject;
+  if(content) data[i]["내용"] = content;
+  if(writer)  data[i]["요청"] = writer;
+  markDirty(); render();
+  stat.textContent = `두레이 업무 불러옴: ${subject || "(제목 없음)"}${writer ? " · 등록자 " + writer : ""}`;
+}
+tbody.addEventListener("keydown", e=>{
+  const el = e.target.closest(".cv"); if(!el) return;
+  if(e.key==="Enter" && !e.shiftKey && !WRAP.has(el.dataset.c)){
+    e.preventDefault(); el.blur();
+  }
+  if(e.key==="Escape"){ e.preventDefault(); el.blur(); }
+});
+tbody.addEventListener("click", e=>{
+  const star = e.target.closest(".star");
+  if(star){
+    const i = +star.dataset.i;
+    data[i].imp = !data[i].imp;
+    if(data[i].imp && data[i].noti===undefined) data[i].noti = true;
+    markDirty();
+    if(tab==="imp" && !data[i].imp){ render(); return; }
+    star.classList.toggle("on", data[i].imp);
+    star.textContent = data[i].imp ? "★" : "☆";
+    star.closest("tr").classList.toggle("important", data[i].imp);
+    cntImp.textContent = ` ${data.filter(r=>r.imp).length.toLocaleString()}`;
+    cntNoti.textContent = ` ${notiCount().toLocaleString()}`;
+    return;
+  }
+  const del = e.target.closest(".del");
+  if(del){
+    const i = +del.dataset.i;
+    const name = data[i]["제목"] || data[i].CODE || `${i+1}번째 행`;
+    if(confirm(`삭제할까요?\n${name}`)){ data.splice(i,1); markDirty(); render(); }
+  }
+});
+function addRow(){
+  const r = normRow({imp: tab==="imp", noti:true});
+  const today = new Date();
+  r["접수일자"] = today.toISOString().slice(0,10).replaceAll("-","");
+  r["구분"]="개발"; r["상세구분"]="접수";
+  r["접수"]="김중선"; r["책임"]="김중선";
+  data.unshift(r);
+  markDirty();
+  page = 1; render();
+  const first = tbody.querySelector('.cv[data-c="제목"]');
+  if(first) first.focus();
+}
+
+/* ══ 중요일정 알림 ══════════════════════ */
+const nwrap = document.getElementById("nwrap");
+
+function notiItems(){
+  const items = [];
+  for(let i=0;i<data.length;i++){
+    if(data[i].imp) items.push({type:"row", idx:i, r:data[i]});
+  }
+  for(let j=0;j<memos.length;j++){
+    items.push({type:"memo", idx:j, r:memos[j]});
+  }
+  return items;
+}
+function setNFilter(f){
+  nFilter = f;
+  nfAll.classList.toggle("on", f==="all");
+  nfOn.classList.toggle("on", f==="on");
+  nfOff.classList.toggle("on", f==="off");
+  renderNoti();
+}
+function openNoti(filter, isAuto){
+  nFilter = filter || "all";
+  nfAll.classList.toggle("on", nFilter==="all");
+  nfOn.classList.toggle("on", nFilter==="on");
+  nfOff.classList.toggle("on", nFilter==="off");
+  autoNote.hidden = !isAuto;
+  nwrap.hidden = false;
+  renderNoti();
+}
+function closeNoti(){ nwrap.hidden = true; resetIdle(); }
+nwrap.addEventListener("mousedown", e=>{ if(e.target===nwrap) closeNoti(); });
+
+/* 개발완료예정 마감 상태: 0=해당없음, 1=지났지만 완료, 2=지났는데 미완료 */
+function todayNum(){
+  const d = new Date(), p=n=>String(n).padStart(2,"0");
+  return Number(`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`);
+}
+function dueState(r){
+  const digits = String(r["개발완료예정"] ?? "").replace(/\D/g,"");
+  if(digits.length !== 8) return 0;                       // YYYYMMDD 형식만 판정
+  const n = Number(digits);
+  if(n < 19000101 || n > 21001231) return 0;
+  if(n > todayNum()) return 0;                            // 아직 안 지남
+  return String(r["상세구분"] ?? "").trim() === "완료" ? 1 : 2;
+}
+function notiCellHtml(item, c, due){
+  const v = item.r[c] ?? "";
+  const s = String(v).trim();
+  const editable = item.type==="memo" ? ` contenteditable data-j="${item.idx}" data-c="${c}"` : "";
+  if(c==="상세구분" && STATUS_BADGE.has(s)){
+    return `<td class="center"${editable}><span class="badge b-${s}">${esc(s)}</span></td>`;
+  }
+  let cls = c==="제목" ? "" : "center nowrap";
+  if(c==="No" && item.type==="row"){
+    return `<td class="${cls} noti-go" data-goto="${item.idx}" title="알림을 닫고 이 업무로 이동">${esc(v)}</td>`;
+  }
+  if(c==="개발완료예정"){
+    if(due===2) cls += " due-hot";                        // 지났는데 미완료 → 완전 강조
+    else if(due===1) cls += " due-ok";                    // 지났지만 완료 → 강조
+  }
+  return `<td${cls?` class="${cls}"`:""}${editable}>${esc(v)}</td>`;
+}
+function renderNoti(){
+  const all = notiItems();
+  const on  = all.filter(it=>it.r.noti!==false);
+  const off = all.filter(it=>it.r.noti===false);
+  nCntAll.textContent = ` ${all.length}`;
+  nCntOn.textContent  = ` ${on.length}`;
+  nCntOff.textContent = ` ${off.length}`;
+  const list = nFilter==="on" ? on : nFilter==="off" ? off : all;
+  /* 개발완료예정 오름차순 → 완료예정이 없는 항목들끼리는 접수일자 순 → 동일하면 No 순 */
+  const dueKey = it => {
+    const n = toNum(it.r["개발완료예정"]);
+    return n===null ? Infinity : n;
+  };
+  const rcvKey = it => {
+    const n = toNum(it.r["접수일자"]);
+    return n===null ? Infinity : n;
+  };
+  list.sort((a,b)=>{
+    const da = dueKey(a), db = dueKey(b);
+    if(da !== db) return da - db;
+    if(da === Infinity){                          // 둘 다 완료예정 없음 → 접수일자 기준
+      const d = rcvKey(a) - rcvKey(b);
+      if(d) return d;
+    }
+    const an = toNum(a.r.No), bn = toNum(b.r.No);
+    return (an===null?Infinity:an) - (bn===null?Infinity:bn);
+  });
+
+  const h = [];
+  for(const it of list){
+    const noti = it.r.noti!==false;
+    const due = dueState(it.r);
+    h.push(`<tr class="${noti?"":"noti-off"}${due===2?" overdue":""}">`,
+      `<td class="center"><input type="checkbox" class="ntoggle" data-t="${it.type}" data-idx="${it.idx}" ${noti?"checked":""} title="자동 알림 표시 여부"></td>`,
+      `<td class="center"><span class="src ${it.type==="row"?"src-row":"src-memo"}">${it.type==="row"?"일정":"직접입력"}</span></td>`);
+    for(const c of NOTI_COLS) h.push(notiCellHtml(it, c, due));
+    h.push(it.type==="memo"
+      ? `<td class="del" data-mdel="${it.idx}" title="직접입력 항목 삭제">✕</td>`
+      : `<td></td>`);
+    h.push(`</tr>`);
+  }
+  ntbody.innerHTML = h.join("");
+  const emptyEl = document.getElementById("nEmpty");
+  emptyEl.hidden = list.length>0;
+  if(!emptyEl.hidden){
+    emptyEl.textContent = nFilter==="off"
+      ? "미표시로 돌린 항목이 없습니다."
+      : "중요일정이 없습니다. 목록에서 ★를 누르거나 [＋ 직접입력 추가]로 등록하세요.";
+  }
+  ntbody.parentElement.style.display = list.length? "" : "none";
+  cntNoti.textContent = ` ${notiCount().toLocaleString()}`;
+}
+ntbody.addEventListener("change", e=>{
+  const cb = e.target.closest(".ntoggle"); if(!cb) return;
+  const t = cb.dataset.t, idx = +cb.dataset.idx;
+  if(t==="row" && data[idx]) data[idx].noti = cb.checked;
+  if(t==="memo" && memos[idx]) memos[idx].noti = cb.checked;
+  markDirty();
+  renderNoti();
+});
+ntbody.addEventListener("click", e=>{
+  const go = e.target.closest("[data-goto]");
+  if(go){
+    const i = +go.dataset.goto;
+    closeNoti();
+    gotoRow(i);
+    return;
+  }
+  const del = e.target.closest("[data-mdel]"); if(!del) return;
+  const j = +del.dataset.mdel;
+  const name = memos[j] && (memos[j]["제목"] || `직접입력 ${j+1}`);
+  if(confirm(`직접입력 항목을 삭제할까요?\n${name}`)){
+    memos.splice(j,1); markDirty(); renderNoti();
+  }
+});
+/* 직접입력 항목 셀 편집 */
+ntbody.addEventListener("focusout", e=>{
+  const td = e.target.closest("td[contenteditable]"); if(!td) return;
+  const j = +td.dataset.j, c = td.dataset.c;
+  if(!memos[j]) return;
+  let v = clean(td.innerText).replace(/\n+$/,"").replace(/\n/g," ").trim();
+  if(c==="No" && v!=="" && !isNaN(v)) v = Number(v);
+  if(String(memos[j][c]??"") === String(v)) return;
+  memos[j][c] = v;
+  markDirty();
+  if(c==="상세구분"){
+    const s = String(v).trim();
+    td.innerHTML = STATUS_BADGE.has(s) ? `<span class="badge b-${s}">${esc(s)}</span>` : esc(v);
+  }
+});
+ntbody.addEventListener("paste", e=>{
+  const td = e.target.closest("td[contenteditable]"); if(!td) return;
+  e.preventDefault();
+  const t = clean((e.clipboardData || window.clipboardData).getData("text"));
+  document.execCommand("insertText", false, t);
+});
+ntbody.addEventListener("keydown", e=>{
+  const td = e.target.closest("td[contenteditable]"); if(!td) return;
+  if(e.key==="Enter"){ e.preventDefault(); td.blur(); }
+});
+function addMemo(){
+  const today = new Date().toISOString().slice(0,10).replaceAll("-","");
+  memos.unshift({No:"", "제목":"", "접수일자":today, "상세구분":"", "개발완료예정":"", "개발완료":"", noti:true});
+  markDirty();
+  if(nFilter==="off") setNFilter("all"); else renderNoti();
+  const first = ntbody.querySelector('td[data-c="제목"]');
+  if(first) first.focus();
+}
+
+/* ── 5분 무동작 자동 알림 (남은 시간을 하단에 표시) ── */
+let lastActivity = Date.now();
+function resetIdle(){ lastActivity = Date.now(); }
+["mousemove","mousedown","keydown","wheel","touchstart","scroll"].forEach(ev=>
+  document.addEventListener(ev, ()=>{ if(nwrap.hidden) resetIdle(); }, {passive:true})
+);
+setInterval(()=>{
+  const el = document.getElementById("idleLeft");
+  if(!nwrap.hidden){ el.textContent = "🔔 중요알림 표시 중"; el.classList.remove("soon"); return; }
+  const remain = IDLE_MS - (Date.now() - lastActivity);
+  if(remain <= 0){
+    openNoti("on", true);                        // 표시(체크된) 항목만으로 자동 팝업
+    resetIdle();
+    return;
+  }
+  const t = Math.ceil(remain/1000);
+  const m = Math.floor(t/60), s = t%60;
+  el.textContent = `🔔 ${m}분 ${String(s).padStart(2,"0")}초 후 중요알림`;
+  el.classList.toggle("soon", t <= 30);          // 30초 이하면 붉게 강조
+}, 1000);
+
+/* ══ 데이터(JSON) 저장 / 불러오기 ══════════
+   지정 폴더 방식: [저장 위치 설정]에서 폴더를 한 번 지정해두면(권장 기본: E:\_work\_github\link-vault)
+   이후 [데이터 저장]은 대화창 없이 그 폴더의 지정 파일명으로 바로 저장(덮어쓰기)됩니다.
+   폴더 지정은 브라우저의 IndexedDB에 기억되어 다음 실행에서도 유지됩니다. */
+const canPickDir  = ("showDirectoryPicker" in window);
+const canPickFile = ("showSaveFilePicker" in window) && ("showOpenFilePicker" in window);
+const JSON_TYPES = [{description:"일정관리 데이터", accept:{"application/json":[".json"]}}];
+const DEFAULT_PATH_HINT = "E:\\_work\\_github\\link-vault";
+let dirHandle = null;
+let saveFileName = "일정관리_data.json";
+let doorayToken = "";
+let doorayProject = "";
+
+/* 폴더 핸들 기억용 IndexedDB (미지원/차단 환경에서는 조용히 건너뜀) */
+function idb(){
+  return new Promise((res, rej)=>{
+    try{
+      const req = indexedDB.open("일정관리-settings", 1);
+      req.onupgradeneeded = ()=> req.result.createObjectStore("kv");
+      req.onsuccess = ()=> res(req.result);
+      req.onerror = ()=> rej(req.error);
+    }catch(err){ rej(err); }
+  });
+}
+async function idbSet(key, val){
+  try{
+    const db = await idb();
+    await new Promise((res,rej)=>{
+      const tx = db.transaction("kv","readwrite");
+      tx.objectStore("kv").put(val, key);
+      tx.oncomplete = res; tx.onerror = ()=>rej(tx.error);
+    });
+  }catch(err){ /* 기억 실패해도 이번 세션에서는 동작 */ }
+}
+async function idbGet(key){
+  try{
+    const db = await idb();
+    return await new Promise((res,rej)=>{
+      const req = db.transaction("kv").objectStore("kv").get(key);
+      req.onsuccess = ()=>res(req.result); req.onerror = ()=>rej(req.error);
+    });
+  }catch(err){ return undefined; }
+}
+
+async function ensurePermission(handle, mode){
+  try{
+    if(await handle.queryPermission({mode}) === "granted") return true;
+    return (await handle.requestPermission({mode})) === "granted";
+  }catch(err){ return false; }
+}
+function locLabel(){
+  if(!dirHandle) return "(지정 안 됨)";
+  return `${dirHandle.name}\\${saveFileName}`;
+}
+function refreshLocUI(){
+  document.getElementById("fileName").textContent = locLabel();
+  document.getElementById("curFolder").textContent = dirHandle ? dirHandle.name : "(지정 안 됨)";
+  document.getElementById("fnameInput").value = saveFileName;
+  document.getElementById("doorayToken").value = doorayToken;
+  document.getElementById("doorayProject").value = doorayProject;
+}
+async function restoreSettings(){
+  const saved = await idbGet("loc");
+  if(saved){
+    if(saved.dir) dirHandle = saved.dir;                 // FileSystemDirectoryHandle은 IndexedDB에 저장 가능
+    if(saved.name) saveFileName = saved.name;
+  }
+  const dooray = await idbGet("dooray");
+  if(dooray){ doorayToken = dooray.token || ""; doorayProject = dooray.project || ""; }
+  refreshLocUI();
+  if(dirHandle){
+    stat.textContent = `저장 위치 연결됨: ${locLabel()} — [데이터 불러오기]로 이어서 작업하세요`;
+  }else{
+    /* 화면 시작 시 저장위치 미지정 → 설정 안내 팝업 */
+    showPrompt("저장 위치를 지정해주세요",
+      `데이터가 저장될 폴더가 아직 지정되지 않았습니다.<br>` +
+      `한 번만 지정해두면 [데이터 저장]과 5분 주기 자동 저장이 모두 그 폴더로 이루어집니다.<br>` +
+      `권장 위치: <code>${esc(DEFAULT_PATH_HINT)}</code>`,
+      [{label:"나중에"},
+       {label:"저장 위치 설정", primary:true, fn:openSettings}]);
+  }
+}
+async function persistSettings(){
+  await idbSet("loc", {dir:dirHandle, name:saveFileName});
+}
+
+/* 설정 모달 */
+function openSettings(){ refreshLocUI(); swrap.hidden = false; }
+function closeSettings(){
+  const v = document.getElementById("fnameInput").value.trim();
+  if(v){
+    saveFileName = /\.json$/i.test(v) ? v : v + ".json";
+    saveFileName = clean(saveFileName).replace(/[\\/:*?"<>|\n]/g,"_");   // 파일명 금지문자 정리
+  }
+  doorayToken = document.getElementById("doorayToken").value.trim();
+  doorayProject = document.getElementById("doorayProject").value.trim();
+  idbSet("dooray", {token:doorayToken, project:doorayProject});
+  persistSettings(); refreshLocUI();
+  swrap.hidden = true;
+}
+swrap.addEventListener("mousedown", e=>{ if(e.target===swrap) closeSettings(); });
+async function pickFolder(){
+  if(!canPickDir){
+    alert("이 브라우저는 폴더 지정을 지원하지 않습니다.\nChrome, Edge, 웨일 브라우저에서 열어주세요.\n(미지원 환경에서는 저장 시 다운로드 폴더로 내려받습니다.)");
+    return;
+  }
+  try{
+    dirHandle = await showDirectoryPicker({mode:"readwrite"});
+    await persistSettings(); refreshLocUI();
+    stat.textContent = `저장 폴더 지정 완료: ${dirHandle.name}`;
+  }catch(err){ if(err.name!=="AbortError") alert("폴더를 지정하지 못했습니다: "+err.message); }
+}
+async function disconnectFolder(){
+  dirHandle = null;
+  await persistSettings(); refreshLocUI();
+}
+
+function stamp(){
+  const d = new Date(), p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function payload(){
+  return JSON.stringify({
+    app:"일정관리", version:2, savedAt:new Date().toISOString(),
+    count:data.length, rows:data, memos:memos
+  });
+}
+function fallbackDownload(content, name, mime){
+  const blob = new Blob([content], {type:mime});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+
+/* ── 안내 팝업 ── */
+function showPrompt(title, msg, buttons){
+  pTitle.textContent = title;
+  pMsg.innerHTML = msg;
+  pBtns.innerHTML = "";
+  for(const b of buttons){
+    const el = document.createElement("button");
+    el.className = "btn" + (b.primary ? " primary" : "");
+    el.textContent = b.label;
+    el.onclick = ()=>{ pwrap.hidden = true; if(b.fn) b.fn(); };
+    pBtns.appendChild(el);
+  }
+  pwrap.hidden = false;
+}
+pwrap.addEventListener("mousedown", e=>{ if(e.target===pwrap) pwrap.hidden = true; });
+
+/* ── 백업: 고정 이름 순환 — 저장 직전의 기존 파일을 _백업1로, 기존 백업들은 1→2→3→4→5로 밀어냄 ── */
+function backupName(n){ return saveFileName.replace(/\.json$/i,"") + `_백업${n}.json`; }
+async function backupThenWrite(text){
+  /* 1) 기존 파일이 있고 내용이 달라졌으면 백업 순환 */
+  try{
+    let old = null;
+    try{
+      const fh = await dirHandle.getFileHandle(saveFileName);
+      old = await (await fh.getFile()).text();
+    }catch(e){ /* 첫 저장 → 백업 없음 */ }
+    if(old !== null && old !== text){
+      /* 백업4→5, 3→4, 2→3, 1→2 순으로 복사 (없는 번호는 건너뜀) */
+      for(let n = MAX_BACKUPS-1; n >= 1; n--){
+        try{
+          const src = await dirHandle.getFileHandle(backupName(n));
+          const content = await (await src.getFile()).text();
+          const dst = await dirHandle.getFileHandle(backupName(n+1), {create:true});
+          const w = await dst.createWritable();
+          await w.write(content); await w.close();
+        }catch(e){ /* 해당 번호 백업 없음 */ }
+      }
+      /* 직전 내용 → 백업1 */
+      const b1 = await dirHandle.getFileHandle(backupName(1), {create:true});
+      const w1 = await b1.createWritable();
+      await w1.write(old); await w1.close();
+    }
+  }catch(err){ /* 백업 실패해도 본 저장은 진행 */ }
+  /* 2) 본 파일 저장 */
+  const fh = await dirHandle.getFileHandle(saveFileName, {create:true});
+  const w = await fh.createWritable();
+  await w.write(text); await w.close();
+}
+
+async function saveJson(){
+  const text = payload();
+  /* 1) 지정 폴더가 없으면 최초 1회 지정 유도 */
+  if(!dirHandle && canPickDir){
+    if(confirm(`저장 폴더가 아직 지정되지 않았습니다.\n지금 지정할까요? (권장: ${DEFAULT_PATH_HINT})\n\n[확인] 폴더 지정  /  [취소] 이번만 다운로드 폴더에 저장`)){
+      await pickFolder();
+      if(!dirHandle) return;
+    }
+  }
+  /* 2) 지정 폴더에 저장 (기존 파일은 백업으로 보관) */
+  if(dirHandle){
+    try{
+      if(!await ensurePermission(dirHandle, "readwrite")){
+        alert("폴더 접근이 허용되지 않았습니다. [저장 위치 설정]에서 폴더를 다시 지정해주세요.");
+        return;
+      }
+      await backupThenWrite(text);
+      dirty = false;
+      stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본은 _백업1~${MAX_BACKUPS}로 보관)`;
+      return;
+    }catch(err){
+      if(err.name === "AbortError") return;
+      alert(`지정 폴더에 저장하지 못했습니다 (${err.message}).\n다운로드 폴더로 대신 저장합니다.`);
+    }
+  }
+  /* 3) 대체: 다운로드 */
+  fallbackDownload(text, `일정관리_data_${stamp()}.json`, "application/json;charset=utf-8");
+  dirty = false;
+  stat.textContent = `다운로드 폴더에 저장했습니다 (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건).`;
+}
+
+/* ── 5분마다 자동 저장 (변경사항이 있을 때만) ── */
+let autoNagShown = false;                        // 미지정 안내를 반복해서 띄우지 않기 위한 플래그
+async function autoSave(){
+  if(!dirty) return;
+  /* 저장 위치 미지정 → 안내 팝업 */
+  if(!dirHandle){
+    if(!autoNagShown && pwrap.hidden && swrap.hidden){
+      autoNagShown = true;
+      showPrompt("자동 저장을 할 수 없습니다",
+        `변경사항이 있지만 저장 위치가 지정되지 않아 자동 저장하지 못했습니다.<br>` +
+        `저장 폴더를 지정하면 5분마다 자동 저장됩니다. (권장: <code>${esc(DEFAULT_PATH_HINT)}</code>)`,
+        [{label:"나중에"},
+         {label:"저장 위치 설정", primary:true, fn:openSettings}]);
+    }
+    return;
+  }
+  try{
+    /* 브라우저 재시작 직후 등 권한 재확인이 필요한 경우: 자동으로는 요청할 수 없어 팝업으로 안내 */
+    if(await dirHandle.queryPermission({mode:"readwrite"}) !== "granted"){
+      if(pwrap.hidden && swrap.hidden){
+        showPrompt("자동 저장 대기 중",
+          `변경사항이 있어 자동 저장하려고 했지만, 브라우저가 폴더 접근 재확인을 요구합니다.<br>아래 버튼을 눌러 허용하면 바로 저장됩니다.`,
+          [{label:"나중에"},
+           {label:"허용하고 저장", primary:true, fn:()=>saveJson()}]);
+      }
+      return;
+    }
+    await backupThenWrite(payload());
+    dirty = false;
+    const t = new Date(), p=n=>String(n).padStart(2,"0");
+    stat.textContent = `자동 저장 완료 ${p(t.getHours())}:${p(t.getMinutes())} — ${locLabel()} (이전본은 _백업1~${MAX_BACKUPS}로 보관)`;
+  }catch(err){ /* 다음 주기에 재시도 */ }
+}
+setInterval(autoSave, AUTOSAVE_MS);
+
+/* 닫기 전 미저장 변경 경고 */
+window.addEventListener("beforeunload", e=>{
+  if(dirty){ e.preventDefault(); e.returnValue = ""; }
+});
+
+async function loadJson(){
+  /* 1) 지정 폴더의 지정 파일을 바로 읽기 */
+  if(dirHandle){
+    try{
+      if(await ensurePermission(dirHandle, "read")){
+        const fh = await dirHandle.getFileHandle(saveFileName);
+        const f = await fh.getFile();
+        const text = await f.text();
+        busy("데이터 불러오는 중…", ()=>{ parseAndApply(text); });
+        return;
+      }
+    }catch(err){
+      if(err.name === "NotFoundError"){
+        if(!confirm(`지정 폴더에 ${saveFileName} 파일이 아직 없습니다.\n다른 파일을 직접 선택할까요?`)) return;
+      }else if(err.name === "AbortError"){ return; }
+    }
+  }
+  /* 2) 파일 직접 선택 */
+  if(canPickFile){
+    try{
+      const [h] = await showOpenFilePicker({types:JSON_TYPES, multiple:false});
+      const f = await h.getFile();
+      const text = await f.text();
+      busy("데이터 불러오는 중…", ()=>{ parseAndApply(text); });
+      return;
+    }catch(err){
+      if(err.name === "AbortError") return;
+    }
+  }
+  jsonInput.click();
+}
+jsonInput.addEventListener("change", ev=>{
+  const f = ev.target.files[0]; ev.target.value=""; if(!f) return;
+  const reader = new FileReader();
+  reader.onerror = ()=> alert("파일을 읽지 못했습니다.");
+  reader.onload = e=> busy("데이터 불러오는 중…", ()=>{ parseAndApply(e.target.result); });
+  reader.readAsText(f, "utf-8");
+});
+function parseAndApply(text){
+  let parsed;
+  try{ parsed = JSON.parse(text); }
+  catch(err){ alert("올바른 데이터파일(.json)이 아닙니다.\n"+err.message); return false; }
+  const src = Array.isArray(parsed) ? parsed : parsed.rows;
+  if(!Array.isArray(src)){ alert("데이터 형식을 인식할 수 없습니다. (rows 배열 없음)"); return false; }
+  const rows = src.filter(r=>r && typeof r==="object").map(normRow);
+  const newMemos = Array.isArray(parsed.memos)
+    ? parsed.memos.filter(m=>m && typeof m==="object").map(normMemo) : [];
+  if(!rows.length && !newMemos.length){ alert("불러올 데이터가 없습니다."); return false; }
+  applyImport(rows, newMemos, "데이터");
+  return true;
+}
+
+/* ══ 엑셀 가져오기 / 내보내기 ══════════════
+   - PROJECT 시트: 중요(Y/N) + 알림(Y/N) 열 포함
+   - 중요메모 시트: 직접입력 중요일정 (알림, No, 제목, 접수일자, 상세구분, 개발완료예정, 개발완료) */
+xlsxInput.addEventListener("change", ev=>{
+  const f = ev.target.files[0]; ev.target.value=""; if(!f) return;
+  const reader = new FileReader();
+  reader.onerror = ()=> alert("파일을 읽지 못했습니다.");
+  reader.onload = e=>{
+    busy("엑셀 가져오는 중…", ()=>{
+      let wb;
+      try{ wb = XLSX.read(e.target.result, {type:"array", cellDates:true}); }
+      catch(err){ alert("엑셀 파일을 읽지 못했습니다: "+err.message); return; }
+      const ws = wb.Sheets[wb.SheetNames.includes("PROJECT") ? "PROJECT" : wb.SheetNames[0]];
+      if(!ws){ alert("시트를 찾을 수 없습니다."); return; }
+      const json = XLSX.utils.sheet_to_json(ws, {defval:""});
+      const rows = [];
+      for(const row of json){
+        const r = normRow(row);
+        r.imp = ["Y","y","TRUE","true","★","1",1,true].includes(row["중요"]);
+        if(COLS.some(c => String(r[c]??"").trim() !== "")) rows.push(r);
+      }
+      /* 직접입력(중요메모) 시트 */
+      let newMemos = [];
+      if(wb.Sheets["중요메모"]){
+        const mjson = XLSX.utils.sheet_to_json(wb.Sheets["중요메모"], {defval:""});
+        newMemos = mjson.map(normMemo)
+          .filter(m => NOTI_COLS.some(c => String(m[c]??"").trim() !== ""));
+      }
+      if(!rows.length && !newMemos.length){
+        alert("가져올 데이터가 없습니다. 첫 행이 제목행(CODE, PROJECT…)인지 확인하세요."); return;
+      }
+      applyImport(rows, newMemos, "엑셀");
+    });
+  };
+  reader.readAsArrayBuffer(f);
+});
+function applyImport(rows, newMemos, label){
+  const memoTxt = newMemos.length ? ` + 직접입력 ${newMemos.length}건` : "";
+  const replace = confirm(`${label}에서 일정 ${rows.length.toLocaleString()}건${memoTxt}을 불러왔습니다.\n\n[확인] 기존 목록 교체\n[취소] 기존 목록 뒤에 추가`);
+  if(replace){ data = rows; memos = newMemos; }
+  else{ data = data.concat(rows); memos = memos.concat(newMemos); }
+  colFilters = {}; page = 1;
+  markDirty();
+  render();
+  if(!nwrap.hidden) renderNoti();
+  stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건`;
+}
+async function exportExcel(){
+  busy("엑셀 내보내는 중…", async ()=>{
+    /* 시트1: 일정 (중요/알림 열 포함) */
+    const rows = data.map(r=>{
+      const o = {"중요": r.imp?"Y":"", "알림": r.imp ? (r.noti!==false?"Y":"N") : ""};
+      for(const c of COLS) o[c] = r[c] ?? "";
+      return o;
+    });
+    const ws = XLSX.utils.json_to_sheet(rows, {header:["중요","알림",...COLS]});
+    ws["!cols"] = [{wch:5},{wch:5},{wch:11},{wch:24},{wch:10},{wch:6},{wch:38},{wch:45},{wch:8},{wch:8},{wch:10},
+                   {wch:6},{wch:8},{wch:8},{wch:8},{wch:10},{wch:12},{wch:10},{wch:10},{wch:14},{wch:8},{wch:40}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PROJECT");
+    /* 시트2: 직접입력 중요일정 */
+    const mrows = memos.map(m=>{
+      const o = {"알림": m.noti!==false?"Y":"N"};
+      for(const c of NOTI_COLS) o[c] = m[c] ?? "";
+      return o;
+    });
+    const mws = XLSX.utils.json_to_sheet(
+      mrows.length ? mrows : [{"알림":"","No":"","제목":"","접수일자":"","상세구분":"","개발완료예정":"","개발완료":""}],
+      {header:["알림",...NOTI_COLS]});
+    if(!mrows.length) XLSX.utils.sheet_add_aoa(mws, [["알림","No","제목","접수일자","상세구분","개발완료예정","개발완료"]], {origin:"A1"});
+    mws["!cols"] = [{wch:5},{wch:6},{wch:38},{wch:10},{wch:8},{wch:12},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, mws, "중요메모");
+
+    const xname = `일정관리_${stamp()}.xlsx`;
+    /* 1) 지정 폴더가 있으면 그 폴더에 바로 저장 */
+    if(dirHandle){
+      try{
+        if(await ensurePermission(dirHandle, "readwrite")){
+          const fh = await dirHandle.getFileHandle(xname, {create:true});
+          const buf = XLSX.write(wb, {type:"array", bookType:"xlsx"});
+          const w = await fh.createWritable();
+          await w.write(buf); await w.close();
+          stat.textContent = `엑셀 저장 완료: ${dirHandle.name}\\${xname} (PROJECT + 중요메모 시트)`;
+          return;
+        }
+      }catch(err){ if(err.name==="AbortError") return; }
+    }
+    /* 2) 위치 직접 선택 */
+    if(canPickFile){
+      try{
+        const h = await showSaveFilePicker({
+          suggestedName:xname,
+          types:[{description:"Excel 파일", accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]}}]
+        });
+        const buf = XLSX.write(wb, {type:"array", bookType:"xlsx"});
+        const w = await h.createWritable();
+        await w.write(buf); await w.close();
+        stat.textContent = `엑셀 저장 완료: ${h.name} (PROJECT + 중요메모 시트)`;
+        return;
+      }catch(err){ if(err.name==="AbortError") return; }
+    }
+    /* 3) 대체: 다운로드 */
+    XLSX.writeFile(wb, xname);
+  });
+}
+
+render();
+restoreSettings();
+</script>
+</body>
+</html>

@@ -345,6 +345,7 @@
     position:relative;box-shadow:0 24px 70px rgba(0,0,0,.35);
     animation:helpin .22s ease;
   }
+  #sampleOverlay .help-modal{max-width:760px;}
   @keyframes helpin{from{opacity:0;transform:translateY(12px) scale(.98);}to{opacity:1;transform:none;}}
   .help-x{
     position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:9px;
@@ -392,17 +393,22 @@
   }
   .help-start:hover{background:#12939e;}
 
-  .sample-list{padding:16px 26px 26px;display:flex;flex-direction:column;gap:10px;}
+  .sample-list{padding:14px 24px 24px;display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .sample-cat{grid-column:1 / -1;display:flex;align-items:center;gap:8px;margin:12px 2px 2px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);}
+  .sample-cat:first-child{margin-top:0;}
+  .sample-cat::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--accent);}
+  .sample-cat .sc-count{margin-left:auto;font-size:10.5px;color:var(--ink-faint);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px;}
   .sample-pick{
     text-align:left;cursor:pointer;
-    display:flex;flex-direction:column;gap:3px;
-    padding:14px 16px;border-radius:12px;
+    display:flex;flex-direction:column;gap:2px;
+    padding:11px 13px;border-radius:11px;
     border:1px solid var(--line);background:var(--panel-2);
     transition:all .13s ease;font-family:var(--sans);
   }
   .sample-pick:hover{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-1px);}
-  .sample-pick .sp-name{font-size:14.5px;font-weight:800;color:var(--ink);}
-  .sample-pick .sp-desc{font-size:12px;color:var(--ink-soft);}
+  .sample-pick .sp-name{font-size:13.5px;font-weight:800;color:var(--ink);}
+  .sample-pick .sp-desc{font-size:11px;color:var(--ink-soft);line-height:1.4;}
+  @media(max-width:560px){ .sample-list{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -470,7 +476,7 @@
         <span class="hs-num">2</span>
         <div class="hs-body">
           <h3>트래커 · 블록 <em>항목 편집 안</em></h3>
-          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 업무 트래커가 됩니다(완성본에서 배지 표시 + <b>태그 필터</b>). 또한 항목 안에 <b>추가 블록</b>으로 <b>표 · 링크 · 이미지 · 코드 · 안내 박스 · 소제목 · 구분선</b>을 자유롭게 쌓고 드래그로 정렬할 수 있어요. 진행률은 <b>항목→중분류→분야→전체 링</b>으로 합산됩니다.</p>
+          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 업무 트래커가 됩니다(완성본에서 배지 표시 + <b>태그 필터</b>). 또한 항목 안에 <b>추가 블록 9종</b> — <b>소제목 · 문단 · 안내 박스(정보/팁/주의) · 목록 · 표 · 링크 · 이미지 · 코드 · 구분선</b> — 을 자유롭게 쌓고 <code>⠿</code> 손잡이로 드래그 정렬할 수 있어요. 진행률은 <b>항목→중분류→분야→전체 링</b>으로 합산됩니다.</p>
         </div>
       </div>
       <div class="help-step">
@@ -499,8 +505,8 @@
           <ul>
             <li><b>HTML 내보내기</b> — 자동저장·체크리스트가 담긴 배포용 단독 파일</li>
             <li><b>프로젝트 저장 / 열기</b> — <code>.guide.json</code>으로 백업·복원해 이어서 편집</li>
-            <li><b>CSV 가져오기 / 내보내기</b> — 엑셀에 정리한 분야·중분류·항목·담당·상태·태그·증빙을 <b>한 번에 대량 등록</b>하거나 CSV로 저장 / <b>MD 내보내기</b>는 위키·노션에 붙일 마크다운 문서</li>
-            <li><b>샘플 불러오기</b> — <b>24종</b> 예시(3레벨 트리·블록 활용·업무 트래커, 그리고 모든 형태가 담긴 <b>종합(풀) 5종</b> 포함) 중 선택 / <b>비우기</b>로 새로 시작</li>
+            <li><b>CSV 가져오기 / 내보내기</b> — 엑셀에 정리한 분야·중분류·항목·담당·상태·태그·증빙을 <b>한 번에 대량 등록</b>하거나 CSV로 저장(교체/추가 선택) · <b>MD 내보내기</b>는 위키·노션에 붙일 마크다운 문서</li>
+            <li><b>샘플 불러오기</b> — <b>35종</b>을 <b>6개 카테고리</b>(기본·종합·IT 개발/DevOps·IT 인프라/보안·업무·일반)로 정리해 제공. 처음이라면 <b>전 기능 총망라 (레퍼런스)</b> 를 열어 모든 기능을 한 번에 확인해 보세요. <b>비우기</b>로 새로 시작할 수도 있어요.</li>
           </ul>
         </div>
       </div>
@@ -2690,6 +2696,7 @@ const SAMPLE_LAUNCH = {
 };
 
 const SF = { ring:true, legend:true, checklist:true, notes:true, tracker:true, search:true, themeToggle:true, autosave:true, io:true };
+const DEMO_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="520" height="130" viewBox="0 0 520 130"><rect width="520" height="130" rx="10" fill="#eef2f5"/><g font-family="sans-serif" font-size="14" font-weight="700" text-anchor="middle"><rect x="24" y="42" width="120" height="46" rx="8" fill="#fff" stroke="#2C6E86"/><text x="84" y="70" fill="#18242c">준비</text><rect x="200" y="42" width="120" height="46" rx="8" fill="#fff" stroke="#2C6E86"/><text x="260" y="70" fill="#18242c">실행</text><rect x="376" y="42" width="120" height="46" rx="8" fill="#fff" stroke="#2C6E86"/><text x="436" y="70" fill="#18242c">검증</text></g><g stroke="#2C6E86" stroke-width="2" fill="none"><path d="M148 65 h48"/><path d="M324 65 h48"/></g><g fill="#2C6E86"><path d="M196 65 l-8 -5 v10 z"/><path d="M372 65 l-8 -5 v10 z"/></g><text x="260" y="24" font-family="sans-serif" font-size="12" fill="#5a6b73" text-anchor="middle">예시 다이어그램 (내장 이미지)</text></svg>');
 
 const SAMPLE_DEV = {
   meta:{ eyebrow:'개발 · 체크리스트', title:'신규 화면 개발 체크리스트', subtitle:'기획부터 배포까지 담당·기한·상태로 추적하는 개발 트래커입니다.', ringCaption:'개발 진행률', footerLeft:'', footerRight:'' },
@@ -3018,8 +3025,8 @@ const SAMPLE_FULL_SEC = {
   config:{ layout:'accordion', theme:'slate', density:'comfortable', features:SF },
   categories:[
     { id:'access', num:'1', title:'접근통제', desc:'계정·권한', items:[
-      { num:'1.0', title:'접근통제 개요', status:'done', assignee:'보안팀', tags:['개요'], detail:['최소권한 원칙 적용'], evidence:['정책 확인'], caution:'',
-        blocks:[ { type:'callout', tone:'info', text:'모든 시스템 접근은 최소권한·업무근거를 원칙으로 합니다.' }, { type:'divider' } ] }
+      { num:'1.0', title:'접근통제 개요', status:'done', assignee:'보안팀', tags:['개요'], note:true, detail:['최소권한 원칙 적용'], evidence:['정책 확인'], caution:'접근 로그는 최소 1년 이상 별도 보존하세요.',
+        blocks:[ { type:'text', text:'본 문서는 접근통제 운영 기준과 증빙을 한곳에 모은 예시입니다.' }, { type:'callout', tone:'info', text:'모든 시스템 접근은 최소권한·업무근거를 원칙으로 합니다.' }, { type:'image', url:DEMO_IMG, caption:'접근통제 운영 흐름' }, { type:'divider' } ] }
     ], groups:[
       { gid:'g_acc', num:'1-1', title:'계정 관리', items:[
         { num:'1.1.1', title:'계정 생성·회수', status:'doing', priority:'high', assignee:'인프라', due:'상시', tags:['계정','필수'], detail:['입·퇴사 연동','휴면 계정 정리'], evidence:['# 생성','승인 기록','# 회수','퇴직자 즉시 회수','휴면 계정 목록'], caution:'퇴사 당일 회수',
@@ -3044,8 +3051,8 @@ const SAMPLE_FULL_LAUNCH = {
   config:{ layout:'cards', theme:'forest', density:'comfortable', features:SF },
   categories:[
     { id:'plan', num:'1', title:'기획', desc:'', items:[
-      { num:'1.0', title:'런칭 개요', status:'doing', assignee:'PM', tags:['개요'], detail:['목표·일정 공유'], evidence:['킥오프 완료'], caution:'',
-        blocks:[ { type:'callout', tone:'info', text:'목표 출시일과 핵심 지표(KPI)를 먼저 합의합니다.' }, { type:'table', head:['마일스톤','일정'], rows:[['베타','8/1'],['정식','9/1']] } ] }
+      { num:'1.0', title:'런칭 개요', status:'doing', assignee:'PM', tags:['개요'], note:true, detail:['목표·일정 공유'], evidence:['킥오프 완료'], caution:'출시일 2주 전 기능 동결(Freeze)을 지키세요.',
+        blocks:[ { type:'text', text:'런칭 준비 전 과정을 기획·개발·마케팅으로 나눠 추적합니다.' }, { type:'callout', tone:'info', text:'목표 출시일과 핵심 지표(KPI)를 먼저 합의합니다.' }, { type:'table', head:['마일스톤','일정'], rows:[['베타','8/1'],['정식','9/1']] }, { type:'image', url:DEMO_IMG, caption:'런칭 준비 흐름' } ] }
     ], groups:[
       { gid:'g_req', num:'1-1', title:'요구사항', items:[
         { num:'1.1.1', title:'요구사항 정의', status:'done', assignee:'기획', priority:'high', tags:['문서'], detail:['# 필수','핵심 기능','# 선택','부가 기능'], evidence:['PRD 승인'], caution:'스코프 확정' }
@@ -3078,8 +3085,8 @@ const SAMPLE_FULL_STORE = {
       ]}
     ]},
     { id:'people', num:'2', title:'인력', desc:'', items:[
-      { num:'2.1', title:'채용·교육', status:'todo', assignee:'점장', tags:['인력'], detail:['채용·서비스 교육'], evidence:['근로계약','교육 이수'], caution:'',
-        blocks:[ { type:'table', head:['포지션','인원'], rows:[['정직원','2'],['아르바이트','4']] } ] }
+      { num:'2.1', title:'채용·교육', status:'todo', assignee:'점장', tags:['인력'], note:true, detail:['채용·서비스 교육'], evidence:['근로계약','교육 이수'], caution:'오픈 1주 전까지 필수 인력 채용을 완료하세요.',
+        blocks:[ { type:'text', text:'오픈까지 남은 기간에 맞춰 인력·교육을 준비합니다.' }, { type:'table', head:['포지션','인원'], rows:[['정직원','2'],['아르바이트','4']] }, { type:'code', text:'오픈 D-7: 최종 리허설\n오픈 D-1: 재고·집기 점검' }, { type:'image', url:DEMO_IMG, caption:'오픈 준비 흐름' } ] }
     ], groups:[] },
     { id:'open', num:'3', title:'오픈', desc:'', items:[
       { num:'3.1', title:'오픈 행사', status:'todo', assignee:'점장', detail:['프로모션·리허설'], evidence:['프로모션 준비','오픈 리허설'], caution:'' }
@@ -3102,8 +3109,8 @@ const SAMPLE_FULL_DATA = {
       ]}
     ]},
     { id:'verify', num:'3', title:'검증', desc:'', items:[
-      { num:'3.1', title:'검증·안정화', status:'todo', assignee:'DBA', detail:['건수·표본 비교'], evidence:['검증 리포트'], caution:'',
-        blocks:[ { type:'table', head:['테이블','원본','대상'], rows:[['orders','120,000','120,000'],['users','8,500','8,500']] } ] }
+      { num:'3.1', title:'검증·안정화', status:'todo', assignee:'DBA', note:true, detail:['건수·표본 비교'], evidence:['검증 리포트'], caution:'검증 통과 전에는 구 시스템을 폐기하지 마세요.',
+        blocks:[ { type:'text', text:'이관 후 데이터 정합성을 건수·표본으로 검증합니다.' }, { type:'table', head:['테이블','원본','대상'], rows:[['orders','120,000','120,000'],['users','8,500','8,500']] }, { type:'links', links:[{label:'검증 쿼리 모음', url:'https://wiki.example.com/verify'}] }, { type:'image', url:DEMO_IMG, caption:'마이그레이션 흐름' } ] }
     ], groups:[] }
   ]
 };
@@ -3113,8 +3120,8 @@ const SAMPLE_FULL_CS = {
   config:{ layout:'kanban', theme:'midnight', density:'comfortable', features:SF },
   categories:[
     { id:'contract', num:'1', title:'계약·킥오프', desc:'', items:[
-      { num:'1.1', title:'계약·일정', status:'done', assignee:'AM', tags:['계약'], detail:['계약·킥오프 미팅'], evidence:['계약서','킥오프 완료'], caution:'',
-        blocks:[ { type:'callout', tone:'info', text:'킥오프에서 성공 기준과 일정을 합의합니다.' } ] }
+      { num:'1.1', title:'계약·일정', status:'done', assignee:'AM', tags:['계약'], note:true, detail:['계약·킥오프 미팅'], evidence:['계약서','킥오프 완료'], caution:'성공 기준(Success Criteria)을 계약 단계에서 문서화하세요.',
+        blocks:[ { type:'text', text:'B2B 고객 온보딩을 계약·설정·교육 단계로 나눠 관리합니다.' }, { type:'callout', tone:'info', text:'킥오프에서 성공 기준과 일정을 합의합니다.' }, { type:'image', url:DEMO_IMG, caption:'온보딩 단계' } ] }
     ], groups:[] },
     { id:'setup', num:'2', title:'설정', desc:'', items:[], groups:[
       { gid:'g_tech', num:'2-1', title:'기술 설정', items:[
@@ -3129,41 +3136,231 @@ const SAMPLE_FULL_CS = {
   ]
 };
 
+const SAMPLE_FULL_ALL = {
+  meta:{ eyebrow:'레퍼런스 · 전 기능', title:'전 기능 총망라 레퍼런스', subtitle:'중분류(3레벨)·모든 블록 9종·트래커·태그·증빙 그룹·주의·메모를 한 문서에서 확인하는 예시입니다.', ringCaption:'예시 진행률', footerLeft:'가이드 빌더', footerRight:'모든 기능 데모' },
+  labels:{ detail:'상세 기준', evidence:'증빙 체크리스트', caution:'주의사항', note:'메모' },
+  config:{ layout:'accordion', theme:'paper', density:'comfortable', features:SF },
+  categories:[
+    { id:'all', num:'1', title:'전체 요소 (2·3레벨 혼합)', desc:'모든 형태를 한 항목에',
+      items:[
+        { num:'1.0', title:'모든 블록 9종 데모', status:'doing', priority:'high', assignee:'홍길동', due:'2026-12-31', tags:['데모','필수','참고'], note:true,
+          detail:['# 소제목: 판단 기준','상세 기준 첫 번째','상세 기준 두 번째'],
+          evidence:['# 그룹 A · 서류','증빙 항목 1','증빙 항목 2','# 그룹 B · 화면','증빙 항목 3'],
+          caution:'이 항목 하나에 소제목·문단·안내(정보/팁/주의)·목록·표·링크·이미지·코드·구분선이 모두 들어 있습니다.',
+          blocks:[
+            { type:'subhead', text:'① 소제목 블록' },
+            { type:'text', text:'② 문단 블록입니다. 자유롭게 설명을 적을 수 있어요.' },
+            { type:'callout', tone:'info', text:'③ 안내 박스 — 정보 톤' },
+            { type:'callout', tone:'tip', text:'③ 안내 박스 — 팁 톤' },
+            { type:'callout', tone:'warn', text:'③ 안내 박스 — 주의 톤' },
+            { type:'list', items:['④ 목록 항목 1','④ 목록 항목 2','④ 목록 항목 3'] },
+            { type:'table', head:['⑤ 표 머리글','값'], rows:[['행 1','A'],['행 2','B']] },
+            { type:'links', links:[{label:'⑥ 링크 블록', url:'https://example.com'},{label:'문서', url:'https://docs.example.com'}] },
+            { type:'image', url:DEMO_IMG, caption:'⑦ 이미지 블록 (내장 data URI)' },
+            { type:'code', text:'# ⑧ 코드 블록\necho "hello world"' },
+            { type:'divider' }
+          ] }
+      ],
+      groups:[
+        { gid:'g_mid', num:'1-1', title:'중분류 예시 (3레벨)', items:[
+          { num:'1.1.1', title:'중분류 안 항목 · 완료', status:'done', assignee:'김철수', tags:['3레벨'], detail:['중분류(그룹) 아래 항목입니다.'], evidence:['증빙 A','증빙 B'], caution:'' },
+          { num:'1.1.2', title:'중분류 안 항목 · 낮음', status:'todo', priority:'low', tags:['3레벨'], detail:['우선순위 낮음 예시'], evidence:['증빙 C'], caution:'' }
+        ]}
+      ]
+    },
+    { id:'flat', num:'2', title:'2레벨 분야 (중분류 없음)', desc:'그룹 없이 항목만',
+      items:[
+        { num:'2.1', title:'상태·우선순위 조합 A', status:'todo', priority:'med', assignee:'이영희', due:'다음 주', tags:['보통'], detail:['예정 + 보통 우선순위'], evidence:['증빙 1','증빙 2'], caution:'주의사항 예시', note:true },
+        { num:'2.2', title:'상태·우선순위 조합 B', status:'done', assignee:'박민수', tags:['완료'], detail:['완료 상태 예시'], evidence:['증빙 1'], caution:'' }
+      ],
+      groups:[]
+    }
+  ]
+};
+
+const SAMPLE_IT_DEVONBOARD = {
+  meta:{ eyebrow:'IT · 온보딩', title:'개발자 온보딩', subtitle:'신규 개발자의 계정·환경·규칙 세팅을 단계별로 정리했습니다.', ringCaption:'세팅 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'해야 할 일', evidence:'체크', caution:'참고', note:'메모' }, config:{ layout:'accordion', theme:'forest', density:'comfortable', features:SF },
+  categories:[
+    { id:'acc', num:'1', title:'계정·권한', desc:'', items:[
+      { num:'1.1', title:'계정 발급', status:'done', assignee:'IT팀', tags:['필수'], detail:['이메일·SSO·메신저'], evidence:['# 필수','SSO 로그인','메신저 초대','# 개발','Git 조직 초대','클라우드 콘솔 권한'], caution:'최소권한 원칙' } ], groups:[] },
+    { id:'env', num:'2', title:'로컬 환경', desc:'', items:[
+      { num:'2.1', title:'저장소·의존성', status:'doing', assignee:'멘토', tags:['개발'], detail:['레포 클론·빌드'], evidence:['빌드 성공','테스트 통과'], caution:'',
+        blocks:[ { type:'code', text:'git clone git@org:app.git\ncd app && make setup\nmake test' }, { type:'links', links:[{label:'개발 위키', url:'https://wiki.example.com'},{label:'코딩 컨벤션', url:'https://wiki.example.com/style'}] } ] } ], groups:[] },
+    { id:'rule', num:'3', title:'팀 규칙', desc:'', items:[
+      { num:'3.1', title:'브랜치·리뷰 규칙', status:'todo', tags:['규칙'], detail:['브랜치 전략·PR 규칙 숙지'], evidence:['PR 템플릿 확인','첫 PR 생성'], caution:'', blocks:[ { type:'callout', tone:'tip', text:'main 직접 push 금지 · PR 1인 이상 승인 필요' } ] } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_K8S = {
+  meta:{ eyebrow:'IT · DevOps', title:'쿠버네티스 배포 점검', subtitle:'K8s 배포 전 리소스·보안·롤아웃을 점검하는 체크리스트입니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검', evidence:'확인', caution:'주의', note:'메모' }, config:{ layout:'table', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'manifest', num:'1', title:'매니페스트', desc:'', items:[
+      { num:'1.1', title:'리소스·프로브', status:'doing', priority:'high', assignee:'플랫폼팀', tags:['배포'], detail:['requests/limits·probe 설정'], evidence:['리소스 지정','liveness/readiness'], caution:'',
+        blocks:[ { type:'table', head:['항목','권장'], rows:[['replicas','2 이상'],['strategy','RollingUpdate'],['probe','liveness+readiness']] } ] } ], groups:[] },
+    { id:'sec', num:'2', title:'보안', desc:'', items:[
+      { num:'2.1', title:'권한·시크릿', status:'todo', assignee:'보안', tags:['보안'], detail:['RBAC·시크릿 관리'], evidence:['최소 RBAC','시크릿 외부 관리'], caution:'컨테이너 root 실행 금지' } ], groups:[] },
+    { id:'roll', num:'3', title:'롤아웃', desc:'', items:[
+      { num:'3.1', title:'배포·롤백', status:'todo', tags:['운영'], detail:['점진 배포·롤백 확인'], evidence:['카나리/롤링','롤백 명령 확인'], caution:'',
+        blocks:[ { type:'code', text:'kubectl rollout status deploy/app\nkubectl rollout undo deploy/app' } ] } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_DB = {
+  meta:{ eyebrow:'IT · 인프라', title:'DB 운영 점검', subtitle:'데이터베이스 가용성·백업·성능·보안을 정기 점검합니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검 기준', evidence:'증빙', caution:'주의', note:'메모' }, config:{ layout:'cards', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'avail', num:'1', title:'가용성·백업', desc:'', items:[
+      { num:'1.1', title:'백업·복구', status:'doing', priority:'high', assignee:'DBA', tags:['백업'], detail:['백업 주기·복구 검증'], evidence:['# 백업','자동 백업 성공','보관주기 충족','# 복구','복구 리허설 기록'], caution:'복구 테스트 분기 1회' } ], groups:[] },
+    { id:'perf', num:'2', title:'성능', desc:'', items:[
+      { num:'2.1', title:'쿼리·인덱스', status:'todo', assignee:'DBA', tags:['성능'], detail:['슬로우쿼리·인덱스 점검'], evidence:['슬로우쿼리 로그','인덱스 검토'], caution:'' } ], groups:[] },
+    { id:'sec', num:'3', title:'보안', desc:'', items:[
+      { num:'3.1', title:'접근·암호화', status:'todo', assignee:'보안', tags:['보안'], detail:['접근통제·암호화'], evidence:['접근 IP 제한','저장 암호화'], caution:'' } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_NETWORK = {
+  meta:{ eyebrow:'IT · 인프라', title:'네트워크·방화벽 점검', subtitle:'방화벽 정책·구간·이중화를 점검하는 IT 인프라 체크리스트입니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검', evidence:'확인', caution:'주의', note:'메모' }, config:{ layout:'table', theme:'ink', density:'comfortable', features:SF },
+  categories:[
+    { id:'fw', num:'1', title:'방화벽 정책', desc:'', items:[
+      { num:'1.1', title:'정책·포트', status:'doing', priority:'high', assignee:'네트워크팀', tags:['방화벽'], detail:['불필요 포트 차단·정책 검토'], evidence:['미사용 정책 정리','허용 포트 문서화'], caution:'ANY-ANY 금지',
+        blocks:[ { type:'table', head:['포트','용도','노출'], rows:[['443','HTTPS','외부'],['22','SSH','내부'],['3306','DB','내부']] } ] } ], groups:[] },
+    { id:'seg', num:'2', title:'구간·이중화', desc:'', items:[
+      { num:'2.1', title:'세그먼트·HA', status:'todo', assignee:'네트워크팀', tags:['운영'], detail:['망 분리·이중화'], evidence:['DMZ 분리','장비 이중화'], caution:'' } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_CLOUD = {
+  meta:{ eyebrow:'IT · 클라우드', title:'클라우드 계정 보안 점검', subtitle:'IAM·네트워크·로깅을 3레벨로 나눠 점검하는 클라우드 보안 체크리스트입니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검 기준', evidence:'증빙', caution:'주의', note:'메모' }, config:{ layout:'accordion', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'root', num:'1', title:'계정 기본', desc:'', items:[
+      { num:'1.0', title:'루트 계정 보호', status:'done', priority:'high', assignee:'보안', tags:['필수'], detail:['루트 MFA·미사용'], evidence:['루트 MFA','액세스키 없음'], caution:'루트 상시 사용 금지',
+        blocks:[ { type:'callout', tone:'warn', text:'루트 계정 액세스키는 즉시 삭제하세요.' } ] } ],
+      groups:[
+        { gid:'g_iam', num:'1-1', title:'IAM', items:[
+          { num:'1.1.1', title:'사용자·권한', status:'doing', assignee:'보안', tags:['IAM'], detail:['최소권한·MFA'], evidence:['MFA 강제','미사용 키 정리'], caution:'' } ] },
+        { gid:'g_net', num:'1-2', title:'네트워크', items:[
+          { num:'1.2.1', title:'보안그룹', status:'todo', assignee:'인프라', tags:['네트워크'], detail:['인바운드 최소화'], evidence:['0.0.0.0/0 점검','불필요 규칙 제거'], caution:'' } ] },
+        { gid:'g_log', num:'1-3', title:'로깅', items:[
+          { num:'1.3.1', title:'감사 로그', status:'todo', assignee:'보안', tags:['로그'], detail:['CloudTrail 등 활성'], evidence:['전 리전 로깅','로그 보관'], caution:'' } ] }
+      ] }
+  ]
+};
+const SAMPLE_IT_CICD = {
+  meta:{ eyebrow:'IT · DevOps', title:'CI/CD 파이프라인 구축', subtitle:'빌드·테스트·배포 파이프라인을 단계별로 구성합니다.', ringCaption:'구축 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업', evidence:'완료 조건', caution:'주의', note:'메모' }, config:{ layout:'accordion', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'ci', num:'1', title:'CI', desc:'', items:[
+      { num:'1.1', title:'빌드·테스트', status:'doing', assignee:'플랫폼팀', tags:['CI'], detail:['PR 시 빌드·테스트'], evidence:['빌드 파이프라인','테스트 게이트'], caution:'',
+        blocks:[ { type:'code', text:'on: [pull_request]\njobs:\n  test:\n    steps: [checkout, setup, run: make test]' } ] } ], groups:[] },
+    { id:'cd', num:'2', title:'CD', desc:'', items:[
+      { num:'2.1', title:'배포·승인', status:'todo', priority:'high', assignee:'플랫폼팀', tags:['CD'], detail:['스테이징 자동·운영 승인'], evidence:['스테이징 자동배포','운영 승인 게이트'], caution:'시크릿은 비밀저장소',
+        blocks:[ { type:'links', links:[{label:'파이프라인 문서', url:'https://wiki.example.com/cicd'}] } ] } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_MONITOR = {
+  meta:{ eyebrow:'IT · 운영', title:'모니터링·알림 구축', subtitle:'지표 수집·대시보드·알림 규칙을 갖추는 관측성 체크리스트입니다.', ringCaption:'구축 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업', evidence:'확인', caution:'주의', note:'메모' }, config:{ layout:'cards', theme:'forest', density:'comfortable', features:SF },
+  categories:[
+    { id:'metric', num:'1', title:'지표·수집', desc:'', items:[
+      { num:'1.1', title:'핵심 지표', status:'doing', assignee:'SRE', tags:['지표'], detail:['4대 골든 시그널 수집'], evidence:['지표 수집','대시보드'], caution:'',
+        blocks:[ { type:'table', head:['지표','임계치'], rows:[['에러율','1% 초과'],['p95 지연','500ms 초과'],['CPU','80% 초과']] } ] } ], groups:[] },
+    { id:'alert', num:'2', title:'알림', desc:'', items:[
+      { num:'2.1', title:'알림·온콜', status:'todo', priority:'high', assignee:'SRE', tags:['알림'], detail:['규칙·에스컬레이션'], evidence:['알림 규칙','온콜 채널'], caution:'알림 피로 방지' } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_PENTEST = {
+  meta:{ eyebrow:'IT · 보안', title:'취약점 점검 준비', subtitle:'모의해킹·취약점 진단 전 범위·환경·증빙을 준비합니다.', ringCaption:'준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'준비 사항', evidence:'증빙', caution:'주의', note:'메모' }, config:{ layout:'table', theme:'ink', density:'comfortable', features:SF },
+  categories:[
+    { id:'scope', num:'1', title:'범위·승인', desc:'', items:[
+      { num:'1.1', title:'대상·일정 합의', status:'doing', priority:'high', assignee:'보안', tags:['필수'], detail:['대상 자산·기간·연락체계'], evidence:['점검 범위 합의','수행 승인서'], caution:'운영 영향 시간대 협의' } ], groups:[] },
+    { id:'target', num:'2', title:'점검 대상', desc:'', items:[
+      { num:'2.1', title:'대상별 준비', status:'todo', assignee:'인프라', tags:['점검'], detail:['웹·인프라 계정/환경 준비'], evidence:['# 웹','테스트 계정','스테이징 URL','# 인프라','점검 IP 허용','로그 백업'], caution:'실서비스 직접 점검 지양' } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_DR = {
+  meta:{ eyebrow:'IT · 운영', title:'재해복구(DR) 훈련', subtitle:'DR 훈련의 사전 준비·수행·사후 점검을 3단계로 정리했습니다.', ringCaption:'훈련 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'절차', evidence:'확인', caution:'주의', note:'기록' }, config:{ layout:'accordion', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'pre', num:'1', title:'사전 준비', desc:'', items:[
+      { num:'1.1', title:'시나리오·목표', status:'doing', assignee:'인프라팀', tags:['계획'], detail:['RTO/RPO·시나리오 확정'], evidence:['훈련 계획서','대상 시스템'], caution:'',
+        blocks:[ { type:'callout', tone:'info', text:'RTO=복구 목표시간, RPO=허용 데이터 손실. 목표값을 먼저 합의하세요.' } ] } ], groups:[] },
+    { id:'run', num:'2', title:'훈련 수행', desc:'', items:[
+      { num:'2.1', title:'장애 주입·복구', status:'todo', priority:'high', assignee:'인프라팀', tags:['수행'], detail:['페일오버·복구 수행'], evidence:['페일오버 성공','데이터 정합성'], caution:'실 데이터 보호' } ], groups:[] },
+    { id:'post', num:'3', title:'사후', desc:'', items:[
+      { num:'3.1', title:'결과·개선', status:'todo', tags:['회고'], detail:['RTO 측정·개선과제'], evidence:['측정 결과','개선 과제 등록'], caution:'' } ], groups:[] }
+  ]
+};
+const SAMPLE_IT_HELPDESK = {
+  meta:{ eyebrow:'IT · 지원', title:'IT 헬프데스크 SOP', subtitle:'IT 문의 접수부터 종결까지 표준 처리 절차입니다.', ringCaption:'처리율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'해야 할 일', evidence:'체크', caution:'주의', note:'메모' }, config:{ layout:'compact', theme:'sand', density:'comfortable', features:SF },
+  categories:[
+    { id:'intake', num:'1', title:'접수·분류', desc:'', items:[
+      { num:'1.1', title:'티켓 접수', status:'doing', assignee:'헬프데스크', tags:['접수'], detail:['채널 단일화·분류·우선순위'], evidence:['티켓 생성','우선순위 지정'], caution:'긴급건 즉시 에스컬레이션' } ], groups:[] },
+    { id:'resolve', num:'2', title:'처리·종결', desc:'', items:[
+      { num:'2.1', title:'해결·안내', status:'todo', assignee:'헬프데스크', tags:['처리'], detail:['조치·사용자 안내'], evidence:['조치 내역 기록','사용자 확인'], caution:'',
+        blocks:[ { type:'links', links:[{label:'자주 묻는 질문(FAQ)', url:'https://wiki.example.com/faq'}] } ] } ], groups:[] },
+    { id:'improve', num:'3', title:'개선', desc:'', items:[
+      { num:'3.1', title:'반복 문의 개선', status:'todo', tags:['개선'], detail:['반복 유형 FAQ/자동화'], evidence:['월간 리포트','FAQ 갱신'], caution:'' } ], groups:[] }
+  ]
+};
+
+const SAMPLE_CATS = ['기본 · 예제','종합 (모든 형태 포함)','IT · 개발 / DevOps','IT · 인프라 / 보안','업무 · 프로세스','일반 · 생활'];
 const SAMPLES = [
-  { key:'cert',     name:'전송자격인증 신청 가이드', desc:'방송미디어통신위원회 · 5분야 13항목 · 아코디언', model:DEFAULT_MODEL },
-  { key:'tree',     name:'부서 감사 준비 (3레벨)',   desc:'분야 › 중분류 › 항목 3단계 예시 · 아코디언 · 슬레이트', model:SAMPLE_TREE },
+  { cat:'기본 · 예제', key:'cert', name:'전송자격인증 신청 가이드', desc:'방송미디어통신위원회 · 5분야 13항목 · 아코디언', model:DEFAULT_MODEL },
+  { cat:'기본 · 예제', key:'tree', name:'부서 감사 준비 (3레벨)', desc:'분야 › 중분류 › 항목 3단계 예시 · 슬레이트', model:SAMPLE_TREE },
 
-  { key:'itasset',  name:'IT 자산 관리대장 (3레벨·표)', desc:'중분류 + 표 블록 · 표 · 슬레이트', model:SAMPLE_ITASSET },
-  { key:'apidoc',   name:'API 연동 가이드 (블록)',   desc:'코드·표·링크·안내 블록 중심 · 아코디언 · 미드나잇', model:SAMPLE_APIDOC },
-  { key:'isms',     name:'ISMS 인증 심사 준비',      desc:'3레벨 + 증빙 그룹 소제목 · 아코디언 · 다크', model:SAMPLE_ISMS },
-  { key:'event',    name:'행사 운영 준비 (트래커)',  desc:'중분류 + 담당·기한·상태 · 칸반 · 로즈', model:SAMPLE_EVENT },
-  { key:'qaplan',   name:'QA 테스트 계획 (블록)',    desc:'중분류 + 목록·표 블록 · 카드 · 포레스트', model:SAMPLE_QAPLAN },
+  { cat:'종합 (모든 형태 포함)', key:'full_all', name:'전 기능 총망라 (레퍼런스)', desc:'블록 9종·3레벨·트래커·증빙그룹·주의·메모 전부 · 아코디언 · 페이퍼', model:SAMPLE_FULL_ALL },
+  { cat:'종합 (모든 형태 포함)', key:'full_sec', name:'보안 운영 종합 (풀)', desc:'중분류·블록·트래커·증빙그룹 총망라 · 슬레이트', model:SAMPLE_FULL_SEC },
+  { cat:'종합 (모든 형태 포함)', key:'full_launch', name:'신규 서비스 런칭 종합 (풀)', desc:'모든 형태 포함 · 카드 · 포레스트', model:SAMPLE_FULL_LAUNCH },
+  { cat:'종합 (모든 형태 포함)', key:'full_store', name:'신규 매장 오픈 종합 (풀)', desc:'모든 형태 포함 · 간결 · 샌드', model:SAMPLE_FULL_STORE },
+  { cat:'종합 (모든 형태 포함)', key:'full_data', name:'데이터 마이그레이션 종합 (풀)', desc:'모든 형태 포함 · 표 · 다크', model:SAMPLE_FULL_DATA },
+  { cat:'종합 (모든 형태 포함)', key:'full_cs', name:'고객 온보딩 종합 (풀)', desc:'모든 형태 포함 · 칸반 · 미드나잇', model:SAMPLE_FULL_CS },
 
-  { key:'full_sec',    name:'보안 운영 종합 (풀)',   desc:'중분류·블록·트래커·증빙그룹 총망라 · 아코디언 · 슬레이트', model:SAMPLE_FULL_SEC },
-  { key:'full_launch', name:'신규 서비스 런칭 종합 (풀)', desc:'모든 형태 포함 · 카드 · 포레스트', model:SAMPLE_FULL_LAUNCH },
-  { key:'full_store',  name:'신규 매장 오픈 종합 (풀)', desc:'모든 형태 포함 · 간결 · 샌드', model:SAMPLE_FULL_STORE },
-  { key:'full_data',   name:'데이터 마이그레이션 종합 (풀)', desc:'모든 형태 포함 · 표 · 다크', model:SAMPLE_FULL_DATA },
-  { key:'full_cs',     name:'고객 온보딩 종합 (풀)', desc:'모든 형태 포함 · 칸반 · 미드나잇', model:SAMPLE_FULL_CS },
+  { cat:'IT · 개발 / DevOps', key:'dev', name:'신규 화면 개발 체크리스트', desc:'기획·개발·QA·배포 · 표 · 슬레이트', model:SAMPLE_DEV },
+  { cat:'IT · 개발 / DevOps', key:'apidoc', name:'API 연동 가이드 (블록)', desc:'코드·표·링크·안내 블록 중심 · 미드나잇', model:SAMPLE_APIDOC },
+  { cat:'IT · 개발 / DevOps', key:'qaplan', name:'QA 테스트 계획 (블록)', desc:'중분류 + 목록·표 블록 · 카드 · 포레스트', model:SAMPLE_QAPLAN },
+  { cat:'IT · 개발 / DevOps', key:'devonboard', name:'개발자 온보딩', desc:'계정·환경·규칙 + 코드/링크 블록 · 포레스트', model:SAMPLE_IT_DEVONBOARD },
+  { cat:'IT · 개발 / DevOps', key:'cicd', name:'CI/CD 파이프라인 구축', desc:'CI·CD + 코드(yaml) 블록 · 슬레이트', model:SAMPLE_IT_CICD },
+  { cat:'IT · 개발 / DevOps', key:'k8s', name:'쿠버네티스 배포 점검', desc:'매니페스트·보안·롤아웃 + 표/코드 · 표 · 미드나잇', model:SAMPLE_IT_K8S },
+  { cat:'IT · 개발 / DevOps', key:'monitor', name:'모니터링·알림 구축', desc:'지표·알림 + 임계치 표 · 카드 · 포레스트', model:SAMPLE_IT_MONITOR },
+  { cat:'IT · 개발 / DevOps', key:'release', name:'릴리스 · 배포 런북', desc:'배포 전·배포·롤백·사후 · 슬레이트', model:SAMPLE_RELEASE },
+  { cat:'IT · 개발 / DevOps', key:'incident', name:'장애 대응 런북', desc:'감지·초기대응·복구·회고 · 미드나잇', model:SAMPLE_INCIDENT },
 
-  { key:'dev',      name:'신규 화면 개발 체크리스트', desc:'기획·개발·QA·배포 · 표 · 슬레이트', model:SAMPLE_DEV },
-  { key:'incident', name:'장애 대응 런북',           desc:'감지·초기대응·복구·회고 · 아코디언 · 미드나잇', model:SAMPLE_INCIDENT },
-  { key:'kickoff',  name:'프로젝트 킥오프',          desc:'목표·범위·일정·리스크 · 카드 · 포레스트', model:SAMPLE_KICKOFF },
-  { key:'release',  name:'릴리스 · 배포 런북',       desc:'배포 전·배포·롤백·사후 점검 · 아코디언 · 슬레이트', model:SAMPLE_RELEASE },
-  { key:'weekly',   name:'주간 업무 보드',           desc:'상태별 칸반(할일·진행·검토·완료) · 페이퍼', model:SAMPLE_WEEKLY },
-  { key:'contract', name:'계약 · 구매 프로세스',     desc:'요청·검토·승인·체결 · 간결 · 샌드', model:SAMPLE_CONTRACT },
-  { key:'offboard', name:'오프보딩(퇴사) 체크리스트', desc:'인수인계·계정회수·자산반납 · 표 · 로즈', model:SAMPLE_OFFBOARD },
-  { key:'secaudit', name:'보안 · 개인정보 점검',     desc:'접근권한·로그·암호화·위탁 · 표 · 다크', model:SAMPLE_SECAUDIT },
-  { key:'infra',    name:'서버 · 인프라 점검',       desc:'가용성·백업·모니터링·패치 · 카드 · 미드나잇', model:SAMPLE_INFRA },
-  { key:'onboard',  name:'신입사원 온보딩',          desc:'입사 준비 ~ 첫 달 · 아코디언 · 포레스트', model:SAMPLE_ONBOARD },
-  { key:'moving',   name:'이사 준비 체크리스트',      desc:'2개월 전 ~ 이사 후 · 간결 · 샌드', model:SAMPLE_MOVING },
-  { key:'launch',   name:'제품 출시 준비',           desc:'기획·개발·마케팅·출시 · 칸반 · 미드나잇', model:SAMPLE_LAUNCH }
+  { cat:'IT · 인프라 / 보안', key:'infra', name:'서버 · 인프라 점검', desc:'가용성·백업·모니터링·패치 · 카드 · 미드나잇', model:SAMPLE_INFRA },
+  { cat:'IT · 인프라 / 보안', key:'db', name:'DB 운영 점검', desc:'백업·성능·보안 + 증빙 그룹 · 카드 · 슬레이트', model:SAMPLE_IT_DB },
+  { cat:'IT · 인프라 / 보안', key:'network', name:'네트워크·방화벽 점검', desc:'정책·구간 + 포트 표 · 표 · 다크', model:SAMPLE_IT_NETWORK },
+  { cat:'IT · 인프라 / 보안', key:'cloud', name:'클라우드 계정 보안 점검', desc:'IAM·네트워크·로깅 3레벨 · 미드나잇', model:SAMPLE_IT_CLOUD },
+  { cat:'IT · 인프라 / 보안', key:'secaudit', name:'보안 · 개인정보 점검', desc:'접근권한·로그·암호화·위탁 · 표 · 다크', model:SAMPLE_SECAUDIT },
+  { cat:'IT · 인프라 / 보안', key:'isms', name:'ISMS 인증 심사 준비', desc:'3레벨 + 증빙 그룹 소제목 · 다크', model:SAMPLE_ISMS },
+  { cat:'IT · 인프라 / 보안', key:'pentest', name:'취약점 점검 준비', desc:'범위·대상 + 증빙 그룹 · 표 · 다크', model:SAMPLE_IT_PENTEST },
+  { cat:'IT · 인프라 / 보안', key:'dr', name:'재해복구(DR) 훈련', desc:'사전·수행·사후 + 안내 블록 · 미드나잇', model:SAMPLE_IT_DR },
+  { cat:'IT · 인프라 / 보안', key:'itasset', name:'IT 자산 관리대장 (3레벨·표)', desc:'중분류 + 표 블록 · 표 · 슬레이트', model:SAMPLE_ITASSET },
+  { cat:'IT · 인프라 / 보안', key:'helpdesk', name:'IT 헬프데스크 SOP', desc:'접수·처리·개선 + 링크 · 간결 · 샌드', model:SAMPLE_IT_HELPDESK },
+
+  { cat:'업무 · 프로세스', key:'kickoff', name:'프로젝트 킥오프', desc:'목표·범위·일정·리스크 · 카드 · 포레스트', model:SAMPLE_KICKOFF },
+  { cat:'업무 · 프로세스', key:'weekly', name:'주간 업무 보드', desc:'상태별 칸반(할일·진행·검토·완료) · 페이퍼', model:SAMPLE_WEEKLY },
+  { cat:'업무 · 프로세스', key:'contract', name:'계약 · 구매 프로세스', desc:'요청·검토·승인·체결 · 간결 · 샌드', model:SAMPLE_CONTRACT },
+  { cat:'업무 · 프로세스', key:'offboard', name:'오프보딩(퇴사) 체크리스트', desc:'인수인계·계정회수·자산반납 · 표 · 로즈', model:SAMPLE_OFFBOARD },
+  { cat:'업무 · 프로세스', key:'event', name:'행사 운영 준비 (트래커)', desc:'중분류 + 담당·기한·상태 · 칸반 · 로즈', model:SAMPLE_EVENT },
+
+  { cat:'일반 · 생활', key:'onboard', name:'신입사원 온보딩', desc:'입사 준비 ~ 첫 달 · 아코디언 · 포레스트', model:SAMPLE_ONBOARD },
+  { cat:'일반 · 생활', key:'moving', name:'이사 준비 체크리스트', desc:'2개월 전 ~ 이사 후 · 간결 · 샌드', model:SAMPLE_MOVING },
+  { cat:'일반 · 생활', key:'launch', name:'제품 출시 준비', desc:'기획·개발·마케팅·출시 · 칸반 · 미드나잇', model:SAMPLE_LAUNCH }
 ];
 
 function openSamples(){
   const list = document.getElementById('sampleList');
-  list.innerHTML = SAMPLES.map(function(s){
-    return '<button class="sample-pick" data-sample="'+s.key+'"><span class="sp-name">'+escHtml(s.name)+'</span><span class="sp-desc">'+escHtml(s.desc)+'</span></button>';
-  }).join('');
+  let html = '';
+  SAMPLE_CATS.forEach(function(catLabel){
+    const items = SAMPLES.filter(function(s){ return s.cat===catLabel; });
+    if(!items.length) return;
+    html += '<div class="sample-cat"><span>'+escHtml(catLabel)+'</span><span class="sc-count">'+items.length+'</span></div>';
+    html += items.map(function(s){
+      return '<button class="sample-pick" data-sample="'+s.key+'"><span class="sp-name">'+escHtml(s.name)+'</span><span class="sp-desc">'+escHtml(s.desc)+'</span></button>';
+    }).join('');
+  });
+  list.innerHTML = html;
   document.getElementById('sampleOverlay').classList.add('open');
 }
 function closeSamples(){ document.getElementById('sampleOverlay').classList.remove('open'); }

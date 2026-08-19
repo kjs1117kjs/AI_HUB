@@ -128,6 +128,9 @@
     color:var(--ink-soft);margin-bottom:5px;letter-spacing:.01em;
   }
   .field .hint{font-size:10.5px;color:var(--ink-faint);font-weight:500;margin-left:6px;}
+  .phase-hint{font-size:10.5px;color:var(--ink-faint);line-height:1.7;margin-top:5px;}
+  .phase-hint code{font-family:var(--mono);font-size:10px;background:var(--accent-soft);color:var(--accent-ink);padding:1px 5px;border-radius:4px;}
+  .phase-hint .hint{margin-left:0;}
   input[type=text], textarea, .ta{
     width:100%;font-family:var(--sans);font-size:13px;color:var(--ink);
     border:1px solid var(--line-2);border-radius:8px;
@@ -476,14 +479,14 @@
         <span class="hs-num">2</span>
         <div class="hs-body">
           <h3>트래커 · 블록 <em>항목 편집 안</em></h3>
-          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 업무 트래커가 됩니다(완성본에서 배지 표시 + <b>태그 필터</b>). 또한 항목 안에 <b>추가 블록 9종</b> — <b>소제목 · 문단 · 안내 박스(정보/팁/주의) · 목록 · 표 · 링크 · 이미지 · 코드 · 구분선</b> — 을 자유롭게 쌓고 <code>⠿</code> 손잡이로 드래그 정렬할 수 있어요. 진행률은 <b>항목→중분류→분야→전체 링</b>으로 합산됩니다.</p>
+          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 업무 트래커가 됩니다(완성본에서 배지 표시 + <b>태그 필터</b>). 또한 항목 안에 <b>추가 블록 9종</b> — <b>소제목 · 문단 · 안내 박스(정보/팁/주의) · 목록 · 표 · 링크 · 이미지 · 코드 · 구분선</b> — 을 자유롭게 쌓고 <code>⠿</code> 손잡이로 드래그 정렬할 수 있어요. 진행률은 <b>항목→중분류→분야→전체 링</b>으로 합산됩니다. 항목의 <b>일정(간트)</b> 칸에 <b>시작·종료일</b>이나 <b>구간(이름 | 시작 | 종료 | 종류)</b>을 넣고 레이아웃을 <b>간트</b>로 바꾸면 일정 막대로 그려지고, <b>마일스톤</b> 체크는 세로 가이드선으로 표시됩니다.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="hs-num">3</span>
         <div class="hs-body">
           <h3>구성 선택 <em>왼쪽 · B. 구성</em></h3>
-          <p>레이아웃 5종(아코디언·표·카드·칸반·간결)과 테마 8종(페이퍼·슬레이트·샌드·포레스트·로즈·다크·미드나잇·모노), 밀도, 표시 기능을 고릅니다. <b>헤더 문구 패널</b>에서는 제목·푸터와 <b>섹션 명칭</b>(상세기준·증빙 등)도 바꿀 수 있어요.</p>
+          <p>레이아웃 <b>6종</b>(아코디언·표·카드·칸반·간결·<b>간트</b>)과 테마 8종(페이퍼·슬레이트·샌드·포레스트·로즈·다크·미드나잇·모노), 밀도, 표시 기능을 고릅니다. <b>간트</b>는 항목의 <b>시작·종료일</b>이나 <b>구간(단계)</b>을 막대로, <b>기한</b>을 마일스톤으로 그려 <b>일정 타임라인</b>을 만들어 줍니다. <b>헤더 문구 패널</b>에서는 제목·푸터와 <b>섹션 명칭</b>(상세기준·증빙 등)도 바꿀 수 있어요.</p>
         </div>
       </div>
       <div class="help-step">
@@ -506,7 +509,7 @@
             <li><b>HTML 내보내기</b> — 자동저장·체크리스트가 담긴 배포용 단독 파일</li>
             <li><b>프로젝트 저장 / 열기</b> — <code>.guide.json</code>으로 백업·복원해 이어서 편집</li>
             <li><b>CSV 가져오기 / 내보내기</b> — 엑셀에 정리한 분야·중분류·항목·담당·상태·태그·증빙을 <b>한 번에 대량 등록</b>하거나 CSV로 저장(교체/추가 선택) · <b>MD 내보내기</b>는 위키·노션에 붙일 마크다운 문서</li>
-            <li><b>샘플 불러오기</b> — <b>35종</b>을 <b>6개 카테고리</b>(기본·종합·IT 개발/DevOps·IT 인프라/보안·업무·일반)로 정리해 제공. 처음이라면 <b>전 기능 총망라 (레퍼런스)</b> 를 열어 모든 기능을 한 번에 확인해 보세요. <b>비우기</b>로 새로 시작할 수도 있어요.</li>
+            <li><b>샘플 불러오기</b> — <b>40종</b>을 <b>7개 카테고리</b>(기본·<b>일정/간트 신규</b>·종합·IT 개발/DevOps·IT 인프라/보안·업무·일반)로 정리해 제공. 일정을 짜려면 <b>일정 · 간트 ✦ 신규</b> 카테고리를, 처음이라면 <b>전 기능 총망라 (레퍼런스)</b> 를 열어 보세요. <b>비우기</b>로 새로 시작할 수도 있어요.</li>
           </ul>
         </div>
       </div>
@@ -569,6 +572,12 @@ const DEFAULT_MODEL = {
   categories:[
     { id:'doc', num:'1', title:'서류 적정성', desc:'약관·사무공간·방지계획 3종 서류', items:[
       { num:'1.1', title:'이용약관', note:true, status:'doing', priority:'high', assignee:'법무팀', due:'2026-09-30', tags:['필수','약관'],
+        milestone:true,
+        phases:[
+          { label:'초안 작성', start:'2026-08-19', end:'2026-09-05', kind:'plan' },
+          { label:'법무 검토', start:'2026-09-05', end:'2026-09-25', kind:'crit' },
+          { label:'확정', start:'2026-09-25', end:'2026-09-30', kind:'ok' }
+        ],
         blocks:[
           { type:'callout', tone:'tip', text:'B2B 계약형은 웹 회원가입 약관이 없어도 계약서·운영정책 중 하나에 제재 근거가 있으면 됩니다.' },
           { type:'table', head:['서비스 유형','적용 약관'], rows:[['웹페이지','회원가입 약관'],['API·솔루션','서비스 신청서'],['기업 간 계약','계약서·운영정책']] },
@@ -586,7 +595,7 @@ const DEFAULT_MODEL = {
           '(웹페이지 발송) 회원가입 시 약관 동의 화면 캡처'
         ],
         caution:'B2B 계약형은 웹 회원가입 약관이 없어도 계약서·신청서·운영정책 중 하나에는 반드시 불법스팸 금지·제재 근거가 포함되어야 합니다.' },
-      { num:'1.2', title:'사무실 확보증명서', note:true, status:'todo', priority:'med', assignee:'총무팀', tags:['필수'],
+      { num:'1.2', title:'사무실 확보증명서', note:true, status:'todo', priority:'med', assignee:'총무팀', tags:['필수'], start:'2026-09-01', end:'2026-09-20',
         detail:[
           '신청서 상 주소와 제출서류 주소가 일치해야 함',
           '공유오피스·자택 사업장은 실제 사용 여부를 확인할 수 있는 보완자료 필요',
@@ -600,7 +609,7 @@ const DEFAULT_MODEL = {
           '(실사용 증빙 필요 시) 전기·수도·가스·통신 등 공과금 내역'
         ],
         caution:'단순 주소 기재만으로는 실체 확인이 어려워 보완요청 대상이 될 수 있습니다.' },
-      { num:'1.3', title:'불법스팸 발송 방지계획서', note:true, status:'done', assignee:'보안팀', tags:['방지계획'],
+      { num:'1.3', title:'불법스팸 발송 방지계획서', note:true, status:'done', assignee:'보안팀', tags:['방지계획'], start:'2026-08-25', end:'2026-09-15',
         detail:[
           '선언적 문구가 아닌 실제 운영 프로세스 문서화가 필요',
           '전담조직·책임자·담당인원, 회원가입~신고접수~조치~통보까지의 업무별 절차 포함',
@@ -1079,6 +1088,58 @@ html,body{margin:0;padding:0;}
 .kgrp-head{display:flex;align-items:center;gap:8px;margin:6px 2px 2px;padding:6px 2px 4px;border-top:1px dashed var(--line);}
 .kgrp-head .grp-title{font-size:12.5px;font-weight:800;}
 .kgrp-head .grp-count{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-left:auto;}
+
+/* ---- layout: gantt / timeline ---- */
+[data-layout="gantt"] .shell{max-width:1320px;}
+.gantt-wrap{--glab:150px;}
+[data-density="compact"] .gantt-wrap{--glab:124px;}
+.gantt-scroll2{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);}
+.gantt-chart{min-width:760px;padding:14px 16px 18px;}
+.g-headrow{display:flex;align-items:flex-end;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.g-row-lab{flex:0 0 var(--glab);min-width:0;padding-right:12px;display:flex;align-items:center;gap:8px;}
+.g-row-lab.head{flex:0 0 var(--glab);}
+.g-ticks{position:relative;flex:1;height:16px;}
+.g-ticks span{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);white-space:nowrap;}
+.g-ticks span::after{content:"";position:absolute;left:50%;top:16px;width:1px;height:5px;background:var(--line-strong);}
+.g-plot{position:relative;padding-top:8px;}
+.g-cat{display:flex;align-items:center;margin:12px 0 4px;}
+.g-cat-lab{flex:0 0 var(--glab);display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);padding-right:12px;}
+.g-cat-num{font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:color-mix(in srgb,var(--cat-color) 82%,#000 0%);padding:1px 6px;border-radius:4px;flex-shrink:0;}
+.g-cat-track{flex:1;height:1px;background:color-mix(in srgb,var(--cat-color) 35%,var(--line));}
+.g-row{display:flex;align-items:center;height:34px;}
+.g-row-num{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink-faint);flex-shrink:0;}
+.g-row-title{font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.g-track{position:relative;flex:1;height:100%;}
+.g-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:color-mix(in srgb,var(--line) 60%,transparent);}
+.g-bar{position:absolute;top:50%;transform:translateY(-50%);height:20px;border-radius:3px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;box-sizing:border-box;}
+.g-bar-lab{overflow:hidden;text-overflow:ellipsis;}
+.g-bar.gb-plan{background:color-mix(in srgb,var(--accent) 15%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 42%,var(--line));color:color-mix(in srgb,var(--accent) 72%,var(--ink));}
+.g-bar.gb-crit{background:repeating-linear-gradient(-45deg,var(--danger-soft) 0 7px,color-mix(in srgb,var(--card) 82%,var(--danger-soft)) 7px 14px);border:1px solid color-mix(in srgb,var(--danger) 48%,var(--line));color:var(--danger);}
+.g-bar.gb-ok{background:var(--ok-soft);border:1px solid color-mix(in srgb,var(--ok) 42%,var(--line));color:var(--ok);}
+.g-bar.gb-dep{background:transparent;border:1px dashed var(--ink-faint);color:var(--ink-faint);font-weight:500;}
+.g-bar.gb-done{background:var(--paper-2);border:1px solid var(--line-strong);color:var(--ink-faint);}
+.g-dot{position:absolute;top:50%;left:0;width:9px;height:9px;margin-left:-4.5px;transform:translateY(-50%) rotate(45deg);background:var(--accent);border-radius:1px;}
+.g-mile{position:absolute;top:50%;width:11px;height:11px;margin-left:-5.5px;transform:translateY(-50%) rotate(45deg);background:var(--danger);border:1px solid var(--card);border-radius:1px;box-shadow:0 0 0 1px color-mix(in srgb,var(--danger) 40%,transparent);}
+.g-mile.soft{background:var(--ink-faint);box-shadow:none;width:9px;height:9px;margin-left:-4.5px;}
+.g-row-tbd{position:absolute;top:50%;left:0;transform:translateY(-50%);font-size:10.5px;color:var(--ink-faint);opacity:.7;}
+.g-guides{position:absolute;left:var(--glab);right:0;top:0;bottom:0;pointer-events:none;}
+.g-guide{position:absolute;top:0;bottom:0;transform:translateX(-50%);}
+.g-guide .gg-ln{position:absolute;top:26px;bottom:6px;left:50%;width:1px;background:color-mix(in srgb,var(--danger) 40%,var(--line));transform:translateX(-50%);}
+.g-guide.today .gg-ln{background:color-mix(in srgb,var(--accent) 55%,var(--line));border-left:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));background:none;}
+.g-guide .gg-flag{position:absolute;top:-2px;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap;}
+.g-guide .gg-dia{width:8px;height:8px;background:var(--danger);transform:rotate(45deg);margin:0 auto 2px;}
+.g-guide .gg-dt{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--danger);line-height:1;}
+.g-guide .gg-cap{font-size:9.5px;color:var(--ink-soft);margin-top:1px;line-height:1.1;max-width:96px;overflow:hidden;text-overflow:ellipsis;}
+.g-guide.today .gg-cap{color:var(--accent);font-weight:700;}
+.g-legend{display:flex;flex-wrap:wrap;gap:6px 15px;margin-top:11px;font-size:11px;color:var(--ink-soft);}
+.g-legend i.gl{display:inline-block;width:17px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+.g-legend i.gl-plan{background:color-mix(in srgb,var(--accent) 15%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 42%,var(--line));}
+.g-legend i.gl-crit{background:repeating-linear-gradient(-45deg,var(--danger-soft) 0 4px,#fff2f0 4px 8px);border:1px solid color-mix(in srgb,var(--danger) 45%,var(--line));}
+.g-legend i.gl-ok{background:var(--ok-soft);border:1px solid color-mix(in srgb,var(--ok) 42%,var(--line));}
+.g-legend i.gl-dep{background:transparent;border:1px dashed var(--ink-faint);}
+.g-legend i.gl-mile{width:9px;height:9px;background:var(--danger);transform:rotate(45deg);margin:0 9px 0 2px;border-radius:1px;}
+.gantt-empty{background:var(--card);border:1px dashed var(--line-strong);border-radius:var(--radius);padding:34px 24px;text-align:center;color:var(--ink-soft);font-size:14px;line-height:1.6;}
+@media print{ .gantt-scroll2{overflow:visible;} .gantt-chart{min-width:0;} }
 `;
 
 /* ============================================================
@@ -1382,12 +1443,90 @@ function mountGuide(root, M, opts){
     return h;
   }
 
+  var G_DAY=86400000;
+  function gPd(s){ if(!s) return null; var m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(s).trim()); if(!m) return null; var d=new Date(+m[1],+m[2]-1,+m[3]); return isNaN(d.getTime())?null:d; }
+  function gDn(d){ return Math.floor(d.getTime()/G_DAY); }
+  function gFmt(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+  function gKindFromStatus(it){ var s=it.status; if(s==='done')return 'done'; if(s==='doing')return 'plan'; return 'plan'; }
+  function gKindCls(k){ return ({crit:'gb-crit',ok:'gb-ok',dep:'gb-dep',done:'gb-done',plan:'gb-plan'})[k] || 'gb-plan'; }
+  function gLegend(){ return '<div class="g-legend"><span><i class="gl gl-plan"></i>일반 구간</span><span><i class="gl gl-crit"></i>임계(지연 불가)</span><span><i class="gl gl-ok"></i>병행 가능</span><span><i class="gl gl-dep"></i>대기·종속</span><span><i class="gl gl-mile"></i>마일스톤</span></div>'; }
+
+  function renderGantt(){
+    var lo=null, hi=null;
+    function ext(d){ if(!d) return; var n=gDn(d); if(lo==null||n<lo)lo=n; if(hi==null||n>hi)hi=n; }
+    var data=[];
+    M.categories.forEach(function(cat,idx){
+      var rows=[];
+      catItems(cat).forEach(function(it){
+        var segs=[], mile=null;
+        if(it.phases && it.phases.length){
+          it.phases.forEach(function(p){
+            var s=gPd(p.start), e=gPd(p.end);
+            if(s&&e){ if(gDn(e)<gDn(s)){ var t=s;s=e;e=t; } segs.push({s:s,e:e,label:p.label||'',kind:p.kind||''}); ext(s); ext(e); }
+            else if(s){ segs.push({s:s,e:s,label:p.label||'',kind:p.kind||'',dot:true}); ext(s); }
+          });
+        } else if(it.start && it.end){
+          var s=gPd(it.start), e=gPd(it.end);
+          if(s&&e){ if(gDn(e)<gDn(s)){ var t=s;s=e;e=t; } segs.push({s:s,e:e,label:'',kind:gKindFromStatus(it)}); ext(s); ext(e); }
+        }
+        var md = gPd(it.due) || gPd(it.end);
+        if(it.milestone && md){ mile={d:md,label:it.title,hard:true}; ext(md); }
+        else if(!segs.length){ var du=gPd(it.due); if(du){ mile={d:du,label:'',hard:false}; ext(du); } }
+        rows.push({it:it, segs:segs, mile:mile});
+      });
+      data.push({cat:cat, idx:idx, rows:rows});
+    });
+
+    if(lo==null){
+      return '<div class="gantt-empty">일정 정보가 있는 항목이 없습니다.<br>각 항목 편집에서 <b>시작일·종료일</b>(또는 <b>기한</b>)을 입력하면 타임라인이 그려집니다.</div>';
+    }
+    var span=Math.max(1,hi-lo);
+    var pad=Math.max(1, Math.round(span*0.04));
+    lo-=pad; hi+=pad; span=hi-lo;
+    function pct(n){ return (n-lo)/span*100; }
+
+    var ticks='', maxTicks=8, step=Math.max(1,Math.ceil(span/maxTicks));
+    for(var tk=lo; tk<=hi; tk+=step){ var td=new Date(tk*G_DAY); ticks+='<span style="left:'+pct(tk).toFixed(2)+'%">'+gFmt(td)+'</span>'; }
+
+    var guides='', todayN=gDn(new Date());
+    if(todayN>=lo && todayN<=hi){ guides+='<div class="g-guide today" style="left:'+pct(todayN).toFixed(2)+'%"><div class="gg-ln"></div><div class="gg-flag"><div class="gg-cap">오늘</div></div></div>'; }
+
+    var body='';
+    data.forEach(function(D){
+      body+='<div class="g-cat" style="--cat-color:'+catColor(D.idx)+'"><div class="g-cat-lab"><span class="g-cat-num">'+esc(D.cat.num)+'</span>'+esc(D.cat.title)+'</div><div class="g-cat-track"></div></div>';
+      D.rows.forEach(function(R){
+        var track='';
+        R.segs.forEach(function(sg){
+          var l=pct(gDn(sg.s));
+          if(sg.dot){ track+='<div class="g-dot" style="left:'+l.toFixed(2)+'%" title="'+esc((sg.label?sg.label+' · ':'')+gFmt(sg.s))+'"></div>'; }
+          else {
+            var w=Math.max(pct(gDn(sg.e))-l, 0.7);
+            track+='<div class="g-bar '+gKindCls(sg.kind)+'" style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%" title="'+esc(gFmt(sg.s)+'–'+gFmt(sg.e))+'"><span class="g-bar-lab">'+esc(sg.label)+'</span></div>';
+          }
+        });
+        if(R.mile){
+          var ml=pct(gDn(R.mile.d));
+          track+='<div class="g-mile'+(R.mile.hard?'':' soft')+'" style="left:'+ml.toFixed(2)+'%" title="'+esc((R.mile.hard?'':'기한 ')+gFmt(R.mile.d))+'"></div>';
+          if(R.mile.hard){
+            guides+='<div class="g-guide" style="left:'+ml.toFixed(2)+'%"><div class="gg-ln"></div><div class="gg-flag"><div class="gg-dia"></div><div class="gg-dt">'+esc(gFmt(R.mile.d))+'</div>'+(R.mile.label?'<div class="gg-cap">'+esc(R.mile.label)+'</div>':'')+'</div></div>';
+          }
+        }
+        if(!R.segs.length && !R.mile){ track='<span class="g-row-tbd">일정 미정</span>'; }
+        body+='<div class="g-row"><div class="g-row-lab"><span class="g-row-num">'+esc(R.it.num)+'</span><span class="g-row-title">'+esc(R.it.title)+'</span></div><div class="g-track">'+track+'</div></div>';
+      });
+    });
+
+    var head='<div class="g-headrow"><div class="g-row-lab head"></div><div class="g-ticks">'+ticks+'</div></div>';
+    return '<div class="gantt-wrap"><div class="gantt-scroll2"><div class="gantt-chart">'+head+'<div class="g-plot">'+body+'<div class="g-guides">'+guides+'</div></div></div></div>'+gLegend()+'</div>';
+  }
+
   function render(){
     var body;
     if(layout==='table') body=renderTable();
     else if(layout==='cards') body=renderCards();
     else if(layout==='kanban') body=renderKanban();
     else if(layout==='compact') body=renderCompact();
+    else if(layout==='gantt') body=renderGantt();
     else body=renderAccordion();
     root.innerHTML = '<div class="shell">'+heroHTML()+toolbarHTML()+tagFilterHTML()+'<main class="guide-main">'+body+'</main>'+footerHTML()+'</div>';
 
@@ -1586,7 +1725,10 @@ function cleanModel(m){
   return out;
 }
 function cleanItem(it){
-  return { num:it.num, title:it.title, detail:(it.detail||[]).slice(), evidence:(it.evidence||[]).slice(), caution:it.caution||'', note:!!it.note, assignee:it.assignee||'', due:it.due||'', status:it.status||'', priority:it.priority||'', tags:(it.tags||[]).slice(), blocks:(it.blocks||[]).map(cleanBlock) };
+  return { num:it.num, title:it.title, detail:(it.detail||[]).slice(), evidence:(it.evidence||[]).slice(), caution:it.caution||'', note:!!it.note, assignee:it.assignee||'', due:it.due||'', status:it.status||'', priority:it.priority||'', tags:(it.tags||[]).slice(),
+    start:it.start||'', end:it.end||'', milestone:!!it.milestone,
+    phases:(it.phases||[]).map(function(p){ return { label:p.label||'', start:p.start||'', end:p.end||'', kind:p.kind||'' }; }),
+    blocks:(it.blocks||[]).map(cleanBlock) };
 }
 function cleanBlock(b){
   var o = { type:b.type };
@@ -1708,7 +1850,8 @@ const LAYOUTS = [
   {v:'table',     label:'표',       ic:'▦'},
   {v:'cards',     label:'카드그리드', ic:'▣'},
   {v:'kanban',    label:'칸반',      ic:'▥'},
-  {v:'compact',   label:'간결',      ic:'≣'}
+  {v:'compact',   label:'간결',      ic:'≣'},
+  {v:'gantt',     label:'간트',      ic:'▬'}
 ];
 const THEMES = [
   {v:'paper', label:'페이퍼', cols:['#F5F3EE','#B8863B','#1C1B18']},
@@ -1732,7 +1875,7 @@ const FEATURES = [
   {k:'io', label:'내보내기·불러오기 버튼', hint:'진행상황 JSON 백업'}
 ];
 
-const LAYOUT_LABEL = { accordion:'아코디언', table:'표', cards:'카드그리드', kanban:'칸반', compact:'간결' };
+const LAYOUT_LABEL = { accordion:'아코디언', table:'표', cards:'카드그리드', kanban:'칸반', compact:'간결', gantt:'간트' };
 const THEME_LABEL = { paper:'페이퍼', slate:'슬레이트', sand:'샌드', forest:'포레스트', rose:'로즈', ink:'다크', midnight:'미드나잇', mono:'모노' };
 
 function renderControls(){
@@ -1906,6 +2049,19 @@ function blockEditor(cat, it, blk, bi, btotal){
   </div>`;
 }
 
+function phasesToText(arr){
+  return (arr||[]).map(function(p){
+    var out = (p.label||'') + ' | ' + (p.start||'') + ' | ' + (p.end||'');
+    if(p.kind) out += ' | ' + p.kind;
+    return out;
+  }).join('\n');
+}
+function parsePhases(str){
+  return String(str||'').split('\n').map(function(line){ return line.trim(); }).filter(Boolean).map(function(line){
+    var parts = line.split('|').map(function(x){ return x.trim(); });
+    return { label:parts[0]||'', start:parts[1]||'', end:parts[2]||'', kind:(parts[3]||'').toLowerCase() };
+  }).filter(function(p){ return p.start || p.end || p.label; });
+}
 function itemEditor(cat, it, ii, total){
   const open = it._open ? 'open' : '';
   return `<details class="item-editor" ${open} data-itemuid="${it._uid}">
@@ -1939,6 +2095,16 @@ function itemEditor(cat, it, ii, total){
         </div>
       </div>
       ${field('태그 <span class="hint">쉼표로 구분</span>', textInput('item','tags', (it.tags||[]).join(', '), cat._uid, it._uid))}
+      <span class="tiny-label" style="border-top:1px solid var(--line);padding-top:12px">일정 (간트 레이아웃) <span class="hint">간트 화면에서만 사용</span></span>
+      <div class="field"><label>시작일 · 종료일 <span class="hint">YYYY-MM-DD</span></label>
+        <div class="row2b">
+          ${textInput('item','start', it.start, cat._uid, it._uid)}
+          ${textInput('item','end', it.end, cat._uid, it._uid)}
+        </div>
+      </div>
+      <label class="feat" style="padding-left:0"><input type="checkbox" data-scope="item" data-key="milestone" data-cat="${cat._uid}" data-item="${it._uid}" ${it.milestone?'checked':''}><span>기한(또는 종료일)을 <b>마일스톤</b>으로 표시</span></label>
+      ${field('구간(단계) <span class="hint">막대 여러 개 · 한 줄에 하나: 이름 | 시작 | 종료 | 종류</span>', textArea('item','phases', phasesToText(it.phases), 3, cat._uid, it._uid))}
+      <div class="phase-hint">종류: <code>plan</code> 일반 · <code>crit</code> 임계 · <code>ok</code> 병행 · <code>dep</code> 대기 · <code>done</code> 완료 <span class="hint">(구간을 입력하면 시작·종료일 대신 구간이 그려집니다)</span></div>
       <label class="feat" style="padding-left:0"><input type="checkbox" data-scope="item" data-key="note" data-cat="${cat._uid}" data-item="${it._uid}" ${it.note?'checked':''}><span>이 항목에 메모 필드 표시</span></label>
       <span class="tiny-label" style="border-top:1px solid var(--line);padding-top:12px">추가 블록 <span class="hint">표·링크·이미지·코드 등</span></span>
       ${(it.blocks||[]).map(function(blk,bi){ return blockEditor(cat, it, blk, bi, it.blocks.length); }).join('')}
@@ -2016,6 +2182,7 @@ document.getElementById('controls').addEventListener('input', function(e){
     const it=findItemById(catUid, itemUid); if(!it) return;
     if(key==='detail' || key==='evidence'){ it[key] = t.value.split('\n').map(function(x){return x.trim();}).filter(function(x){return x.length;}); }
     else if(key==='tags'){ it.tags = t.value.split(',').map(function(x){return x.trim();}).filter(function(x){return x.length;}); }
+    else if(key==='phases'){ it.phases = parsePhases(t.value); }
     else { it[key]=t.value; }
     if(key==='title'){ const el=document.querySelector('summary[data-itemuid="'+itemUid+'"] .ie-name'); if(el) el.textContent = t.value||'(제목 없음)'; }
     if(key==='num'){ const el=document.querySelector('summary[data-itemuid="'+itemUid+'"] .ie-num'); if(el) el.textContent = t.value; }
@@ -2030,6 +2197,11 @@ document.getElementById('controls').addEventListener('change', function(e){
   if(t.getAttribute('data-scope')==='item' && t.getAttribute('data-key')==='note'){
     const it=findItemById(t.getAttribute('data-cat'), t.getAttribute('data-item'));
     if(it){ it.note = t.checked; refreshPreview(); }
+    return;
+  }
+  if(t.getAttribute('data-scope')==='item' && t.getAttribute('data-key')==='milestone'){
+    const it=findItemById(t.getAttribute('data-cat'), t.getAttribute('data-item'));
+    if(it){ it.milestone = t.checked; refreshPreview(); }
     return;
   }
   if(t.getAttribute('data-scope')==='item' && (t.getAttribute('data-key')==='status' || t.getAttribute('data-key')==='priority')){
@@ -3305,8 +3477,155 @@ const SAMPLE_IT_HELPDESK = {
   ]
 };
 
-const SAMPLE_CATS = ['기본 · 예제','종합 (모든 형태 포함)','IT · 개발 / DevOps','IT · 인프라 / 보안','업무 · 프로세스','일반 · 생활'];
+const GANTT_FEATS = { ring:false, legend:true, checklist:false, notes:false, tracker:false, search:false, themeToggle:true, autosave:false, io:true };
+
+/* 요거: 한장요약 재현 */
+const SAMPLE_GANTT_CERT = {
+  meta:{ eyebrow:'재등록 일정 · 한 장 요약', title:'순서는 고정, 준비는 병렬',
+    subtitle:'전송자격인증서 → X-ray → 재등록. 앞이 끝나야 뒤가 시작됩니다. 직렬 구조라 버퍼는 약 10일뿐 — 대기 시간에 뒷단을 미리 만들어 두는 것이 관건.',
+    ringCaption:'', footerLeft:'마감 2026-10-27', footerRight:'제출: antispam@korea.kr · 문의 1660-0162' },
+  labels:{}, config:{ layout:'gantt', theme:'slate', density:'comfortable', features:GANTT_FEATS },
+  categories:[
+    { id:'road', num:'1', title:'재등록 로드맵', desc:'직렬 3단계 · 마감 10/27', items:[
+      { num:'A', title:'전송자격인증', phases:[
+        {label:'준비·접수', start:'2026-08-19', end:'2026-08-29', kind:'plan'},
+        {label:'심사·처리 30일', start:'2026-08-29', end:'2026-09-29', kind:'crit'} ] },
+      { num:'B', title:'X-ray', phases:[
+        {label:'개발·보안조치', start:'2026-08-19', end:'2026-09-05', kind:'ok'},
+        {label:'인증서 대기', start:'2026-09-05', end:'2026-09-29', kind:'dep'},
+        {label:'연동개발·시범발송', start:'2026-09-29', end:'2026-10-10', kind:'crit'} ] },
+      { num:'C', title:'재등록 서류', phases:[
+        {label:'서류 작성 (정보보호 등)', start:'2026-08-19', end:'2026-10-05', kind:'plan'},
+        {label:'취합', start:'2026-10-05', end:'2026-10-08', kind:'plan'},
+        {label:'검토·보완', start:'2026-10-08', end:'2026-10-17', kind:'plan'} ] }
+    ]},
+    { id:'mile', num:'2', title:'핵심 마일스톤', desc:'4대 체크포인트', items:[
+      { num:'◆', title:'인증 접수', due:'2026-08-29', milestone:true },
+      { num:'◆', title:'인증서 수령', due:'2026-09-29', milestone:true },
+      { num:'◆', title:'재등록 제출', due:'2026-10-17', milestone:true },
+      { num:'◆', title:'완료', due:'2026-10-27', milestone:true }
+    ]}
+  ]
+};
+
+/* 신규 서비스 출시 로드맵 */
+const SAMPLE_GANTT_LAUNCH = {
+  meta:{ eyebrow:'제품 · 출시', title:'신규 서비스 출시 로드맵', subtitle:'기획·개발·QA·마케팅을 병렬로 진행하고 베타→정식 출시(GA) 두 마일스톤으로 관리하는 12주 계획입니다.',
+    ringCaption:'', footerLeft:'GA 목표 2026-04-06', footerRight:'' },
+  labels:{}, config:{ layout:'gantt', theme:'forest', density:'comfortable', features:GANTT_FEATS },
+  categories:[
+    { id:'ws', num:'1', title:'워크스트림', desc:'', items:[
+      { num:'기획', title:'기획', phases:[
+        {label:'리서치', start:'2026-01-05', end:'2026-01-20', kind:'plan'},
+        {label:'기획 확정', start:'2026-01-20', end:'2026-02-02', kind:'ok'} ] },
+      { num:'개발', title:'개발', phases:[
+        {label:'설계', start:'2026-02-02', end:'2026-02-16', kind:'plan'},
+        {label:'구현', start:'2026-02-16', end:'2026-03-20', kind:'crit'},
+        {label:'안정화', start:'2026-03-20', end:'2026-03-30', kind:'ok'} ] },
+      { num:'QA', title:'QA', phases:[
+        {label:'빌드 대기', start:'2026-02-16', end:'2026-03-20', kind:'dep'},
+        {label:'통합 테스트', start:'2026-03-20', end:'2026-04-03', kind:'crit'} ] },
+      { num:'MKT', title:'마케팅', phases:[
+        {label:'콘텐츠 제작', start:'2026-03-02', end:'2026-03-25', kind:'plan'},
+        {label:'사전 예약', start:'2026-03-25', end:'2026-04-06', kind:'ok'} ] }
+    ]},
+    { id:'ms', num:'2', title:'마일스톤', desc:'', items:[
+      { num:'◆', title:'베타 오픈', due:'2026-03-30', milestone:true },
+      { num:'◆', title:'정식 출시 (GA)', due:'2026-04-06', milestone:true }
+    ]}
+  ]
+};
+
+/* 웹사이트 리뉴얼 */
+const SAMPLE_GANTT_WEB = {
+  meta:{ eyebrow:'프로젝트 · 웹', title:'웹사이트 리뉴얼 프로젝트', subtitle:'디자인→퍼블리싱→개발이 순차로 물리는 구조. 대기(종속) 구간과 임계 경로를 한눈에 보여주는 예시입니다.',
+    ringCaption:'', footerLeft:'오픈 목표 2026-05-15', footerRight:'' },
+  labels:{}, config:{ layout:'gantt', theme:'midnight', density:'comfortable', features:GANTT_FEATS },
+  categories:[
+    { id:'ws', num:'1', title:'작업 스트림', desc:'', items:[
+      { num:'D', title:'디자인', phases:[
+        {label:'와이어프레임', start:'2026-03-02', end:'2026-03-16', kind:'plan'},
+        {label:'시안', start:'2026-03-16', end:'2026-04-06', kind:'crit'},
+        {label:'확정', start:'2026-04-06', end:'2026-04-13', kind:'ok'} ] },
+      { num:'P', title:'퍼블리싱', phases:[
+        {label:'디자인 대기', start:'2026-03-16', end:'2026-04-13', kind:'dep'},
+        {label:'마크업', start:'2026-04-13', end:'2026-05-01', kind:'plan'} ] },
+      { num:'E', title:'개발', phases:[
+        {label:'퍼블 대기', start:'2026-04-13', end:'2026-05-01', kind:'dep'},
+        {label:'CMS 연동', start:'2026-05-01', end:'2026-05-11', kind:'crit'},
+        {label:'통합', start:'2026-05-11', end:'2026-05-15', kind:'ok'} ] },
+      { num:'C', title:'콘텐츠', phases:[
+        {label:'이관·정리', start:'2026-03-16', end:'2026-04-20', kind:'done'},
+        {label:'검수', start:'2026-04-20', end:'2026-05-08', kind:'plan'} ] }
+    ]},
+    { id:'ms', num:'2', title:'마일스톤', desc:'', items:[
+      { num:'◆', title:'디자인 확정', due:'2026-04-13', milestone:true },
+      { num:'◆', title:'스테이징 배포', due:'2026-05-11', milestone:true },
+      { num:'◆', title:'정식 오픈', due:'2026-05-15', milestone:true }
+    ]}
+  ]
+};
+
+/* 분기 제품 로드맵 */
+const SAMPLE_GANTT_ROADMAP = {
+  meta:{ eyebrow:'전략 · 반기', title:'제품 로드맵 (상반기)', subtitle:'플랫폼·앱·데이터 세 스트림을 분기 단위로 배치한 반기 로드맵입니다. 분기 릴리스를 마일스톤으로 표시합니다.',
+    ringCaption:'', footerLeft:'2026 H1', footerRight:'' },
+  labels:{}, config:{ layout:'gantt', theme:'sand', density:'comfortable', features:GANTT_FEATS },
+  categories:[
+    { id:'stream', num:'1', title:'스트림', desc:'', items:[
+      { num:'PLT', title:'플랫폼', phases:[
+        {label:'기반 리팩터링', start:'2026-01-06', end:'2026-03-27', kind:'plan'},
+        {label:'확장·성능', start:'2026-04-01', end:'2026-06-26', kind:'crit'} ] },
+      { num:'APP', title:'앱', phases:[
+        {label:'UX 개편', start:'2026-01-06', end:'2026-03-13', kind:'ok'},
+        {label:'신기능 세트', start:'2026-04-06', end:'2026-06-19', kind:'plan'} ] },
+      { num:'DATA', title:'데이터', phases:[
+        {label:'파이프라인', start:'2026-02-02', end:'2026-03-27', kind:'plan'},
+        {label:'분석·리포팅', start:'2026-04-13', end:'2026-06-12', kind:'ok'} ] }
+    ]},
+    { id:'ms', num:'2', title:'릴리스', desc:'', items:[
+      { num:'◆', title:'Q1 릴리스', due:'2026-03-31', milestone:true },
+      { num:'◆', title:'Q2 릴리스', due:'2026-06-30', milestone:true }
+    ]}
+  ]
+};
+
+/* 컨퍼런스 준비 타임라인 */
+const SAMPLE_GANTT_EVENT = {
+  meta:{ eyebrow:'행사 · 운영', title:'컨퍼런스 준비 타임라인', subtitle:'연사 섭외·홍보·등록·운영을 D-90부터 병렬로 준비하고 행사일(D-day)을 마일스톤으로 관리합니다.',
+    ringCaption:'', footerLeft:'행사일 2026-11-14', footerRight:'' },
+  labels:{}, config:{ layout:'gantt', theme:'rose', density:'comfortable', features:GANTT_FEATS },
+  categories:[
+    { id:'prep', num:'1', title:'준비 스트림', desc:'', items:[
+      { num:'연사', title:'연사 섭외', phases:[
+        {label:'후보 접촉', start:'2026-08-18', end:'2026-09-08', kind:'plan'},
+        {label:'확정', start:'2026-09-08', end:'2026-09-22', kind:'crit'} ] },
+      { num:'홍보', title:'홍보', phases:[
+        {label:'티저', start:'2026-09-01', end:'2026-09-22', kind:'plan'},
+        {label:'본 홍보', start:'2026-09-22', end:'2026-10-27', kind:'ok'},
+        {label:'막판 프로모션', start:'2026-10-27', end:'2026-11-13', kind:'crit'} ] },
+      { num:'등록', title:'등록', phases:[
+        {label:'등록 오픈', start:'2026-09-15', end:'2026-11-13', kind:'ok'},
+        {label:'얼리버드 마감', start:'2026-10-15', end:'2026-10-16', kind:'plan'} ] },
+      { num:'운영', title:'현장 운영', phases:[
+        {label:'물류·부스', start:'2026-10-13', end:'2026-11-06', kind:'plan'},
+        {label:'리허설', start:'2026-11-11', end:'2026-11-13', kind:'ok'} ] }
+    ]},
+    { id:'ms', num:'2', title:'마일스톤', desc:'', items:[
+      { num:'◆', title:'연사 라인업 확정', due:'2026-09-22', milestone:true },
+      { num:'◆', title:'등록 오픈', due:'2026-09-15', milestone:true },
+      { num:'◆', title:'행사일 (D-DAY)', due:'2026-11-14', milestone:true }
+    ]}
+  ]
+};
+
+const SAMPLE_CATS = ['기본 · 예제','일정 · 간트 ✦ 신규','종합 (모든 형태 포함)','IT · 개발 / DevOps','IT · 인프라 / 보안','업무 · 프로세스','일반 · 생활'];
 const SAMPLES = [
+  { cat:'일정 · 간트 ✦ 신규', key:'gantt_cert', name:'재등록 일정 (한 장 요약)', desc:'전송자격인증→X-ray→재등록 직렬 로드맵 · 간트 · 슬레이트', model:SAMPLE_GANTT_CERT },
+  { cat:'일정 · 간트 ✦ 신규', key:'gantt_launch', name:'신규 서비스 출시 로드맵', desc:'기획·개발·QA·마케팅 병렬 + 베타/GA 마일스톤 · 간트 · 포레스트', model:SAMPLE_GANTT_LAUNCH },
+  { cat:'일정 · 간트 ✦ 신규', key:'gantt_web', name:'웹사이트 리뉴얼 프로젝트', desc:'디자인→퍼블→개발 종속 구간·임계 경로 · 간트 · 미드나잇', model:SAMPLE_GANTT_WEB },
+  { cat:'일정 · 간트 ✦ 신규', key:'gantt_roadmap', name:'제품 로드맵 (상반기)', desc:'플랫폼·앱·데이터 3스트림 분기 릴리스 · 간트 · 샌드', model:SAMPLE_GANTT_ROADMAP },
+  { cat:'일정 · 간트 ✦ 신규', key:'gantt_event', name:'컨퍼런스 준비 타임라인', desc:'D-90 준비·홍보·등록·운영 + D-day · 간트 · 로즈', model:SAMPLE_GANTT_EVENT },
   { cat:'기본 · 예제', key:'cert', name:'전송자격인증 신청 가이드', desc:'방송미디어통신위원회 · 5분야 13항목 · 아코디언', model:DEFAULT_MODEL },
   { cat:'기본 · 예제', key:'tree', name:'부서 감사 준비 (3레벨)', desc:'분야 › 중분류 › 항목 3단계 예시 · 슬레이트', model:SAMPLE_TREE },
 

@@ -200,6 +200,19 @@
     transition:border-color .14s ease,box-shadow .14s ease;
   }
   select.sel:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+
+  .blk-ed{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;background:#fff;}
+  .blk-ed-head{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+  .blk-ed-head .blk-type{margin-right:auto;}
+  .blk-ed.dragging{opacity:.45;}
+  .blk-ed.drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .blk-ed.drop-after{box-shadow:inset 0 -3px 0 var(--accent);}
+  .blk-type{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:2px 8px;border-radius:5px;}
+  .blk-hint{font-size:10.5px;color:var(--ink-faint);margin-bottom:5px;}
+  .blk-hint b{color:var(--ink-soft);font-family:var(--mono);}
+  .blk-add{display:flex;gap:6px;margin-top:4px;}
+  .blk-add .blk-add-sel{flex:0 0 40%;}
+  .blk-add .blk-add-btn{margin-top:0;flex:1;}
   .rowbtns{display:flex;gap:5px;flex-shrink:0;}
   .minibtn{
     font-family:var(--sans);font-size:11px;font-weight:700;
@@ -222,6 +235,20 @@
   .item-editor > summary .ie-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .item-inner{padding:10px;border-top:1px dashed var(--line);background:color-mix(in srgb,var(--ce,#888) 5%,var(--panel-2));}
 
+  .grp-editor{border:1px dashed color-mix(in srgb,var(--ce,#888) 55%,var(--line));border-radius:9px;margin:8px 0;overflow:hidden;background:color-mix(in srgb,var(--ce,#888) 4%,#fff);}
+  .grp-editor > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;padding:8px 10px;font-size:12.5px;font-weight:800;background:color-mix(in srgb,var(--ce,#888) 10%,var(--panel-2));}
+  .grp-editor > summary::-webkit-details-marker{display:none;}
+  .grp-editor > summary .caret{transition:transform .18s ease;color:var(--ce,var(--ink-faint));flex-shrink:0;}
+  .grp-editor[open] > summary .caret{transform:rotate(90deg);}
+  .grp-editor > summary .ge-tag{font-family:var(--mono);font-size:10.5px;font-weight:700;color:#fff;background:color-mix(in srgb,var(--ce,#888) 78%,#000 0%);padding:1px 6px;border-radius:4px;flex-shrink:0;}
+  .grp-editor > summary .ge-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .grp-inner{padding:10px;border-top:1px dashed color-mix(in srgb,var(--ce,#888) 30%,var(--line));}
+  .grp-editor.dragging{opacity:.45;}
+  .grp-editor.drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .grp-editor.drop-after{box-shadow:inset 0 -3px 0 var(--accent);}
+  .grp-editor.drop-into{box-shadow:inset 0 0 0 2px var(--accent);}
+  .addbtn.grp-add-btn{border-style:dashed;border-color:color-mix(in srgb,var(--ce,#888) 50%,var(--line-2));margin-top:8px;}
+
   .addbtn{
     width:100%;font-family:var(--sans);font-size:12px;font-weight:700;
     padding:9px;border-radius:8px;border:1px dashed var(--line-2);
@@ -231,13 +258,23 @@
   .addbtn:hover{border-color:var(--accent);background:var(--accent-soft);}
   .addbtn.cat{margin-top:8px;}
 
-  .c-toolbar{display:flex;gap:6px;margin-bottom:10px;}
+  .c-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
   .c-tool-btn{
-    flex:1;font-family:var(--sans);font-size:11.5px;font-weight:700;
-    padding:7px;border-radius:7px;border:1px solid var(--line-2);
-    background:var(--panel-2);color:var(--ink-soft);cursor:pointer;transition:all .12s ease;
+    flex:1 1 auto;font-family:var(--sans);font-size:11.5px;font-weight:700;
+    padding:7px 6px;border-radius:7px;border:1px solid var(--line-2);
+    background:var(--panel-2);color:var(--ink-soft);cursor:pointer;transition:all .12s ease;white-space:nowrap;
   }
   .c-tool-btn:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft);}
+  .c-tool-btn:disabled{opacity:.4;cursor:default;border-color:var(--line);background:var(--panel);}
+  .c-tool-btn:disabled:hover{color:var(--ink-soft);}
+
+  .drag-handle{cursor:grab;color:var(--ink-faint);font-size:12px;line-height:1;flex-shrink:0;padding:2px 3px;border-radius:4px;user-select:none;letter-spacing:-2px;}
+  .drag-handle:hover{color:var(--accent);background:var(--panel-2);}
+  .drag-handle:active{cursor:grabbing;}
+  .cat-editor.dragging,.item-editor.dragging{opacity:.45;}
+  .cat-editor.drop-before,.item-editor.drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .cat-editor.drop-after,.item-editor.drop-after{box-shadow:inset 0 -3px 0 var(--accent);}
+  .cat-editor.drop-into{box-shadow:inset 0 0 0 2px var(--accent);}
 
   .tiny-label{font-size:11px;font-weight:700;color:var(--ink-soft);margin:9px 0 4px;display:block;}
 
@@ -383,6 +420,10 @@
     <label class="tbtn" for="loadProject">프로젝트 열기</label>
     <input type="file" id="loadProject" accept="application/json" style="display:none">
     <button class="tbtn" id="btnSaveProject">프로젝트 저장</button>
+    <label class="tbtn" for="csvFile" title="엑셀/CSV로 항목 대량 등록">CSV 가져오기</label>
+    <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="display:none">
+    <button class="tbtn" id="btnCsvExport" title="현재 내용을 CSV로 저장">CSV 내보내기</button>
+    <button class="tbtn" id="btnMdExport" title="마크다운 문서로 저장">MD 내보내기</button>
     <button class="tbtn" id="btnNewTab">미리보기 새 창</button>
     <button class="tbtn primary" id="btnExport">HTML 내보내기</button>
   </div>
@@ -421,15 +462,15 @@
       <div class="help-step">
         <span class="hs-num">1</span>
         <div class="hs-body">
-          <h3>내용 편집 <em>왼쪽 · C. 콘텐츠</em></h3>
-          <p>분야·항목을 눌러 펼치고 상세기준·증빙·주의사항·메모를 입력하세요. <b>상세기준과 증빙은 한 줄에 하나씩</b> 적으면 자동으로 목록·체크박스가 됩니다. 분야마다 <b>색으로 구분</b>되고, <code>↑ ↓</code> 순서변경 · <code>⧉</code> 복제 · <code>✕</code> 삭제 · <b>+ 분야/항목 추가</b> · <b>전체 펼치기/접기</b>가 가능합니다.</p>
+          <h3>구조 편집 <em>왼쪽 · C. 콘텐츠</em></h3>
+          <p><b>분야 › 중분류 › 항목</b>의 3단계까지 구성할 수 있어요. 분야 안에 항목을 바로 두거나(2레벨), <b>+ 중분류(하위 그룹) 추가</b>로 묶을 수 있습니다(3레벨). 상세기준·증빙은 <b>한 줄에 하나</b>씩 적으면 목록·체크박스가 되고, 줄 앞에 <code>#</code> 를 붙이면 <b>그룹 소제목</b>이 됩니다. 왼쪽 <code>⠿</code> 손잡이로 분야·중분류·항목·블록을 <b>드래그 이동</b>(<code>↑ ↓</code>도 지원), <code>⧉</code> 복제 · <code>✕</code> 삭제 · <b>실행 취소(Ctrl+Z)/다시(Ctrl+Y)</b>까지 됩니다.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="hs-num">2</span>
         <div class="hs-body">
-          <h3>업무 트래커 <em>항목 편집 안</em></h3>
-          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 체크리스트가 업무 트래커가 됩니다. 완성본에는 상태·우선순위 배지와 담당·기한·태그가 표시되고, <b>태그 필터</b>로 원하는 항목만 골라 볼 수 있어요.</p>
+          <h3>트래커 · 블록 <em>항목 편집 안</em></h3>
+          <p>각 항목에 <b>상태(예정/진행/완료) · 우선순위 · 담당자 · 기한 · 태그</b>를 넣으면 업무 트래커가 됩니다(완성본에서 배지 표시 + <b>태그 필터</b>). 또한 항목 안에 <b>추가 블록</b>으로 <b>표 · 링크 · 이미지 · 코드 · 안내 박스 · 소제목 · 구분선</b>을 자유롭게 쌓고 드래그로 정렬할 수 있어요. 진행률은 <b>항목→중분류→분야→전체 링</b>으로 합산됩니다.</p>
         </div>
       </div>
       <div class="help-step">
@@ -458,7 +499,8 @@
           <ul>
             <li><b>HTML 내보내기</b> — 자동저장·체크리스트가 담긴 배포용 단독 파일</li>
             <li><b>프로젝트 저장 / 열기</b> — <code>.guide.json</code>으로 백업·복원해 이어서 편집</li>
-            <li><b>샘플 불러오기</b> — 온보딩·이사·출시 등 여러 예시 중 선택 / <b>비우기</b>로 새로 시작</li>
+            <li><b>CSV 가져오기 / 내보내기</b> — 엑셀에 정리한 분야·중분류·항목·담당·상태·태그·증빙을 <b>한 번에 대량 등록</b>하거나 CSV로 저장 / <b>MD 내보내기</b>는 위키·노션에 붙일 마크다운 문서</li>
+            <li><b>샘플 불러오기</b> — <b>24종</b> 예시(3레벨 트리·블록 활용·업무 트래커, 그리고 모든 형태가 담긴 <b>종합(풀) 5종</b> 포함) 중 선택 / <b>비우기</b>로 새로 시작</li>
           </ul>
         </div>
       </div>
@@ -521,6 +563,11 @@ const DEFAULT_MODEL = {
   categories:[
     { id:'doc', num:'1', title:'서류 적정성', desc:'약관·사무공간·방지계획 3종 서류', items:[
       { num:'1.1', title:'이용약관', note:true, status:'doing', priority:'high', assignee:'법무팀', due:'2026-09-30', tags:['필수','약관'],
+        blocks:[
+          { type:'callout', tone:'tip', text:'B2B 계약형은 웹 회원가입 약관이 없어도 계약서·운영정책 중 하나에 제재 근거가 있으면 됩니다.' },
+          { type:'table', head:['서비스 유형','적용 약관'], rows:[['웹페이지','회원가입 약관'],['API·솔루션','서비스 신청서'],['기업 간 계약','계약서·운영정책']] },
+          { type:'links', links:[{label:'전송자격인증 안내(예시)', url:'https://www.example.go.kr'},{label:'서식 다운로드(예시)', url:'https://www.example.go.kr/forms'}] }
+        ],
         detail:[
           '문자발송 서비스 전반에 대한 이용약관·계약서·운영정책을 마련해야 함',
           '불법스팸 전송금지, 위반 시 정지·해지·발송제한, 법적책임·역무제공거부 가능성을 명시',
@@ -540,7 +587,9 @@ const DEFAULT_MODEL = {
           '현장 점검 또는 통지 수령이 가능한 실제 사업장이어야 함'
         ],
         evidence:[
+          '# 기본 서류',
           '임대차계약서','등기부등본','기타 사업자등록증 상 주소지 확인자료',
+          '# 공유오피스·실사용 (해당 시)',
           '공유오피스 이용계약서·입주확인서',
           '(실사용 증빙 필요 시) 전기·수도·가스·통신 등 공과금 내역'
         ],
@@ -810,7 +859,12 @@ html,body{margin:0;padding:0;}
 .detail-list{margin:0;padding:0;list-style:none;}
 .detail-list li{position:relative;padding-left:16px;font-size:14.5px;color:var(--ink);margin-bottom:6px;}
 .detail-list li::before{content:"▸";position:absolute;left:0;top:0;color:var(--cat-color);font-size:12px;}
+.detail-list li.list-head{padding-left:0;margin:10px 0 6px;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);}
+.detail-list li.list-head::before{content:none;}
+.detail-list li.list-head:first-child{margin-top:0;}
 .evi-list{margin:0;padding:0;list-style:none;}
+.evi-list li.evi-head{list-style:none;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);padding:11px 10px 4px;margin-top:5px;border-top:1px solid var(--line);}
+.evi-list li.evi-head:first-child{border-top:0;margin-top:0;padding-top:2px;}
 .evi-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;font-size:14px;cursor:pointer;}
 .evi-item:hover{background:var(--paper-2);}
 .evi-item input{margin-top:3px;width:16px;height:16px;accent-color:var(--ok);cursor:pointer;flex-shrink:0;}
@@ -976,6 +1030,49 @@ html,body{margin:0;padding:0;}
 .tf-chip{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--card);border:1px solid var(--line-strong);padding:5px 11px;border-radius:999px;cursor:pointer;transition:all .12s ease;}
 .tf-chip:hover{border-color:var(--accent);color:var(--accent);}
 .tf-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* 추가 블록 */
+.blk-subhead{font-size:15px;font-weight:800;letter-spacing:-.01em;margin:0 0 2px;color:var(--ink);}
+.blk-text{font-size:14.5px;color:var(--ink);margin:0;line-height:1.7;white-space:pre-wrap;}
+.blk-divider{border:0;border-top:1px solid var(--line);margin:2px 0;}
+.blk-list{margin:0;padding:0;list-style:none;}
+.blk-list li{position:relative;padding-left:16px;font-size:14.5px;margin-bottom:6px;color:var(--ink);}
+.blk-list li:before{content:"•";position:absolute;left:2px;color:var(--cat-color,var(--accent));}
+.blk-callout{border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6;border:1px solid;white-space:pre-wrap;}
+.blk-callout.tone-info{background:color-mix(in srgb,var(--accent) 8%,var(--card));border-color:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+.blk-callout.tone-tip{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 32%,transparent);color:color-mix(in srgb,var(--ok) 82%,var(--ink));}
+.blk-callout.tone-warn{background:var(--danger-soft);border-color:color-mix(in srgb,var(--danger) 30%,transparent);color:color-mix(in srgb,var(--danger) 82%,var(--ink));}
+.blk-code{background:color-mix(in srgb,var(--ink) 5%,var(--card));border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0;}
+.blk-code code{font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--ink);white-space:pre;}
+[data-theme="ink"] .blk-code,[data-theme="midnight"] .blk-code{background:rgba(0,0,0,.28);}
+.blk-figure{margin:0;}
+.blk-figure img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block;}
+.blk-figure figcaption{font-size:12px;color:var(--ink-faint);margin-top:6px;text-align:center;}
+.blk-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+.blk-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.blk-table th,.blk-table td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);}
+.blk-table thead th{background:var(--paper-2);font-weight:700;color:var(--ink);}
+.blk-table tbody tr:last-child td{border-bottom:0;}
+.blk-links{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;}
+.blk-links a{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;width:fit-content;}
+.blk-links a:before{content:"\\2197";font-weight:700;}
+.blk-links a:hover{text-decoration:underline;}
+
+/* 중분류(그룹) */
+.grp{margin-top:var(--gap);}
+.grp-head{display:flex;align-items:center;gap:9px;margin:6px 0 8px;padding-bottom:6px;border-bottom:1px dashed color-mix(in srgb,var(--cat-color) 45%,var(--line));}
+.grp-num{font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;background:color-mix(in srgb,var(--cat-color) 82%,#000 0%);padding:2px 7px;border-radius:5px;flex-shrink:0;}
+.grp-title{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--ink);}
+.grp-count{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-left:auto;}
+.grp-body{padding-left:14px;border-left:2px solid color-mix(in srgb,var(--cat-color) 22%,var(--line));margin-left:3px;}
+[data-layout="cards"] .grp-body.card-grid{padding-left:14px;}
+.grp-row td{background:color-mix(in srgb,var(--cat-color) 8%,var(--card));}
+.grp-row .grp-num{font-size:10.5px;}
+.grp-row .grp-title{font-size:13.5px;font-weight:800;margin-left:2px;}
+.grp-row .grp-count{margin-left:8px;font-weight:600;}
+.kgrp-head{display:flex;align-items:center;gap:8px;margin:6px 2px 2px;padding:6px 2px 4px;border-top:1px dashed var(--line);}
+.kgrp-head .grp-title{font-size:12.5px;font-weight:800;}
+.kgrp-head .grp-count{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-left:auto;}
 `;
 
 /* ============================================================
@@ -1004,11 +1101,15 @@ function mountGuide(root, M, opts){
   var useStore = !!(opts.useStorage && feat.autosave) && STORE_OK;
   var state = { evi:{}, notes:{} };
 
+  function isHead(s){ return /^#\s+/.test(String(s||'')); }
+  function headText(s){ return String(s||'').replace(/^#\s+/,''); }
+
   function loadState(){
     if(!useStore) return;
     M.categories.forEach(function(cat){
       cat.items.forEach(function(it){
-        (it.evidence||[]).forEach(function(_,i){
+        (it.evidence||[]).forEach(function(e,i){
+          if(isHead(e)) return;
           var k = ikey(cat.id,it.num)+':'+i;
           try{ if(localStorage.getItem(LS+'evi:'+k)==='1') state.evi[k]=true; }catch(e){}
         });
@@ -1022,11 +1123,13 @@ function mountGuide(root, M, opts){
   loadState();
 
   function itemCounts(cat,it){
-    var total=(it.evidence||[]).length, done=0;
-    for(var i=0;i<total;i++){ if(state.evi[ikey(cat.id,it.num)+':'+i]) done++; }
+    var ev=it.evidence||[], total=0, done=0;
+    for(var i=0;i<ev.length;i++){ if(isHead(ev[i])) continue; total++; if(state.evi[ikey(cat.id,it.num)+':'+i]) done++; }
     return {total:total, done:done};
   }
-  function catCounts(cat){ var t=0,d=0; cat.items.forEach(function(it){ var c=itemCounts(cat,it); t+=c.total; d+=c.done; }); return {total:t,done:d}; }
+  function catItems(cat){ var a=(cat.items||[]).slice(); (cat.groups||[]).forEach(function(g){ (g.items||[]).forEach(function(it){ a.push(it); }); }); return a; }
+  function groupCounts(cat,g){ var t=0,d=0; (g.items||[]).forEach(function(it){ var c=itemCounts(cat,it); t+=c.total; d+=c.done; }); return {total:t,done:d}; }
+  function catCounts(cat){ var t=0,d=0; catItems(cat).forEach(function(it){ var c=itemCounts(cat,it); t+=c.total; d+=c.done; }); return {total:t,done:d}; }
   function allCounts(){ var t=0,d=0; M.categories.forEach(function(cat){ var c=catCounts(cat); t+=c.total; d+=c.done; }); return {total:t,done:d}; }
 
   var CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
@@ -1036,16 +1139,16 @@ function mountGuide(root, M, opts){
 
   function detailHTML(it){
     if(!it.detail || !it.detail.length) return '';
-    var lis = it.detail.map(function(d){ return '<li>'+esc(d)+'</li>'; }).join('');
+    var lis = it.detail.map(function(d){ return isHead(d) ? '<li class="list-head">'+esc(headText(d))+'</li>' : '<li>'+esc(d)+'</li>'; }).join('');
     return '<div class="block"><div class="block-label">'+esc(lbl('detail','상세 기준'))+'</div><ul class="detail-list">'+lis+'</ul></div>';
   }
   function eviHTML(cat,it){
     if(!feat.checklist || !(it.evidence && it.evidence.length)) return '';
     var lis = it.evidence.map(function(e,i){
+      if(isHead(e)) return '<li class="evi-head">'+esc(headText(e))+'</li>';
       var k = ikey(cat.id,it.num)+':'+i;
       var on = state.evi[k] ? ' checked' : '';
-      var cl = state.evi[k] ? ' checked' : '';
-      return '<li class="evi-item'+cl+'"><input type="checkbox" data-evi="'+esc(k)+'"'+on+'><span>'+esc(e)+'</span></li>';
+      return '<li class="evi-item'+on+'"><input type="checkbox" data-evi="'+esc(k)+'"'+on+'><span>'+esc(e)+'</span></li>';
     }).join('');
     return '<div class="block"><div class="block-label">'+esc(lbl('evidence','증빙자료 체크리스트'))+'</div><ul class="evi-list">'+lis+'</ul></div>';
   }
@@ -1073,15 +1176,54 @@ function mountGuide(root, M, opts){
     if(!parts.length) return '';
     return '<div class="meta-bar">'+parts.join('')+'</div>';
   }
-  function bodyHTML(cat,it){ return metaBar(it)+detailHTML(it)+eviHTML(cat,it)+cautionHTML(it)+noteHTML(cat,it); }
+  function safeUrl(u){ u=String(u==null?'':u).trim(); if(/^(https?:|data:image\/|\.?\/|#)/i.test(u)) return u; if(/^[\w.\-\/]+\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(u)) return u; return ''; }
+  function safeHref(u){ u=String(u==null?'':u).trim(); if(/^(https?:|mailto:|tel:|\.?\/|#)/i.test(u)) return u; if(u && !/^[a-z0-9]+:/i.test(u)) return 'https://'+u; return '#'; }
+  function tableHTML(b){
+    var head=b.head||[], rows=b.rows||[];
+    if(!head.length && !rows.length) return '';
+    var thead = head.length ? '<thead><tr>'+head.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead>' : '';
+    var tbody = '<tbody>'+rows.map(function(r){ return '<tr>'+(r||[]).map(function(c){return '<td>'+esc(c)+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody>';
+    return '<div class="blk-table-wrap"><table class="blk-table">'+thead+tbody+'</table></div>';
+  }
+  function linksBlockHTML(b){
+    var links=b.links||[]; if(!links.length) return '';
+    return '<ul class="blk-links">'+links.map(function(l){ var href=safeHref(l.url); if(href==='#'&&!l.url) return ''; return '<li><a href="'+esc(href)+'" target="_blank" rel="noopener">'+esc(l.label||l.url)+'</a></li>'; }).join('')+'</ul>';
+  }
+  function blocksHTML(it){
+    if(!it.blocks || !it.blocks.length) return '';
+    var out='';
+    it.blocks.forEach(function(b){
+      var inner='';
+      if(b.type==='subhead'){ if(!b.text) return; inner='<div class="blk-subhead">'+esc(b.text)+'</div>'; }
+      else if(b.type==='text'){ if(!b.text) return; inner='<p class="blk-text">'+esc(b.text)+'</p>'; }
+      else if(b.type==='divider'){ inner='<hr class="blk-divider">'; }
+      else if(b.type==='callout'){ if(!b.text) return; var tone=({info:1,tip:1,warn:1}[b.tone]?b.tone:'info'); inner='<div class="blk-callout tone-'+tone+'">'+esc(b.text)+'</div>'; }
+      else if(b.type==='list'){ var items=(b.items||[]).filter(Boolean); if(!items.length) return; inner='<ul class="blk-list">'+items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+      else if(b.type==='code'){ if(!b.text) return; inner='<pre class="blk-code"><code>'+esc(b.text)+'</code></pre>'; }
+      else if(b.type==='image'){ var u=safeUrl(b.url); if(!u) return; inner='<figure class="blk-figure"><img src="'+esc(u)+'" alt="'+esc(b.caption||'')+'" loading="lazy">'+(b.caption?'<figcaption>'+esc(b.caption)+'</figcaption>':'')+'</figure>'; }
+      else if(b.type==='table'){ inner=tableHTML(b); }
+      else if(b.type==='links'){ inner=linksBlockHTML(b); }
+      if(inner) out += '<div class="block">'+inner+'</div>';
+    });
+    return out;
+  }
+  function bodyHTML(cat,it){ return metaBar(it)+detailHTML(it)+eviHTML(cat,it)+cautionHTML(it)+blocksHTML(it)+noteHTML(cat,it); }
   function badge(cat,it){
     var c = itemCounts(cat,it);
     if(!feat.checklist || c.total===0) return '';
     return '<span class="item-progress'+((c.done===c.total)?' full':'')+'" data-badge="'+esc(ikey(cat.id,it.num))+'">'+c.done+'/'+c.total+'</span>';
   }
+  function blockText(it){
+    if(!it.blocks || !it.blocks.length) return '';
+    return it.blocks.map(function(b){
+      return [b.text||'', b.caption||'', (b.items||[]).join(' '), (b.head||[]).join(' '),
+        (b.rows||[]).map(function(r){return (r||[]).join(' ');}).join(' '),
+        (b.links||[]).map(function(l){return (l.label||'')+' '+(l.url||'');}).join(' ')].join(' ');
+    }).join(' ');
+  }
   function sattr(it){
     var tags=(it.tags||[]).filter(Boolean);
-    var s = (it.num+' '+it.title+' '+((it.detail||[]).join(' '))+' '+((it.evidence||[]).join(' '))+' '+(it.caution||'')+' '+(it.assignee||'')+' '+(it.due||'')+' '+tags.join(' ')).toLowerCase();
+    var s = (it.num+' '+it.title+' '+((it.detail||[]).join(' '))+' '+((it.evidence||[]).join(' '))+' '+(it.caution||'')+' '+(it.assignee||'')+' '+(it.due||'')+' '+tags.join(' ')+' '+blockText(it)).toLowerCase();
     return ' data-search="'+esc(s)+'" data-tags="'+esc(tags.join(' ').toLowerCase())+'"';
   }
   function catBar(cat){
@@ -1137,12 +1279,37 @@ function mountGuide(root, M, opts){
     return '<div class="tag-filter"><span class="tf-label">태그</span>'+tags.map(function(t){ return '<button class="tf-chip'+(activeTags.indexOf(t.toLowerCase())>=0?' active':'')+'" data-tagfilter="'+esc(t.toLowerCase())+'">#'+esc(t)+'</button>'; }).join('')+'</div>';
   }
 
+  function grpHead(cat,g){
+    var gc=groupCounts(cat,g);
+    var cnt = (feat.checklist && gc.total>0) ? '<span class="grp-count" data-grpbadge="'+esc(cat.id)+'|'+esc(g.gid)+'">'+gc.done+'/'+gc.total+'</span>' : '';
+    return '<div class="grp-head">'+(g.num?'<span class="grp-num">'+esc(g.num)+'</span>':'')+'<span class="grp-title">'+esc(g.title)+'</span>'+cnt+'</div>';
+  }
+  function itemAcc(cat,it){
+    return '<div class="item"'+sattr(it)+'><div class="item-head" data-toggle="item"><span class="item-num">'+esc(it.num)+'</span><span class="item-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+CHEV+'</div><div class="item-body">'+bodyHTML(cat,it)+'</div></div>';
+  }
+  function itemTable(cat,it){
+    return '<tr class="trow" data-toggle="row"'+sattr(it)+'><td class="tc-num"><span class="item-num">'+esc(it.num)+'</span></td><td class="tc-title">'+esc(it.title)+' '+metaHeader(it)+'</td><td class="tc-prog">'+badge(cat,it)+'</td><td class="tc-chev">'+CHEV+'</td></tr>'
+      + '<tr class="tdrawer"><td colspan="4"><div class="tdrawer-inner">'+bodyHTML(cat,it)+'</div></td></tr>';
+  }
+  function itemCard(cat,it){
+    return '<div class="gcard"'+sattr(it)+'><div class="gcard-head"><span class="item-num">'+esc(it.num)+'</span><span class="gcard-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+'</div><div class="gcard-body">'+bodyHTML(cat,it)+'</div></div>';
+  }
+  function itemKcard(cat,it){
+    return '<div class="kcard"'+sattr(it)+' data-open="'+esc(cat.id)+'|'+esc(it.num)+'"><div class="kcard-num">'+esc(it.num)+'</div><div class="kcard-title">'+esc(it.title)+'</div><div class="kcard-meta">'+metaHeader(it)+badge(cat,it)+'</div>'+metaBar(it)+'</div>';
+  }
+  function itemCompact(cat,it){
+    return '<div class="cmp-item"'+sattr(it)+'><div class="cmp-row" data-toggle="cmp"><span class="cmp-inum">'+esc(it.num)+'</span><span class="cmp-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+CHEV+'</div><div class="cmp-body">'+bodyHTML(cat,it)+'</div></div>';
+  }
+
   function renderAccordion(){
     var h='';
     M.categories.forEach(function(cat,idx){
       h += '<section class="category" id="cat-'+esc(cat.id)+'" style="--cat-color:'+catColor(idx)+'">'+catHead(cat);
-      cat.items.forEach(function(it){
-        h += '<div class="item"'+sattr(it)+'><div class="item-head" data-toggle="item"><span class="item-num">'+esc(it.num)+'</span><span class="item-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+CHEV+'</div><div class="item-body">'+bodyHTML(cat,it)+'</div></div>';
+      (cat.items||[]).forEach(function(it){ h += itemAcc(cat,it); });
+      (cat.groups||[]).forEach(function(g){
+        h += '<div class="grp" data-grp="'+esc(cat.id)+'|'+esc(g.gid)+'">'+grpHead(cat,g)+'<div class="grp-body">';
+        (g.items||[]).forEach(function(it){ h += itemAcc(cat,it); });
+        h += '</div></div>';
       });
       h += '</section>';
     });
@@ -1153,9 +1320,11 @@ function mountGuide(root, M, opts){
     M.categories.forEach(function(cat,idx){
       h += '<section class="category" id="cat-'+esc(cat.id)+'" style="--cat-color:'+catColor(idx)+'">'+catHead(cat);
       h += '<div class="table-wrap"><table class="guide-table"><tbody>';
-      cat.items.forEach(function(it){
-        h += '<tr class="trow" data-toggle="row"'+sattr(it)+'><td class="tc-num"><span class="item-num">'+esc(it.num)+'</span></td><td class="tc-title">'+esc(it.title)+' '+metaHeader(it)+'</td><td class="tc-prog">'+badge(cat,it)+'</td><td class="tc-chev">'+CHEV+'</td></tr>';
-        h += '<tr class="tdrawer"><td colspan="4"><div class="tdrawer-inner">'+bodyHTML(cat,it)+'</div></td></tr>';
+      (cat.items||[]).forEach(function(it){ h += itemTable(cat,it); });
+      (cat.groups||[]).forEach(function(g){
+        var gc=groupCounts(cat,g);
+        h += '<tr class="grp-row"><td colspan="4"><span class="grp-num">'+esc(g.num||'')+'</span><span class="grp-title">'+esc(g.title)+'</span>'+((feat.checklist&&gc.total>0)?'<span class="grp-count" data-grpbadge="'+esc(cat.id)+'|'+esc(g.gid)+'">'+gc.done+'/'+gc.total+'</span>':'')+'</td></tr>';
+        (g.items||[]).forEach(function(it){ h += itemTable(cat,it); });
       });
       h += '</tbody></table></div></section>';
     });
@@ -1165,11 +1334,13 @@ function mountGuide(root, M, opts){
     var h='';
     M.categories.forEach(function(cat,idx){
       h += '<section class="category" id="cat-'+esc(cat.id)+'" style="--cat-color:'+catColor(idx)+'">'+catHead(cat);
-      h += '<div class="card-grid">';
-      cat.items.forEach(function(it){
-        h += '<div class="gcard"'+sattr(it)+'><div class="gcard-head"><span class="item-num">'+esc(it.num)+'</span><span class="gcard-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+'</div><div class="gcard-body">'+bodyHTML(cat,it)+'</div></div>';
+      if((cat.items||[]).length){ h += '<div class="card-grid">'; (cat.items).forEach(function(it){ h += itemCard(cat,it); }); h += '</div>'; }
+      (cat.groups||[]).forEach(function(g){
+        h += '<div class="grp" data-grp="'+esc(cat.id)+'|'+esc(g.gid)+'">'+grpHead(cat,g)+'<div class="card-grid grp-body">';
+        (g.items||[]).forEach(function(it){ h += itemCard(cat,it); });
+        h += '</div></div>';
       });
-      h += '</div></section>';
+      h += '</section>';
     });
     return h;
   }
@@ -1177,8 +1348,11 @@ function mountGuide(root, M, opts){
     var h='<div class="kanban">';
     M.categories.forEach(function(cat,idx){
       h += '<div class="kcol" id="cat-'+esc(cat.id)+'" style="--cat-color:'+catColor(idx)+'"><div class="kcol-head"><span class="cat-num">'+esc(cat.num)+'</span><span class="kcol-title">'+esc(cat.title)+'</span><span class="kcol-count" data-kcount="'+esc(cat.id)+'"></span></div>'+catBar(cat)+'<div class="kcol-body">';
-      cat.items.forEach(function(it){
-        h += '<div class="kcard"'+sattr(it)+' data-open="'+esc(cat.id)+'|'+esc(it.num)+'"><div class="kcard-num">'+esc(it.num)+'</div><div class="kcard-title">'+esc(it.title)+'</div><div class="kcard-meta">'+metaHeader(it)+badge(cat,it)+'</div>'+metaBar(it)+'</div>';
+      (cat.items||[]).forEach(function(it){ h += itemKcard(cat,it); });
+      (cat.groups||[]).forEach(function(g){
+        var gc=groupCounts(cat,g);
+        h += '<div class="kgrp-head"><span class="grp-title">'+esc(g.title)+'</span>'+((feat.checklist&&gc.total>0)?'<span class="grp-count" data-grpbadge="'+esc(cat.id)+'|'+esc(g.gid)+'">'+gc.done+'/'+gc.total+'</span>':'')+'</div>';
+        (g.items||[]).forEach(function(it){ h += itemKcard(cat,it); });
       });
       h += '</div></div>';
     });
@@ -1190,8 +1364,11 @@ function mountGuide(root, M, opts){
     var h='<div class="compact-list">';
     M.categories.forEach(function(cat,idx){
       h += '<div class="cmp-cat" id="cat-'+esc(cat.id)+'" style="--cat-color:'+catColor(idx)+'"><div class="cmp-cat-head"><span class="cmp-num">'+esc(cat.num)+'</span>'+esc(cat.title)+'</div>';
-      cat.items.forEach(function(it){
-        h += '<div class="cmp-item"'+sattr(it)+'><div class="cmp-row" data-toggle="cmp"><span class="cmp-inum">'+esc(it.num)+'</span><span class="cmp-title">'+esc(it.title)+'</span>'+metaHeader(it)+badge(cat,it)+CHEV+'</div><div class="cmp-body">'+bodyHTML(cat,it)+'</div></div>';
+      (cat.items||[]).forEach(function(it){ h += itemCompact(cat,it); });
+      (cat.groups||[]).forEach(function(g){
+        h += '<div class="grp cmp-grp" data-grp="'+esc(cat.id)+'|'+esc(g.gid)+'">'+grpHead(cat,g)+'<div class="grp-body">';
+        (g.items||[]).forEach(function(it){ h += itemCompact(cat,it); });
+        h += '</div></div>';
       });
       h += '</div>';
     });
@@ -1235,7 +1412,7 @@ function mountGuide(root, M, opts){
     root.querySelectorAll('[data-themeset]').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-themeset')===v); });
   }
   var curQuery='', activeTags=[];
-  function allTags(){ var set={},order=[]; M.categories.forEach(function(c){ c.items.forEach(function(it){ (it.tags||[]).forEach(function(t){ if(t && !set[t]){ set[t]=1; order.push(t); } }); }); }); return order; }
+  function allTags(){ var set={},order=[]; M.categories.forEach(function(c){ catItems(c).forEach(function(it){ (it.tags||[]).forEach(function(t){ if(t && !set[t]){ set[t]=1; order.push(t); } }); }); }); return order; }
   function applyFilters(){
     var q=curQuery;
     M.categories.forEach(function(cat){
@@ -1259,16 +1436,25 @@ function mountGuide(root, M, opts){
           }
         }
       });
+      sec.querySelectorAll('.grp').forEach(function(grp){
+        var any=false; grp.querySelectorAll('[data-search]').forEach(function(el){ if(el.style.display!=='none') any=true; });
+        grp.style.display = any ? '' : 'none';
+      });
       sec.style.display = visible ? '' : 'none';
     });
   }
 
   function updateProgress(){
     M.categories.forEach(function(cat){
-      cat.items.forEach(function(it){
+      catItems(cat).forEach(function(it){
         var c=itemCounts(cat,it);
         var b=root.querySelector('[data-badge="'+ikey(cat.id,it.num)+'"]');
         if(b){ b.textContent=c.done+'/'+c.total; b.classList.toggle('full', c.total>0 && c.done===c.total); }
+      });
+      (cat.groups||[]).forEach(function(g){
+        var gc=groupCounts(cat,g);
+        var gb=root.querySelector('[data-grpbadge="'+cat.id+'|'+g.gid+'"]');
+        if(gb){ gb.textContent=gc.done+'/'+gc.total; }
       });
       var cc=catCounts(cat);
       var lg=root.querySelector('[data-legcnt="'+cat.id+'"]'); if(lg) lg.textContent=cc.done+'/'+cc.total;
@@ -1285,7 +1471,10 @@ function mountGuide(root, M, opts){
 
   function findItem(catId, num){
     var cat=null, it=null;
-    M.categories.forEach(function(c){ if(c.id===catId){ cat=c; c.items.forEach(function(x){ if(String(x.num)===String(num)) it=x; }); } });
+    M.categories.forEach(function(c){ if(c.id===catId){ cat=c;
+      (c.items||[]).forEach(function(x){ if(String(x.num)===String(num)) it=x; });
+      (c.groups||[]).forEach(function(g){ (g.items||[]).forEach(function(x){ if(String(x.num)===String(num)) it=x; }); });
+    } });
     return {cat:cat, it:it};
   }
   function openModal(key){
@@ -1383,13 +1572,25 @@ function cleanModel(m){
   var out = { meta:Object.assign({},m.meta), labels:Object.assign({}, LDEF, m.labels||{}), config:JSON.parse(JSON.stringify(m.config)), categories:[] };
   var _d=new Date(); out.meta.updatedAt = _d.getFullYear()+'-'+('0'+(_d.getMonth()+1)).slice(-2)+'-'+('0'+_d.getDate()).slice(-2);
   m.categories.forEach(function(cat){
-    var c = { id:cat.id, num:cat.num, title:cat.title, desc:cat.desc, items:[] };
-    cat.items.forEach(function(it){
-      c.items.push({ num:it.num, title:it.title, detail:(it.detail||[]).slice(), evidence:(it.evidence||[]).slice(), caution:it.caution||'', note:!!it.note, assignee:it.assignee||'', due:it.due||'', status:it.status||'', priority:it.priority||'', tags:(it.tags||[]).slice() });
-    });
+    var c = { id:cat.id, num:cat.num, title:cat.title, desc:cat.desc, items:(cat.items||[]).map(cleanItem), groups:(cat.groups||[]).map(function(g){
+      return { gid:g.gid, num:g.num||'', title:g.title||'', items:(g.items||[]).map(cleanItem) };
+    }) };
     out.categories.push(c);
   });
   return out;
+}
+function cleanItem(it){
+  return { num:it.num, title:it.title, detail:(it.detail||[]).slice(), evidence:(it.evidence||[]).slice(), caution:it.caution||'', note:!!it.note, assignee:it.assignee||'', due:it.due||'', status:it.status||'', priority:it.priority||'', tags:(it.tags||[]).slice(), blocks:(it.blocks||[]).map(cleanBlock) };
+}
+function cleanBlock(b){
+  var o = { type:b.type };
+  if(b.type==='subhead' || b.type==='text' || b.type==='code' || b.type==='callout'){ o.text = b.text||''; }
+  if(b.type==='callout'){ o.tone = b.tone||'info'; }
+  if(b.type==='list'){ o.items = (b.items||[]).slice(); }
+  if(b.type==='table'){ o.head = (b.head||[]).slice(); o.rows = (b.rows||[]).map(function(r){return (r||[]).slice();}); }
+  if(b.type==='links'){ o.links = (b.links||[]).map(function(l){return { label:l.label||'', url:l.url||'' };}); }
+  if(b.type==='image'){ o.url = b.url||''; o.caption = b.caption||''; }
+  return o;
 }
 
 function buildStandaloneHTML(model){
@@ -1411,14 +1612,48 @@ let model = null;
 let uidSeq = 1;
 function nextUid(){ return 'u' + (uidSeq++); }
 
+/* ---- 실행 취소 / 다시 실행 ---- */
+let undoStack = [], redoStack = [], textDirty = false;
+function snapshot(){ return JSON.stringify(model); }
+function pushHistory(){ try{ undoStack.push(snapshot()); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; }catch(e){} }
+function resetHistory(){ undoStack=[]; redoStack=[]; textDirty=false; }
+function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); model=JSON.parse(undoStack.pop()); textDirty=false; renderControls(); refreshPreview(); toast('실행 취소'); }
+function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); model=JSON.parse(redoStack.pop()); textDirty=false; renderControls(); refreshPreview(); toast('다시 실행'); }
+
+/* ---- 드래그 이동용 모델 조작 ---- */
+function moveCategory(dragUid, refUid, after){
+  const from = model.categories.findIndex(function(c){return c._uid===dragUid;});
+  if(from<0) return;
+  const moved = model.categories.splice(from,1)[0];
+  let to = model.categories.findIndex(function(c){return c._uid===refUid;});
+  if(to<0){ model.categories.push(moved); return; }
+  if(after) to+=1;
+  model.categories.splice(to,0,moved);
+}
+function moveItem(dragCatUid, dragItemUid, destCatUid, refItemUid, after){
+  const srcCat = findCat(dragCatUid), destCat = findCat(destCatUid);
+  if(!srcCat || !destCat) return;
+  const idx = srcCat.items.findIndex(function(i){return i._uid===dragItemUid;});
+  if(idx<0) return;
+  const moved = srcCat.items.splice(idx,1)[0];
+  let to;
+  if(refItemUid){ to = destCat.items.findIndex(function(i){return i._uid===refItemUid;}); if(to<0) to=destCat.items.length; else if(after) to+=1; }
+  else { to = destCat.items.length; }
+  destCat.items.splice(to,0,moved);
+  destCat._open = true;
+}
+
 function assignUids(m){
   var LDEF = { detail:'상세 기준', evidence:'증빙자료 체크리스트', caution:'주의사항', note:'메모' };
   if(!m.labels) m.labels = {};
   Object.keys(LDEF).forEach(function(k){ if(m.labels[k]==null) m.labels[k]=LDEF[k]; });
+  function prepItem(it){ it._uid = nextUid(); if(!it.detail)it.detail=[]; if(!it.evidence)it.evidence=[]; if(!it.blocks)it.blocks=[]; it.blocks.forEach(function(b){ b._bid = nextUid(); }); }
   m.categories.forEach(function(cat){
     cat._uid = nextUid();
     if(!cat.items) cat.items=[];
-    cat.items.forEach(function(it){ it._uid = nextUid(); if(!it.detail)it.detail=[]; if(!it.evidence)it.evidence=[]; });
+    cat.items.forEach(prepItem);
+    if(!cat.groups) cat.groups=[];
+    cat.groups.forEach(function(g){ g._uid = nextUid(); if(!g.gid) g.gid = 'g'+(uidSeq++); if(!g.items) g.items=[]; g.items.forEach(prepItem); });
   });
   return m;
 }
@@ -1437,7 +1672,29 @@ function emptyModel(){
 }
 
 function findCat(uid){ return model.categories.find(function(c){ return c._uid===uid; }); }
-function findItemById(catUid, itemUid){ var c=findCat(catUid); return c ? c.items.find(function(i){ return i._uid===itemUid; }) : null; }
+function findGroup(guid){
+  for(const c of model.categories){ const g=(c.groups||[]).find(function(x){return x._uid===guid;}); if(g) return {cat:c, group:g}; }
+  return null;
+}
+function findItemLoc(itemUid){
+  for(const cat of model.categories){
+    let idx=(cat.items||[]).findIndex(function(i){return i._uid===itemUid;});
+    if(idx>=0) return { cat:cat, group:null, list:cat.items, index:idx, item:cat.items[idx] };
+    for(const g of (cat.groups||[])){
+      let gi=(g.items||[]).findIndex(function(i){return i._uid===itemUid;});
+      if(gi>=0) return { cat:cat, group:g, list:g.items, index:gi, item:g.items[gi] };
+    }
+  }
+  return null;
+}
+function findItemById(catUid, itemUid){ const loc=findItemLoc(itemUid); return loc ? loc.item : null; }
+function moveItemTo(itemUid, destList, destIndex){
+  const loc=findItemLoc(itemUid); if(!loc || !destList) return;
+  const moved=loc.list.splice(loc.index,1)[0];
+  if(loc.list===destList && loc.index < destIndex) destIndex--;
+  destIndex=Math.max(0, Math.min(destIndex, destList.length));
+  destList.splice(destIndex,0,moved);
+}
 
 /* ---- config controls (layout/theme/density/features) ---- */
 const LAYOUTS = [
@@ -1522,7 +1779,11 @@ function renderControls(){
   let cats = model.categories.map(function(cat, ci){
     return categoryEditor(cat, ci, model.categories.length);
   }).join('');
-  let cToolbar = '<div class="c-toolbar"><button class="c-tool-btn" data-act="expandall">전체 펼치기</button><button class="c-tool-btn" data-act="collapseall">전체 접기</button></div>';
+  let cToolbar = '<div class="c-toolbar">'
+    + '<button class="c-tool-btn" data-act="undo"'+(undoStack.length?'':' disabled')+' title="실행 취소 (Ctrl+Z)">↶ 취소</button>'
+    + '<button class="c-tool-btn" data-act="redo"'+(redoStack.length?'':' disabled')+' title="다시 실행 (Ctrl+Y)">↷ 다시</button>'
+    + '<button class="c-tool-btn" data-act="expandall">전체 펼치기</button>'
+    + '<button class="c-tool-btn" data-act="collapseall">전체 접기</button></div>';
   html += panel('C','콘텐츠', '분야 · 항목 · 증빙', cToolbar + cats + '<button class="addbtn cat" data-act="addcat">+ 분야 추가</button>');
 
   c.innerHTML = html;
@@ -1533,11 +1794,11 @@ function panel(numLabel, title, hint, inner){
   return `<div class="panel"><div class="panel-head"><span class="ph-num">${numLabel}</span><h2>${escHtml(title)}</h2><span class="ph-hint">${escHtml(hint)}</span></div><div class="panel-body">${inner}</div></div>`;
 }
 function field(label, control){ return `<div class="field"><label>${label}</label>${control}</div>`; }
-function textInput(scope, key, val, cat, item){
-  return `<input type="text" data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''} value="${escHtml(val||'')}">`;
+function textInput(scope, key, val, cat, item, bid){
+  return `<input type="text" data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''} ${bid?`data-bid="${bid}"`:''} value="${escHtml(val||'')}">`;
 }
-function textArea(scope, key, val, rows, cat, item){
-  return `<textarea data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''} rows="${rows||3}">${escHtml(val||'')}</textarea>`;
+function textArea(scope, key, val, rows, cat, item, bid){
+  return `<textarea data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''} ${bid?`data-bid="${bid}"`:''} rows="${rows||3}">${escHtml(val||'')}</textarea>`;
 }
 
 const CAT_PALETTE = ['#3B5B85','#1F7A62','#5B4A8A','#4A6272','#A2542F','#8A6D1F','#7A2E4A','#2E6E7A'];
@@ -1547,6 +1808,7 @@ function categoryEditor(cat, ci, total){
   let items = cat.items.map(function(it, ii){ return itemEditor(cat, it, ii, cat.items.length); }).join('');
   return `<details class="cat-editor" ${open} data-catuid="${cat._uid}" style="--ce:${color}">
     <summary data-catuid="${cat._uid}">
+      <span class="drag-handle" draggable="true" title="드래그로 순서 이동">⠿</span>
       <svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
       <span class="ce-tag">${escHtml(cat.num)}</span>
       <span class="ce-name">${escHtml(cat.title||'(제목 없음)')}</span>
@@ -1571,19 +1833,78 @@ function categoryEditor(cat, ci, total){
       <span class="tiny-label">항목 (${cat.items.length})</span>
       ${items}
       <button class="addbtn" data-act="additem" data-catuid="${cat._uid}">+ 항목 추가</button>
+      ${(cat.groups && cat.groups.length) ? `<span class="tiny-label" style="border-top:1px solid var(--line);padding-top:12px">중분류 (${cat.groups.length})</span>` : ''}
+      ${(cat.groups||[]).map(function(g, gi){ return groupEditor(cat, g, gi, cat.groups.length); }).join('')}
+      <button class="addbtn grp-add-btn" data-act="groupadd" data-catuid="${cat._uid}">+ 중분류(하위 그룹) 추가</button>
+    </div>
+  </details>`;
+}
+function groupEditor(cat, g, gi, gtotal){
+  const open = g._open ? 'open' : '';
+  const gitems = (g.items||[]).map(function(it, ii){ return itemEditor(cat, it, ii, g.items.length); }).join('');
+  return `<details class="grp-editor" ${open} data-groupuid="${g._uid}">
+    <summary data-groupuid="${g._uid}">
+      <span class="drag-handle" draggable="true" title="드래그로 중분류 이동">⠿</span>
+      <svg class="caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <span class="ge-tag">${escHtml(g.num||'')}</span>
+      <span class="ge-name">${escHtml(g.title||'(중분류)')}</span>
+      <span class="ce-count">${(g.items||[]).length}항목</span>
+    </summary>
+    <div class="grp-inner">
+      <div class="field"><label>중분류 번호 · 제목</label>
+        <div class="row2">
+          <input type="text" data-scope="group" data-key="num" data-groupuid="${g._uid}" value="${escHtml(g.num||'')}">
+          <input type="text" data-scope="group" data-key="title" data-groupuid="${g._uid}" value="${escHtml(g.title||'')}">
+        </div>
+      </div>
+      <div class="field"><label>중분류 순서 · 관리</label>
+        <div class="rowbtns">
+          <button class="minibtn" data-act="groupup" data-groupuid="${g._uid}" ${gi===0?'disabled':''}>↑</button>
+          <button class="minibtn" data-act="groupdown" data-groupuid="${g._uid}" ${gi===gtotal-1?'disabled':''}>↓</button>
+          <button class="minibtn danger" data-act="groupdel" data-groupuid="${g._uid}" title="중분류 삭제">✕</button>
+        </div>
+      </div>
+      ${gitems}
+      <button class="addbtn" data-act="additem" data-groupuid="${g._uid}">+ 항목 추가</button>
     </div>
   </details>`;
 }
 
-function selectField(scope, key, val, options, cat, item){
+function selectField(scope, key, val, options, cat, item, bid){
   const opts = options.map(function(o){ return `<option value="${o[0]}"${(val||'')===o[0]?' selected':''}>${escHtml(o[1])}</option>`; }).join('');
-  return `<select class="sel" data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''}>${opts}</select>`;
+  return `<select class="sel" data-scope="${scope}" data-key="${key}" ${cat?`data-cat="${cat}"`:''} ${item?`data-item="${item}"`:''} ${bid?`data-bid="${bid}"`:''}>${opts}</select>`;
+}
+function blockEditor(cat, it, blk, bi, btotal){
+  const cu=cat._uid, iu=it._uid, bid=blk._bid;
+  let fields='';
+  if(blk.type==='subhead'){ fields = textInput('block','text', blk.text, cu, iu, bid); }
+  else if(blk.type==='text'){ fields = textArea('block','text', blk.text, 3, cu, iu, bid); }
+  else if(blk.type==='code'){ fields = textArea('block','text', blk.text, 4, cu, iu, bid); }
+  else if(blk.type==='callout'){ fields = `<div class="row2b">${selectField('block','tone', blk.tone, [['info','정보'],['tip','팁'],['warn','주의']], cu,iu,bid)}<span></span></div>${textArea('block','text', blk.text, 2, cu,iu,bid)}`; }
+  else if(blk.type==='list'){ fields = textArea('block','items', (blk.items||[]).join('\n'), 3, cu,iu,bid); }
+  else if(blk.type==='table'){ fields = `<div class="blk-hint">첫 줄=머리글, 칸은 <b>|</b> 로 구분 · 한 줄에 한 행</div>${textArea('block','table', tableToText(blk), 3, cu,iu,bid)}`; }
+  else if(blk.type==='links'){ fields = `<div class="blk-hint">한 줄에 하나 · <b>이름 | 주소</b> 또는 주소만</div>${textArea('block','links', linksToText(blk), 3, cu,iu,bid)}`; }
+  else if(blk.type==='image'){ fields = `${textInput('block','url', blk.url, cu,iu,bid)}<div style="height:6px"></div>${textInput('block','caption', blk.caption, cu,iu,bid)}<div class="blk-hint">이미지 주소(https) 또는 data: · 아래는 설명(선택)</div>`; }
+  else if(blk.type==='divider'){ fields = `<div class="blk-hint">구분선 (내용 없음)</div>`; }
+  return `<div class="blk-ed" data-bid="${bid}">
+    <div class="blk-ed-head">
+      <span class="drag-handle" draggable="true" title="드래그로 블록 이동">⠿</span>
+      <span class="blk-type">${escHtml(BLOCK_LABEL[blk.type]||blk.type)}</span>
+      <span class="rowbtns">
+        <button class="minibtn" data-act="blockup" data-catuid="${cu}" data-itemuid="${iu}" data-bid="${bid}" ${bi===0?'disabled':''}>↑</button>
+        <button class="minibtn" data-act="blockdown" data-catuid="${cu}" data-itemuid="${iu}" data-bid="${bid}" ${bi===btotal-1?'disabled':''}>↓</button>
+        <button class="minibtn danger" data-act="blockdel" data-catuid="${cu}" data-itemuid="${iu}" data-bid="${bid}">✕</button>
+      </span>
+    </div>
+    ${fields}
+  </div>`;
 }
 
 function itemEditor(cat, it, ii, total){
   const open = it._open ? 'open' : '';
   return `<details class="item-editor" ${open} data-itemuid="${it._uid}">
     <summary data-itemuid="${it._uid}">
+      <span class="drag-handle" draggable="true" title="드래그로 이동(다른 분야로도)">⠿</span>
       <svg class="caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
       <span class="ie-num">${escHtml(it.num)}</span>
       <span class="ie-name">${escHtml(it.title||'(제목 없음)')}</span>
@@ -1595,8 +1916,8 @@ function itemEditor(cat, it, ii, total){
           ${textInput('item','title', it.title, cat._uid, it._uid)}
         </div>
       </div>
-      ${field('상세 기준 <span class="hint">한 줄에 하나</span>', textArea('item','detail', (it.detail||[]).join('\n'), 4, cat._uid, it._uid))}
-      ${field('증빙자료 <span class="hint">한 줄에 하나 · 체크박스로</span>', textArea('item','evidence', (it.evidence||[]).join('\n'), 4, cat._uid, it._uid))}
+      ${field('상세 기준 <span class="hint">한 줄에 하나 · 줄 앞 #=소제목</span>', textArea('item','detail', (it.detail||[]).join('\n'), 4, cat._uid, it._uid))}
+      ${field('증빙자료 <span class="hint">한 줄에 하나 · 줄 앞 #=그룹 소제목</span>', textArea('item','evidence', (it.evidence||[]).join('\n'), 4, cat._uid, it._uid))}
       ${field('주의사항', textArea('item','caution', it.caution, 2, cat._uid, it._uid))}
       <span class="tiny-label" style="border-top:1px solid var(--line);padding-top:12px">업무 트래커</span>
       <div class="field"><label>상태 · 우선순위</label>
@@ -1613,6 +1934,12 @@ function itemEditor(cat, it, ii, total){
       </div>
       ${field('태그 <span class="hint">쉼표로 구분</span>', textInput('item','tags', (it.tags||[]).join(', '), cat._uid, it._uid))}
       <label class="feat" style="padding-left:0"><input type="checkbox" data-scope="item" data-key="note" data-cat="${cat._uid}" data-item="${it._uid}" ${it.note?'checked':''}><span>이 항목에 메모 필드 표시</span></label>
+      <span class="tiny-label" style="border-top:1px solid var(--line);padding-top:12px">추가 블록 <span class="hint">표·링크·이미지·코드 등</span></span>
+      ${(it.blocks||[]).map(function(blk,bi){ return blockEditor(cat, it, blk, bi, it.blocks.length); }).join('')}
+      <div class="blk-add">
+        <select class="sel blk-add-sel">${BLOCK_TYPES.map(function(x){ return `<option value="${x.t}">${escHtml(x.label)}</option>`; }).join('')}</select>
+        <button class="addbtn blk-add-btn" data-act="blockadd" data-catuid="${cat._uid}" data-itemuid="${it._uid}">+ 블록 추가</button>
+      </div>
       <div class="field" style="margin-top:8px"><label>항목 순서 · 관리</label>
         <div class="rowbtns">
           <button class="minibtn" data-act="itemup" data-catuid="${cat._uid}" data-itemuid="${it._uid}" ${ii===0?'disabled':''}>↑</button>
@@ -1672,8 +1999,12 @@ document.getElementById('controls').addEventListener('input', function(e){
   const catUid = t.getAttribute('data-cat');
   const itemUid = t.getAttribute('data-item');
 
+  if(!textDirty){ pushHistory(); textDirty=true; renderContentToolbar(); }
+
   if(scope==='meta'){ model.meta[key] = t.value; }
   else if(scope==='label'){ if(!model.labels) model.labels={}; model.labels[key] = t.value; }
+  else if(scope==='block'){ applyBlockField(catUid, itemUid, t.getAttribute('data-bid'), key, t.value); }
+  else if(scope==='group'){ const gl=findGroup(t.getAttribute('data-groupuid')); if(gl){ gl.group[key]=t.value; const sel='summary[data-groupuid="'+t.getAttribute('data-groupuid')+'"] '; if(key==='title'){ const el=document.querySelector(sel+'.ge-name'); if(el) el.textContent=t.value||'(중분류)'; } if(key==='num'){ const el=document.querySelector(sel+'.ge-tag'); if(el) el.textContent=t.value; } } }
   else if(scope==='cat'){ const cat=findCat(catUid); if(cat){ cat[key]=t.value; if(key==='title'){ const nm=cat._uid; const el=document.querySelector('summary[data-catuid="'+nm+'"] .ce-name'); if(el) el.textContent = t.value||'(제목 없음)'; } if(key==='num'){ const el=document.querySelector('summary[data-catuid="'+cat._uid+'"] .ce-tag'); if(el) el.textContent=t.value; } } }
   else if(scope==='item'){
     const it=findItemById(catUid, itemUid); if(!it) return;
@@ -1698,11 +2029,17 @@ document.getElementById('controls').addEventListener('change', function(e){
   if(t.getAttribute('data-scope')==='item' && (t.getAttribute('data-key')==='status' || t.getAttribute('data-key')==='priority')){
     const it=findItemById(t.getAttribute('data-cat'), t.getAttribute('data-item'));
     if(it){ it[t.getAttribute('data-key')] = t.value; refreshPreview(); }
+    return;
+  }
+  if(t.getAttribute('data-scope')==='block'){
+    applyBlockField(t.getAttribute('data-cat'), t.getAttribute('data-item'), t.getAttribute('data-bid'), t.getAttribute('data-key'), t.value);
+    refreshPreview();
   }
 });
 
 /* 클릭: 레이아웃/테마/밀도 세그먼트 + 구조 편집 버튼 */
 document.getElementById('controls').addEventListener('click', function(e){
+  if(e.target.closest('.drag-handle')){ e.preventDefault(); return; }
   const cfgBtn = e.target.closest('[data-cfg]');
   if(cfgBtn){
     const kind = cfgBtn.getAttribute('data-cfg'); const val = cfgBtn.getAttribute('data-val');
@@ -1715,9 +2052,12 @@ document.getElementById('controls').addEventListener('click', function(e){
   const act = e.target.closest('[data-act]');
   if(!act) return;
   const a = act.getAttribute('data-act');
+  if(a==='undo'){ undo(); return; }
+  if(a==='redo'){ redo(); return; }
   const catUid = act.getAttribute('data-catuid');
   const itemUid = act.getAttribute('data-itemuid');
   captureOpenState();
+  if(a!=='expandall' && a!=='collapseall'){ pushHistory(); textDirty=false; }
 
   if(a==='addcat'){
     const n = model.categories.length + 1;
@@ -1729,39 +2069,72 @@ document.getElementById('controls').addEventListener('click', function(e){
     const to = a==='catup' ? idx-1 : idx+1;
     if(to>=0 && to<model.categories.length){ const tmp=model.categories[idx]; model.categories[idx]=model.categories[to]; model.categories[to]=tmp; }
   } else if(a==='catdel'){
-    if(model.categories.length<=1){ toast('분야는 최소 1개 필요합니다.'); return; }
-    if(!confirm('이 분야와 하위 항목을 모두 삭제할까요?')) return;
+    if(model.categories.length<=1){ toast('분야는 최소 1개 필요합니다.'); undoStack.pop(); return; }
+    if(!confirm('이 분야와 하위 항목을 모두 삭제할까요?')){ undoStack.pop(); return; }
     model.categories = model.categories.filter(function(c){return c._uid!==catUid;});
   } else if(a==='additem'){
-    const cat=findCat(catUid);
-    const n = cat.items.length + 1;
-    cat.items.push(assignUidsToOneItem({ num:cat.num+'.'+n, title:'새 항목', note:true, detail:[], evidence:[], caution:'' }));
-    cat._open = true;
+    const groupUid = act.getAttribute('data-groupuid');
+    if(groupUid){ const gl=findGroup(groupUid); if(!gl){ undoStack.pop(); return; } const n=gl.group.items.length+1; gl.group.items.push(assignUidsToOneItem({ num:(gl.group.num||gl.cat.num)+'.'+n, title:'새 항목', note:true, detail:[], evidence:[], caution:'' })); gl.group._open=true; gl.cat._open=true; }
+    else { const cat=findCat(catUid); const n = cat.items.length + 1; cat.items.push(assignUidsToOneItem({ num:cat.num+'.'+n, title:'새 항목', note:true, detail:[], evidence:[], caution:'' })); cat._open = true; }
   } else if(a==='itemup' || a==='itemdown'){
-    const cat=findCat(catUid); const idx=cat.items.findIndex(function(i){return i._uid===itemUid;});
-    const to = a==='itemup' ? idx-1 : idx+1;
-    if(to>=0 && to<cat.items.length){ const tmp=cat.items[idx]; cat.items[idx]=cat.items[to]; cat.items[to]=tmp; }
-    cat._open = true;
+    const loc=findItemLoc(itemUid); if(!loc){ undoStack.pop(); return; }
+    const to = a==='itemup' ? loc.index-1 : loc.index+1;
+    if(to>=0 && to<loc.list.length){ const tmp=loc.list[loc.index]; loc.list[loc.index]=loc.list[to]; loc.list[to]=tmp; }
+    loc.cat._open=true; if(loc.group) loc.group._open=true;
   } else if(a==='itemdel'){
-    const cat=findCat(catUid);
-    if(cat.items.length<=1){ toast('항목은 분야당 최소 1개 필요합니다.'); return; }
-    if(!confirm('이 항목을 삭제할까요?')) return;
-    cat.items = cat.items.filter(function(i){return i._uid!==itemUid;});
-    cat._open = true;
+    const loc=findItemLoc(itemUid); if(!loc){ undoStack.pop(); return; }
+    if(!confirm('이 항목을 삭제할까요?')){ undoStack.pop(); return; }
+    loc.list.splice(loc.index,1);
+    loc.cat._open=true; if(loc.group) loc.group._open=true;
   } else if(a==='catdup'){
     const idx = model.categories.findIndex(function(c){return c._uid===catUid;});
-    if(idx<0) return;
+    if(idx<0){ undoStack.pop(); return; }
     model.categories.splice(idx+1, 0, dupCategory(model.categories[idx]));
   } else if(a==='itemdup'){
-    const cat=findCat(catUid); if(!cat) return;
-    const idx = cat.items.findIndex(function(i){return i._uid===itemUid;});
-    if(idx<0) return;
-    cat.items.splice(idx+1, 0, dupItem(cat.items[idx]));
-    cat._open = true;
+    const loc=findItemLoc(itemUid); if(!loc){ undoStack.pop(); return; }
+    loc.list.splice(loc.index+1, 0, dupItem(loc.item));
+    loc.cat._open=true; if(loc.group) loc.group._open=true;
+  } else if(a==='groupadd'){
+    const cat=findCat(catUid); if(!cat){ undoStack.pop(); return; }
+    if(!cat.groups) cat.groups=[];
+    const n=cat.groups.length+1;
+    cat.groups.push({ _uid:nextUid(), gid:'g'+(uidSeq++), num:cat.num+'-'+n, title:'새 중분류 '+n, _open:true, items:[
+      assignUidsToOneItem({ num:cat.num+'.'+n+'.1', title:'새 항목', note:true, detail:[], evidence:[], caution:'' })
+    ]});
+    cat._open=true;
+  } else if(a==='groupup' || a==='groupdown'){
+    const gl=findGroup(act.getAttribute('data-groupuid')); if(!gl){ undoStack.pop(); return; }
+    const arr=gl.cat.groups; const gi=arr.findIndex(function(x){return x._uid===gl.group._uid;});
+    const to = a==='groupup' ? gi-1 : gi+1;
+    if(to>=0 && to<arr.length){ const tmp=arr[gi]; arr[gi]=arr[to]; arr[to]=tmp; }
+    gl.cat._open=true;
+  } else if(a==='groupdel'){
+    const gl=findGroup(act.getAttribute('data-groupuid')); if(!gl){ undoStack.pop(); return; }
+    if(!confirm('이 중분류와 하위 항목을 모두 삭제할까요?')){ undoStack.pop(); return; }
+    gl.cat.groups = gl.cat.groups.filter(function(x){return x._uid!==gl.group._uid;});
+    gl.cat._open=true;
+  } else if(a==='blockadd'){
+    const it=findItemById(catUid, itemUid); if(!it){ undoStack.pop(); return; }
+    if(!it.blocks) it.blocks=[];
+    const sel = act.closest('.blk-add') && act.closest('.blk-add').querySelector('.blk-add-sel');
+    const type = sel ? sel.value : 'text';
+    it.blocks.push(newBlock(type));
+    it._open = true; const loc=findItemLoc(itemUid); if(loc){ loc.cat._open=true; if(loc.group) loc.group._open=true; }
+  } else if(a==='blockup' || a==='blockdown'){
+    const it=findItemById(catUid, itemUid); if(!it || !it.blocks){ undoStack.pop(); return; }
+    const bid=act.getAttribute('data-bid'); const bi=it.blocks.findIndex(function(x){return x._bid===bid;});
+    const to = a==='blockup' ? bi-1 : bi+1;
+    if(to>=0 && to<it.blocks.length){ const tmp=it.blocks[bi]; it.blocks[bi]=it.blocks[to]; it.blocks[to]=tmp; }
+    it._open=true;
+  } else if(a==='blockdel'){
+    const it=findItemById(catUid, itemUid); if(!it || !it.blocks){ undoStack.pop(); return; }
+    const bid=act.getAttribute('data-bid');
+    it.blocks = it.blocks.filter(function(x){return x._bid!==bid;});
+    it._open=true;
   } else if(a==='expandall'){
-    model.categories.forEach(function(c){ c._open=true; c.items.forEach(function(i){ i._open=true; }); });
+    model.categories.forEach(function(c){ c._open=true; (c.items||[]).forEach(function(i){ i._open=true; }); (c.groups||[]).forEach(function(g){ g._open=true; (g.items||[]).forEach(function(i){ i._open=true; }); }); });
   } else if(a==='collapseall'){
-    model.categories.forEach(function(c){ c._open=false; c.items.forEach(function(i){ i._open=false; }); });
+    model.categories.forEach(function(c){ c._open=false; (c.items||[]).forEach(function(i){ i._open=false; }); (c.groups||[]).forEach(function(g){ g._open=false; (g.items||[]).forEach(function(i){ i._open=false; }); }); });
   } else { return; }
 
   renderControls();
@@ -1778,25 +2151,218 @@ function dupCategory(src){
   copy.title = (src.title||'') + ' (복사본)';
   copy._uid = nextUid(); copy._open = true;
   copy.items = (copy.items||[]).map(function(it){ delete it._uid; delete it._open; return assignUidsToOneItem(it); });
+  copy.groups = (copy.groups||[]).map(function(g){ delete g._uid; delete g._open; g._uid=nextUid(); g.gid='g'+(uidSeq++); g.items=(g.items||[]).map(function(it){ delete it._uid; delete it._open; return assignUidsToOneItem(it); }); return g; });
   return copy;
 }
 
 /* details 열림 상태 추적 */
 document.getElementById('controls').addEventListener('toggle', function(e){
   const d = e.target;
-  if(d.classList && d.classList.contains('cat-editor')){ const cat=findCat(d.getAttribute('data-catuid')); if(cat) cat._open=d.open; }
-  else if(d.classList && d.classList.contains('item-editor')){
-    model.categories.forEach(function(c){ c.items.forEach(function(i){ if(i._uid===d.getAttribute('data-itemuid')) i._open=d.open; }); });
-  }
+  if(!d.classList) return;
+  if(d.classList.contains('cat-editor')){ const cat=findCat(d.getAttribute('data-catuid')); if(cat) cat._open=d.open; }
+  else if(d.classList.contains('grp-editor')){ const gl=findGroup(d.getAttribute('data-groupuid')); if(gl) gl.group._open=d.open; }
+  else if(d.classList.contains('item-editor')){ const loc=findItemLoc(d.getAttribute('data-itemuid')); if(loc) loc.item._open=d.open; }
 }, true);
 
 function captureOpenState(){
   document.querySelectorAll('.cat-editor').forEach(function(d){ const cat=findCat(d.getAttribute('data-catuid')); if(cat) cat._open=d.open; });
-  document.querySelectorAll('.item-editor').forEach(function(d){ const uid=d.getAttribute('data-itemuid'); model.categories.forEach(function(c){ c.items.forEach(function(i){ if(i._uid===uid) i._open=d.open; }); }); });
+  document.querySelectorAll('.grp-editor').forEach(function(d){ const gl=findGroup(d.getAttribute('data-groupuid')); if(gl) gl.group._open=d.open; });
+  document.querySelectorAll('.item-editor').forEach(function(d){ const loc=findItemLoc(d.getAttribute('data-itemuid')); if(loc) loc.item._open=d.open; });
 }
 
+function renderContentToolbar(){
+  const u=document.querySelector('.c-tool-btn[data-act="undo"]'); if(u) u.disabled = undoStack.length===0;
+  const r=document.querySelector('.c-tool-btn[data-act="redo"]'); if(r) r.disabled = redoStack.length===0;
+}
+
+/* ---- 드래그 앤 드롭 정렬 / 이동 ---- */
+(function(){
+  const host = document.getElementById('controls');
+  let dnd = null;
+  function clearIndic(){ host.querySelectorAll('.drop-before,.drop-after,.drop-into').forEach(function(x){ x.classList.remove('drop-before','drop-after','drop-into'); }); }
+
+  host.addEventListener('dragstart', function(e){
+    const h = e.target.closest && e.target.closest('.drag-handle'); if(!h){ return; }
+    const be = h.closest('.blk-ed'), ie = h.closest('.item-editor'), ge = h.closest('.grp-editor'), ce = h.closest('.cat-editor');
+    if(be && ie){ dnd={type:'block', itemUid:ie.getAttribute('data-itemuid'), bid:be.getAttribute('data-bid')}; be.classList.add('dragging'); }
+    else if(ie){ dnd={type:'item', itemUid:ie.getAttribute('data-itemuid')}; ie.classList.add('dragging'); }
+    else if(ge){ dnd={type:'group', groupUid:ge.getAttribute('data-groupuid')}; ge.classList.add('dragging'); }
+    else if(ce){ dnd={type:'cat', catUid:ce.getAttribute('data-catuid')}; ce.classList.add('dragging'); }
+    else { return; }
+    e.dataTransfer.effectAllowed='move';
+    try{ e.dataTransfer.setData('text/plain','move'); }catch(err){}
+    e.stopPropagation();
+  });
+
+  host.addEventListener('dragover', function(e){
+    if(!dnd) return;
+    clearIndic();
+    if(dnd.type==='block'){
+      const over=e.target.closest('.blk-ed');
+      if(over && over.getAttribute('data-bid')!==dnd.bid){
+        const oi=over.closest('.item-editor');
+        if(oi && oi.getAttribute('data-itemuid')===dnd.itemUid){
+          e.preventDefault(); e.dataTransfer.dropEffect='move';
+          const r=over.getBoundingClientRect();
+          over.classList.add((e.clientY > r.top+r.height/2) ? 'drop-after':'drop-before');
+        }
+      }
+      return;
+    }
+    if(dnd.type==='cat'){
+      const over=e.target.closest('.cat-editor');
+      if(over && over.getAttribute('data-catuid')!==dnd.catUid){
+        e.preventDefault(); e.dataTransfer.dropEffect='move';
+        const r=over.getBoundingClientRect();
+        over.classList.add((e.clientY > r.top+r.height/2) ? 'drop-after':'drop-before');
+      }
+      return;
+    }
+    if(dnd.type==='group'){
+      const overG=e.target.closest('.grp-editor');
+      if(overG && overG.getAttribute('data-groupuid')!==dnd.groupUid){
+        e.preventDefault(); e.dataTransfer.dropEffect='move';
+        const r=overG.getBoundingClientRect();
+        overG.classList.add((e.clientY > r.top+r.height/2) ? 'drop-after':'drop-before');
+      }
+      return;
+    }
+    const overItem=e.target.closest('.item-editor');
+    if(overItem && overItem.getAttribute('data-itemuid')!==dnd.itemUid){
+      e.preventDefault(); e.dataTransfer.dropEffect='move';
+      const r=overItem.getBoundingClientRect();
+      overItem.classList.add((e.clientY > r.top+r.height/2) ? 'drop-after':'drop-before');
+      return;
+    }
+    const overG2=e.target.closest('.grp-editor');
+    if(overG2){ e.preventDefault(); e.dataTransfer.dropEffect='move'; overG2.classList.add('drop-into'); return; }
+    const overCat=e.target.closest('.cat-editor');
+    if(overCat){ e.preventDefault(); e.dataTransfer.dropEffect='move'; overCat.classList.add('drop-into'); }
+  });
+
+  host.addEventListener('drop', function(e){
+    if(!dnd) return;
+    e.preventDefault();
+    const d=dnd; let changed=false;
+    if(d.type==='block'){
+      const over=e.target.closest('.blk-ed');
+      if(over && over.getAttribute('data-bid')!==d.bid){
+        const oi=over.closest('.item-editor');
+        if(oi && oi.getAttribute('data-itemuid')===d.itemUid){
+          const it=findItemById(null, d.itemUid);
+          if(it && it.blocks){
+            const from=it.blocks.findIndex(function(b){return b._bid===d.bid;});
+            const r=over.getBoundingClientRect(); const after=(e.clientY > r.top+r.height/2);
+            if(from>=0){
+              pushHistory(); textDirty=false;
+              const moved=it.blocks.splice(from,1)[0];
+              let to=it.blocks.findIndex(function(b){return b._bid===over.getAttribute('data-bid');});
+              if(to<0) to=it.blocks.length; else if(after) to+=1;
+              it.blocks.splice(to,0,moved); changed=true;
+            }
+          }
+        }
+      }
+    } else if(d.type==='cat'){
+      const over=e.target.closest('.cat-editor');
+      if(over && over.getAttribute('data-catuid')!==d.catUid){
+        const r=over.getBoundingClientRect(); const after=(e.clientY > r.top+r.height/2);
+        pushHistory(); textDirty=false; moveCategory(d.catUid, over.getAttribute('data-catuid'), after); changed=true;
+      }
+    } else if(d.type==='group'){
+      const over=e.target.closest('.grp-editor');
+      if(over && over.getAttribute('data-groupuid')!==d.groupUid){
+        const src=findGroup(d.groupUid), dst=findGroup(over.getAttribute('data-groupuid'));
+        if(src && dst && src.cat===dst.cat){
+          const arr=src.cat.groups; const from=arr.findIndex(function(x){return x._uid===d.groupUid;});
+          const moved=arr.splice(from,1)[0];
+          let to=arr.findIndex(function(x){return x._uid===over.getAttribute('data-groupuid');});
+          const r=over.getBoundingClientRect(); if(e.clientY > r.top+r.height/2) to+=1;
+          pushHistory(); textDirty=false; arr.splice(to,0,moved); changed=true;
+        }
+      }
+    } else {
+      const overItem=e.target.closest('.item-editor');
+      if(overItem && overItem.getAttribute('data-itemuid')!==d.itemUid){
+        const loc=findItemLoc(overItem.getAttribute('data-itemuid'));
+        if(loc){ const r=overItem.getBoundingClientRect(); const after=(e.clientY > r.top+r.height/2);
+          pushHistory(); textDirty=false; moveItemTo(d.itemUid, loc.list, loc.index+(after?1:0)); changed=true; }
+      } else if(!overItem){
+        const overG=e.target.closest('.grp-editor');
+        if(overG){ const gl=findGroup(overG.getAttribute('data-groupuid')); if(gl){ pushHistory(); textDirty=false; moveItemTo(d.itemUid, gl.group.items, gl.group.items.length); gl.group._open=true; changed=true; } }
+        else { const overCat=e.target.closest('.cat-editor'); if(overCat){ const cat=findCat(overCat.getAttribute('data-catuid')); if(cat){ pushHistory(); textDirty=false; moveItemTo(d.itemUid, cat.items, cat.items.length); changed=true; } } }
+      }
+    }
+    clearIndic(); dnd=null;
+    if(changed){ renderControls(); refreshPreview(); }
+  });
+
+  host.addEventListener('dragend', function(){ clearIndic(); host.querySelectorAll('.dragging').forEach(function(x){x.classList.remove('dragging');}); dnd=null; });
+})();
+
+/* ---- 키보드 단축키: 실행취소/다시실행 ---- */
+document.addEventListener('keydown', function(e){
+  const k=(e.key||'').toLowerCase();
+  const inField = /^(input|textarea|select)$/i.test((e.target && e.target.tagName)||'');
+  if((e.ctrlKey||e.metaKey) && k==='z' && !e.shiftKey){ if(inField) return; e.preventDefault(); undo(); }
+  else if((e.ctrlKey||e.metaKey) && (k==='y' || (k==='z' && e.shiftKey))){ if(inField) return; e.preventDefault(); redo(); }
+});
+
 function assignUidsToOne(cat){ cat._uid=nextUid(); cat._open=true; return cat; }
-function assignUidsToOneItem(it){ it._uid=nextUid(); it._open=false; if(!it.detail)it.detail=[]; if(!it.evidence)it.evidence=[]; return it; }
+function assignUidsToOneItem(it){ it._uid=nextUid(); it._open=false; if(!it.detail)it.detail=[]; if(!it.evidence)it.evidence=[]; if(!it.blocks)it.blocks=[]; it.blocks.forEach(function(b){ b._bid=nextUid(); }); return it; }
+
+const BLOCK_TYPES = [
+  {t:'subhead', label:'소제목'},
+  {t:'text',    label:'문단'},
+  {t:'callout', label:'안내 박스'},
+  {t:'list',    label:'목록'},
+  {t:'table',   label:'표'},
+  {t:'links',   label:'링크'},
+  {t:'image',   label:'이미지'},
+  {t:'code',    label:'코드'},
+  {t:'divider', label:'구분선'}
+];
+const BLOCK_LABEL = BLOCK_TYPES.reduce(function(o,x){ o[x.t]=x.label; return o; }, {});
+function newBlock(type){
+  const b = { type:type, _bid:nextUid() };
+  if(type==='subhead') b.text='소제목';
+  else if(type==='text') b.text='';
+  else if(type==='callout'){ b.tone='info'; b.text=''; }
+  else if(type==='list') b.items=[];
+  else if(type==='table'){ b.head=['항목','값']; b.rows=[['','']]; }
+  else if(type==='links') b.links=[];
+  else if(type==='image'){ b.url=''; b.caption=''; }
+  else if(type==='code') b.text='';
+  return b;
+}
+function parseTableText(txt){
+  const lines = String(txt||'').split('\n').filter(function(s){ return s.trim().length; });
+  if(!lines.length) return { head:[], rows:[] };
+  const split = function(s){ return s.split('|').map(function(c){ return c.trim(); }); };
+  return { head:split(lines[0]), rows:lines.slice(1).map(split) };
+}
+function tableToText(b){
+  const head=(b.head||[]), rows=(b.rows||[]);
+  return [head.join(' | ')].concat(rows.map(function(r){ return (r||[]).join(' | '); })).join('\n');
+}
+function parseLinksText(txt){
+  return String(txt||'').split('\n').map(function(s){ return s.trim(); }).filter(Boolean).map(function(s){
+    const parts = s.split('|').map(function(x){ return x.trim(); });
+    if(parts.length>=2) return { label:parts[0], url:parts.slice(1).join('|') };
+    return { label:'', url:parts[0] };
+  });
+}
+function linksToText(b){
+  return (b.links||[]).map(function(l){ return l.label ? (l.label+' | '+l.url) : (l.url||''); }).join('\n');
+}
+function applyBlockField(catUid, itemUid, bid, key, value){
+  const it = findItemById(catUid, itemUid); if(!it || !it.blocks) return;
+  const blk = it.blocks.find(function(x){ return x._bid===bid; }); if(!blk) return;
+  if(key==='items'){ blk.items = value.split('\n').map(function(s){return s.trim();}).filter(Boolean); }
+  else if(key==='table'){ const pr=parseTableText(value); blk.head=pr.head; blk.rows=pr.rows; }
+  else if(key==='links'){ blk.links = parseLinksText(value); }
+  else { blk[key] = value; }
+}
 function uniqueCatId(base){
   let id=slugify(base), n=1;
   const ids = model.categories.map(function(c){return c.id;});
@@ -1824,8 +2390,7 @@ document.getElementById('btnExport').addEventListener('click', function(){
 });
 
 document.getElementById('btnSaveProject').addEventListener('click', function(){
-  const data = clone(model);
-  data.categories.forEach(function(c){ delete c._uid; delete c._open; c.items.forEach(function(i){ delete i._uid; delete i._open; }); });
+  const data = cleanModel(model);
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1834,13 +2399,209 @@ document.getElementById('btnSaveProject').addEventListener('click', function(){
   toast('프로젝트를 저장했어요 (.guide.json).');
 });
 
+/* ===== CSV 대량 등록 / 내보내기 ===== */
+const CSV_HEAD = ['분야번호','분야','중분류번호','중분류','항목번호','항목','상태','우선순위','담당자','기한','태그','상세기준','증빙','주의사항'];
+const CSV_ST = {todo:'예정',doing:'진행',done:'완료'};
+const CSV_PR = {high:'높음',med:'보통',low:'낮음'};
+const CSV_ST_IN = {'예정':'todo','진행':'doing','완료':'done','todo':'todo','doing':'doing','done':'done'};
+const CSV_PR_IN = {'높음':'high','보통':'med','낮음':'low','high':'high','med':'med','low':'low'};
+
+function csvCell(s){ s=String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function modelToCSV(m){
+  const clean = cleanModel(m);
+  const lines = [CSV_HEAD.map(csvCell).join(',')];
+  function row(cat,g,it){
+    return [cat.num,cat.title, g?(g.num||''):'', g?(g.title||''):'', it.num,it.title,
+      CSV_ST[it.status]||'', CSV_PR[it.priority]||'', it.assignee||'', it.due||'',
+      (it.tags||[]).join('; '), (it.detail||[]).join('\n'), (it.evidence||[]).join('\n'), it.caution||''
+    ].map(csvCell).join(',');
+  }
+  clean.categories.forEach(function(cat){
+    (cat.items||[]).forEach(function(it){ lines.push(row(cat,null,it)); });
+    (cat.groups||[]).forEach(function(g){ (g.items||[]).forEach(function(it){ lines.push(row(cat,g,it)); }); });
+  });
+  return '\ufeff' + lines.join('\r\n');
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', i=0, inQ=false;
+  text = String(text||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  while(i<text.length){
+    const ch=text[i];
+    if(inQ){
+      if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i+=2; continue; } inQ=false; i++; continue; }
+      cur+=ch; i++; continue;
+    }
+    if(ch==='"'){ inQ=true; i++; continue; }
+    if(ch===','){ row.push(cur); cur=''; i++; continue; }
+    if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; i++; continue; }
+    cur+=ch; i++;
+  }
+  if(cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function csvToCategories(rows){
+  if(!rows.length) return [];
+  const norm=function(s){ return String(s||'').replace(/^\ufeff/,'').replace(/\s/g,''); };
+  const first=(rows[0]||[]).map(norm);
+  const hasHeader = first.indexOf('분야')>=0 || first.indexOf('항목')>=0 || first.indexOf('항목명')>=0;
+  let idx={cn:0,ct:1,gn:2,gt:3,inum:4,ititle:5,st:6,pr:7,as:8,due:9,tags:10,detail:11,evi:12,caut:13}, start=0;
+  if(hasHeader){
+    const H=first, col=function(names){ for(const n of names){ const k=H.indexOf(n); if(k>=0) return k; } return -1; };
+    idx={ cn:col(['분야번호']), ct:col(['분야','분야명','분류']), gn:col(['중분류번호']), gt:col(['중분류','중분류명']),
+      inum:col(['항목번호','번호']), ititle:col(['항목','항목명','제목']), st:col(['상태']), pr:col(['우선순위']),
+      as:col(['담당자','담당']), due:col(['기한','마감']), tags:col(['태그']), detail:col(['상세기준','상세']), evi:col(['증빙','증빙자료','체크리스트']), caut:col(['주의사항','주의']) };
+    start=1;
+  }
+  const get=function(r,k){ return (k>=0 && k<r.length) ? String(r[k]).trim() : ''; };
+  const splitLines=function(s){ return String(s||'').split(/\n/).map(function(x){return x.trim();}).filter(Boolean); };
+  const cats=[], catMap={};
+  for(let i=start;i<rows.length;i++){
+    const r=rows[i]; if(!r || r.join('').trim()==='') continue;
+    const cnum=get(r,idx.cn), ctitle=get(r,idx.ct)||cnum||'분류';
+    const ckey=cnum+'|'+ctitle;
+    let cat=catMap[ckey];
+    if(!cat){ cat={ id:slugify(ctitle||('cat'+(cats.length+1))), num:cnum||String(cats.length+1), title:ctitle, desc:'', items:[], groups:[], _gmap:{} }; catMap[ckey]=cat; cats.push(cat); }
+    const inum=get(r,idx.inum), ititle=get(r,idx.ititle);
+    if(!inum && !ititle) continue;
+    const item={ num:inum||'', title:ititle||'(제목 없음)',
+      detail:splitLines(get(r,idx.detail)), evidence:splitLines(get(r,idx.evi)),
+      caution:get(r,idx.caut), note:true, assignee:get(r,idx.as), due:get(r,idx.due),
+      status:CSV_ST_IN[get(r,idx.st)]||'', priority:CSV_PR_IN[get(r,idx.pr)]||'',
+      tags:get(r,idx.tags).split(/[;,·]/).map(function(x){return x.trim();}).filter(Boolean), blocks:[] };
+    const gnum=get(r,idx.gn), gtitle=get(r,idx.gt);
+    if(gnum||gtitle){
+      const gkey=gnum+'|'+gtitle;
+      let g=cat._gmap[gkey];
+      if(!g){ g={ gid:'g'+(uidSeq++), num:gnum||'', title:gtitle||'중분류', items:[] }; cat._gmap[gkey]=g; cat.groups.push(g); }
+      g.items.push(item);
+    } else { cat.items.push(item); }
+  }
+  cats.forEach(function(c){ delete c._gmap; });
+  return cats;
+}
+function mergeImport(parsed){
+  parsed.forEach(function(pc){
+    let ex=model.categories.find(function(c){ return (c.num&&pc.num&&c.num===pc.num) || (c.title&&pc.title&&c.title.trim()===pc.title.trim()); });
+    if(!ex){ model.categories.push(pc); return; }
+    (pc.items||[]).forEach(function(it){ ex.items.push(it); });
+    if(!ex.groups) ex.groups=[];
+    (pc.groups||[]).forEach(function(pg){
+      let eg=ex.groups.find(function(g){ return (g.num&&pg.num&&g.num===pg.num) || (g.title&&pg.title&&g.title.trim()===pg.title.trim()); });
+      if(!eg){ ex.groups.push(pg); } else { (pg.items||[]).forEach(function(it){ eg.items.push(it); }); }
+    });
+  });
+}
+document.getElementById('btnCsvExport').addEventListener('click', function(){
+  const blob = new Blob([modelToCSV(model)], {type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=(slugify(model.meta.title)||'guide')+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('CSV로 내보냈어요.');
+});
+
+/* ===== 마크다운 내보내기 ===== */
+function mdEsc(s){ return String(s==null?'':s).replace(/\|/g,'\\|'); }
+function isMdHead(s){ return /^#\s+/.test(String(s||'')); }
+function mdHeadText(s){ return String(s||'').replace(/^#\s+/,''); }
+const MD_ST={todo:'예정',doing:'진행',done:'완료'}, MD_PR={high:'높음',med:'보통',low:'낮음'};
+function blockToMd(b){
+  if(b.type==='subhead') return b.text ? '#### '+b.text+'\n' : '';
+  if(b.type==='text') return b.text ? b.text+'\n' : '';
+  if(b.type==='divider') return '---\n';
+  if(b.type==='callout'){ if(!b.text) return ''; const tag={info:'정보',tip:'팁',warn:'주의'}[b.tone]||'정보'; return b.text.split(/\n/).map(function(l){return '> **['+tag+']** '+l;}).join('\n')+'\n'; }
+  if(b.type==='list'){ const it=(b.items||[]).filter(Boolean); return it.length ? it.map(function(x){return '- '+x;}).join('\n')+'\n' : ''; }
+  if(b.type==='code'){ return b.text ? '```\n'+b.text+'\n```\n' : ''; }
+  if(b.type==='image'){ return b.url ? '!['+(b.caption||'')+']('+b.url+')\n' : ''; }
+  if(b.type==='links'){ const ls=(b.links||[]).filter(function(l){return l.url;}); return ls.length ? ls.map(function(l){return '- ['+(l.label||l.url)+']('+l.url+')';}).join('\n')+'\n' : ''; }
+  if(b.type==='table'){
+    const head=b.head||[], rows=b.rows||[]; if(!head.length && !rows.length) return '';
+    const H=head.length?head:(rows[0]||[]).map(function(_,i){return 'C'+(i+1);});
+    let out='| '+H.map(mdEsc).join(' | ')+' |\n';
+    out+='| '+H.map(function(){return '---';}).join(' | ')+' |\n';
+    rows.forEach(function(r){ out+='| '+(r||[]).map(mdEsc).join(' | ')+' |\n'; });
+    return out;
+  }
+  return '';
+}
+function itemToMd(m, it){
+  const L=m.labels||{};
+  let out='';
+  const meta=[];
+  if(it.status && MD_ST[it.status]) meta.push(MD_ST[it.status]);
+  if(it.priority && MD_PR[it.priority]) meta.push('우선순위 '+MD_PR[it.priority]);
+  out += '#### '+(it.num?it.num+' ':'')+(it.title||'')+(meta.length?'  `'+meta.join(' · ')+'`':'')+'\n\n';
+  const info=[];
+  if(it.assignee) info.push('담당: '+it.assignee);
+  if(it.due) info.push('기한: '+it.due);
+  if((it.tags||[]).length) info.push('태그: '+it.tags.join(', '));
+  if(info.length) out += info.join(' · ')+'\n\n';
+  if((it.detail||[]).length){
+    out += '**'+(L.detail||'상세 기준')+'**\n\n';
+    it.detail.forEach(function(d){ out += isMdHead(d) ? '*'+mdHeadText(d)+'*\n' : '- '+d+'\n'; });
+    out += '\n';
+  }
+  if((it.evidence||[]).length){
+    out += '**'+(L.evidence||'증빙 체크리스트')+'**\n\n';
+    it.evidence.forEach(function(e){ out += isMdHead(e) ? '*'+mdHeadText(e)+'*\n' : '- [ ] '+e+'\n'; });
+    out += '\n';
+  }
+  if(it.caution){ out += '> ⚠ '+(L.caution||'주의사항')+': '+it.caution+'\n\n'; }
+  (it.blocks||[]).forEach(function(b){ const bm=blockToMd(b); if(bm) out += bm+'\n'; });
+  return out;
+}
+function modelToMarkdown(m){
+  const clean=cleanModel(m);
+  let out='# '+(clean.meta.title||'가이드')+'\n\n';
+  if(clean.meta.subtitle) out += clean.meta.subtitle+'\n\n';
+  if(clean.meta.eyebrow) out += '_'+clean.meta.eyebrow+'_\n\n';
+  clean.categories.forEach(function(cat){
+    out += '## '+(cat.num?cat.num+'. ':'')+(cat.title||'')+'\n\n';
+    if(cat.desc) out += cat.desc+'\n\n';
+    (cat.items||[]).forEach(function(it){ out += itemToMd(clean, it); });
+    (cat.groups||[]).forEach(function(g){
+      out += '### '+(g.num?g.num+' ':'')+(g.title||'')+'\n\n';
+      (g.items||[]).forEach(function(it){ out += itemToMd(clean, it); });
+    });
+  });
+  if(clean.meta.updatedAt) out += '\n---\n\n_최종 수정: '+clean.meta.updatedAt+'_\n';
+  return out;
+}
+document.getElementById('btnMdExport').addEventListener('click', function(){
+  const blob = new Blob([modelToMarkdown(model)], {type:'text/markdown;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=(slugify(model.meta.title)||'guide')+'.md';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('마크다운으로 내보냈어요.');
+});
+document.getElementById('csvFile').addEventListener('change', function(e){
+  const f=e.target.files[0]; if(!f){ return; }
+  const r=new FileReader();
+  r.onload=function(ev){
+    let parsed;
+    try{ parsed = csvToCategories(parseCSV(ev.target.result)); }
+    catch(err){ toast('CSV를 읽을 수 없어요.'); return; }
+    if(!parsed.length){ toast('CSV에서 항목을 찾지 못했어요.'); return; }
+    const cnt=parsed.reduce(function(n,c){ return n + (c.items||[]).length + (c.groups||[]).reduce(function(m,g){return m+(g.items||[]).length;},0); }, 0);
+    const replace = confirm('CSV에서 분야 '+parsed.length+'개 · 항목 '+cnt+'개를 읽었어요.\n\n[확인] 기존 내용을 교체\n[취소] 현재 내용에 추가(대량 등록)');
+    pushHistory(); textDirty=false;
+    if(replace){ model.categories = parsed; } else { mergeImport(parsed); }
+    assignUids(model);
+    renderControls(); refreshPreview();
+    toast(replace ? 'CSV로 교체했어요.' : 'CSV 항목을 추가했어요.');
+  };
+  r.readAsText(f, 'UTF-8');
+  e.target.value='';
+});
+
 document.getElementById('loadProject').addEventListener('change', function(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=function(ev){
     let data; try{ data=JSON.parse(ev.target.result); }catch(err){ toast('JSON을 읽을 수 없어요.'); return; }
     if(!data.categories || !data.config || !data.meta){ toast('가이드 프로젝트 파일이 아니에요.'); return; }
-    model = assignUids(data);
+    model = assignUids(data); resetHistory();
     renderControls(); refreshPreview();
     toast('프로젝트를 열었어요.');
   };
@@ -1928,11 +2689,474 @@ const SAMPLE_LAUNCH = {
   ]
 };
 
+const SF = { ring:true, legend:true, checklist:true, notes:true, tracker:true, search:true, themeToggle:true, autosave:true, io:true };
+
+const SAMPLE_DEV = {
+  meta:{ eyebrow:'개발 · 체크리스트', title:'신규 화면 개발 체크리스트', subtitle:'기획부터 배포까지 담당·기한·상태로 추적하는 개발 트래커입니다.', ringCaption:'개발 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업 내용', evidence:'완료 조건', caution:'주의', note:'메모' },
+  config:{ layout:'table', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'plan', num:'1', title:'기획', desc:'요구사항·설계', items:[
+      { num:'1.1', title:'요구사항 정의', status:'done', assignee:'기획자', tags:['문서'], detail:['화면 목적·사용자 정의','필드·액션 목록화'], evidence:['화면기획서 승인','와이어프레임 공유'], caution:'스코프 확정' },
+      { num:'1.2', title:'화면 설계', status:'doing', assignee:'UI', tags:['설계'], detail:['레이아웃·컴포넌트 정의','상태/예외 케이스 정의'], evidence:['시안 확정','예외 케이스 정리'], caution:'' }
+    ]},
+    { id:'dev', num:'2', title:'개발', desc:'프론트·백엔드', items:[
+      { num:'2.1', title:'프론트 구현', status:'doing', priority:'high', assignee:'프론트', tags:['개발'], detail:['화면·상호작용 구현'], evidence:['컴포넌트 구현','API 연동'], caution:'반응형·접근성 확인' },
+      { num:'2.2', title:'백엔드 / API', status:'doing', assignee:'백엔드', tags:['개발'], detail:['API·검증 로직 구현'], evidence:['API 명세 일치','에러 처리'], caution:'' }
+    ]},
+    { id:'qa', num:'3', title:'QA', desc:'테스트·검수', items:[
+      { num:'3.1', title:'기능 테스트', status:'todo', priority:'high', assignee:'QA', tags:['테스트'], detail:['시나리오 테스트'], evidence:['정상/예외 케이스 통과','블로커 0건'], caution:'회귀 테스트 포함' },
+      { num:'3.2', title:'검수 · 승인', status:'todo', assignee:'기획자', detail:['UAT 진행'], evidence:['수용 기준 충족'], caution:'' }
+    ]},
+    { id:'deploy', num:'4', title:'배포', desc:'릴리스·확인', items:[
+      { num:'4.1', title:'배포', status:'todo', assignee:'개발팀', tags:['운영'], detail:['스테이징 → 운영 배포'], evidence:['배포 성공','스모크 테스트'], caution:'롤백 준비' },
+      { num:'4.2', title:'사후 확인', status:'todo', detail:['지표·에러 모니터링'], evidence:['에러 0건 확인'], caution:'' }
+    ]}
+  ]
+};
+
+const SAMPLE_INCIDENT = {
+  meta:{ eyebrow:'운영 · 런북', title:'장애 대응 런북', subtitle:'감지부터 회고까지, 장애 상황에서 순서대로 실행할 절차입니다.', ringCaption:'대응 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'대응 절차', evidence:'확인 항목', caution:'주의', note:'기록' },
+  config:{ layout:'accordion', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'detect', num:'1', title:'감지', desc:'인지·전파', items:[
+      { num:'1.1', title:'장애 인지 · 전파', status:'doing', priority:'high', assignee:'당직자', tags:['긴급'], detail:['모니터링/알림으로 인지','영향 범위 1차 판단'], evidence:['담당자 호출','상황 채널 개설'], caution:'고객 영향부터 파악' },
+      { num:'1.2', title:'심각도 판정', status:'todo', assignee:'TL', detail:['SEV 등급 결정'], evidence:['등급·에스컬레이션 기준 확인'], caution:'' }
+    ]},
+    { id:'respond', num:'2', title:'초기대응', desc:'완화·공지', items:[
+      { num:'2.1', title:'완화 조치', status:'todo', priority:'high', assignee:'운영', tags:['긴급'], detail:['트래픽 차단·스케일업·기능 차단'], evidence:['영향 축소 확인'], caution:'원인 규명보다 완화 우선' },
+      { num:'2.2', title:'공지', status:'todo', assignee:'PM', detail:['내부·고객 공지'], evidence:['상태페이지 업데이트'], caution:'' }
+    ]},
+    { id:'recover', num:'3', title:'복구', desc:'원인 조치', items:[
+      { num:'3.1', title:'근본 원인 조치', status:'todo', assignee:'개발팀', detail:['원인 수정·배포'], evidence:['정상 지표 회복','재발 방지 임시조치'], caution:'핫픽스 검증' }
+    ]},
+    { id:'review', num:'4', title:'회고', desc:'포스트모템', items:[
+      { num:'4.1', title:'포스트모템', status:'todo', assignee:'TL', tags:['문서'], detail:['타임라인·원인·액션아이템 정리'], evidence:['회고 문서','재발방지 과제 등록'], caution:'비난 없는 회고' }
+    ]}
+  ]
+};
+
+const SAMPLE_KICKOFF = {
+  meta:{ eyebrow:'프로젝트 · 착수', title:'프로젝트 킥오프', subtitle:'프로젝트 시작 시 합의해야 할 목표·범위·일정·리스크를 정리합니다.', ringCaption:'킥오프 준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'합의 사항', evidence:'산출물', caution:'주의', note:'메모' },
+  config:{ layout:'cards', theme:'forest', density:'comfortable', features:SF },
+  categories:[
+    { id:'goal', num:'1', title:'목표', desc:'', items:[
+      { num:'1.1', title:'목표 · 성공지표', status:'doing', assignee:'PM', tags:['핵심'], detail:['비즈니스 목표','성공지표(KPI)'], evidence:['목표 합의','KPI 정의'], caution:'' }
+    ]},
+    { id:'scope', num:'2', title:'범위', desc:'', items:[
+      { num:'2.1', title:'범위 · 제외', status:'todo', assignee:'PM', detail:['포함/제외 범위 정의'], evidence:['범위 문서 승인'], caution:'스코프 크립 주의' }
+    ]},
+    { id:'sched', num:'3', title:'일정', desc:'', items:[
+      { num:'3.1', title:'마일스톤', status:'todo', assignee:'PM', tags:['일정'], detail:['주요 마일스톤 수립'], evidence:['일정표 공유'], caution:'' }
+    ]},
+    { id:'risk', num:'4', title:'리스크', desc:'', items:[
+      { num:'4.1', title:'리스크 · 이해관계자', status:'todo', detail:['리스크 식별','이해관계자·R&R'], evidence:['리스크 목록','RACI 확정'], caution:'고위험 항목 별도 관리' }
+    ]}
+  ]
+};
+
+const SAMPLE_RELEASE = {
+  meta:{ eyebrow:'운영 · 배포', title:'릴리스 · 배포 런북', subtitle:'배포 전 점검부터 롤백·사후 확인까지 안전하게 배포하는 절차입니다.', ringCaption:'릴리스 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업', evidence:'확인', caution:'주의', note:'메모' },
+  config:{ layout:'accordion', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'pre', num:'1', title:'배포 전', desc:'사전 점검', items:[
+      { num:'1.1', title:'사전 점검', status:'doing', assignee:'릴리스매니저', tags:['체크'], detail:['변경사항·마이그레이션 확인'], evidence:['릴리스 노트','DB 마이그레이션 리허설','롤백 절차 확인'], caution:'점검 시간 공지' }
+    ]},
+    { id:'deploy', num:'2', title:'배포', desc:'실행', items:[
+      { num:'2.1', title:'배포 실행', status:'todo', priority:'high', assignee:'개발팀', tags:['운영'], detail:['배포 파이프라인 실행'], evidence:['배포 성공','스모크 테스트'], caution:'단계적 배포 권장' }
+    ]},
+    { id:'rollback', num:'3', title:'롤백', desc:'대비', items:[
+      { num:'3.1', title:'롤백 기준', status:'todo', detail:['롤백 트리거 정의'], evidence:['롤백 스크립트 준비','이전 버전 보관'], caution:'데이터 호환성 확인' }
+    ]},
+    { id:'post', num:'4', title:'사후 점검', desc:'모니터링', items:[
+      { num:'4.1', title:'모니터링 · 정리', status:'todo', detail:['지표·에러 관찰'], evidence:['핵심 지표 정상','알림 정상','릴리스 회고'], caution:'' }
+    ]}
+  ]
+};
+
+const SAMPLE_WEEKLY = {
+  meta:{ eyebrow:'업무 · 주간', title:'주간 업무 보드', subtitle:'이번 주 할 일을 상태별로 옮기며 관리하는 개인/팀 업무 보드입니다.', ringCaption:'완료율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'내용', evidence:'세부 체크', caution:'메모', note:'메모' },
+  config:{ layout:'kanban', theme:'paper', density:'comfortable', features:SF },
+  categories:[
+    { id:'todo', num:'1', title:'이번 주 할 일', desc:'', items:[
+      { num:'1.1', title:'보고서 초안', status:'todo', assignee:'나', due:'금', tags:['보고'], detail:['1분기 실적 정리'], evidence:['데이터 취합','초안 작성'], caution:'' },
+      { num:'1.2', title:'회의 준비', status:'todo', due:'수', detail:['안건·자료 준비'], evidence:['안건 공유'], caution:'' }
+    ]},
+    { id:'doing', num:'2', title:'진행 중', desc:'', items:[
+      { num:'2.1', title:'화면 개선', status:'doing', priority:'high', assignee:'나', tags:['개발'], detail:['목록 필터 개선'], evidence:['구현','리뷰 요청'], caution:'' }
+    ]},
+    { id:'review', num:'3', title:'검토', desc:'', items:[
+      { num:'3.1', title:'PR 리뷰', status:'doing', assignee:'동료', tags:['리뷰'], detail:['코드 리뷰 대기'], evidence:['리뷰 완료'], caution:'' }
+    ]},
+    { id:'done', num:'4', title:'완료', desc:'', items:[
+      { num:'4.1', title:'핫픽스 배포', status:'done', detail:['긴급 수정 배포'], evidence:['배포 확인'], caution:'' }
+    ]}
+  ]
+};
+
+const SAMPLE_CONTRACT = {
+  meta:{ eyebrow:'구매 · 계약', title:'계약 · 구매 프로세스', subtitle:'구매 요청부터 계약 체결까지 단계별 필요서류와 승인 절차입니다.', ringCaption:'진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'해야 할 일', evidence:'필요 서류', caution:'주의', note:'메모' },
+  config:{ layout:'compact', theme:'sand', density:'comfortable', features:SF },
+  categories:[
+    { id:'request', num:'1', title:'요청', desc:'', items:[
+      { num:'1.1', title:'구매 요청', status:'done', assignee:'요청부서', tags:['기안'], detail:['품목·수량·예산 산정'], evidence:['구매요청서','예산 확인'], caution:'예산 초과 시 별도 승인' }
+    ]},
+    { id:'review', num:'2', title:'검토', desc:'', items:[
+      { num:'2.1', title:'견적 · 업체 검토', status:'doing', assignee:'구매팀', detail:['견적 비교·업체 실사'], evidence:['견적서 3부','업체 등록 확인'], caution:'' }
+    ]},
+    { id:'approve', num:'3', title:'승인', desc:'', items:[
+      { num:'3.1', title:'결재', status:'todo', assignee:'결재권자', tags:['승인'], detail:['금액별 결재선 진행'], evidence:['품의 결재 완료'], caution:'금액 구간별 결재선 확인' }
+    ]},
+    { id:'sign', num:'4', title:'체결', desc:'', items:[
+      { num:'4.1', title:'계약 체결', status:'todo', assignee:'법무', detail:['계약서 검토·날인'], evidence:['계약서 서명','발주(PO) 발행'], caution:'독소조항 검토' }
+    ]}
+  ]
+};
+
+const SAMPLE_OFFBOARD = {
+  meta:{ eyebrow:'HR · 오프보딩', title:'오프보딩(퇴사) 체크리스트', subtitle:'퇴사자 발생 시 인수인계·계정회수·자산반납을 빠짐없이 처리합니다.', ringCaption:'처리율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'해야 할 일', evidence:'체크', caution:'주의', note:'메모' },
+  config:{ layout:'table', theme:'rose', density:'comfortable', features:SF },
+  categories:[
+    { id:'handover', num:'1', title:'인수인계', desc:'업무 이관', items:[
+      { num:'1.1', title:'업무 인수인계', status:'doing', assignee:'팀장', tags:['업무'], detail:['담당 업무·문서 이관'], evidence:['인수인계서 작성','후임 지정'], caution:'진행 중 업무 마감 계획' }
+    ]},
+    { id:'account', num:'2', title:'계정 회수', desc:'권한 말소', items:[
+      { num:'2.1', title:'접근권한 말소', status:'todo', priority:'high', assignee:'IT팀', tags:['보안'], detail:['계정·권한 회수'], evidence:['사내시스템 계정 비활성','메일·메신저 회수','외부 SaaS 접근 차단'], caution:'퇴사일 즉시 처리' }
+    ]},
+    { id:'asset', num:'3', title:'자산 반납', desc:'장비·보안', items:[
+      { num:'3.1', title:'자산 · 보안', status:'todo', assignee:'총무팀', detail:['장비·출입증 반납'], evidence:['노트북·장비 반납','출입카드 회수','보안서약 확인'], caution:'' }
+    ]}
+  ]
+};
+
+const SAMPLE_SECAUDIT = {
+  meta:{ eyebrow:'IT · 보안', title:'보안 · 개인정보 점검', subtitle:'접근권한·로그·암호화·위탁을 정기 점검하는 IT 보안 체크리스트입니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검 기준', evidence:'증빙', caution:'주의', note:'메모' },
+  config:{ layout:'table', theme:'ink', density:'comfortable', features:SF },
+  categories:[
+    { id:'access', num:'1', title:'접근권한', desc:'계정·권한', items:[
+      { num:'1.1', title:'계정 · 권한 점검', status:'doing', assignee:'보안담당', tags:['접근통제'], detail:['최소권한·퇴직자 회수'], evidence:['권한 목록 점검','미사용 계정 정리','관리자 계정 MFA'], caution:'분기 1회 이상' }
+    ]},
+    { id:'log', num:'2', title:'로그', desc:'보관·점검', items:[
+      { num:'2.1', title:'로그 보관 · 점검', status:'todo', assignee:'인프라', tags:['로그'], detail:['접속·조작 로그 관리'], evidence:['보관기간 충족','정기 점검 기록'], caution:'위·변조 방지' }
+    ]},
+    { id:'crypto', num:'3', title:'암호화', desc:'전송·저장', items:[
+      { num:'3.1', title:'암호화', status:'todo', detail:['전송·저장 암호화'], evidence:['TLS 적용','개인정보 암호화'], caution:'키 관리 절차' }
+    ]},
+    { id:'doc', num:'4', title:'위탁 · 동의', desc:'개인정보', items:[
+      { num:'4.1', title:'위탁 · 동의 관리', status:'todo', assignee:'개인정보담당', tags:['개인정보'], detail:['수탁사 관리·동의 확인'], evidence:['위탁계약·점검','수집·이용 동의 확인'], caution:'' }
+    ]}
+  ]
+};
+
+const SAMPLE_INFRA = {
+  meta:{ eyebrow:'IT · 인프라', title:'서버 · 인프라 점검', subtitle:'가용성·백업·모니터링·보안패치를 주기적으로 점검합니다.', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검 항목', evidence:'확인', caution:'주의', note:'메모' },
+  config:{ layout:'cards', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'avail', num:'1', title:'가용성', desc:'', items:[
+      { num:'1.1', title:'리소스 · 가용성', status:'doing', assignee:'인프라', tags:['운영'], detail:['CPU/메모리/디스크','이중화 상태'], evidence:['임계치 이하','헬스체크 정상'], caution:'디스크 여유 확보' }
+    ]},
+    { id:'backup', num:'2', title:'백업', desc:'', items:[
+      { num:'2.1', title:'백업 · 복구', status:'todo', priority:'high', assignee:'인프라', tags:['백업'], detail:['백업 주기·보관'], evidence:['정기 백업 성공','복구 테스트'], caution:'복구 리허설 필수' }
+    ]},
+    { id:'mon', num:'3', title:'모니터링', desc:'', items:[
+      { num:'3.1', title:'모니터링 · 알림', status:'todo', detail:['지표·로그 수집'], evidence:['대시보드 정상','알림 룰 점검'], caution:'' }
+    ]},
+    { id:'patch', num:'4', title:'보안패치', desc:'', items:[
+      { num:'4.1', title:'패치 · 취약점', status:'todo', assignee:'보안담당', tags:['보안'], detail:['OS·패키지 패치'], evidence:['보안 패치 적용','취약점 스캔'], caution:'패치 전 백업' }
+    ]}
+  ]
+};
+
+const SAMPLE_TREE = {
+  meta:{ eyebrow:'감사 · 3레벨', title:'부서 감사 준비 (3레벨 예시)', subtitle:'분야 › 중분류 › 항목의 3단계 구조로 정리한 예시입니다. 진행률은 항목→중분류→분야로 합산됩니다.', ringCaption:'준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'점검 기준', evidence:'증빙', caution:'주의', note:'메모' },
+  config:{ layout:'accordion', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'hr', num:'1', title:'인사', desc:'채용·근태',
+      items:[ { num:'1.0', title:'조직도·직무기술서', status:'done', assignee:'인사팀', tags:['공통'], detail:['최신 조직도 유지'], evidence:['조직도','직무기술서'], caution:'' } ],
+      groups:[
+        { gid:'g_hire', num:'1-1', title:'채용', items:[
+          { num:'1.1.1', title:'채용 공고·전형 기록', status:'doing', assignee:'인사팀', tags:['채용'], detail:['공고~합격 기록 보관'], evidence:['공고문','전형 평가표','합격 통보'], caution:'개인정보 파기 일정 확인' },
+          { num:'1.1.2', title:'근로계약', status:'todo', detail:['계약서 서명·보관'], evidence:['근로계약서','임금대장'], caution:'' }
+        ]},
+        { gid:'g_att', num:'1-2', title:'근태', items:[
+          { num:'1.2.1', title:'근태·초과근무', status:'todo', assignee:'인사팀', tags:['근태'], detail:['근태 기록·연장근로 동의'], evidence:['근태 기록','연장근로 동의서'], caution:'52시간 준수' }
+        ]}
+      ]
+    },
+    { id:'fin', num:'2', title:'재무', desc:'지출·계약', items:[],
+      groups:[
+        { gid:'g_exp', num:'2-1', title:'지출', items:[
+          { num:'2.1.1', title:'지출 증빙', status:'doing', assignee:'재무팀', priority:'high', tags:['지출'], detail:['적격 증빙 구비'], evidence:['세금계산서·영수증','지출 결의서'], caution:'적격증빙 여부 확인' },
+          { num:'2.1.2', title:'예산 대비 집행', status:'todo', detail:['예산 초과 항목 점검'], evidence:['예산 집행 내역'], caution:'' }
+        ]},
+        { gid:'g_con', num:'2-2', title:'계약', items:[
+          { num:'2.2.1', title:'계약서 관리', status:'todo', assignee:'법무', tags:['계약'], detail:['계약 대장·원본 보관'], evidence:['계약 대장','계약서 원본'], caution:'' },
+          { num:'2.2.2', title:'수의계약 사유', status:'todo', detail:['수의계약 사유서 구비'], evidence:['사유서','내부 승인'], caution:'금액 기준 확인' }
+        ]}
+      ]
+    }
+  ]
+};
+
+/* ===== 신규 기능 강조 샘플 5종 ===== */
+const SAMPLE_ITASSET = {
+  meta:{ eyebrow:'IT · 자산', title:'IT 자산 관리대장', subtitle:'하드웨어·소프트웨어를 중분류로 나눠 관리하는 3레벨 예시입니다(표 블록 포함).', ringCaption:'점검율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'관리 기준', evidence:'증빙', caution:'주의', note:'메모' },
+  config:{ layout:'table', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'hw', num:'1', title:'하드웨어', desc:'장비 대장', items:[], groups:[
+      { gid:'g_lap', num:'1-1', title:'노트북', items:[
+        { num:'1.1.1', title:'지급·회수 대장', status:'doing', assignee:'총무팀', tags:['자산'], detail:['대장 최신 상태 유지'], evidence:['# 지급','지급 확인서','# 회수','반납 확인서'], caution:'반납 지연 관리',
+          blocks:[ { type:'table', head:['모델','수량','비고'], rows:[['LG 그램','12','임원'],['맥북 프로','8','개발']] } ] }
+      ]},
+      { gid:'g_mon', num:'1-2', title:'모니터·주변기기', items:[
+        { num:'1.2.1', title:'재고 파악', status:'todo', assignee:'총무팀', detail:['분기 실사'], evidence:['재고 실사표'], caution:'' }
+      ]}
+    ]},
+    { id:'sw', num:'2', title:'소프트웨어', desc:'라이선스', items:[], groups:[
+      { gid:'g_lic', num:'2-1', title:'라이선스', items:[
+        { num:'2.1.1', title:'라이선스 현황', status:'todo', priority:'high', assignee:'IT팀', tags:['라이선스'], detail:['보유 대비 사용 수 점검'], evidence:['라이선스 증서','사용 현황'], caution:'초과 사용 주의',
+          blocks:[ { type:'table', head:['제품','보유','사용'], rows:[['Office','50','47'],['Adobe','10','12']] }, { type:'callout', tone:'warn', text:'Adobe는 보유 초과 상태 — 추가 구매 또는 회수 필요.' } ] }
+      ]}
+    ]}
+  ]
+};
+const SAMPLE_APIDOC = {
+  meta:{ eyebrow:'개발 · 연동', title:'API 연동 가이드', subtitle:'코드·표·링크·안내 박스 등 블록을 활용한 개발 연동 문서 예시입니다.', ringCaption:'연동 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'설명', evidence:'확인', caution:'주의', note:'메모' },
+  config:{ layout:'accordion', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'auth', num:'1', title:'인증', desc:'', items:[
+      { num:'1.1', title:'API 키 발급 · 호출', status:'doing', assignee:'백엔드', tags:['인증'], detail:['발급받은 키를 헤더에 담아 호출'], evidence:['키 발급','인증 성공 확인'], caution:'키는 서버에만 보관',
+        blocks:[
+          { type:'subhead', text:'요청 예시' },
+          { type:'code', text:'curl -H "Authorization: Bearer YOUR_KEY" \\\n  https://api.example.com/v1/orders' },
+          { type:'callout', tone:'tip', text:'키가 노출되면 즉시 폐기하고 재발급하세요.' },
+          { type:'links', links:[{label:'개발자 콘솔', url:'https://developer.example.com'},{label:'레퍼런스', url:'https://developer.example.com/docs'}] }
+        ] }
+    ]},
+    { id:'ep', num:'2', title:'엔드포인트', desc:'', items:[
+      { num:'2.1', title:'주문 조회', status:'todo', assignee:'백엔드', tags:['주문'], detail:['상태별 주문 목록 조회'], evidence:['정상 응답','에러 처리'], caution:'',
+        blocks:[ { type:'table', head:['파라미터','타입','설명'], rows:[['status','string','예: paid'],['from','date','시작일'],['limit','int','최대 100']] } ] }
+    ]}
+  ]
+};
+const SAMPLE_ISMS = {
+  meta:{ eyebrow:'IT · 인증심사', title:'ISMS 인증 심사 준비', subtitle:'관리체계·보호대책을 중분류로 나누고 증빙을 그룹 소제목으로 정리한 예시입니다.', ringCaption:'준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'요구사항', evidence:'증빙', caution:'주의', note:'메모' },
+  config:{ layout:'accordion', theme:'ink', density:'comfortable', features:SF },
+  categories:[
+    { id:'mgmt', num:'1', title:'관리체계 수립·운영', desc:'', items:[], groups:[
+      { gid:'g_pol', num:'1-1', title:'정책·조직', items:[
+        { num:'1.1.1', title:'정보보호 정책·조직', status:'doing', assignee:'ISO', priority:'high', tags:['정책'], detail:['정책 제·개정 및 승인','책임자 지정'], evidence:['# 정책','정보보호 정책서','경영진 승인','# 조직','조직도·R&R'], caution:'연 1회 검토' }
+      ]},
+      { gid:'g_risk', num:'1-2', title:'위험관리', items:[
+        { num:'1.2.1', title:'위험평가', status:'todo', assignee:'보안팀', tags:['위험'], detail:['자산 식별·위험평가 수행'], evidence:['위험평가 보고서','조치계획'], caution:'수용 기준 명시' }
+      ]}
+    ]},
+    { id:'ctrl', num:'2', title:'보호대책 요구사항', desc:'', items:[], groups:[
+      { gid:'g_acc', num:'2-1', title:'접근통제', items:[
+        { num:'2.1.1', title:'계정·권한 관리', status:'todo', assignee:'인프라', tags:['접근통제'], detail:['최소권한·퇴직자 회수'], evidence:['# 계정','권한 목록','# 점검','분기 점검 기록'], caution:'관리자 MFA' }
+      ]}
+    ]}
+  ]
+};
+const SAMPLE_EVENT = {
+  meta:{ eyebrow:'운영 · 행사', title:'행사 운영 준비', subtitle:'준비·현장·마무리를 중분류로 나눠 담당·기한·상태로 추적하는 트래커 예시입니다.', ringCaption:'준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'할 일', evidence:'체크', caution:'주의', note:'메모' },
+  config:{ layout:'kanban', theme:'rose', density:'comfortable', features:SF },
+  categories:[
+    { id:'prep', num:'1', title:'사전 준비', desc:'', items:[], groups:[
+      { gid:'g_venue', num:'1-1', title:'장소·설비', items:[
+        { num:'1.1.1', title:'장소 계약', status:'done', assignee:'운영', due:'D-30', tags:['필수'], detail:['대관 계약·보험'], evidence:['계약서','보험 증권'], caution:'' },
+        { num:'1.1.2', title:'음향·영상', status:'doing', assignee:'기술', due:'D-7', tags:['기술'], detail:['리허설 포함'], evidence:['장비 점검','리허설 완료'], caution:'예비 장비 확보' }
+      ]},
+      { gid:'g_promo', num:'1-2', title:'홍보·모집', items:[
+        { num:'1.2.1', title:'참가자 모집', status:'doing', assignee:'마케팅', tags:['모집'], detail:['신청 폼·리마인드'], evidence:['신청 폼 오픈','리마인드 발송'], caution:'' }
+      ]}
+    ]},
+    { id:'day', num:'2', title:'현장 운영', desc:'', items:[
+      { num:'2.1', title:'등록·안내', status:'todo', assignee:'운영', tags:['현장'], detail:['등록대·동선 안내'], evidence:['명단','안내표지'], caution:'대기열 관리' }
+    ], groups:[] },
+    { id:'wrap', num:'3', title:'마무리', desc:'', items:[
+      { num:'3.1', title:'정산·피드백', status:'todo', assignee:'운영', detail:['정산·설문'], evidence:['정산서','설문 결과'], caution:'' }
+    ], groups:[] }
+  ]
+};
+const SAMPLE_QAPLAN = {
+  meta:{ eyebrow:'개발 · QA', title:'QA 테스트 계획', subtitle:'테스트 유형을 중분류로 나누고 목록·표 블록으로 케이스를 정리한 예시입니다.', ringCaption:'테스트 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'범위', evidence:'완료 조건', caution:'주의', note:'메모' },
+  config:{ layout:'cards', theme:'forest', density:'comfortable', features:SF },
+  categories:[
+    { id:'func', num:'1', title:'기능 테스트', desc:'', items:[], groups:[
+      { gid:'g_core', num:'1-1', title:'핵심 플로우', items:[
+        { num:'1.1.1', title:'주문 플로우', status:'doing', priority:'high', assignee:'QA', tags:['핵심'], detail:['담기→결제→완료'], evidence:['정상 케이스','예외 케이스'], caution:'결제 실패 처리 확인',
+          blocks:[ { type:'list', items:['비회원 주문','쿠폰 적용','부분 취소'] }, { type:'table', head:['케이스','기대결과'], rows:[['카드 결제','주문 완료'],['한도 초과','실패 안내']] } ] }
+      ]}
+    ]},
+    { id:'nonfunc', num:'2', title:'비기능 테스트', desc:'', items:[], groups:[
+      { gid:'g_perf', num:'2-1', title:'성능·호환', items:[
+        { num:'2.1.1', title:'부하·호환성', status:'todo', assignee:'QA', tags:['성능'], detail:['목표 TPS·주요 브라우저'], evidence:['부하 리포트','호환성 매트릭스'], caution:'' }
+      ]}
+    ]}
+  ]
+};
+
+/* ===== 종합(모든 형태 포함) 샘플 5종 ===== */
+const SAMPLE_FULL_SEC = {
+  meta:{ eyebrow:'IT · 종합', title:'보안 운영 종합 가이드', subtitle:'중분류·트래커·증빙 그룹·모든 블록을 한 문서에 담은 종합 예시입니다.', ringCaption:'운영 점검율', footerLeft:'담당: 정보보안팀', footerRight:'문의: security@company.com' },
+  labels:{ detail:'점검 기준', evidence:'증빙', caution:'주의', note:'메모' },
+  config:{ layout:'accordion', theme:'slate', density:'comfortable', features:SF },
+  categories:[
+    { id:'access', num:'1', title:'접근통제', desc:'계정·권한', items:[
+      { num:'1.0', title:'접근통제 개요', status:'done', assignee:'보안팀', tags:['개요'], detail:['최소권한 원칙 적용'], evidence:['정책 확인'], caution:'',
+        blocks:[ { type:'callout', tone:'info', text:'모든 시스템 접근은 최소권한·업무근거를 원칙으로 합니다.' }, { type:'divider' } ] }
+    ], groups:[
+      { gid:'g_acc', num:'1-1', title:'계정 관리', items:[
+        { num:'1.1.1', title:'계정 생성·회수', status:'doing', priority:'high', assignee:'인프라', due:'상시', tags:['계정','필수'], detail:['입·퇴사 연동','휴면 계정 정리'], evidence:['# 생성','승인 기록','# 회수','퇴직자 즉시 회수','휴면 계정 목록'], caution:'퇴사 당일 회수',
+          blocks:[ { type:'subhead', text:'권한 등급' }, { type:'table', head:['등급','범위'], rows:[['관리자','전체'],['운영','읽기·쓰기'],['조회','읽기']] }, { type:'links', links:[{label:'접근통제 지침', url:'https://wiki.example.com/access'}] } ] }
+      ]},
+      { gid:'g_auth', num:'1-2', title:'인증 강화', items:[
+        { num:'1.2.1', title:'다중 인증(MFA)', status:'todo', assignee:'인프라', tags:['MFA'], detail:['관리자 MFA 의무화'], evidence:['MFA 적용 현황'], caution:'',
+          blocks:[ { type:'code', text:'auth:\n  mfa: required\n  session_timeout: 30m' } ] }
+      ]}
+    ]},
+    { id:'log', num:'2', title:'로그·모니터링', desc:'', items:[], groups:[
+      { gid:'g_log', num:'2-1', title:'로그 관리', items:[
+        { num:'2.1.1', title:'로그 수집·보관', status:'todo', assignee:'인프라', tags:['로그'], detail:['접속·조작 로그 보관'], evidence:['보관기간 충족','정기 점검'], caution:'위·변조 방지',
+          blocks:[ { type:'list', items:['접속 로그','권한 변경 로그','데이터 반출 로그'] } ] }
+      ]}
+    ]}
+  ]
+};
+const SAMPLE_FULL_LAUNCH = {
+  meta:{ eyebrow:'프로젝트 · 종합', title:'신규 서비스 런칭 종합', subtitle:'기획·개발·마케팅을 중분류로, 트래커와 다양한 블록을 모두 담은 종합 예시입니다.', ringCaption:'런칭 준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업', evidence:'완료 조건', caution:'리스크', note:'메모' },
+  config:{ layout:'cards', theme:'forest', density:'comfortable', features:SF },
+  categories:[
+    { id:'plan', num:'1', title:'기획', desc:'', items:[
+      { num:'1.0', title:'런칭 개요', status:'doing', assignee:'PM', tags:['개요'], detail:['목표·일정 공유'], evidence:['킥오프 완료'], caution:'',
+        blocks:[ { type:'callout', tone:'info', text:'목표 출시일과 핵심 지표(KPI)를 먼저 합의합니다.' }, { type:'table', head:['마일스톤','일정'], rows:[['베타','8/1'],['정식','9/1']] } ] }
+    ], groups:[
+      { gid:'g_req', num:'1-1', title:'요구사항', items:[
+        { num:'1.1.1', title:'요구사항 정의', status:'done', assignee:'기획', priority:'high', tags:['문서'], detail:['# 필수','핵심 기능','# 선택','부가 기능'], evidence:['PRD 승인'], caution:'스코프 확정' }
+      ]}
+    ]},
+    { id:'dev', num:'2', title:'개발', desc:'', items:[], groups:[
+      { gid:'g_be', num:'2-1', title:'백엔드', items:[
+        { num:'2.1.1', title:'API·배포', status:'doing', priority:'high', assignee:'개발', tags:['개발'], detail:['핵심 API 구현·배포'], evidence:['코드리뷰','스테이징 배포'], caution:'',
+          blocks:[ { type:'code', text:'GET /api/v1/health -> 200 OK' }, { type:'links', links:[{label:'배포 파이프라인', url:'https://ci.example.com'}] } ] }
+      ]}
+    ]},
+    { id:'mkt', num:'3', title:'마케팅', desc:'', items:[
+      { num:'3.1', title:'랜딩·홍보', status:'todo', assignee:'마케팅', tags:['웹'], detail:['랜딩·보도자료'], evidence:['페이지 오픈','보도자료 배포'], caution:'',
+        blocks:[ { type:'divider' }, { type:'subhead', text:'채널' }, { type:'list', items:['홈페이지','뉴스레터','SNS'] } ] }
+    ], groups:[] }
+  ]
+};
+const SAMPLE_FULL_STORE = {
+  meta:{ eyebrow:'매장 · 종합', title:'신규 매장 오픈 종합', subtitle:'인테리어·인력·오픈을 중분류로 나눈 매장 오픈 종합 체크리스트입니다.', ringCaption:'오픈 준비율', footerLeft:'', footerRight:'' },
+  labels:{ detail:'할 일', evidence:'체크', caution:'주의', note:'메모' },
+  config:{ layout:'compact', theme:'sand', density:'comfortable', features:SF },
+  categories:[
+    { id:'facility', num:'1', title:'시설', desc:'', items:[], groups:[
+      { gid:'g_interior', num:'1-1', title:'인테리어', items:[
+        { num:'1.1.1', title:'공사·집기', status:'doing', assignee:'점포개발', due:'D-20', tags:['공사'], detail:['공사 일정·집기 반입'], evidence:['# 공사','준공 확인','# 집기','집기 반입 확인'], caution:'소방 필증 확인',
+          blocks:[ { type:'callout', tone:'warn', text:'소방·전기 필증 없이 오픈 불가.' } ] }
+      ]},
+      { gid:'g_pos', num:'1-2', title:'POS·결제', items:[
+        { num:'1.2.1', title:'POS 설치', status:'todo', assignee:'IT', tags:['POS'], detail:['설치·결제 테스트'], evidence:['결제 테스트 완료'], caution:'' }
+      ]}
+    ]},
+    { id:'people', num:'2', title:'인력', desc:'', items:[
+      { num:'2.1', title:'채용·교육', status:'todo', assignee:'점장', tags:['인력'], detail:['채용·서비스 교육'], evidence:['근로계약','교육 이수'], caution:'',
+        blocks:[ { type:'table', head:['포지션','인원'], rows:[['정직원','2'],['아르바이트','4']] } ] }
+    ], groups:[] },
+    { id:'open', num:'3', title:'오픈', desc:'', items:[
+      { num:'3.1', title:'오픈 행사', status:'todo', assignee:'점장', detail:['프로모션·리허설'], evidence:['프로모션 준비','오픈 리허설'], caution:'' }
+    ], groups:[] }
+  ]
+};
+const SAMPLE_FULL_DATA = {
+  meta:{ eyebrow:'IT · 종합', title:'데이터 마이그레이션 종합', subtitle:'준비·이관·검증을 중분류로 나눈 데이터 이관 종합 런북입니다.', ringCaption:'이관 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'작업', evidence:'확인', caution:'주의', note:'메모' },
+  config:{ layout:'table', theme:'ink', density:'comfortable', features:SF },
+  categories:[
+    { id:'prep', num:'1', title:'준비', desc:'', items:[
+      { num:'1.0', title:'범위·롤백 계획', status:'done', assignee:'DBA', priority:'high', tags:['계획'], detail:['대상 테이블·롤백 절차'], evidence:['이관 계획서','롤백 절차'], caution:'점검 시간 공지',
+        blocks:[ { type:'callout', tone:'tip', text:'리허설에서 롤백까지 반드시 검증하세요.' } ] }
+    ], groups:[] },
+    { id:'migrate', num:'2', title:'이관', desc:'', items:[], groups:[
+      { gid:'g_run', num:'2-1', title:'실행', items:[
+        { num:'2.1.1', title:'데이터 이관 실행', status:'doing', priority:'high', assignee:'DBA', tags:['실행'], detail:['스냅샷→이관→인덱스'], evidence:['# 사전','백업 완료','# 실행','이관 성공','건수 일치'], caution:'무결성 제약 확인',
+          blocks:[ { type:'code', text:'SELECT count(*) FROM src.orders;\nSELECT count(*) FROM dst.orders;' } ] }
+      ]}
+    ]},
+    { id:'verify', num:'3', title:'검증', desc:'', items:[
+      { num:'3.1', title:'검증·안정화', status:'todo', assignee:'DBA', detail:['건수·표본 비교'], evidence:['검증 리포트'], caution:'',
+        blocks:[ { type:'table', head:['테이블','원본','대상'], rows:[['orders','120,000','120,000'],['users','8,500','8,500']] } ] }
+    ], groups:[] }
+  ]
+};
+const SAMPLE_FULL_CS = {
+  meta:{ eyebrow:'고객 · 종합', title:'고객 온보딩 종합', subtitle:'계약·설정·교육을 중분류로 나눈 B2B 고객 온보딩 종합 가이드입니다.', ringCaption:'온보딩 진행률', footerLeft:'', footerRight:'' },
+  labels:{ detail:'할 일', evidence:'체크', caution:'주의', note:'메모' },
+  config:{ layout:'kanban', theme:'midnight', density:'comfortable', features:SF },
+  categories:[
+    { id:'contract', num:'1', title:'계약·킥오프', desc:'', items:[
+      { num:'1.1', title:'계약·일정', status:'done', assignee:'AM', tags:['계약'], detail:['계약·킥오프 미팅'], evidence:['계약서','킥오프 완료'], caution:'',
+        blocks:[ { type:'callout', tone:'info', text:'킥오프에서 성공 기준과 일정을 합의합니다.' } ] }
+    ], groups:[] },
+    { id:'setup', num:'2', title:'설정', desc:'', items:[], groups:[
+      { gid:'g_tech', num:'2-1', title:'기술 설정', items:[
+        { num:'2.1.1', title:'계정·연동', status:'doing', priority:'high', assignee:'온보딩', tags:['설정'], detail:['계정 생성·SSO·데이터 연동'], evidence:['# 계정','관리자 계정','# 연동','SSO 연결','초기 데이터 적재'], caution:'권한 범위 확인',
+          blocks:[ { type:'links', links:[{label:'연동 가이드', url:'https://docs.example.com/setup'}] } ] }
+      ]}
+    ]},
+    { id:'train', num:'3', title:'교육·전환', desc:'', items:[
+      { num:'3.1', title:'교육·정기점검', status:'todo', assignee:'CSM', tags:['교육'], detail:['관리자 교육·정기 리뷰'], evidence:['교육 이수','1차 리뷰'], caution:'',
+        blocks:[ { type:'list', items:['관리자 교육','사용자 교육','30일 리뷰'] } ] }
+    ], groups:[] }
+  ]
+};
+
 const SAMPLES = [
-  { key:'cert',    name:'전송자격인증 신청 가이드', desc:'방송미디어통신위원회 · 5분야 13항목', model:DEFAULT_MODEL },
-  { key:'onboard', name:'신입사원 온보딩',        desc:'입사 준비 ~ 첫 달 · 4단계 · 포레스트',   model:SAMPLE_ONBOARD },
-  { key:'moving',  name:'이사 준비 체크리스트',    desc:'2개월 전 ~ 이사 후 · 간결 레이아웃 · 샌드', model:SAMPLE_MOVING },
-  { key:'launch',  name:'제품 출시 준비',          desc:'기획·개발·마케팅·출시 · 칸반 · 미드나잇', model:SAMPLE_LAUNCH }
+  { key:'cert',     name:'전송자격인증 신청 가이드', desc:'방송미디어통신위원회 · 5분야 13항목 · 아코디언', model:DEFAULT_MODEL },
+  { key:'tree',     name:'부서 감사 준비 (3레벨)',   desc:'분야 › 중분류 › 항목 3단계 예시 · 아코디언 · 슬레이트', model:SAMPLE_TREE },
+
+  { key:'itasset',  name:'IT 자산 관리대장 (3레벨·표)', desc:'중분류 + 표 블록 · 표 · 슬레이트', model:SAMPLE_ITASSET },
+  { key:'apidoc',   name:'API 연동 가이드 (블록)',   desc:'코드·표·링크·안내 블록 중심 · 아코디언 · 미드나잇', model:SAMPLE_APIDOC },
+  { key:'isms',     name:'ISMS 인증 심사 준비',      desc:'3레벨 + 증빙 그룹 소제목 · 아코디언 · 다크', model:SAMPLE_ISMS },
+  { key:'event',    name:'행사 운영 준비 (트래커)',  desc:'중분류 + 담당·기한·상태 · 칸반 · 로즈', model:SAMPLE_EVENT },
+  { key:'qaplan',   name:'QA 테스트 계획 (블록)',    desc:'중분류 + 목록·표 블록 · 카드 · 포레스트', model:SAMPLE_QAPLAN },
+
+  { key:'full_sec',    name:'보안 운영 종합 (풀)',   desc:'중분류·블록·트래커·증빙그룹 총망라 · 아코디언 · 슬레이트', model:SAMPLE_FULL_SEC },
+  { key:'full_launch', name:'신규 서비스 런칭 종합 (풀)', desc:'모든 형태 포함 · 카드 · 포레스트', model:SAMPLE_FULL_LAUNCH },
+  { key:'full_store',  name:'신규 매장 오픈 종합 (풀)', desc:'모든 형태 포함 · 간결 · 샌드', model:SAMPLE_FULL_STORE },
+  { key:'full_data',   name:'데이터 마이그레이션 종합 (풀)', desc:'모든 형태 포함 · 표 · 다크', model:SAMPLE_FULL_DATA },
+  { key:'full_cs',     name:'고객 온보딩 종합 (풀)', desc:'모든 형태 포함 · 칸반 · 미드나잇', model:SAMPLE_FULL_CS },
+
+  { key:'dev',      name:'신규 화면 개발 체크리스트', desc:'기획·개발·QA·배포 · 표 · 슬레이트', model:SAMPLE_DEV },
+  { key:'incident', name:'장애 대응 런북',           desc:'감지·초기대응·복구·회고 · 아코디언 · 미드나잇', model:SAMPLE_INCIDENT },
+  { key:'kickoff',  name:'프로젝트 킥오프',          desc:'목표·범위·일정·리스크 · 카드 · 포레스트', model:SAMPLE_KICKOFF },
+  { key:'release',  name:'릴리스 · 배포 런북',       desc:'배포 전·배포·롤백·사후 점검 · 아코디언 · 슬레이트', model:SAMPLE_RELEASE },
+  { key:'weekly',   name:'주간 업무 보드',           desc:'상태별 칸반(할일·진행·검토·완료) · 페이퍼', model:SAMPLE_WEEKLY },
+  { key:'contract', name:'계약 · 구매 프로세스',     desc:'요청·검토·승인·체결 · 간결 · 샌드', model:SAMPLE_CONTRACT },
+  { key:'offboard', name:'오프보딩(퇴사) 체크리스트', desc:'인수인계·계정회수·자산반납 · 표 · 로즈', model:SAMPLE_OFFBOARD },
+  { key:'secaudit', name:'보안 · 개인정보 점검',     desc:'접근권한·로그·암호화·위탁 · 표 · 다크', model:SAMPLE_SECAUDIT },
+  { key:'infra',    name:'서버 · 인프라 점검',       desc:'가용성·백업·모니터링·패치 · 카드 · 미드나잇', model:SAMPLE_INFRA },
+  { key:'onboard',  name:'신입사원 온보딩',          desc:'입사 준비 ~ 첫 달 · 아코디언 · 포레스트', model:SAMPLE_ONBOARD },
+  { key:'moving',   name:'이사 준비 체크리스트',      desc:'2개월 전 ~ 이사 후 · 간결 · 샌드', model:SAMPLE_MOVING },
+  { key:'launch',   name:'제품 출시 준비',           desc:'기획·개발·마케팅·출시 · 칸반 · 미드나잇', model:SAMPLE_LAUNCH }
 ];
 
 function openSamples(){
@@ -1949,7 +3173,7 @@ document.getElementById('sampleList').addEventListener('click', function(e){
   const btn = e.target.closest('[data-sample]'); if(!btn) return;
   const s = SAMPLES.find(function(x){ return x.key===btn.getAttribute('data-sample'); });
   if(!s) return;
-  model = assignUids(clone(s.model));
+  model = assignUids(clone(s.model)); resetHistory();
   if(model.categories[0]) model.categories[0]._open = true;
   renderControls(); refreshPreview();
   closeSamples();
@@ -1957,7 +3181,7 @@ document.getElementById('sampleList').addEventListener('click', function(e){
 });
 document.getElementById('btnEmpty').addEventListener('click', function(){
   if(!confirm('현재 편집 내용을 버리고 빈 프로젝트로 시작할까요?')) return;
-  model = assignUids(emptyModel());
+  model = assignUids(emptyModel()); resetHistory();
   renderControls(); refreshPreview();
   toast('빈 프로젝트로 시작합니다.');
 });

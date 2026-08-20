@@ -103,6 +103,9 @@
   tbody tr:not(.expanded) td .cv{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
   }
+  /* 폭 제한 컬럼(CODE 등): 한 줄 말줄임, 펼치면 전체 표시 */
+  tbody tr:not(.expanded) td .cv.clip{display:block; -webkit-line-clamp:unset; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;}
+  tbody tr.expanded td .cv.clip{white-space:normal; overflow:visible; max-width:none !important;}
   tbody tr.expanded td{background:var(--row-exp);}
   tbody tr.expanded:hover td{background:var(--row-exp-hover);}
   tbody tr.expanded.important td{background:var(--row-imp-hover);}
@@ -587,6 +590,8 @@
   td.ops .dup{color:#8fa0b0;} td.ops .dup:hover{color:var(--accent);}
   tbody tr.sel-on td{background:var(--accent-soft);}
   tbody tr.sel-on:hover td{background:var(--accent-soft); filter:brightness(1.03);}
+  tbody tr.active-row td{background:color-mix(in srgb, var(--accent) 14%, transparent); box-shadow:inset 0 -1px 0 var(--accent), inset 0 1px 0 var(--accent);}
+  tbody tr.active-row td.star{box-shadow:inset 3px 0 0 var(--accent), inset 0 -1px 0 var(--accent), inset 0 1px 0 var(--accent);}
 
   /* ── 일괄 액션 바 ── */
   #bulkbar{background:var(--accent); color:#fff; padding:7px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; border-bottom:1px solid var(--line);}
@@ -642,8 +647,8 @@
     <button class="btn warn" id="btnClearF" onclick="clearFilters()" hidden>필터 해제</button>
     <button class="btn primary" onclick="addRow()">＋ 행 추가</button>
     <div class="menu-group">
-      <button class="btn" onclick="loadJson()" title="저장해둔 데이터파일(.json)을 불러옵니다">데이터 불러오기</button>
-      <button class="btn" onclick="saveJson()" title="지정해둔 폴더에 바로 저장합니다 (미지정 시 최초 1회 폴더 선택창이 뜹니다)">데이터 저장</button>
+      <button class="btn" onclick="confirmLoad()" title="저장해둔 데이터파일(.json)을 불러옵니다">데이터 불러오기</button>
+      <button class="btn" onclick="confirmSave()" title="지정해둔 폴더에 바로 저장합니다 (미지정 시 최초 1회 폴더 선택창이 뜹니다)">데이터 저장</button>
       <button class="btn" onclick="openSettings()" title="데이터가 저장될 폴더와 파일명을 지정합니다">저장 위치 설정</button>
     </div>
     <div class="menu-group">
@@ -913,6 +918,8 @@
 const COLS = ["CODEHIDDEN","CODE","PROJECT","No","제목","내용","요청","접수","접수일자","구분","상세구분",
               "책임","개발자","개발시작","개발완료예정","개발완료","배포일자","비고","공수day","연계"];
 const WRAP  = new Set(["제목","내용","비고","연계"]);
+/* 컬럼별 최대 폭(문자수 기준). 넘치면 …로 자르고, 행을 펼치거나 마우스를 올리면 전체가 보임 */
+const COLW  = { CODEHIDDEN:12, CODE:11, PROJECT:12, 요청:8, 접수:8, 책임:8, 개발자:9 };
 const NUMS  = new Set(["No","공수day"]);
 const DATES = new Set(["접수일자","개발시작","개발완료예정","개발완료","배포일자"]);
 const STATUS_BADGE = new Set(["접수","진행","완료","대기","보류"]);
@@ -939,6 +946,7 @@ let pageSize = 100;
 let colFilters = {};
 let hiddenCols = new Set();                       // 숨긴 컬럼
 let selected = new Set();                         // 다중 선택된 data 인덱스
+let activeRowIdx = null;                          // 현재 클릭/편집 중인 행(강조)
 const SELECT_COLS = new Set(["구분","상세구분","책임","개발자"]);   // 셀 클릭 시 기존값 드롭다운
 function visCols(){ return COLS.filter(c=>!hiddenCols.has(c)); }
 function colValues(c){                            // 해당 컬럼의 기존 고유값(빈도순)
@@ -1098,10 +1106,15 @@ function buildHead(){
 }
 function cellHtml(r, i, c){
   const v = r[c] ?? "";
+  const wrap = WRAP.has(c);
   const cls = [
-    WRAP.has(c)?"wrap":"", NUMS.has(c)?"num":"",
+    wrap?"wrap":"", NUMS.has(c)?"num":"",
     (DATES.has(c)||c==="CODE"||c==="CODEHIDDEN")?"nowrap":""
   ].filter(Boolean).join(" ");
+  const cap = COLW[c];
+  const capStyle = cap ? ` style="max-width:${cap}ch"` : "";
+  const clip = (cap && !wrap) ? " clip" : "";
+  const titleAttr = cap ? ` title="${esc(v)}"` : "";
   const s = String(v).trim();
   if(c==="상세구분" && STATUS_BADGE.has(s)){
     return `<td class="${cls}" style="text-align:center"><div class="cv" contenteditable data-i="${i}" data-c="${c}"><span class="badge b-${s}">${esc(s)}</span></div></td>`;
@@ -1111,7 +1124,7 @@ function cellHtml(r, i, c){
     const badge = di.has ? `<span class="dday ${di.cls}" title="개발완료예정 기준 남은 기간">${di.label}</span>` : "";
     return `<td class="${cls}"><div class="cv" contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div>${badge}</td>`;
   }
-  return `<td class="${cls}"><div class="cv" contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div></td>`;
+  return `<td class="${cls}"><div class="cv${clip}"${capStyle}${titleAttr} contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div></td>`;
 }
 function notiCount(){
   return data.filter(r=>r.imp && r.noti!==false).length + memos.filter(m=>m.noti!==false).length;
@@ -1159,7 +1172,7 @@ function renderTable(rows){
     const r = data[i];
     const st = String(r["상세구분"] ?? "").trim();
     const bar = STATUS_COLOR[st] || "transparent";
-    html.push(`<tr class="${r.imp?"important":""}${selected.has(i)?" sel-on":""}" data-i="${i}">`,
+    html.push(`<tr class="${r.imp?"important":""}${selected.has(i)?" sel-on":""}${activeRowIdx===i?" active-row":""}" data-i="${i}">`,
       `<td class="selcol"><input type="checkbox" class="selrow" data-i="${i}" ${selected.has(i)?"checked":""}></td>`,
       `<td class="star ${r.imp?"on":""}" data-i="${i}" style="border-left-color:${bar}" title="중요일정 표시">${r.imp?"★":"☆"}</td>`);
     for(const c of visCols()) html.push(cellHtml(r,i,c));
@@ -2188,7 +2201,7 @@ tbody.addEventListener("click", e=>{
   if(del){
     const i = +del.dataset.i;
     const name = data[i]["제목"] || data[i].CODE || `${i+1}번째 행`;
-    if(confirm(`삭제할까요?\n${name}`)){ data.splice(i,1); selected.clear(); markDirty(); render(); }
+    if(confirm(`삭제할까요?\n${name}`)){ data.splice(i,1); selected.clear(); activeRowIdx=null; markDirty(); render(); }
   }
 });
 /* 행 복제 */
@@ -2196,7 +2209,7 @@ function duplicateRow(i){
   if(!data[i]) return;
   const copy = JSON.parse(JSON.stringify(data[i]));
   data.splice(i+1, 0, copy);
-  selected.clear();
+  selected.clear(); activeRowIdx=null;
   markDirty(); render();
   toast("행을 복제했습니다", "ok");
 }
@@ -2248,7 +2261,7 @@ function bulkDelete(){
   const n = selected.size;
   if(!confirm(`선택한 ${n}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
   [...selected].sort((a,b)=>b-a).forEach(i=>data.splice(i,1));
-  selected.clear();
+  selected.clear(); activeRowIdx=null;
   markDirty(); render();
   toast(`${n}건 삭제`, "ok");
 }
@@ -2258,11 +2271,11 @@ function bulkDuplicate(){
   [...selected].sort((a,b)=>b-a).forEach(i=>{
     if(data[i]) data.splice(i+1, 0, JSON.parse(JSON.stringify(data[i])));
   });
-  selected.clear();
+  selected.clear(); activeRowIdx=null;
   markDirty(); render();
   toast(`${n}건 복제`, "ok");
 }
-function bulkClear(){ selected.clear(); render(); }
+function bulkClear(){ selected.clear(); activeRowIdx=null; render(); }
 
 /* ── 컬럼 표시/숨김 팝업 ── */
 function openColPop(anchor){
@@ -2314,6 +2327,15 @@ tbody.addEventListener("focusin", e=>{
 tbody.addEventListener("input", e=>{
   const cv = e.target.closest(".cv"); if(!cv || cv!==cellPopTarget) return;
   if(SELECT_COLS.has(cv.dataset.c)) openCellPop(cv, true);
+});
+tbody.addEventListener("focusin", e=>{           // 현재 편집/클릭 중인 행 강조
+  const cv = e.target.closest(".cv"); if(!cv) return;
+  const i = +cv.dataset.i;
+  if(activeRowIdx !== i){
+    activeRowIdx = i;
+    tbody.querySelectorAll("tr.active-row").forEach(t=>t.classList.remove("active-row"));
+  }
+  cv.closest("tr").classList.add("active-row");
 });
 document.getElementById("cellpop").addEventListener("mousedown", e=>{
   const it = e.target.closest(".cpi[data-val]"); if(!it) return;
@@ -2875,6 +2897,13 @@ async function backupThenWrite(text){
   await ensureDailyBackup(text);
 }
 
+/* 저장/불러오기 확인창 */
+function confirmSave(){
+  if(confirm(`현재 데이터를 저장할까요?\n\n일정 ${data.length.toLocaleString()}건 · 직접입력 ${memos.length}건\n저장 위치: ${locLabel()}`)) saveJson();
+}
+function confirmLoad(){
+  if(confirm(`저장된 데이터를 불러오면 현재 화면의 내용이 사라지고 대체됩니다.\n(불러오기 직전 상태는 오늘자 백업으로 보관됩니다)\n\n계속할까요?`)) loadJson();
+}
 async function saveJson(){
   const text = payload();
   /* 1) 지정 폴더가 없으면 최초 1회 지정 유도 */

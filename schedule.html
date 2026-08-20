@@ -122,6 +122,12 @@
   .b-완료{background:var(--accent-soft); color:var(--accent);}
   .b-대기{background:#fdeee5; color:#c05621;}
   .b-보류{background:#f3e8fb; color:#7a3fae;}
+  .b-미진행{background:transparent; color:var(--ink-soft); font-weight:400; border:1px dashed var(--line); opacity:.8;}
+  /* 구분 배지: 상세구분보다 덜 튀게 — 배경 없이 옅은 테두리 + 은은한 글자색 */
+  .b-개발, .b-배포, .b-요청{background:transparent; border:1px solid var(--line); font-weight:500;}
+  .b-개발{color:#5b7594;}
+  .b-배포{color:#5a8570;}
+  .b-요청{color:#94795b;}
   .empty{padding:56px 20px; text-align:center; color:var(--ink-soft);}
   .empty-ic{font-size:44px; margin-bottom:10px; opacity:.85;}
   .empty-title{font-size:16px; font-weight:700; color:var(--ink); margin-bottom:6px;}
@@ -336,9 +342,9 @@
   .chip.on{border-color:var(--accent); background:var(--accent-soft);}
   .chip.on .cnt{color:var(--accent);}
   .chip:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
-  .chip.due-late{border-color:#ecc4bf; background:#fdecea;}
+  .chip.due-late{border-color:#ecc4bf; background:#fdecea; color:#7a2018;}
   .chip.due-late .cnt{color:var(--danger);}
-  .chip.due-soon{border-color:#f0d9a8; background:#fff6e6;}
+  .chip.due-soon{border-color:#f0d9a8; background:#fff6e6; color:#7a4718;}
   .chip.due-soon .cnt{color:#c05621;}
   .chip.is-zero{opacity:.4;}
   .chip.due-late, .chip.due-soon{cursor:default;}
@@ -368,6 +374,8 @@
   /* ── 테마·밀도 토글 아이콘 버튼 ── */
   .btn.icon{padding:6px 9px; font-size:14px; line-height:1;}
   .btn.icon.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.icon:disabled{opacity:.35; cursor:default;}
+  #btnUndo, #btnRedo{font-size:16px; font-weight:700;}
 
   /* ── 활성 필터 칩 ── */
   .chip.fchip{border-color:var(--accent); background:var(--accent-soft); color:var(--ink); padding-right:8px; gap:5px;}
@@ -378,21 +386,22 @@
 
   /* ── 토스트 알림 (상단 중앙, 은은하게) ── */
   #toast{
-    position:fixed; top:64px; left:50%; transform:translateX(-50%);
-    z-index:70; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none;
+    position:fixed; top:80px; left:50%; transform:translateX(-50%);
+    z-index:70; display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none;
   }
   #toast .toast{
-    background:var(--panel); color:var(--ink); border:1px solid var(--line);
-    border-left:4px solid var(--accent); border-radius:8px; box-shadow:0 8px 28px var(--shadow);
-    padding:10px 16px; font-size:13px; font-weight:600; max-width:min(560px,92vw);
-    display:flex; align-items:center; gap:9px;
-    opacity:0; transform:translateY(-10px); transition:opacity .22s ease, transform .22s ease;
+    background:var(--panel); color:var(--ink); border:2px solid var(--accent);
+    border-radius:12px; box-shadow:0 16px 48px var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+    padding:16px 26px; font-size:17px; font-weight:700; max-width:min(640px,94vw); letter-spacing:-.2px;
+    display:flex; align-items:center; gap:13px;
+    opacity:0; transform:translateY(-14px) scale(.96); transition:opacity .2s ease, transform .2s ease;
   }
-  #toast .toast.show{opacity:1; transform:translateY(0);}
-  #toast .toast.err{border-left-color:var(--danger);}
-  #toast .toast .ic{font-size:15px; line-height:1;}
+  #toast .toast.show{opacity:1; transform:translateY(0) scale(1);}
+  #toast .toast.err{border-color:var(--danger); box-shadow:0 16px 48px var(--shadow), 0 0 0 4px color-mix(in srgb, var(--danger) 22%, transparent);}
+  #toast .toast .ic{font-size:22px; line-height:1;}
   #toast .toast.ok .ic{color:var(--accent);}
   #toast .toast.err .ic{color:var(--danger);}
+  [data-theme="dark"] #toast .toast{background:var(--head);}
 
   /* ── 뷰 전환 세그먼트 · footer 그룹 ── */
   .viewseg button{font-size:12.5px;}
@@ -653,6 +662,8 @@
     <input type="search" id="q" placeholder="전체 검색">
     <button class="btn warn" id="btnClearF" onclick="clearFilters()" hidden>필터 해제</button>
     <button class="btn primary" onclick="addRow()">＋ 행 추가</button>
+    <button class="btn icon" id="btnUndo" onclick="undo()" title="되돌리기 (Ctrl+Z)" disabled>↶</button>
+    <button class="btn icon" id="btnRedo" onclick="redo()" title="다시 실행 (Ctrl+Y)" disabled>↷</button>
     <div class="menu-group">
       <button class="btn" onclick="confirmLoad()" title="저장해둔 데이터파일(.json)을 불러옵니다">데이터 불러오기</button>
       <button class="btn" onclick="confirmSave()" title="지정해둔 폴더에 바로 저장합니다 (미지정 시 최초 1회 폴더 선택창이 뜹니다)">데이터 저장</button>
@@ -937,10 +948,11 @@ const PRESETS = {
 let customPreset = null;                          // 사용자가 저장한 표시 컬럼 목록
 const NUMS  = new Set(["No","공수day"]);
 const DATES = new Set(["접수일자","개발시작","개발완료예정","개발완료","배포일자"]);
-const STATUS_BADGE = new Set(["접수","진행","완료","대기","보류"]);
+const STATUS_BADGE = new Set(["미진행","접수","진행","완료","대기","보류"]);
 /* 상태 요약 스트립·행 컬러바용 색상(배지 색과 톤 통일) */
-const STATUS_ORDER = ["접수","진행","대기","보류","완료"];
-const STATUS_COLOR = {"접수":"#7e8b99","진행":"#2f74d0","대기":"#e08a3c","보류":"#9b5cc4","완료":"#0f6b54"};
+const STATUS_ORDER = ["미진행","접수","진행","대기","보류","완료"];
+const STATUS_COLOR = {"미진행":"#b6bdc8","접수":"#7e8b99","진행":"#2f74d0","대기":"#e08a3c","보류":"#9b5cc4","완료":"#0f6b54"};
+const GUBUN_BADGE = new Set(["개발","배포","요청"]);   // 구분 컬럼 배지
 const DUE_SOON_DAYS = 7;                          // 마감 임박 기준(일)
 const STALE_DAYS = 30;                            // 오래 방치 기준(접수 후 미완료 일수)
 const BLANK_LABEL = "(빈 값)";
@@ -951,7 +963,37 @@ const AUTOSAVE_MS = 5*60*1000;                  // 5분마다 변경사항 있�
 const MAX_BACKUPS = 5;                          // 이전 파일(백업) 보관 개수
 
 let dirty = false;                               // 마지막 저장 이후 변경 여부
-function markDirty(){ dirty = true; }
+/* ── 되돌리기/다시 실행 (전체 스냅샷, 최근 30단계) ── */
+let history = [], histIdx = -1, restoringHistory = false;
+const HIST_MAX = 30;
+function snapshot(){ return JSON.stringify({rows:data, memos:memos}); }
+function resetHistory(){ history = [snapshot()]; histIdx = 0; updateUndoUI(); }
+function pushHistory(){
+  if(restoringHistory) return;
+  if(histIdx < history.length-1) history = history.slice(0, histIdx+1);   // 새 변경 시 redo 분기 버림
+  history.push(snapshot());
+  while(history.length > HIST_MAX+1) history.shift();
+  histIdx = history.length-1;
+  updateUndoUI();
+}
+function restoreTo(idx){
+  const o = JSON.parse(history[idx]);
+  restoringHistory = true;
+  data = o.rows; memos = o.memos;
+  selected.clear(); activeRowIdx = null;
+  render();
+  restoringHistory = false;
+  dirty = true;
+  updateUndoUI();
+}
+function undo(){ if(histIdx<=0) return; histIdx--; restoreTo(histIdx); toast("되돌렸습니다", "ok"); }
+function redo(){ if(histIdx>=history.length-1) return; histIdx++; restoreTo(histIdx); toast("다시 실행했습니다", "ok"); }
+function updateUndoUI(){
+  const u=document.getElementById("btnUndo"), r=document.getElementById("btnRedo");
+  if(u) u.disabled = histIdx<=0;
+  if(r) r.disabled = histIdx>=history.length-1;
+}
+function markDirty(){ dirty = true; pushHistory(); }
 
 let tab = "all";
 let view = "table";                              // table / calendar / timeline
@@ -1043,7 +1085,7 @@ function toast(msg, type){
   el.append(ic, tx);
   wrap.appendChild(el);
   requestAnimationFrame(()=> el.classList.add("show"));
-  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=> el.remove(), 260); }, 2600);
+  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=> el.remove(), 260); }, 4500);
 }
 
 /* ── 로딩 ── */
@@ -1132,6 +1174,9 @@ function cellHtml(r, i, c){
   const titleAttr = cap ? ` title="${esc(v)}"` : "";
   const s = String(v).trim();
   if(c==="상세구분" && STATUS_BADGE.has(s)){
+    return `<td class="${cls}" style="text-align:center"><div class="cv" contenteditable data-i="${i}" data-c="${c}"><span class="badge b-${s}">${esc(s)}</span></div></td>`;
+  }
+  if(c==="구분" && GUBUN_BADGE.has(s)){
     return `<td class="${cls}" style="text-align:center"><div class="cv" contenteditable data-i="${i}" data-c="${c}"><span class="badge b-${s}">${esc(s)}</span></div></td>`;
   }
   if(c==="개발완료예정"){
@@ -1947,6 +1992,11 @@ document.addEventListener("mousedown", e=>{
   if(!kp.hidden && !kp.contains(e.target) && !e.target.closest(".cv")) closeCellPop();
 });
 document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && !e.target.isContentEditable && e.target.tagName!=="INPUT" && e.target.tagName!=="TEXTAREA" && e.target.tagName!=="SELECT"){
+    const k = e.key.toLowerCase();
+    if(k==="z" && !e.shiftKey){ e.preventDefault(); undo(); return; }
+    if(k==="y" || (k==="z" && e.shiftKey)){ e.preventDefault(); redo(); return; }
+  }
   if(e.key==="Escape"){
     if(!fpop.hidden) fpClose();
     else if(!nwrap.hidden) closeNoti();
@@ -2052,7 +2102,7 @@ tbody.addEventListener("focusout", e=>{
   if(String(data[i][c]??"") === String(v)) return;
   data[i][c] = v;
   markDirty();
-  if(c==="상세구분" || c==="개발완료예정"){
+  if(c==="상세구분" || c==="구분" || c==="개발완료예정"){
     render();                                      // 배지·좌측 컬러바·D-day·요약 스트립 동기화
     stat.textContent = `수정됨 — 5분 내 자동 저장되며, [데이터 저장]으로 바로 저장할 수도 있습니다`;
     return;
@@ -3125,6 +3175,7 @@ function applyImport(rows, newMemos, label){
   colFilters = {}; page = 1;
   markDirty();
   render();
+  resetHistory();                                  // 불러온 상태를 되돌리기 시작점으로
   if(!nwrap.hidden) renderNoti();
   stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건`;
   toast(`${label} 불러오기 완료 · ${data.length.toLocaleString()}건`, "ok");
@@ -3192,6 +3243,7 @@ async function exportExcel(filteredOnly){
 }
 
 render();
+resetHistory();
 restoreSettings();
 </script>
 </body>

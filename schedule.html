@@ -99,13 +99,13 @@
   td.wrap{white-space:pre-wrap; min-width:220px; max-width:420px; word-break:break-word;}
   td.nowrap{white-space:nowrap;}
   /* 셀 내용 래퍼: 기본은 2줄까지만 보이고, 행을 클릭(.expanded)하면 전체 높이로 펼쳐짐 */
-  .cv{outline:none; min-height:1.4em;}
+  .cv{outline:none; min-height:1.4em; overflow-wrap:anywhere;}
   tbody tr:not(.expanded) td .cv{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
   }
   /* 폭 제한 컬럼(CODE 등): 한 줄 말줄임, 펼치면 전체 표시 */
   tbody tr:not(.expanded) td .cv.clip{display:block; -webkit-line-clamp:unset; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;}
-  tbody tr.expanded td .cv.clip{white-space:normal; overflow:visible; max-width:none !important;}
+  tbody tr.expanded td .cv.clip{white-space:normal; overflow:visible; overflow-wrap:anywhere; word-break:break-word;}
   tbody tr.expanded td{background:var(--row-exp);}
   tbody tr.expanded:hover td{background:var(--row-exp-hover);}
   tbody tr.expanded.important td{background:var(--row-imp-hover);}
@@ -605,14 +605,21 @@
   #bulkbar .sp{margin-left:auto; background:transparent; border:1px solid rgba(255,255,255,.5);}
 
   /* ── 컬럼 표시/숨김 팝업 ── */
-  #colpop{position:fixed; z-index:32; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 28px var(--shadow); width:190px; max-height:74vh; display:flex; flex-direction:column;}
+  #colpop{position:fixed; z-index:32; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 28px var(--shadow); width:258px; max-height:78vh; display:flex; flex-direction:column;}
   #colpop[hidden]{display:none;}
   #colpop .cp-head{padding:9px 12px; font-weight:700; border-bottom:1px solid var(--line-soft); font-size:12.5px;}
+  #colpop .cp-presets{display:flex; flex-wrap:wrap; gap:5px; padding:8px 12px; border-bottom:1px solid var(--line-soft);}
+  #colpop .cp-preset{font-family:inherit; font-size:11.5px; font-weight:600; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:14px; padding:3px 11px; cursor:pointer;}
+  #colpop .cp-preset:hover{background:var(--accent-soft); border-color:var(--accent);}
+  #colpop .cp-preset.custom{border-color:var(--accent); color:var(--accent);}
   #colpop .cp-body{overflow:auto; padding:5px 0;}
-  #colpop label{display:flex; align-items:center; gap:8px; padding:5px 12px; cursor:pointer; font-size:12.5px;}
-  #colpop label:hover{background:var(--line-soft);}
+  #colpop .cp-row{display:flex; align-items:center; gap:8px; padding:4px 12px; cursor:pointer; font-size:12.5px;}
+  #colpop .cp-row:hover{background:var(--line-soft);}
+  #colpop .cp-name{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #colpop .cp-w{width:52px; font-family:inherit; font-size:12px; padding:3px 6px; border:1px solid var(--line); border-radius:5px; background:var(--panel); color:var(--ink); text-align:right;}
+  #colpop .cp-w::placeholder{color:var(--ink-soft); opacity:.7;}
   #colpop .cp-foot{border-top:1px solid var(--line-soft); padding:8px 12px; display:flex; gap:6px;}
-  #colpop .cp-foot .btn{padding:4px 10px; flex:1;}
+  #colpop .cp-foot .btn{padding:4px 8px; flex:1; font-size:11.5px;}
 
   /* ── 인라인 선택 드롭다운 ── */
   #cellpop{position:fixed; z-index:34; background:var(--panel); border:1px solid var(--line); border-radius:7px; box-shadow:0 6px 20px var(--shadow); min-width:120px; max-height:240px; overflow:auto; font-size:12.5px; padding:3px 0;}
@@ -776,7 +783,7 @@
         <li>행은 기본 <b>2줄 높이</b>로 보이고, 클릭하면 내용 전체 높이로 펼쳐집니다. 다른 곳을 클릭하면 다시 접힙니다.</li>
         <li>맨 왼쪽 <b>체크박스</b>로 여러 행을 골라 상단 바에서 <b>상태 일괄 변경·중요 표시·복제·삭제</b>를 할 수 있습니다. 행 오른쪽 <b>⧉</b>로 한 건만 복제할 수도 있습니다.</li>
         <li><b>상세구분·구분·책임·개발자</b> 칸은 클릭하면 기존에 입력된 값 목록에서 고를 수 있어 표기 불일치를 줄입니다(직접 입력도 가능).</li>
-        <li>상단 <b>[▦ 열]</b>에서 표시할 컬럼을 켜고 끌 수 있으며(선택은 저장됨), <b>[화면만 내보내기]</b>는 현재 필터·검색으로 보이는 항목만 엑셀로 내보냅니다.</li>
+        <li>상단 <b>[▦ 열]</b>에서 <b>프리셋</b>(요약·개발·접수·전체)으로 표시 컬럼을 한 번에 바꾸거나, 컬럼별 <b>폭(문자수)</b>을 직접 입력할 수 있습니다(비우면 자동). 지금 보이는 구성을 <b>[현재 저장]</b>으로 '내 프리셋'에 담아 재사용할 수 있고, 선택은 저장되어 다음에 열 때도 유지됩니다. <b>[화면만 내보내기]</b>는 현재 필터·검색으로 보이는 항목만 엑셀로 내보냅니다.</li>
         <li><b>★</b>를 누르면 중요일정으로 등록되어 중요일정 탭과 알림에 나타납니다.</li>
         <li>열 제목의 <b>▾</b>를 누르면 엑셀처럼 값 선택 필터를, 날짜·숫자 열은 범위 필터를 걸 수 있습니다. 상단 검색은 모든 칸을 대상으로 합니다.</li>
         <li>하단 <b>[⇤ 처음] [끝 ⇥]</b>은 제목이 입력된 첫/마지막 일정으로 이동합니다.</li>
@@ -918,8 +925,16 @@
 const COLS = ["CODEHIDDEN","CODE","PROJECT","No","제목","내용","요청","접수","접수일자","구분","상세구분",
               "책임","개발자","개발시작","개발완료예정","개발완료","배포일자","비고","공수day","연계"];
 const WRAP  = new Set(["제목","내용","비고","연계"]);
-/* 컬럼별 최대 폭(문자수 기준). 넘치면 …로 자르고, 행을 펼치거나 마우스를 올리면 전체가 보임 */
-const COLW  = { CODEHIDDEN:12, CODE:11, PROJECT:12, 요청:8, 접수:8, 책임:8, 개발자:9 };
+/* 컬럼별 기본 최대 폭(문자수). 넘치면 줄바꿈(2줄)되고, 행을 펼치거나 마우스를 올리면 전체가 보임 */
+const COLW  = { CODEHIDDEN:32, CODE:11, PROJECT:12, 제목:42, 내용:48, 요청:8, 접수:8, 책임:8, 개발자:9, 비고:32, 연계:24 };
+let colWidths = {};                              // 사용자가 [열]에서 직접 지정한 폭(우선)
+/* 컬럼 프리셋: 표시할 컬럼 목록(나머지는 숨김) */
+const PRESETS = {
+  "요약": ["CODE","PROJECT","제목","상세구분","개발자","개발완료예정"],
+  "개발": ["CODE","제목","구분","상세구분","개발자","개발시작","개발완료예정","개발완료"],
+  "접수": ["CODE","제목","요청","접수","접수일자","구분","상세구분"]
+};
+let customPreset = null;                          // 사용자가 저장한 표시 컬럼 목록
 const NUMS  = new Set(["No","공수day"]);
 const DATES = new Set(["접수일자","개발시작","개발완료예정","개발완료","배포일자"]);
 const STATUS_BADGE = new Set(["접수","진행","완료","대기","보류"]);
@@ -1111,7 +1126,7 @@ function cellHtml(r, i, c){
     wrap?"wrap":"", NUMS.has(c)?"num":"",
     (DATES.has(c)||c==="CODE"||c==="CODEHIDDEN")?"nowrap":""
   ].filter(Boolean).join(" ");
-  const cap = COLW[c];
+  const cap = colWidths[c] ?? COLW[c];
   const capStyle = cap ? ` style="max-width:${cap}ch"` : "";
   const clip = (cap && !wrap) ? " clip" : "";
   const titleAttr = cap ? ` title="${esc(v)}"` : "";
@@ -2280,13 +2295,28 @@ function bulkClear(){ selected.clear(); activeRowIdx=null; render(); }
 /* ── 컬럼 표시/숨김 팝업 ── */
 function openColPop(anchor){
   const pop = document.getElementById("colpop");
-  const h = [`<div class="cp-head">표시할 컬럼</div><div class="cp-body">`];
-  for(const c of COLS) h.push(`<label><input type="checkbox" data-col="${esc(c)}" ${hiddenCols.has(c)?"":"checked"}> ${esc(c)}</label>`);
-  h.push(`</div><div class="cp-foot"><button class="btn" onclick="colAll(true)">모두 표시</button><button class="btn" onclick="colAll(false)">모두 숨김</button></div>`);
-  pop.innerHTML = h.join("");
+  const presetBtns = Object.keys(PRESETS).map(n=>`<button class="cp-preset" data-preset="${esc(n)}">${esc(n)}</button>`).join("")
+    + `<button class="cp-preset" data-preset="__all">전체</button>`
+    + (customPreset ? `<button class="cp-preset custom" data-preset="__custom" title="저장한 내 구성 적용">내 프리셋</button>` : "");
+  const rows = COLS.map(c=>{
+    const w = colWidths[c] ?? COLW[c] ?? "";
+    return `<label class="cp-row">
+      <input type="checkbox" data-col="${esc(c)}" ${hiddenCols.has(c)?"":"checked"}>
+      <span class="cp-name" title="${esc(c)}">${esc(c)}</span>
+      <input type="number" class="cp-w" data-wcol="${esc(c)}" value="${w}" min="3" max="90" placeholder="자동" title="폭(문자수) · 비우면 자동">
+    </label>`;
+  }).join("");
+  pop.innerHTML = `<div class="cp-head">컬럼 프리셋 · 표시 · 폭(문자수)</div>
+    <div class="cp-presets">${presetBtns}</div>
+    <div class="cp-body">${rows}</div>
+    <div class="cp-foot">
+      <button class="btn" onclick="colAll(true)">모두</button>
+      <button class="btn" onclick="colAll(false)">숨김</button>
+      <button class="btn" onclick="saveCustomPreset()" title="지금 보이는 컬럼 구성을 '내 프리셋'으로 저장">현재 저장</button>
+    </div>`;
   pop.hidden = false;
   const r = anchor.getBoundingClientRect();
-  pop.style.left = Math.min(r.left, window.innerWidth-200)+"px";
+  pop.style.left = Math.min(r.left, window.innerWidth-270)+"px";
   pop.style.top  = (r.bottom+4)+"px";
 }
 function closeColPop(){ document.getElementById("colpop").hidden = true; }
@@ -2294,11 +2324,30 @@ function colAll(show){
   if(show) hiddenCols.clear(); else COLS.forEach(c=>hiddenCols.add(c));
   persistUI(); render(); openColPop(document.getElementById("btnCols"));
 }
+function applyPreset(name){
+  if(name==="__all"){ hiddenCols.clear(); }
+  else if(name==="__custom" && customPreset){ const show=new Set(customPreset); hiddenCols=new Set(COLS.filter(c=>!show.has(c))); }
+  else if(PRESETS[name]){ const show=new Set(PRESETS[name]); hiddenCols=new Set(COLS.filter(c=>!show.has(c))); }
+  persistUI(); render(); openColPop(document.getElementById("btnCols"));
+}
+function saveCustomPreset(){
+  customPreset = COLS.filter(c=>!hiddenCols.has(c));
+  persistUI(); render(); openColPop(document.getElementById("btnCols"));
+  toast("현재 컬럼 구성을 '내 프리셋'으로 저장했습니다","ok");
+}
 document.getElementById("colpop").addEventListener("change", e=>{
-  const cb = e.target.closest("[data-col]"); if(!cb) return;
-  const c = cb.dataset.col;
-  if(cb.checked) hiddenCols.delete(c); else hiddenCols.add(c);
-  persistUI(); render();
+  const cb = e.target.closest("[data-col]");
+  if(cb){ const c=cb.dataset.col; if(cb.checked) hiddenCols.delete(c); else hiddenCols.add(c); persistUI(); render(); return; }
+  const w = e.target.closest("[data-wcol]");
+  if(w){
+    const c=w.dataset.wcol, v=parseInt(w.value,10);
+    if(v>=3 && v<=90) colWidths[c]=v; else delete colWidths[c];
+    persistUI(); render(); return;
+  }
+});
+document.getElementById("colpop").addEventListener("click", e=>{
+  const pb = e.target.closest(".cp-preset"); if(!pb) return;
+  applyPreset(pb.dataset.preset);
 });
 
 /* ── 인라인 선택 드롭다운(상세구분·구분·책임·개발자) ── */
@@ -2698,7 +2747,7 @@ function applyUI(){
   if(bd){ bd.classList.toggle("on", uiDensity==="compact");
           bd.title = uiDensity==="compact" ? "행 간격을 넓게" : "행 간격을 좁게"; }
 }
-function persistUI(){ idbSet("ui",{theme:uiTheme, density:uiDensity, hiddenCols:[...hiddenCols]}); }
+function persistUI(){ idbSet("ui",{theme:uiTheme, density:uiDensity, hiddenCols:[...hiddenCols], colWidths, customPreset}); }
 function toggleTheme(){ uiTheme = uiTheme==="dark" ? "light" : "dark"; applyUI(); persistUI(); }
 function toggleDensity(){ uiDensity = uiDensity==="compact" ? "normal" : "compact"; applyUI(); persistUI(); }
 
@@ -2725,6 +2774,8 @@ async function restoreSettings(){
     uiTheme   = ui.theme==="dark" ? "dark" : "light";
     uiDensity = ui.density==="compact" ? "compact" : "normal";
     if(Array.isArray(ui.hiddenCols)) hiddenCols = new Set(ui.hiddenCols.filter(c=>COLS.includes(c)));
+    if(ui.colWidths && typeof ui.colWidths==="object"){ colWidths = {}; for(const c of COLS) if(ui.colWidths[c]) colWidths[c]=ui.colWidths[c]; }
+    if(Array.isArray(ui.customPreset)) customPreset = ui.customPreset.filter(c=>COLS.includes(c));
   }
   applyUI();
   const saved = await idbGet("loc");

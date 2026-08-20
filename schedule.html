@@ -201,6 +201,7 @@
   #nmodal .nm-foot .btn{margin-left:auto;}
   #nmodal .nm-ov{border-top:2px solid var(--line); margin-top:2px;}
   #nmodal .nm-ovh{padding:11px 18px 7px; font-size:13px; font-weight:700; color:var(--danger);}
+  #nmodal .nm-ovh.alt{color:var(--accent);}
   #nmodal .nm-ovsub{font-size:11px; font-weight:400; color:var(--ink-soft); margin-left:4px;}
   #ovSec thead th{position:static;}
   .nm-empty{padding:40px; text-align:center; color:var(--ink-soft);}
@@ -741,6 +742,13 @@
         <table>
           <thead><tr><th>No</th><th>제목</th><th>상세구분</th><th>개발완료예정</th><th>지연</th></tr></thead>
           <tbody id="ovtbody"></tbody>
+        </table>
+      </div>
+      <div id="dueAllSec" class="nm-ov" hidden>
+        <div class="nm-ovh alt">📅 개발완료예정 일정 <span class="nm-ovsub">(중요 외 · 완료·미진행 제외 · 마감일 순)</span><span id="dueAllCnt"></span></div>
+        <table>
+          <thead><tr><th>No</th><th>제목</th><th>상세구분</th><th>개발완료예정</th><th>D-day</th></tr></thead>
+          <tbody id="dueAlltbody"></tbody>
         </table>
       </div>
     </div>
@@ -2464,6 +2472,7 @@ function renderNoti(){
   ntbody.parentElement.style.display = list.length? "" : "none";
   cntNoti.textContent = ` ${notiCount().toLocaleString()}`;
   renderOverdue();
+  renderDueAll();
 }
 /* 중요 표시 안 된 지연 일정(개발완료예정 지남·미완료) 목록 */
 function renderOverdue(){
@@ -2494,7 +2503,41 @@ function renderOverdue(){
   }
   tb.innerHTML = h.join("");
 }
+/* 개발완료예정이 있는 일정 전체(완료·미진행 제외 · 마감일 순) */
+function renderDueAll(){
+  const sec=document.getElementById("dueAllSec"), tb=document.getElementById("dueAlltbody");
+  const EXCLUDE=new Set(["완료","미진행"]);
+  const list=[];
+  for(let i=0;i<data.length;i++){
+    if(data[i].imp) continue;                              // 중요(★)는 위 중요일정 목록에 이미 있음
+    if(!parseYmd(data[i]["개발완료예정"])) continue;          // 개발완료예정이 있는 것만
+    if(EXCLUDE.has(String(data[i]["상세구분"]??"").trim())) continue;
+    list.push(i);
+  }
+  list.sort((a,b)=> (toNum(data[a]["개발완료예정"])||0) - (toNum(data[b]["개발완료예정"])||0));
+  document.getElementById("dueAllCnt").textContent = ` ${list.length}`;
+  if(!list.length){ sec.hidden=true; tb.innerHTML=""; return; }
+  sec.hidden=false;
+  const h=[];
+  for(const i of list){
+    const r=data[i], di=dueInfo(r);
+    const overdue = di.has && di.days<0;
+    const st=String(r["상세구분"]??"").trim();
+    const badge=STATUS_BADGE.has(st)?`<span class="badge b-${st}">${esc(st)}</span>`:esc(st);
+    h.push(`<tr class="${overdue?'overdue':''}">
+      <td class="center noti-go" data-goto="${i}" title="알림을 닫고 이 업무로 이동">${esc(r.No??"")}</td>
+      <td>${esc(evTitle(r))}</td>
+      <td class="center">${badge}</td>
+      <td class="center${overdue?' due-hot':''}">${esc(r["개발완료예정"]??"")}</td>
+      <td class="center">${di.has?di.label:""}</td></tr>`);
+  }
+  tb.innerHTML = h.join("");
+}
 document.getElementById("ovtbody").addEventListener("click", e=>{
+  const go = e.target.closest("[data-goto]");
+  if(go){ closeNoti(); gotoRow(+go.dataset.goto); }
+});
+document.getElementById("dueAlltbody").addEventListener("click", e=>{
   const go = e.target.closest("[data-goto]");
   if(go){ closeNoti(); gotoRow(+go.dataset.goto); }
 });

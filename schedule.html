@@ -776,6 +776,7 @@
       <ul>
         <li><b>[저장 위치 설정]</b>에서 폴더를 한 번 지정하면(권장: <code>E:\_work\_github\link-vault</code> <button class="btn" onclick="copyPath()" style="padding:1px 8px;font-size:11px;">경로 복사</button>) 이후 <b>[데이터 저장]</b>은 대화창 없이 그 폴더에 바로 저장됩니다. <b>5분마다 변경사항이 있으면 자동 저장</b>됩니다.</li>
         <li>저장할 때마다 직전 파일이 <b>_백업1 ~ _백업5</b>로 순환 보관됩니다(백업1이 가장 최신 이전본). 실수로 잘못 저장해도 백업 파일을 [데이터 불러오기]로 열어 복구할 수 있습니다.</li>
+        <li>여기에 더해 <b>날짜별 백업</b>도 하루에 하나 보관됩니다. 그날 처음 저장(또는 불러오기)할 때 <code>일정관리_data_YYYYMMDD.json</code>이 없으면 만들고, 이미 있으면 그대로 둡니다. 순환 백업과 달리 <b>날짜별로 계속 남아</b> 특정 날짜 상태로 되돌리기 좋습니다.</li>
         <li><b>엑셀 내보내기/가져오기</b>도 지원합니다. 내보낸 파일은 PROJECT 시트(중요·알림 열 포함)와 중요메모 시트(직접입력 항목)로 구성되며, 다시 가져오면 그대로 복원됩니다.</li>
       </ul>
 
@@ -2006,7 +2007,7 @@ tbody.addEventListener("focusin", e=>{           // 키보드 이동으로 셀 �
 
 /* ── 그리드 셀 편집 ── */
 tbody.addEventListener("focusout", e=>{
-  const el = e.target.closest(".cv"); if(!el) return;
+  const el = e.target.closest(".cv"); if(!el || !el.isConnected) return;   // 재렌더로 사라진 셀은 무시
   const i = +el.dataset.i, c = el.dataset.c;
   if(!data[i]) return;
   let v = clean(el.innerText).replace(/\n+$/,"");
@@ -2311,7 +2312,8 @@ document.getElementById("cellpop").addEventListener("mousedown", e=>{
   e.preventDefault();                              // 셀 blur 방지
   const cv = cellPopTarget; if(!cv) return;
   const i = +cv.dataset.i, c = cv.dataset.c, v = it.dataset.val;
-  if(data[i] && String(data[i][c]??"")!==v){ data[i][c] = v; markDirty(); }
+  if(data[i]){ data[i][c] = v; markDirty(); }
+  cv.textContent = v;                              // 옛 셀 텍스트도 갱신(뒤늦은 focusout이 덮어쓰지 않도록)
   closeCellPop();
   render();
 });
@@ -2776,6 +2778,25 @@ function showPrompt(title, msg, buttons){
 }
 pwrap.addEventListener("mousedown", e=>{ if(e.target===pwrap) pwrap.hidden = true; });
 
+/* ── 일별 백업: 하루에 한 개(일정관리_data_YYYYMMDD.json). 없으면 생성, 있으면 그대로 유지 ── */
+function dateStamp(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`; }
+function dailyBackupName(){ return saveFileName.replace(/\.json$/i,"") + `_${dateStamp()}.json`; }
+async function ensureDailyBackup(text){
+  if(!dirHandle) return false;
+  const name = dailyBackupName();
+  try{
+    await dirHandle.getFileHandle(name, {create:false});
+    return false;                                  // 오늘자 백업이 이미 있으면 그대로 둠
+  }catch(e){ /* 없음 → 생성 */ }
+  try{
+    if(!await ensurePermission(dirHandle, "readwrite")) return false;
+    const fh = await dirHandle.getFileHandle(name, {create:true});
+    const w = await fh.createWritable();
+    await w.write(text); await w.close();
+    return true;                                   // 새로 생성함
+  }catch(e){ return false; }
+}
+
 /* ── 백업: 고정 이름 순환 — 저장 직전의 기존 파일을 _백업1로, 기존 백업들은 1→2→3→4→5로 밀어냄 ── */
 function backupName(n){ return saveFileName.replace(/\.json$/i,"") + `_백업${n}.json`; }
 async function backupThenWrite(text){
@@ -2807,6 +2828,8 @@ async function backupThenWrite(text){
   const fh = await dirHandle.getFileHandle(saveFileName, {create:true});
   const w = await fh.createWritable();
   await w.write(text); await w.close();
+  /* 3) 오늘자 일별 백업 보장(없으면 생성) */
+  await ensureDailyBackup(text);
 }
 
 async function saveJson(){
@@ -2827,7 +2850,7 @@ async function saveJson(){
       }
       await backupThenWrite(text);
       dirty = false;
-      stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본은 _백업1~${MAX_BACKUPS}로 보관)`;
+      stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본 _백업1~${MAX_BACKUPS} · 오늘자 ${dailyBackupName()} 보관)`;
     toast("저장 완료", "ok");
       return;
     }catch(err){
@@ -2891,6 +2914,7 @@ async function loadJson(){
         const f = await fh.getFile();
         const text = await f.text();
         busy("데이터 불러오는 중…", ()=>{ parseAndApply(text); });
+        ensureDailyBackup(text);                   // 불러온 시점 데이터로 오늘자 백업 보장
         return;
       }
     }catch(err){

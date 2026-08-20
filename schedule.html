@@ -99,7 +99,7 @@
   td.wrap{white-space:pre-wrap; min-width:220px; max-width:420px; word-break:break-word;}
   td.nowrap{white-space:nowrap;}
   /* 셀 내용 래퍼: 기본은 2줄까지만 보이고, 행을 클릭(.expanded)하면 전체 높이로 펼쳐짐 */
-  .cv{outline:none; min-height:1.4em; overflow-wrap:anywhere;}
+  .cv{outline:none; min-height:1.4em; overflow-wrap:anywhere; max-width:44ch;}
   tbody tr:not(.expanded) td .cv{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
   }
@@ -937,7 +937,8 @@ const COLS = ["CODEHIDDEN","CODE","PROJECT","No","제목","내용","요청","접
               "책임","개발자","개발시작","개발완료예정","개발완료","배포일자","비고","공수day","연계"];
 const WRAP  = new Set(["제목","내용","비고","연계"]);
 /* 컬럼별 기본 최대 폭(문자수). 넘치면 줄바꿈(2줄)되고, 행을 펼치거나 마우스를 올리면 전체가 보임 */
-const COLW  = { CODEHIDDEN:32, CODE:11, PROJECT:12, 제목:42, 내용:48, 요청:8, 접수:8, 책임:8, 개발자:9, 비고:32, 연계:24 };
+const COLW  = { CODEHIDDEN:32, CODE:11, PROJECT:12, 제목:42, 내용:48, 요청:8, 접수:8, 책임:8, 개발자:9, 비고:32, 연계:24,
+  접수일자:12, 개발시작:12, 개발완료예정:13, 개발완료:12, 배포일자:12, No:7, 공수day:7, 구분:8, 상세구분:8 };
 let colWidths = {};                              // 사용자가 [열]에서 직접 지정한 폭(우선)
 /* 컬럼 프리셋: 표시할 컬럼 목록(나머지는 숨김) */
 const PRESETS = {
@@ -1182,7 +1183,7 @@ function cellHtml(r, i, c){
   if(c==="개발완료예정"){
     const di = dueInfo(r);
     const badge = di.has ? `<span class="dday ${di.cls}" title="개발완료예정 기준 남은 기간">${di.label}</span>` : "";
-    return `<td class="${cls}"><div class="cv" contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div>${badge}</td>`;
+    return `<td class="${cls}"><div class="cv${clip}"${capStyle}${titleAttr} contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div>${badge}</td>`;
   }
   return `<td class="${cls}"><div class="cv${clip}"${capStyle}${titleAttr} contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div></td>`;
 }
@@ -2240,8 +2241,9 @@ async function doorayFill(i, url, taskId){
 }
 tbody.addEventListener("keydown", e=>{
   const el = e.target.closest(".cv"); if(!el) return;
-  if(e.key==="Enter" && !e.shiftKey && !WRAP.has(el.dataset.c)){
-    e.preventDefault(); el.blur();
+  if(e.key==="Enter" && !WRAP.has(el.dataset.c)){   // 날짜·코드 등 짧은 필드: 줄바꿈 금지
+    e.preventDefault();
+    if(!e.shiftKey) el.blur();                       // 일반 Enter만 편집 종료, Shift+Enter는 무시(계속 입력)
   }
   if(e.key==="Escape"){ e.preventDefault(); el.blur(); }
 });

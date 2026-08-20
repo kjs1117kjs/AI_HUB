@@ -611,6 +611,12 @@
   #bulkbar button:hover{background:rgba(255,255,255,.34);}
   #bulkbar button.danger{background:#fff; color:var(--danger);}
   #bulkbar select{background:#fff; color:var(--ink); font-weight:600;}
+  #bulkbar .bulk-grp{display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.14); border-radius:7px; padding:4px 7px;}
+  #bulkbar .bulk-input{width:130px; font-family:inherit; font-size:12px; border:0; border-radius:5px; padding:5px 9px; background:#fff; color:var(--ink);}
+  #bulkbar .bulk-input:disabled{background:rgba(255,255,255,.4);}
+  #bulkbar .bulk-chk{display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:#fff; cursor:pointer; white-space:nowrap;}
+  #bulkbar .bulk-grp button{background:#fff; color:var(--accent);}
+  #bulkbar .bulk-grp button:hover{background:#eef7f3;}
   #bulkbar .sp{margin-left:auto; background:transparent; border:1px solid rgba(255,255,255,.5);}
 
   /* ── 컬럼 표시/숨김 팝업 ── */
@@ -687,11 +693,14 @@
 
 <div id="bulkbar" hidden>
   <span class="bulk-n"><b id="bulkCnt">0</b>건 선택됨</span>
-  <select id="bulkStatus" onchange="bulkStatus(this.value)" title="선택 항목 상태 일괄 변경">
-    <option value="">상태 변경…</option>
-    <option>접수</option><option>진행</option><option>완료</option><option>대기</option><option>보류</option>
-  </select>
-  <button onclick="bulkImp(true)">★ 중요 표시</button>
+  <span class="bulk-grp">
+    <select id="bulkCol" onchange="onBulkColChange()" title="일괄 변경할 컬럼"><option value="">컬럼 선택…</option></select>
+    <input id="bulkVal" list="bulkValList" class="bulk-input" placeholder="값 입력">
+    <datalist id="bulkValList"></datalist>
+    <label class="bulk-chk"><input type="checkbox" id="bulkClearChk" onchange="onBulkClearToggle()"> 비우기</label>
+    <button onclick="bulkSetColumn()">적용</button>
+  </span>
+  <button onclick="bulkImp(true)">★ 중요</button>
   <button onclick="bulkImp(false)">중요 해제</button>
   <button onclick="bulkDuplicate()">⧉ 복제</button>
   <button class="danger" onclick="bulkDelete()">🗑 삭제</button>
@@ -2308,13 +2317,49 @@ function updateBulkbar(){
   if(cnt) cnt.textContent = selected.size;
   if(bar) bar.hidden = (selected.size===0 || view!=="table");
 }
-function bulkStatus(v){
-  if(!v || !selected.size) return;
+/* 컬럼 일괄 변경 (No 제외 모든 컬럼) */
+const RISKY_COLS = new Set(["제목","내용","CODE","CODEHIDDEN","연계"]);  // 건마다 고유 → 덮어쓰기 경고
+function fillBulkColOptions(){
+  const sel = document.getElementById("bulkCol"); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">컬럼 선택…</option>` + COLS.filter(c=>c!=="No").map(c=>`<option${c===cur?" selected":""}>${esc(c)}</option>`).join("");
+}
+function onBulkColChange(){
+  const col = document.getElementById("bulkCol").value;
+  const dl = document.getElementById("bulkValList");
+  const inp = document.getElementById("bulkVal");
+  dl.innerHTML = col ? colValues(col).map(v=>`<option value="${esc(v)}">`).join("") : "";
+  inp.placeholder = DATES.has(col) ? "YYYYMMDD" : (col ? `${col} 값 입력` : "값 입력");
+}
+function onBulkClearToggle(){
+  const clear = document.getElementById("bulkClearChk").checked;
+  const inp = document.getElementById("bulkVal");
+  inp.disabled = clear;
+  inp.style.opacity = clear ? .5 : 1;
+}
+function bulkSetColumn(){
+  if(!selected.size){ toast("선택된 행이 없습니다","err"); return; }
+  const col = document.getElementById("bulkCol").value;
+  if(!col){ toast("변경할 컬럼을 먼저 선택하세요","err"); return; }
+  const clearMode = document.getElementById("bulkClearChk").checked;
+  let val = clearMode ? "" : document.getElementById("bulkVal").value.trim();
   const n = selected.size;
-  for(const i of selected) if(data[i]) data[i]["상세구분"] = v;
+
+  let msg = clearMode
+    ? `선택한 ${n}건의 [${col}] 값을 모두 비웁니다(빈 값).`
+    : `선택한 ${n}건의 [${col}]을(를) 다음 값으로 일괄 변경합니다:\n\n    "${val}"`;
+  if(RISKY_COLS.has(col)){
+    msg += `\n\n⚠ 주의: [${col}]은(는) 보통 건마다 다른 고유·중요 값입니다.\n모두 같은 값으로 덮어쓰면 원래 값이 사라집니다.`;
+  }
+  msg += `\n\n(되돌리기 Ctrl+Z 로 취소할 수 있습니다)\n계속할까요?`;
+  if(!confirm(msg)) return;
+
+  let v = val;
+  if(NUMS.has(col) && v!=="" && !isNaN(v)) v = Number(v);
+  for(const i of selected) if(data[i]) data[i][col] = v;
   markDirty(); render();
-  toast(`${n}건 상태를 '${v}'로 변경`, "ok");
-  document.getElementById("bulkStatus").value = "";
+  document.getElementById("bulkVal").value = "";
+  toast(`${n}건의 ${col} ${clearMode?"비움":"변경"} 완료`, "ok");
 }
 function bulkImp(on){
   if(!selected.size) return;
@@ -3246,6 +3291,7 @@ async function exportExcel(filteredOnly){
 
 render();
 resetHistory();
+fillBulkColOptions();
 restoreSettings();
 </script>
 </body>

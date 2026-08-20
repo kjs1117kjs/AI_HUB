@@ -693,6 +693,7 @@
 
 <div id="bulkbar" hidden>
   <span class="bulk-n"><b id="bulkCnt">0</b>건 선택됨</span>
+  <button class="ghost" onclick="selectAllFiltered()" title="필터·검색으로 걸러진 모든 페이지의 항목을 선택">☑ 필터 전체 선택</button>
   <span class="bulk-grp">
     <select id="bulkCol" onchange="onBulkColChange()" title="일괄 변경할 컬럼"><option value="">컬럼 선택…</option></select>
     <input id="bulkVal" list="bulkValList" class="bulk-input" placeholder="값 입력">
@@ -1159,7 +1160,7 @@ function visibleRows(excludeCol){
 
 /* ── 헤더 + 렌더링 ── */
 function buildHead(){
-  const h = [`<th class="selcol"><input type="checkbox" id="selAll" title="현재 목록 전체 선택/해제"></th>`,
+  const h = [`<th class="selcol"><input type="checkbox" id="selAll" title="현재 페이지 전체 선택/해제"></th>`,
              `<th title="중요일정 표시">★</th>`];
   for(const c of visCols()){
     h.push(`<th>${esc(c)}<button class="flt ${filterActive(c)?"on":""}" data-c="${esc(c)}" title="${esc(c)} 필터">▾</button></th>`);
@@ -2300,8 +2301,11 @@ tbody.addEventListener("change", e=>{
 headRow.addEventListener("change", e=>{
   if(e.target.id!=="selAll") return;
   const rows = visibleRows();
-  if(e.target.checked) rows.forEach(i=>selected.add(i));
-  else rows.forEach(i=>selected.delete(i));
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pg = Math.min(Math.max(1,page), totalPages);
+  const pageRows = rows.slice((pg-1)*pageSize, (pg-1)*pageSize + pageSize);   // 현재 화면(페이지)만
+  if(e.target.checked) pageRows.forEach(i=>selected.add(i));
+  else pageRows.forEach(i=>selected.delete(i));
   render();
 });
 function syncSelAll(){
@@ -2388,6 +2392,12 @@ function bulkDuplicate(){
   toast(`${n}건 복제`, "ok");
 }
 function bulkClear(){ selected.clear(); activeRowIdx=null; render(); }
+function selectAllFiltered(){
+  const rows = visibleRows();
+  rows.forEach(i=>selected.add(i));
+  render();
+  toast(`필터된 전체 ${rows.length.toLocaleString()}건 선택`, "ok");
+}
 
 /* ── 컬럼 표시/숨김 팝업 ── */
 function openColPop(anchor){

@@ -935,6 +935,7 @@
     </label>
   </span>
   <span id="stat"></span>
+  <span id="lastSaved" title="이 데이터를 마지막으로 저장한 시각입니다. 저장·자동저장 시 갱신되고, 데이터를 불러오면 그 파일의 저장 시각을 표시합니다.">마지막 저장: —</span>
   <span>파일: <span id="fileName">(지정 안 됨)</span></span>
   <span id="idleLeft" title="화면 동작이 없으면 이 시간 뒤 중요알림이 자동으로 표시됩니다. 마우스·키보드를 움직이면 다시 5분부터 셉니다."></span>
   <span class="hint">★ 등록 또는 [직접입력]으로 중요일정 알림을 관리하세요</span>
@@ -2951,6 +2952,16 @@ function payload(){
     count:data.length, rows:data, memos:memos
   });
 }
+/* ── 맨 아래 '마지막 저장' 표시 갱신 ── */
+function setLastSaved(iso){
+  const el = document.getElementById("lastSaved");
+  if(!el) return;
+  const d = iso ? new Date(iso) : new Date();
+  if(isNaN(d)){ el.textContent = "마지막 저장: —"; return; }
+  const p = n => String(n).padStart(2,"0");
+  el.textContent = `마지막 저장: ${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} `
+                 + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
 function fallbackDownload(content, name, mime){
   const blob = new Blob([content], {type:mime});
   const a = document.createElement("a");
@@ -3080,6 +3091,7 @@ async function saveJson(){
       }
       await backupThenWrite(text);
       dirty = false;
+      setLastSaved();
       stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본 _백업1~${MAX_BACKUPS} · 오늘자 ${dailyBackupName()} 보관)`;
     toast("저장 완료", "ok");
       return;
@@ -3091,6 +3103,7 @@ async function saveJson(){
   /* 3) 대체: 다운로드 */
   fallbackDownload(text, `일정관리_data_${stamp()}.json`, "application/json;charset=utf-8");
   dirty = false;
+  setLastSaved();
   stat.textContent = `다운로드 폴더에 저장했습니다 (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건).`;
 }
 
@@ -3123,6 +3136,7 @@ async function autoSave(){
     }
     await backupThenWrite(payload());
     dirty = false;
+    setLastSaved();
     const t = new Date(), p=n=>String(n).padStart(2,"0");
     stat.textContent = `자동 저장 완료 ${p(t.getHours())}:${p(t.getMinutes())} — ${locLabel()} (이전본은 _백업1~${MAX_BACKUPS}로 보관)`;
     toast(`자동 저장됨 ${p(t.getHours())}:${p(t.getMinutes())}`, "ok");
@@ -3185,6 +3199,7 @@ function parseAndApply(text){
     ? parsed.memos.filter(m=>m && typeof m==="object").map(normMemo) : [];
   if(!rows.length && !newMemos.length){ alert("불러올 데이터가 없습니다."); return false; }
   applyImport(rows, newMemos, "데이터");
+  if(!Array.isArray(parsed) && parsed.savedAt) setLastSaved(parsed.savedAt);
   return true;
 }
 

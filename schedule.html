@@ -2126,18 +2126,31 @@ tbody.addEventListener("paste", e=>{
   const el = e.target.closest(".cv"); if(!el) return;
   e.preventDefault();
   const t = clean((e.clipboardData || window.clipboardData).getData("text"));
-  /* 북마클릿([DOORAY업무] 형식)으로 복사한 내용을 CODE 칸에 붙여넣으면 자동 분배 */
-  if(el.dataset.c === "CODE" && t.trimStart().startsWith("[DOORAY업무]")){
-    applyDoorayText(+el.dataset.i, t);
-    el.blur();
+  const i = +el.dataset.i, c = el.dataset.c;
+  if(!data[i]) return;
+
+  /* ── CODE 칸: 커서 위치에 끼워넣지 않고 값 전체를 붙여넣은 내용으로 통째 교체 ──
+     화면(DOM)이 아니라 데이터 모델(data[i].CODE)에 바로 쓰고 즉시 재렌더하여
+     "가운데 끼어듦" / "기존 링크 소실" 같은 desync 버그를 원천 차단한다. */
+  if(c === "CODE"){
+    /* 두레이복사([DOORAY업무]) 블록이면 기존대로 각 칸 자동 분배 */
+    if(t.trimStart().startsWith("[DOORAY업무]")){
+      applyDoorayText(i, t);            // 내부에서 data 갱신 + render()
+      return;
+    }
+    const val = t.replace(/\n+/g, " ").trim();   // CODE는 한 줄
+    if(val === ""){ el.blur(); return; }          // 빈 붙여넣기는 기존 값 보존
+    data[i].CODE = val;                           // 통째 교체
+    markDirty();
+    render();                                     // 옛 셀은 여기서 분리 → stale 커밋 방지
+    const m = val.match(/^https?:\/\/([\w.-]+)\.dooray\.com\/(?:project\/)?(?:tasks|posts)\/(\d+)/);
+    if(m) doorayFill(i, val, m[2]);               // 링크면 제목·내용·요청 자동 입력 시도
+    else  stat.textContent = "CODE 붙여넣기 완료 — 5분 내 자동 저장됩니다";
     return;
   }
+
+  /* 그 외 칸: 기존처럼 커서 위치에 삽입 */
   document.execCommand("insertText", false, t);
-  /* CODE 칸에 두레이 업무 링크를 붙여넣으면 제목·내용·요청 자동 입력 */
-  if(el.dataset.c === "CODE"){
-    const m = t.trim().match(/^https?:\/\/([\w.-]+)\.dooray\.com\/(?:project\/)?(?:tasks|posts)\/(\d+)/);
-    if(m) doorayFill(+el.dataset.i, t.trim(), m[2]);
-  }
 });
 
 /* 북마클릿으로 복사된 텍스트 파싱

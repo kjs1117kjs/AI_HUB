@@ -2105,10 +2105,17 @@ tbody.addEventListener("focusin", e=>{           // 키보드 이동으로 셀 �
 });
 
 /* ── 그리드 셀 편집 ── */
+/* 사용자가 실제로 셀 내용을 편집하면 표시해 둔다(엉뚱한 포커스 이동으로 인한 빈 값 저장 방지) */
+tbody.addEventListener("input", e=>{
+  const cv = e.target.closest(".cv"); if(cv) cv.dataset.uedit = "1";
+});
 tbody.addEventListener("focusout", e=>{
   const el = e.target.closest(".cv"); if(!el || !el.isConnected) return;   // 재렌더로 사라진 셀은 무시
   const i = +el.dataset.i, c = el.dataset.c;
   if(!data[i]) return;
+  const edited = el.dataset.uedit === "1";   // 이 셀을 사용자가 직접 편집했는지
+  delete el.dataset.uedit;
+  if(!edited) return;                        // 편집 안 한 셀은 저장하지 않음 → 값 유실 방지
   let v = clean(el.innerText).replace(/\n+$/,"");
   if(!WRAP.has(c)) v = v.replace(/\n/g," ").trim();
   if(NUMS.has(c) && v!=="" && !isNaN(v)) v = Number(v);

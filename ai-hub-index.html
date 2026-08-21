@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI HUB</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --bg:#141414;
+    --surface-1:#1e1e1e;
+    --ink:#f2f2f2;
+    --ink-2:#d4d4d4;
+    --ink-3:#a8a8a8;
+    --ink-4:#828282;
+    --ink-5:#5f5f5f;
+    --line-soft:#2e2e2e;
+    --accent:#3d9bff;
+    --font:"Pretendard",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:var(--font); font-weight:500; color:var(--ink-2);
+    background:var(--bg); line-height:1.6;
+    word-break:keep-all; overflow-wrap:break-word;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:"tnum";
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:64px 24px 96px; }
+
+  header{ border-bottom:1px solid var(--line-soft); padding-bottom:28px; margin-bottom:12px; }
+  .eyebrow{
+    font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--ink-4); font-weight:600; margin-bottom:10px;
+  }
+  h1{ font-size:40px; font-weight:700; letter-spacing:-0.02em; line-height:1.15; color:var(--ink); }
+  .sub{ margin-top:14px; font-size:15px; color:var(--ink-3); }
+  .count{ font-weight:700; color:var(--ink); }
+
+  .group-label{
+    font-size:12px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--ink-4); font-weight:600;
+    margin-top:36px; margin-bottom:4px; padding-left:4px;
+  }
+
+  ul{ list-style:none; }
+  li a{
+    display:grid; grid-template-columns:auto 1fr auto; align-items:start; gap:18px;
+    padding:22px 4px; border-bottom:1px solid var(--line-soft);
+    text-decoration:none; color:var(--ink-2);
+    transition:background 200ms cubic-bezier(0.32,0.72,0,1), padding 200ms cubic-bezier(0.32,0.72,0,1);
+  }
+  li a:hover{ background:var(--surface-1); padding-left:12px; padding-right:12px; }
+  .num{
+    font-size:13px; font-weight:700; color:var(--ink-5);
+    font-feature-settings:"tnum"; min-width:26px; padding-top:2px;
+  }
+  .body{ min-width:0; }
+  .name{ font-size:16px; font-weight:700; color:var(--ink); }
+  .badge{
+    display:inline-block; margin-left:8px; padding:2px 8px; border-radius:5px;
+    font-size:11px; font-weight:600; letter-spacing:0.02em; vertical-align:middle;
+    background:var(--surface-1); color:var(--ink-3); border:1px solid var(--line-soft);
+  }
+  .badge.base{ background:rgba(61,155,255,0.14); color:var(--accent); border-color:transparent; }
+  .badge.latest{ background:rgba(1,200,110,0.14); color:#2bd682; border-color:transparent; }
+  .desc{ margin-top:6px; font-size:13.5px; color:var(--ink-3); line-height:1.55; }
+  .file{
+    margin-top:8px; font-size:12px; color:var(--ink-5);
+    font-feature-settings:"tnum"; word-break:break-all;
+  }
+  .arrow{
+    font-size:16px; color:var(--ink-5); padding-top:2px;
+    transition:transform 200ms cubic-bezier(0.32,0.72,0,1), color 200ms;
+  }
+  li a:hover .arrow{ color:var(--accent); transform:translateX(3px); }
+
+  footer{ margin-top:56px; font-size:12px; color:var(--ink-5); }
+
+  /* 이전 버전 접기/펼치기 */
+  details.oldver{ margin-top:20px; }
+  details.oldver > summary{
+    list-style:none; cursor:pointer; user-select:none;
+    display:flex; align-items:center; gap:8px;
+    padding:12px 4px; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
+    font-size:13px; font-weight:600; color:var(--ink-3);
+    transition:color 200ms;
+  }
+  details.oldver > summary::-webkit-details-marker{ display:none; }
+  details.oldver > summary:hover{ color:var(--ink); }
+  details.oldver > summary .chev{
+    font-size:11px; color:var(--ink-5);
+    transition:transform 200ms cubic-bezier(0.32,0.72,0,1);
+  }
+  details.oldver[open] > summary .chev{ transform:rotate(90deg); }
+  details.oldver > summary .cnt{
+    margin-left:auto; font-size:11px; font-weight:600; color:var(--ink-5);
+    background:var(--surface-1); border:1px solid var(--line-soft); border-radius:10px; padding:2px 9px;
+  }
+  details.oldver > summary .open-txt{ display:none; }
+  details.oldver[open] > summary .open-txt{ display:inline; }
+  details.oldver[open] > summary .closed-txt{ display:none; }
+  details.oldver ul{ margin-top:4px; }
+
+  @media(max-width:520px){
+    .wrap{ padding:48px 20px 72px; }
+    h1{ font-size:30px; }
+    li a{ gap:12px; }
+    .name{ font-size:15px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Document Hub</div>
+      <h1>AI HUB</h1>
+      <p class="sub">사내 화면 도구 모음 · 총 <span class="count">25</span>건. <b style="color:var(--ink);">조회화면 구성기</b>(조회 화면 설계)와 <b style="color:var(--ink);">화면 빌더</b>(홈페이지형 화면 조립) 두 도구의 버전과 사용설명서를 담았습니다. 각 도구의 최신 버전이 그룹 맨 위에 있고, 이전 버전은 접혀 있습니다.</p>
+    </header>
+
+    <div class="group-label">주요 도구</div>
+    <ul>
+      <li><a href="link-vault.html" target="_blank" rel="noopener">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">링크 조회 (Link Vault)</span>
+          <span class="desc">번호와 비밀번호로 보호된 링크를 조회하는 공유용 화면입니다. 공유 링크(?n=번호)로 들어오면 비밀번호 입력창이 바로 열립니다.</span>
+          <span class="file">link-vault.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+      <li><a href="link-vault-admin.html" target="_blank" rel="noopener">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">링크 관리 (Link Vault Admin)<span class="badge">ADMIN</span></span>
+          <span class="desc">링크 등록·수정과 links.json 생성, 공유 링크 복사, 페이지 암호화(HTML·이미지)를 관리하는 화면입니다. 사용 가이드 내장.</span>
+          <span class="file">link-vault-admin.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+      <li><a href="ai-popup-hub.html" target="_blank" rel="noopener">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">AI 팝업 허브</span>
+          <span class="desc">AI 팝업 관련 도구 모음 페이지입니다.</span>
+          <span class="file">ai-popup-hub.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+      <li><a href="__CREATE_HTML_GUIDE.html" target="_blank" rel="noopener">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">조회화면 구성기 사용설명서<span class="badge">GUIDE</span></span>
+          <span class="desc">구성기 사용법 전체 안내. 조회조건·컬럼·패널·팝업 연결 방법과 자주 쓰는 구성 레시피, FAQ를 담았습니다.</span>
+          <span class="file">__CREATE_HTML_GUIDE.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+      <li><a href="__PAGE_BUILDER_GUIDE.html" target="_blank" rel="noopener">
+        <span class="num">&#9733;</span>
+        <span class="body">
+          <span class="name">화면 빌더 사용설명서<span class="badge">GUIDE</span></span>
+          <span class="desc">화면 빌더 사용법 전체 안내. 페이지·링크 연결, 블록 20종, 표→그래프 연동, 주석·화면정의서·HTML 내보내기와 FAQ를 담았습니다.</span>
+          <span class="file">__PAGE_BUILDER_GUIDE.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+    </ul>
+
+    <div class="group-label">화면 빌더 · 버전별</div>
+    <ul>
+      <li><a href="__PAGE_BUILDER_009.html" target="_blank" rel="noopener">
+        <span class="num">09</span>
+        <span class="body">
+          <span class="name">화면 빌더 — 블록 20종 · 예시 템플릿 30종<span class="badge latest">LATEST</span></span>
+          <span class="desc">홈페이지 형태의 화면을 블록 조립으로 만드는 도구의 최신판. 다중 페이지와 이름 매칭 링크(메뉴·버튼·사이드메뉴), 블록 20종(배너·검색창·뉴스·요금제·FAQ·표·그래프·타임라인·갤러리·프로필·폼·진행단계 등), 유명 홈페이지 유형을 본뜬 예시 템플릿 30종, 주석(📌)·화면정의서·실동작 HTML 내보내기까지 포함합니다. 실사용은 이 버전을 권장합니다.</span>
+          <span class="file">__PAGE_BUILDER_009.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+    </ul>
+
+    <details class="oldver">
+      <summary>
+        <span class="chev">▶</span>
+        <span class="closed-txt">화면 빌더 이전 버전 보기 (01 ~ 08)</span>
+        <span class="open-txt">화면 빌더 이전 버전 접기</span>
+        <span class="cnt">8건</span>
+      </summary>
+      <ul>
+        <li><a href="__PAGE_BUILDER_008.html" target="_blank" rel="noopener">
+          <span class="num">08</span>
+          <span class="body">
+            <span class="name">블록 확장 2 · 예시 템플릿 10종</span>
+            <span class="desc">검색창·뉴스목록·로고 스트립·요금제·FAQ 블록과 행 배경(밴드) 추가. 유명 홈페이지 유형 예시 10종.</span>
+            <span class="file">__PAGE_BUILDER_008.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_007.html" target="_blank" rel="noopener">
+          <span class="num">07</span>
+          <span class="body">
+            <span class="name">주석 · 화면정의서 · 템플릿</span>
+            <span class="desc">📌 번호 핀 주석(페이지별 · 내보내기 포함), 화면정의서 출력, 시작 템플릿 4종.</span>
+            <span class="file">__PAGE_BUILDER_007.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_006.html" target="_blank" rel="noopener">
+          <span class="num">06</span>
+          <span class="body">
+            <span class="name">데이터 블록 — 표 · 요약카드 · 그래프</span>
+            <span class="desc">직접 편집하는 표, KPI 요약카드, 표를 원본으로 하는 그래프 7종(즉시 반영).</span>
+            <span class="file">__PAGE_BUILDER_006.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_005.html" target="_blank" rel="noopener">
+          <span class="num">05</span>
+          <span class="body">
+            <span class="name">다중 페이지 · 링크</span>
+            <span class="desc">페이지 추가/복제/삭제와 이름 매칭 링크(메뉴·버튼). 내보낸 HTML에서 실제 페이지 이동.</span>
+            <span class="file">__PAGE_BUILDER_005.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_004.html" target="_blank" rel="noopener">
+          <span class="num">04</span>
+          <span class="body">
+            <span class="name">홈페이지 요소 — 메뉴바 · 배너 · 카드 · 푸터</span>
+            <span class="desc">페이지 공통 메뉴바(3톤)와 푸터, 히어로 배너, 아이콘 카드 목록.</span>
+            <span class="file">__PAGE_BUILDER_004.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_003.html" target="_blank" rel="noopener">
+          <span class="num">03</span>
+          <span class="body">
+            <span class="name">기본 블록 확장 · 속성</span>
+            <span class="desc">이미지·버튼(14색)·안내 박스·구분선·여백 블록과 제목/본문 속성(크기·정렬·색).</span>
+            <span class="file">__PAGE_BUILDER_003.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_002.html" target="_blank" rel="noopener">
+          <span class="num">02</span>
+          <span class="body">
+            <span class="name">저장 체계 — 실행취소 · JSON · 내보내기</span>
+            <span class="desc">실행취소/다시실행(60단계), JSON 저장/불러오기, 깨끗한 HTML 내보내기.</span>
+            <span class="file">__PAGE_BUILDER_002.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+        <li><a href="__PAGE_BUILDER_001.html" target="_blank" rel="noopener">
+          <span class="num">01</span>
+          <span class="body">
+            <span class="name">기본형 — 행/열 레이아웃<span class="badge base">BASE</span></span>
+            <span class="desc">행(1~4열) 레이아웃과 제목·본문 블록, 편집/미리보기 전환만 있는 첫 버전.</span>
+            <span class="file">__PAGE_BUILDER_001.html</span>
+          </span>
+          <span class="arrow">&#8594;</span>
+        </a></li>
+      </ul>
+    </details>
+
+    <div class="group-label">조회화면 구성기 · 버전별</div>
+    <ul>
+      <li><a href="__CREATE_HTML_20260716_011.html" target="_blank" rel="noopener">
+        <span class="num">11</span>
+        <span class="body">
+          <span class="name">탭 완전 분리 · 그래프 — 탭 2종 · 그래프 7종 · 조건 위치<span class="badge latest">LATEST</span></span>
+          <span class="desc">맨위 탭마다 조회조건 · 결과 위 탭 · 패널이 전부 독립되는 탭 완전 분리 구조와, 결과 데이터 기반 그래프 7종(막대 · 가로막대 · 누적막대 · 꺾은선 · 영역 · 원형 · 도넛, 위치 · 너비×높이 지정)을 담았습니다. 조건 뒤 버튼(14색) · 선택형 3종(버튼그룹 · 토글 · 다중선택) · 조건 위치 선택(상단 · 엑셀 아래 · 패널 안), 그래프의 저장 · HTML 내보내기 · 화면정의서 반영까지 포함합니다. 실사용은 이 버전을 권장합니다.</span>
+          <span class="file">__CREATE_HTML_20260716_011.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+    </ul>
+
+    <details class="oldver">
+      <summary>
+        <span class="chev">▶</span>
+        <span class="closed-txt">이전 버전 보기 (02 ~ 10 · 기본형 01)</span>
+        <span class="open-txt">이전 버전 접기</span>
+        <span class="cnt">10건</span>
+      </summary>
+    <ul>
+      <li><a href="__CREATE_HTML_20260716_010.html" target="_blank" rel="noopener">
+        <span class="num">10</span>
+        <span class="body">
+          <span class="name">다양한 화면 구성 — 폼 · 카드 · 안내문 · 뱃지<span class="badge">UPGRADE</span></span>
+          <span class="desc">09에 패널 유형 개념을 도입. 조회+그리드를 넘어 폼(입력·상세) 패널, 요약카드(KPI) 패널, 안내문 패널을 조합해 등록 화면 · 마스터-디테일 상세 · 대시보드형 화면까지 만들 수 있습니다. 상태 뱃지 컬럼(값=색 매핑 · 자동 색 판별)과 신규 유형 예시 화면 2종(매출 요약 대시보드 · 회원 등록/상세), 탭별 독립 화면 구성, 내보낸 HTML에서의 탭 전환 · 컬럼 너비 마우스 조절이 추가되었습니다.</span>
+          <span class="file">__CREATE_HTML_20260716_010.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_009.html" target="_blank" rel="noopener">
+        <span class="num">09</span>
+        <span class="body">
+          <span class="name">편집 도우미 · 다중 화면 · 주석<span class="badge">UPGRADE</span></span>
+          <span class="desc">08에 대규모 기능 추가. 드래그 정렬 · 실행취소(Ctrl+Z) · 조건/컬럼/패널 복제 · 컬럼 너비 리사이즈 · 고정컬럼 · 필터행, 그리고 한 파일에서 여러 화면 관리, 화면ID/작성자/버전 메타, 화면 위 주석(📌) 핀 · 텍스트 문구(📝) 표시, 화면정의서(HTML) 내보내기까지 담았습니다.</span>
+          <span class="file">__CREATE_HTML_20260716_009.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_008.html" target="_blank" rel="noopener">
+        <span class="num">08</span>
+        <span class="body">
+          <span class="name">버튼 구성 · 컬럼 일괄 추가<span class="badge">UPGRADE</span></span>
+          <span class="desc">07을 기반으로 조회영역·엑셀영역 버튼을 직접 입력해 구성할 수 있게 확장(기본값 조회/엑셀다운로드). 컬럼명을 쉼표로 나열하면 여러 컬럼이 한 번에 추가되고, 컬럼 너비 기본값은 30입니다.</span>
+          <span class="file">__CREATE_HTML_20260716_008.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_007.html" target="_blank" rel="noopener">
+        <span class="num">07</span>
+        <span class="body">
+          <span class="name">통합본<span class="badge">UPGRADE</span></span>
+          <span class="desc">지금까지의 선택형 조건·팝업·다중 패널·탭·툴바·그룹헤더·합계행을 모두 아우르는 통합 버전입니다.</span>
+          <span class="file">__CREATE_HTML_20260716_007.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_006.html" target="_blank" rel="noopener">
+        <span class="num">06</span>
+        <span class="body">
+          <span class="name">정보팝업 · 그룹헤더 강화<span class="badge">UPGRADE</span></span>
+          <span class="desc">정보 팝업 생성, 합계행 표시, 그룹명 연달아 지정 시 상단 헤더 자동 병합(2줄) 등 결과 표 표현력을 더 끌어올린 버전입니다.</span>
+          <span class="file">__CREATE_HTML_20260716_006.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_005.html" target="_blank" rel="noopener">
+        <span class="num">05</span>
+        <span class="body">
+          <span class="name">탭 · 툴바 화면 구성<span class="badge">UPGRADE</span></span>
+          <span class="desc">상단 탭·툴바 버튼 구성과 링크팝업 컬럼 옵션을 포함. 단일 조회부터 탭 전환 화면까지 한 구성기에서 만들 수 있게 확장되었습니다.</span>
+          <span class="file">__CREATE_HTML_20260716_005.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_004.html" target="_blank" rel="noopener">
+        <span class="num">04</span>
+        <span class="body">
+          <span class="name">패널 구성 안정화<span class="badge">UPGRADE</span></span>
+          <span class="desc">03의 다중 패널 구성을 이어가며 조회조건 패널·컬럼 편집 흐름을 다듬은 버전입니다. 큰 기능 추가보다 구성 완성도를 높였습니다.</span>
+          <span class="file">__CREATE_HTML_20260716_004.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_003.html" target="_blank" rel="noopener">
+        <span class="num">03</span>
+        <span class="body">
+          <span class="name">다중 패널 · 마스터-디테일<span class="badge">UPGRADE</span></span>
+          <span class="desc">단일 조회를 넘어 마스터-디테일(다중 패널) 구조를 지원. 레이아웃·패널 컬럼수 지정, 대상 패널별 컬럼 관리, HTML 내보내기가 들어갔습니다.</span>
+          <span class="file">__CREATE_HTML_20260716_003.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_002.html" target="_blank" rel="noopener">
+        <span class="num">02</span>
+        <span class="body">
+          <span class="name">선택형 조건 · 팝업 확장<span class="badge">UPGRADE</span></span>
+          <span class="desc">기본형에 라디오·체크박스 선택형 조건, 숫자범위, 팝업 구성, 합계행 표시, 그룹헤더(2줄) 병합 기능이 추가된 버전입니다.</span>
+          <span class="file">__CREATE_HTML_20260716_002.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+
+      <li><a href="__CREATE_HTML_20260716_001.html" target="_blank" rel="noopener">
+        <span class="num">01</span>
+        <span class="body">
+          <span class="name">기본형<span class="badge base">BASE</span></span>
+          <span class="desc">가장 단순한 구성. 조회조건(일자·월·텍스트·분류·매장·상품) + 콤보박스 조건 + 결과 컬럼만으로 조회 표를 만드는 기본 버전입니다.</span>
+          <span class="file">__CREATE_HTML_20260716_001.html</span>
+        </span>
+        <span class="arrow">&#8594;</span>
+      </a></li>
+    </ul>
+    </details>
+
+    <footer>AI_HUB · GitHub Pages</footer>
+  </div>
+</body>
+</html>

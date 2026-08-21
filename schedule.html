@@ -323,6 +323,9 @@
   #fileName{color:var(--accent); font-weight:700;}
   #idleLeft{color:#a06a00; font-weight:700; white-space:nowrap;}
   #idleLeft.soon{color:var(--danger);}
+  #saveState{font-weight:700; white-space:nowrap; padding:1px 9px; border-radius:999px; border:1px solid transparent;}
+  #saveState.clean{color:var(--accent); background:var(--accent-soft); border-color:var(--accent-soft);}
+  #saveState.dirty{color:var(--danger); background:transparent; border-color:var(--danger);}
   .hint{margin-left:auto;}
   /* ── 상태 요약 스트립 ── */
   #summary{
@@ -816,7 +819,7 @@
 
       <h3>저장 · 백업</h3>
       <ul>
-        <li><b>[저장 위치 설정]</b>에서 폴더를 한 번 지정하면(권장: <code>E:\_work\_github\link-vault</code> <button class="btn" onclick="copyPath()" style="padding:1px 8px;font-size:11px;">경로 복사</button>) 이후 <b>[데이터 저장]</b>은 대화창 없이 그 폴더에 바로 저장됩니다. <b>5분마다 변경사항이 있으면 자동 저장</b>됩니다.</li>
+        <li><b>[저장 위치 설정]</b>에서 폴더를 한 번 지정하면(권장: <code>E:\_work\_github\link-vault</code> <button class="btn" onclick="copyPath()" style="padding:1px 8px;font-size:11px;">경로 복사</button>) 이후 <b>[데이터 저장]</b>은 대화창 없이 그 폴더에 바로 저장됩니다. <b>자동 저장은 없으므로</b> 변경 후에는 직접 [데이터 저장]을 누르세요. 하단의 <b>✓ 최신 / ● 저장 필요</b> 표시로 저장 여부를 확인할 수 있습니다.</li>
         <li>저장할 때마다 직전 파일이 <b>_백업1 ~ _백업5</b>로 순환 보관됩니다(백업1이 가장 최신 이전본). 실수로 잘못 저장해도 백업 파일을 [데이터 불러오기]로 열어 복구할 수 있습니다.</li>
         <li>여기에 더해 <b>날짜별 백업</b>도 하루에 하나 보관됩니다. 그날 처음 저장(또는 불러오기)할 때 <code>일정관리_data_YYYYMMDD.json</code>이 없으면 만들고, 이미 있으면 그대로 둡니다. 순환 백업과 달리 <b>날짜별로 계속 남아</b> 특정 날짜 상태로 되돌리기 좋습니다.</li>
         <li><b>엑셀 내보내기/가져오기</b>도 지원합니다. 내보낸 파일은 PROJECT 시트(중요·알림 열 포함)와 중요메모 시트(직접입력 항목)로 구성되며, 다시 가져오면 그대로 복원됩니다.</li>
@@ -936,7 +939,8 @@
     </label>
   </span>
   <span id="stat"></span>
-  <span id="lastSaved" title="이 데이터를 마지막으로 저장한 시각입니다. 저장·자동저장 시 갱신되고, 데이터를 불러오면 그 파일의 저장 시각을 표시합니다.">마지막 저장: —</span>
+  <span id="lastSaved" title="이 데이터를 마지막으로 저장한 시각입니다. [데이터 저장] 시 갱신되고, 데이터를 불러오면 그 파일의 저장 시각을 표시합니다.">마지막 저장: —</span>
+  <span id="saveState" class="clean" title="마지막 저장 이후 저장할 변경사항이 있는지 표시합니다.">✓ 최신 (저장할 변경 없음)</span>
   <span>파일: <span id="fileName">(지정 안 됨)</span></span>
   <span id="idleLeft" title="화면 동작이 없으면 이 시간 뒤 중요알림이 자동으로 표시됩니다. 마우스·키보드를 움직이면 다시 5분부터 셉니다."></span>
   <span class="hint">★ 등록 또는 [직접입력]으로 중요일정 알림을 관리하세요</span>
@@ -972,7 +976,6 @@ const BLANK_LABEL = "(빈 값)";
 /* 알림 표시 컬럼 + 직접입력(메모) 컬럼 */
 const NOTI_COLS = ["No","제목","접수일자","상세구분","개발완료예정","개발완료"];
 const IDLE_MS = 5*60*1000;                      // 5분 무동작 → 자동 알림
-const AUTOSAVE_MS = 5*60*1000;                  // 5분마다 변경사항 있으면 자동 저장
 const MAX_BACKUPS = 5;                          // 이전 파일(백업) 보관 개수
 
 let dirty = false;                               // 마지막 저장 이후 변경 여부
@@ -998,6 +1001,7 @@ function restoreTo(idx){
   restoringHistory = false;
   dirty = true;
   updateUndoUI();
+  updateSaveState();
 }
 function undo(){ if(histIdx<=0) return; histIdx--; restoreTo(histIdx); toast("되돌렸습니다", "ok"); }
 function redo(){ if(histIdx>=history.length-1) return; histIdx++; restoreTo(histIdx); toast("다시 실행했습니다", "ok"); }
@@ -1006,7 +1010,7 @@ function updateUndoUI(){
   if(u) u.disabled = histIdx<=0;
   if(r) r.disabled = histIdx>=history.length-1;
 }
-function markDirty(){ dirty = true; pushHistory(); }
+function markDirty(){ dirty = true; pushHistory(); updateSaveState(); }
 
 let tab = "all";
 let view = "table";                              // table / calendar / timeline
@@ -2124,10 +2128,10 @@ tbody.addEventListener("focusout", e=>{
   markDirty();
   if(c==="상세구분" || c==="구분" || c==="개발완료예정"){
     render();                                      // 배지·좌측 컬러바·D-day·요약 스트립 동기화
-    stat.textContent = `수정됨 — 5분 내 자동 저장되며, [데이터 저장]으로 바로 저장할 수도 있습니다`;
+    stat.textContent = `수정됨 — 저장되지 않았습니다. [데이터 저장]으로 저장하세요`;
     return;
   }
-  stat.textContent = `수정됨 — 5분 내 자동 저장되며, [데이터 저장]으로 바로 저장할 수도 있습니다`;
+  stat.textContent = `수정됨 — 저장되지 않았습니다. [데이터 저장]으로 저장하세요`;
 });
 tbody.addEventListener("paste", e=>{
   const el = e.target.closest(".cv"); if(!el) return;
@@ -2152,7 +2156,7 @@ tbody.addEventListener("paste", e=>{
     render();                                     // 옛 셀은 여기서 분리 → stale 커밋 방지
     const m = val.match(/^https?:\/\/([\w.-]+)\.dooray\.com\/(?:project\/)?(?:tasks|posts)\/(\d+)/);
     if(m) doorayFill(i, val, m[2]);               // 링크면 제목·내용·요청 자동 입력 시도
-    else  stat.textContent = "CODE 붙여넣기 완료 — 5분 내 자동 저장됩니다";
+    else  stat.textContent = "CODE 붙여넣기 완료 — 저장되지 않았습니다. [데이터 저장]으로 저장하세요";
     return;
   }
 
@@ -2921,7 +2925,7 @@ async function restoreSettings(){
     /* 화면 시작 시 저장위치 미지정 → 설정 안내 팝업 */
     showPrompt("저장 위치를 지정해주세요",
       `데이터가 저장될 폴더가 아직 지정되지 않았습니다.<br>` +
-      `한 번만 지정해두면 [데이터 저장]과 5분 주기 자동 저장이 모두 그 폴더로 이루어집니다.<br>` +
+      `한 번만 지정해두면 [데이터 저장]이 대화창 없이 그 폴더로 바로 저장됩니다.<br>` +
       `권장 위치: <code>${esc(DEFAULT_PATH_HINT)}</code>`,
       [{label:"나중에"},
        {label:"저장 위치 설정", primary:true, fn:openSettings}]);
@@ -2982,6 +2986,18 @@ function setLastSaved(iso){
   const p = n => String(n).padStart(2,"0");
   el.textContent = `마지막 저장: ${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} `
                  + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+/* ── 마지막 저장 이후 저장할 변경사항이 있는지 표시 ── */
+function updateSaveState(){
+  const el = document.getElementById("saveState");
+  if(!el) return;
+  if(dirty){
+    el.className = "dirty";
+    el.textContent = "● 저장 필요 (변경사항 있음)";
+  }else{
+    el.className = "clean";
+    el.textContent = "✓ 최신 (저장할 변경 없음)";
+  }
 }
 function fallbackDownload(content, name, mime){
   const blob = new Blob([content], {type:mime});
@@ -3113,6 +3129,7 @@ async function saveJson(){
       await backupThenWrite(text);
       dirty = false;
       setLastSaved();
+      updateSaveState();
       stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본 _백업1~${MAX_BACKUPS} · 오늘자 ${dailyBackupName()} 보관)`;
     toast("저장 완료", "ok");
       return;
@@ -3125,45 +3142,12 @@ async function saveJson(){
   fallbackDownload(text, `일정관리_data_${stamp()}.json`, "application/json;charset=utf-8");
   dirty = false;
   setLastSaved();
+  updateSaveState();
   stat.textContent = `다운로드 폴더에 저장했습니다 (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건).`;
 }
 
-/* ── 5분마다 자동 저장 (변경사항이 있을 때만) ── */
-let autoNagShown = false;                        // 미지정 안내를 반복해서 띄우지 않기 위한 플래그
-async function autoSave(){
-  if(!dirty) return;
-  /* 저장 위치 미지정 → 안내 팝업 */
-  if(!dirHandle){
-    if(!autoNagShown && pwrap.hidden && swrap.hidden){
-      autoNagShown = true;
-      showPrompt("자동 저장을 할 수 없습니다",
-        `변경사항이 있지만 저장 위치가 지정되지 않아 자동 저장하지 못했습니다.<br>` +
-        `저장 폴더를 지정하면 5분마다 자동 저장됩니다. (권장: <code>${esc(DEFAULT_PATH_HINT)}</code>)`,
-        [{label:"나중에"},
-         {label:"저장 위치 설정", primary:true, fn:openSettings}]);
-    }
-    return;
-  }
-  try{
-    /* 브라우저 재시작 직후 등 권한 재확인이 필요한 경우: 자동으로는 요청할 수 없어 팝업으로 안내 */
-    if(await dirHandle.queryPermission({mode:"readwrite"}) !== "granted"){
-      if(pwrap.hidden && swrap.hidden){
-        showPrompt("자동 저장 대기 중",
-          `변경사항이 있어 자동 저장하려고 했지만, 브라우저가 폴더 접근 재확인을 요구합니다.<br>아래 버튼을 눌러 허용하면 바로 저장됩니다.`,
-          [{label:"나중에"},
-           {label:"허용하고 저장", primary:true, fn:()=>saveJson()}]);
-      }
-      return;
-    }
-    await backupThenWrite(payload());
-    dirty = false;
-    setLastSaved();
-    const t = new Date(), p=n=>String(n).padStart(2,"0");
-    stat.textContent = `자동 저장 완료 ${p(t.getHours())}:${p(t.getMinutes())} — ${locLabel()} (이전본은 _백업1~${MAX_BACKUPS}로 보관)`;
-    toast(`자동 저장됨 ${p(t.getHours())}:${p(t.getMinutes())}`, "ok");
-  }catch(err){ /* 다음 주기에 재시도 */ }
-}
-setInterval(autoSave, AUTOSAVE_MS);
+/* 자동 저장은 사용하지 않습니다. 변경 후에는 [데이터 저장]으로 직접 저장하세요.
+   (저장 여부는 하단 '최신/저장 필요' 표시로 확인할 수 있습니다.) */
 
 /* 닫기 전 미저장 변경 경고 */
 window.addEventListener("beforeunload", e=>{
@@ -3339,6 +3323,7 @@ render();
 resetHistory();
 fillBulkColOptions();
 restoreSettings();
+updateSaveState();
 </script>
 </body>
 </html>

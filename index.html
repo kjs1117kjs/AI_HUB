@@ -105,20 +105,31 @@
   ul.primary .desc{ margin-top:2px; color:var(--ink-4); }
   ul.primary .arrow{ color:var(--ink-4); }
 
-  /* 자주 쓰는 도구 강조 */
+  /* 자주 쓰는 도구 강조 (1,2) */
   ul.primary li a.hot{
-    border-color:rgba(61,155,255,0.4);
-    background:linear-gradient(180deg, rgba(61,155,255,0.14) 0%, rgba(61,155,255,0.05) 100%);
+    border-color:rgba(61,155,255,0.7);
+    background:linear-gradient(180deg, rgba(61,155,255,0.28) 0%, rgba(61,155,255,0.1) 100%);
+    box-shadow:0 2px 12px rgba(61,155,255,0.15);
   }
   ul.primary li a.hot:hover{
-    border-color:rgba(61,155,255,0.8);
-    background:linear-gradient(180deg, rgba(61,155,255,0.2) 0%, rgba(61,155,255,0.08) 100%);
+    border-color:var(--accent);
+    background:linear-gradient(180deg, rgba(61,155,255,0.36) 0%, rgba(61,155,255,0.14) 100%);
+    box-shadow:0 6px 22px rgba(61,155,255,0.3);
   }
-  ul.primary li a.hot .num{
-    background:var(--accent); color:#fff;
-  }
+  ul.primary li a.hot .num{ background:var(--accent); color:#fff; }
   ul.primary li a.hot .name{ color:#fff; }
+  ul.primary li a.hot .desc{ color:var(--ink-2); }
   ul.primary li a.hot .arrow{ color:var(--accent); }
+
+  /* 거의 안 쓰는 도구 (5,6,7) - 흐리게 */
+  ul.primary li a.cool{
+    background:#181818; border-color:var(--line-soft);
+    opacity:0.72;
+  }
+  ul.primary li a.cool:hover{ opacity:1; }
+  ul.primary li a.cool .num{ background:var(--surface-1); color:var(--ink-4); }
+  ul.primary li a.cool .name{ color:var(--ink-3); }
+  ul.primary li a.cool .desc{ color:var(--ink-5); }
 
   footer{ margin-top:56px; font-size:12px; color:var(--ink-5); }
 
@@ -180,7 +191,7 @@
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>
-      <li><a class="hot" href="__CREATE_HTML_20260716_015.html" target="_blank" rel="noopener">
+      <li><a href="__CREATE_HTML_20260716_015.html" target="_blank" rel="noopener">
         <span class="num">03</span>
         <span class="body">
           <span class="name">조회화면 구성기</span>
@@ -196,7 +207,7 @@
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>
-      <li><a href="guide_builder.html" target="_blank" rel="noopener">
+      <li><a class="cool" href="guide_builder.html" target="_blank" rel="noopener">
         <span class="num">05</span>
         <span class="body">
           <span class="name">가이드 빌더</span>
@@ -204,7 +215,7 @@
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>
-      <li><a href="_create_web.html" target="_blank" rel="noopener">
+      <li><a class="cool" href="_create_web.html" target="_blank" rel="noopener">
         <span class="num">06</span>
         <span class="body">
           <span class="name">화면구성기 (목업 조립)</span>
@@ -212,7 +223,7 @@
         </span>
         <span class="arrow">&#8594;</span>
       </a></li>
-      <li><a href="__PAGE_BUILDER_009.html" target="_blank" rel="noopener">
+      <li><a class="cool" href="__PAGE_BUILDER_009.html" target="_blank" rel="noopener">
         <span class="num">07</span>
         <span class="body">
           <span class="name">화면 빌더</span>

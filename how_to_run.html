@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>추출 콘솔 — 실행 방법 & 기능 설명</title>
+<style>
+  :root{
+    --bg:#eef0f4;--surface:#fff;--ink:#161a22;--ink2:#545c6e;--ink3:#8b93a5;
+    --line:#e0e3ea;--line2:#d2d6e0;--cobalt:#2f4fe0;--cobalt-sf:#eaeeff;
+    --navy:#0d1220;--amber:#e0932b;--green:#17a06a;--red:#dd4b4b;--violet:#7a3ff2;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;letter-spacing:-.01em}
+  a{color:var(--cobalt)}
+  header{background:var(--navy);color:#fff;padding:30px 0 26px}
+  .wrap{max-width:900px;margin:0 auto;padding:0 22px 90px}
+  header .wrap{padding-bottom:0;display:flex;align-items:center;gap:16px}
+  .mark{font-family:var(--mono);font-size:26px;letter-spacing:-4px;color:#7f97ff}
+  header h1{margin:0;font-size:22px}
+  header p{margin:3px 0 0;color:#93a0c0;font-size:13.5px}
+  nav.toc{position:sticky;top:0;background:rgba(238,240,244,.92);backdrop-filter:blur(6px);
+    padding:14px 0;margin-bottom:8px;border-bottom:1px solid var(--line);z-index:5}
+  nav.toc .wrap{padding-top:0;padding-bottom:0;display:flex;flex-wrap:wrap;gap:7px}
+  nav.toc a{font-size:12.5px;font-weight:600;color:var(--cobalt);background:var(--cobalt-sf);
+    padding:5px 11px;border-radius:999px;text-decoration:none}
+  nav.toc a:hover{background:var(--cobalt);color:#fff}
+  h2{font-size:18px;margin:38px 0 12px;display:flex;align-items:center;gap:10px;scroll-margin-top:64px}
+  .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+    background:var(--cobalt);color:#fff;border-radius:50%;font-size:15px;font-weight:700;flex-shrink:0}
+  h3{font-size:15px;margin:20px 0 8px;padding-left:11px;border-left:3px solid var(--cobalt)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 24px;
+    box-shadow:0 1px 2px rgba(20,26,40,.04),0 10px 26px -14px rgba(20,26,40,.18)}
+  .card+.card{margin-top:14px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:.88em;background:#eef0f6;padding:2px 6px;border-radius:5px;color:#3a3f4c}
+  pre{font-family:var(--mono);background:var(--navy);color:#cdd6ef;padding:14px 16px;border-radius:9px;
+    overflow:auto;font-size:12.5px;margin:10px 0;line-height:1.55}
+  .file{font-family:var(--mono);font-weight:700;color:var(--cobalt)}
+  ul{margin:8px 0;padding-left:20px}li{margin:6px 0}
+  .callout{border-left:3px solid var(--amber);background:#fdf7ec;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:14px}
+  .callout.blue{border-color:var(--cobalt);background:var(--cobalt-sf)}
+  .callout.red{border-color:var(--red);background:#fdeeee}
+  .callout b{color:var(--ink)}
+  .big{display:block;text-align:center;font-size:17px;font-weight:700;color:var(--cobalt);
+    background:var(--cobalt-sf);border:1px dashed var(--cobalt);border-radius:10px;padding:16px;margin:14px 0}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f4f6fa;font-size:12.5px;color:var(--ink2)}
+  td code{font-size:12px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;color:#fff;padding:2px 9px;border-radius:999px}
+  .b-date{background:var(--cobalt)}.b-range{background:var(--violet)}.b-list{background:var(--green)}
+  .foot{margin-top:40px;color:var(--ink3);font-size:12.5px;text-align:center}
+  .kv{font-family:var(--mono);font-size:12px;color:var(--cobalt)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="mark">◤◢</span>
+  <div><h1>추출 콘솔 — 실행 방법 & 기능 설명</h1>
+  <p>이 파일은 설명서입니다(더블클릭으로 열려도 됨). 실제 도구는 <b style="color:#cdd6ef">start.bat</b> 으로 실행하세요.</p></div>
+</div></header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#run">실행</a><a href="#demo">데모</a><a href="#conn">접속</a><a href="#query">쿼리</a>
+  <a href="#split">분할</a><a href="#adv">고급옵션</a><a href="#exec">실행·진행</a><a href="#result">결과·다운로드</a>
+  <a href="#save">저장·이력·예약</a><a href="#trouble">문제해결</a><a href="#files">폴더구성</a>
+</div></nav>
+
+<div class="wrap">
+
+  <div class="callout blue">
+    <b>기본 개념.</b> 화면(브라우저)만으로는 조회가 안 됩니다. 뒤에서 <b>파이썬 서버</b>가 함께 켜져 있어야 해요.
+    구조: <code>브라우저 ↔ 파이썬 서버 ↔ Oracle</code>. 그래서 HTML을 여는 게 아니라 <b>start.bat 으로 서버를 켜고</b> 브라우저로 접속합니다.
+    <br>※ 앱 화면 오른쪽 위 <b>도움말</b> 버튼으로도 같은 설명을 볼 수 있어요.
+  </div>
+
+  <h2 id="run"><span class="num">1</span> 실행 방법</h2>
+  <div class="card">
+    <h3>준비 — 파이썬 (최초 1회)</h3>
+    <p>명령프롬프트에서 <code>python --version</code> 을 쳐 버전이 나오면 준비 완료.
+    안 나오면 <a href="https://www.python.org" target="_blank">python.org</a> 에서 설치하되
+    첫 화면의 <b>“Add Python to PATH”</b> 체크박스를 꼭 켜세요.</p>
+    <h3>실행 — start.bat</h3>
+    <span class="big">📄 start.bat → 더블클릭</span>
+    <ul>
+      <li>검은 창(=서버)이 뜨고, <b>최초 1회</b>만 패키지를 자동 설치합니다(인터넷 필요, 1~2분).</li>
+      <li>설치가 끝나면 <b>브라우저가 자동으로 열립니다.</b> 안 열리면 <code>http://127.0.0.1:8000</code> 직접 입력.</li>
+      <li>두 번째 실행부터는 설치를 건너뛰어 몇 초면 켜집니다.</li>
+    </ul>
+    <h3>완전 종료</h3>
+    <p><b>검은 창을 닫으면</b> 서버가 완전히 꺼집니다(또는 검은 창에서 <code>Ctrl + C</code>).
+    브라우저만 닫으면 서버는 계속 켜져 있어요. 파일을 바꾼 뒤엔 서버를 껐다 켜고 브라우저에서 <code>Ctrl + F5</code>.</p>
+  </div>
+
+  <h2 id="demo"><span class="num">2</span> 데모 모드</h2>
+  <div class="card">
+    <p>화면 오른쪽 위 <b>데모 모드</b>를 켜면 DB 접속 없이 가짜 데이터로 전체 흐름
+    (분할 → 추출 → 로그 → 차트 → 다운로드)을 확인할 수 있습니다. 처음 익힐 때 유용합니다.</p>
+  </div>
+
+  <h2 id="conn"><span class="num">3</span> 접속 정보</h2>
+  <div class="card">
+    <p>사용자 · 비밀번호 · DSN 입력 후 <b>연결 테스트</b>로 확인합니다.
+    DSN 예: <code>10.0.0.10:1521/ORCLPDB1</code></p>
+    <ul>
+      <li><b>저장 / 불러오기</b>: 접속 정보를 OS 자격증명 저장소(윈도우 자격증명 관리자)에 안전하게 보관하고 다시 불러옵니다.</li>
+    </ul>
+    <div class="callout">비밀번호는 프리셋·이력에 저장되지 않습니다. 자격증명 저장소에만 별도로 보관됩니다.</div>
+  </div>
+
+  <h2 id="query"><span class="num">4</span> 쿼리 (기본 / 직접 편집)</h2>
+  <div class="card">
+    <ul>
+      <li><b>기본 쿼리</b>: 내장 매출 쿼리 사용. 분할 조건이 자동 적용됩니다.</li>
+      <li><b>직접 편집</b>: “기본 쿼리 불러오기”로 내장 쿼리를 고치거나, 완전히 새 SQL을 붙여넣어 추출.</li>
+    </ul>
+    <h3>치환자 (직접 편집 시)</h3>
+    <table>
+      <tr><th>치환자</th><th>설명</th></tr>
+      <tr><td><span class="kv">{where}</span></td><td>분할·조건이 들어갈 위치. <b>분할 적용 시 필수</b>.</td></tr>
+      <tr><td><span class="kv">{brands}</span></td><td>브랜드 코드 IN 목록 (예: <code>'100','101'</code>)</td></tr>
+      <tr><td><span class="kv">{office_cd}</span></td><td>본부코드 값(문자)로 치환</td></tr>
+      <tr><td><span class="kv">:office_cd</span></td><td>바인드 변수로도 사용 가능</td></tr>
+    </table>
+    <ul>
+      <li><b>분할 조건 적용</b> 체크: 켜면 <code>{where}</code>에 분할이 주입돼 구간별 실행, 끄면 통째로 1회 실행.</li>
+      <li>결과 컬럼이 표준(매출일자·매장명·상품명·판매수량·총매출액·실매출액)과 다르면 차트·피벗은 자동 생략되고 CSV·엑셀·미리보기는 정상 동작.</li>
+      <li>편집한 쿼리는 <b>프리셋에 함께 저장</b>됩니다.</li>
+    </ul>
+  </div>
+
+  <h2 id="split"><span class="num">5</span> 분할 조건 (여러 축 조합)</h2>
+  <div class="card">
+    <p>축을 여러 개 걸면 <b>조합(곱)</b>만큼 구간이 생기고, 구간마다 CSV가 나옵니다.
+    순차 실행 시 구간 사이 <b>쉬는 시간</b>만큼 대기해 DB 부하를 줄입니다.</p>
+    <table>
+      <tr><th>축</th><th>동작</th><th>예시</th></tr>
+      <tr><td><span class="badge b-date">날짜 범위</span></td><td>기간을 N일씩</td><td>12/01~12/06을 3일씩 → 2구간</td></tr>
+      <tr><td><span class="badge b-range">코드 범위</span></td><td>숫자 코드를 N개씩 증가(자리수로 0채움)</td><td>1~100을 10개씩 → 10구간(0001~0010…)</td></tr>
+      <tr><td><span class="badge b-list">코드 목록</span></td><td>코드 목록을 N개씩 묶음</td><td>DS00001…을 3개씩 → 3개당 1파일</td></tr>
+    </table>
+    <ul>
+      <li><b>대상 컬럼</b>을 직접 지정합니다(예: <code>tsdps.STORE_CD</code>).</li>
+      <li>코드 목록엔 SQL의 <code>IN ( 'DS00001','DS00002',... )</code>를 <b>통째로 붙여넣어도</b> 코드만 인식하고 중복은 자동 제거합니다.</li>
+      <li>조합 예) <b>날짜(3일) × 코드범위(10개씩) = 2 × 10 = 20개 CSV</b>. 화면에 <code>2 × 10 = 20구간</code>처럼 실시간 표시됩니다.</li>
+    </ul>
+  </div>
+
+  <h2 id="adv"><span class="num">6</span> 고급 옵션</h2>
+  <div class="card">
+    <p>접혀 있어도 값은 <b>항상 적용</b>됩니다. 안 건드리면 기본값으로 동작합니다.</p>
+    <table>
+      <tr><th>옵션</th><th>설명</th><th>기본</th></tr>
+      <tr><td>ARRAYSIZE</td><td>DB에서 한 번에 가져올 행수. 클수록 왕복↓ 속도↑(메모리와 trade-off). 결과·정확도엔 영향 없음.</td><td>5000</td></tr>
+      <tr><td>재시도 횟수 / 간격</td><td>구간 조회 실패 시 자동 재시도</td><td>1회 / 2초</td></tr>
+      <tr><td>동시 실행</td><td>2 이상이면 여러 구간을 동시에 조회(빠름). 쉬는 시간 무시·DB 부하↑</td><td>1(순차)</td></tr>
+      <tr><td>파일당 최대 행수</td><td><code>50000</code> → 결과를 5만 행마다 <code>_part02</code> 파일로 분할 저장. 스트리밍이라 대용량 안전</td><td>0(제한없음)</td></tr>
+    </table>
+  </div>
+
+  <h2 id="exec"><span class="num">7</span> 실행 · 진행 상황</h2>
+  <div class="card">
+    <ul>
+      <li><b>쿼리 검증</b>: 실행 전에 쿼리 문법·객체·권한을 미리 확인(행을 가져오지 않고 파싱만). 잘못된 쿼리로 전체 구간이 실패하는 것을 방지합니다.</li>
+      <li><b>예상 건수·시간</b>: 첫 구간만 살짝 실행해 전체 건수·소요시간을 추정합니다.</li>
+      <li><b>쿼리 미리보기</b>: 값이 채워진 최종 SQL, 전체 구간 목록, 예상 대기시간 확인.</li>
+      <li><b>추출 시작</b> 후: 파이프라인 레일 + 진행률 바 + 실시간 로그 + 구간별 상태표(건수·<b>소요시간</b>·상태).</li>
+      <li><b>중단</b>: 현재 구간까지 마치고 멈춥니다.</li>
+    </ul>
+  </div>
+
+  <h2 id="result"><span class="num">8</span> 결과 · 다운로드 · 시각화</h2>
+  <div class="card">
+    <ul>
+      <li><b>저장 폴더 열기</b>: CSV가 저장된 폴더를 탐색기로 바로 엽니다. 다운로드를 안 눌러도 파일은 이미
+        <code>output/&lt;작업ID&gt;/</code> 에 저장돼 있습니다.</li>
+      <li><b>파일 목록</b>: 각 파일 옆에 건수·소요시간이 함께 표시됩니다(행수 분할 파일은 <code>part2</code> 표기).</li>
+      <li><b>엑셀 병합</b>: 구간 CSV를 <b>요약</b> 시트 + <b>전체데이터</b> 시트로 합칩니다. 엑셀은 시트당 약 104만 행 제한이 있어
+        수백만 건은 CSV/ZIP을 권장합니다.</li>
+      <li><b>전체 ZIP</b>: 구간별 CSV를 묶어 한 번에 내려받기(대용량 안전).</li>
+      <li>차트(일자별 실매출·매장 Top·상품 Top) + <b>피벗 대시보드</b>(행 기준 매장/상품/일자 × 값 실매출/총매출/수량 + 검색) + 상위 50행 미리보기.</li>
+      <li>미리보기는 상위 50행만 표시하지만 <b>CSV·엑셀에는 전체</b>가 저장됩니다.</li>
+    </ul>
+    <div class="callout">서버(검은 창)를 껐다 켜면 이전 작업의 다운로드 버튼은 동작하지 않습니다. 그땐 <code>output</code> 폴더에서 파일을 직접 꺼내세요.</div>
+  </div>
+
+  <h2 id="save"><span class="num">9</span> 저장 · 이력 · 예약 · 이메일 · 알림</h2>
+  <div class="card">
+    <ul>
+      <li><b>저장된 작업(프리셋)</b>: 현재 설정·분할조건·쿼리를 이름 붙여 저장/불러오기(비밀번호 제외). <code>presets.json</code></li>
+      <li><b>추출 이력</b>: 완료된 추출이 자동 기록. <b>불러오기</b>로 같은 조건 재실행. <code>history.json</code></li>
+      <li><b>예약 명령 만들기</b>: 저장된 작업을 Windows 작업 스케줄러(schtasks)에 등록하는 명령을 생성.
+        실제 DB 예약은 자동실행 계정 환경변수 <code>ORA_PW</code> 가 필요합니다.</li>
+      <li><b>완료 후 이메일 발송</b>: 결과(엑셀 또는 ZIP)를 SMTP로 자동 전송.</li>
+      <li><b>완료 알림</b>: 추출이 끝나면 브라우저 팝업·소리로 알림.</li>
+      <li><b>두레이 알림</b>: <b>기본 꺼짐</b>. 체크박스를 켜고 Incoming Webhook URL을 넣어야 발송됩니다.
+        <span class="kv">테스트 전송</span> 으로 연결을 먼저 확인하세요. 완료 시 채널로 건수·파일수·시간 요약이 전송됩니다.</li>
+      <li><b>다크 모드</b>: 헤더의 달/해 아이콘으로 화면 테마 전환(OS가 다크모드면 자동).</li>
+    </ul>
+  </div>
+
+  <h2 id="trouble"><span class="num">10</span> 잘 안 될 때</h2>
+  <div class="card">
+    <table>
+      <tr><th>증상</th><th>해결</th></tr>
+      <tr><td>검은 창에 <code>Python not found</code></td><td>파이썬 미설치/PATH 누락. 설치 시 “Add Python to PATH” 체크.</td></tr>
+      <tr><td>패키지 설치 실패</td><td>인터넷 확인. 사내망이 막으면 관리자에게 <code>pip</code> 허용 요청.</td></tr>
+      <tr><td>화면은 뜨는데 버튼이 안 먹음</td><td>검은 창(서버)이 꺼졌는지 확인. 서버가 켜져 있어야 동작.</td></tr>
+      <tr><td>바꾼 내용이 화면에 반영 안 됨</td><td>서버 재시작 후 브라우저에서 <code>Ctrl + F5</code>(강력 새로고침).</td></tr>
+      <tr><td>실제 조회 접속 실패</td><td>사내망(VPN) 연결과 사용자/비밀번호/DSN 확인 후 <b>연결 테스트</b>.</td></tr>
+      <tr><td>직접 편집인데 시작 시 오류</td><td>분할을 켰다면 쿼리에 <code>{where}</code> 가 있어야 합니다.</td></tr>
+      <tr><td>수백만 건 엑셀 병합 실패/느림</td><td>엑셀 대신 CSV/ZIP 사용. 필요 시 “파일당 최대 행수”로 분할.</td></tr>
+      <tr><td>두레이 알림이 안 옴</td><td>체크박스를 켰는지, URL이 맞는지 확인 후 “테스트 전송”. 사내망 방화벽이 외부 웹훅을 막을 수 있음.</td></tr>
+      <tr><td>브라우저 완료 알림이 안 뜸</td><td>브라우저가 알림 권한을 물으면 “허용”. 정책으로 막히면 소리 알림만 동작.</td></tr>
+    </table>
+  </div>
+
+  <h2 id="files"><span class="num">11</span> 폴더 구성</h2>
+  <div class="card">
+    <table>
+      <tr><th>파일</th><th>설명</th></tr>
+      <tr><td class="file">start.bat</td><td>더블클릭해서 실행 (Windows)</td></tr>
+      <tr><td class="file">how_to_run.html</td><td>이 설명서 (더블클릭으로 열림)</td></tr>
+      <tr><td><code>main.py</code></td><td>서버 본체 (API·다운로드·프리셋·이력·이메일·자격증명·피벗·예약)</td></tr>
+      <tr><td><code>extractor.py</code></td><td>분할 추출 엔진 (조합·재시도·병렬·행수분할·집계)</td></tr>
+      <tr><td><code>xlsx_merge.py</code> · <code>pivot.py</code></td><td>엑셀 병합 · 피벗 집계</td></tr>
+      <tr><td><code>run_preset.py</code></td><td>예약 실행용 (서버 없이 자동 추출)</td></tr>
+      <tr><td><code>templates/</code> · <code>static/</code></td><td>화면(HTML/CSS/JS) — <b>옮기지 마세요</b></td></tr>
+      <tr><td><code>output/</code></td><td>작업별 CSV 저장 (자동 생성, 가끔 정리 필요)</td></tr>
+    </table>
+    <div class="callout red"><b>폴더 구조를 그대로 유지하세요.</b> <code>static</code>·<code>templates</code> 폴더가
+      <code>main.py</code>·<code>start.bat</code> 과 같은 위치에 있어야 화면이 정상 동작합니다.</div>
+  </div>
+
+  <p class="foot">앱 화면 오른쪽 위 <b>도움말</b> 버튼으로도 같은 내용을 볼 수 있습니다.</p>
+</div>
+</body>
+</html>

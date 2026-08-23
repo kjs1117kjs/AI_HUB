@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML 블록 조립기</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --bg:#0e1119; --panel:#151925; --panel-2:#1c2130; --line:#2a3040; --line-2:#333a4d;
+    --text:#e9ebf2; --muted:#98a0b5; --faint:#69718a;
+    --acc:#7c8cff; --acc-2:#59e0c5; --acc-dim:rgba(124,140,255,.14); --acc-line:rgba(124,140,255,.42);
+    --green:#5fd39a; --amber:#f0b45a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{background:radial-gradient(120% 60% at 50% -10%, rgba(124,140,255,.10), transparent 55%), var(--bg);
+       color:var(--text);font-family:'Pretendard',system-ui,sans-serif;overflow:hidden;}
+  .app{height:100dvh;display:flex;flex-direction:column;max-width:1240px;margin:0 auto;
+       border-left:1px solid var(--line);border-right:1px solid var(--line);}
+
+  header.top{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--line);
+             background:linear-gradient(var(--panel),transparent);flex:none;}
+  .logo{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;color:#0e1119;
+        background:linear-gradient(135deg,var(--acc),var(--acc-2));font-size:15px;}
+  .top h1{font-size:16px;margin:0;font-weight:700;letter-spacing:-.01em;}
+  .top .cnt{font-size:12px;color:var(--faint);}
+  .top .sp{margin-left:auto;}
+  .tbtn{font-size:12.5px;color:var(--text);background:var(--panel-2);border:1px solid var(--line);
+        border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;transition:.14s;}
+  .tbtn:hover{border-color:var(--acc-line);color:var(--acc);}
+
+  .toolbar{display:flex;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap;}
+  .search{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:var(--panel);
+          border:1px solid var(--line);border-radius:10px;padding:9px 12px;transition:.15s;}
+  .search:focus-within{border-color:var(--acc-line);box-shadow:0 0 0 3px var(--acc-dim);}
+  .search svg{width:15px;height:15px;color:var(--faint);flex:none;}
+  .search input{flex:1;border:none;outline:none;background:none;color:var(--text);font-family:inherit;font-size:14px;}
+  .search input::placeholder{color:var(--faint);}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{font-size:12.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+        border-radius:20px;padding:6px 12px;cursor:pointer;font-family:inherit;transition:.13s;white-space:nowrap;}
+  .pill:hover{border-color:var(--acc-line);}
+  .pill.on{background:var(--acc-dim);color:var(--acc);border-color:var(--acc-line);}
+  .pill .n{opacity:.6;margin-left:3px;font-size:11px;}
+
+  .main{flex:1;display:flex;min-height:0;}
+  .catalog{flex:1;overflow-y:auto;padding:16px 20px;scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  .catalog::-webkit-scrollbar{width:9px;}.catalog::-webkit-scrollbar-thumb{background:var(--line);border-radius:20px;border:3px solid var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px;}
+  .bcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;
+         transition:.14s;position:relative;overflow:hidden;}
+  .bcard:hover{border-color:var(--acc-line);background:var(--panel-2);transform:translateY(-1px);}
+  .bcard.sel{border-color:var(--acc);background:var(--acc-dim);}
+  .bcard .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;}
+  .bcard .bn{font-size:13.5px;font-weight:600;vertical-align:middle;}
+  .bcard .bd{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5;min-height:2.6em;}
+  .bcard .add{position:absolute;top:11px;right:11px;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;
+              font-size:13px;color:var(--faint);border:1px solid var(--line);background:var(--bg);transition:.14s;}
+  .bcard:hover .add{color:var(--acc);border-color:var(--acc-line);}
+  .bcard.sel .add{background:var(--acc);color:#0e1119;border-color:var(--acc);}
+  .catcount{grid-column:1/-1;font-size:12px;color:var(--faint);margin:6px 0 -2px;}
+  .noresult{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;font-size:14px;}
+
+  .builder{width:400px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel);}
+  .bhead{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex:none;}
+  .bhead b{font-size:13.5px;}
+  .bhead .num{font-size:11px;color:#0e1119;background:var(--acc);border-radius:20px;padding:1px 8px;font-weight:700;}
+  .bhead .clr{margin-left:auto;font-size:11.5px;color:var(--faint);background:none;border:none;cursor:pointer;font-family:inherit;}
+  .bhead .clr:hover{color:var(--amber);}
+  .tray{max-height:190px;overflow-y:auto;padding:10px 14px;border-bottom:1px solid var(--line);flex:none;
+        scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  .tray.empty{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:13px;text-align:center;min-height:90px;padding:16px;}
+  .titem{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);
+         border-radius:9px;padding:7px 9px;margin-bottom:7px;}
+  .titem .tn{flex:1;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .titem .dotc{width:7px;height:7px;border-radius:50%;flex:none;}
+  .titem button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);
+                color:var(--muted);cursor:pointer;font-size:12px;display:grid;place-items:center;transition:.12s;flex:none;}
+  .titem button:hover{color:var(--acc);border-color:var(--acc-line);}
+  .titem button.x:hover{color:var(--amber);}
+  .titem button:disabled{opacity:.3;cursor:default;}
+
+  .preview-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .ptabs{display:flex;align-items:center;border-bottom:1px solid var(--line);flex:none;background:var(--panel-2);}
+  .ptab{padding:9px 14px;font-size:12.5px;color:var(--muted);cursor:pointer;border:none;background:none;
+        font-family:inherit;border-bottom:2px solid transparent;}
+  .ptab.on{color:var(--text);border-bottom-color:var(--acc);}
+  .pacts{margin-left:auto;display:flex;gap:6px;padding-right:10px;}
+  .pacts button{font-size:11.5px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;
+                padding:3px 10px;cursor:pointer;font-family:inherit;transition:.13s;}
+  .pacts button:hover{color:var(--acc);border-color:var(--acc-line);}
+  .pacts button.ok{color:var(--green);border-color:var(--green);}
+  #editmode.on{color:#0e1119;background:var(--acc);border-color:var(--acc);font-weight:600;}
+  .edithint{flex:none;padding:8px 12px;font-size:11.5px;color:var(--acc-2);background:var(--acc-dim);
+            border-bottom:1px solid var(--line);line-height:1.5;}
+  .ppane{flex:1;min-height:0;overflow:auto;}
+  .ppane.hide{display:none;}
+  iframe#prev{width:100%;height:100%;border:none;background:#fff;display:block;}
+  pre#codebox{margin:0;padding:14px;white-space:pre;}
+  pre#codebox code{font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;color:#c6cde0;}
+  .emptyprev{height:100%;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:13px;text-align:center;padding:20px;}
+
+  @media(max-width:880px){
+    .builder{position:fixed;right:0;top:0;bottom:0;width:min(88vw,400px);z-index:20;box-shadow:-10px 0 40px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .25s;}
+    .builder.show{transform:none;}
+    .fab{display:flex!important;}
+  }
+  .fab{display:none;position:fixed;right:16px;bottom:16px;z-index:15;align-items:center;gap:7px;
+       background:linear-gradient(135deg,var(--acc),var(--acc-2));color:#0e1119;font-weight:700;font-family:inherit;
+       border:none;border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 8px 24px rgba(124,140,255,.4);font-size:14px;}
+
+  .themebar{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap;}
+  .themebar .tl{font-size:11.5px;color:var(--faint);margin-right:2px;}
+  .swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.13s;padding:0;}
+  .swatch:hover{transform:scale(1.12);}
+  .swatch.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--acc-line);}
+  .titem.hasopt{flex-wrap:wrap;}
+  .gear{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);
+        color:var(--muted);cursor:pointer;font-size:12px;display:grid;place-items:center;flex:none;transition:.12s;}
+  .gear:hover,.gear.on{color:var(--acc);border-color:var(--acc-line);}
+  .optform{flex-basis:100%;margin-top:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:9px;}
+  .optform .of{margin-bottom:9px;}
+  .optform .of:last-child{margin-bottom:0;}
+  .optform label{display:block;font-size:11px;color:var(--faint);margin-bottom:4px;}
+  .optform input[type=text]{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:7px;
+        padding:6px 9px;color:var(--text);font-family:inherit;font-size:12.5px;outline:none;}
+  .optform input[type=text]:focus{border-color:var(--acc-line);}
+  .optform .checks{display:flex;flex-wrap:wrap;gap:4px 12px;}
+  .optform .checks label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text);margin:0;cursor:pointer;}
+
+  .tplpanel{padding:11px 14px;border-bottom:1px solid var(--line);flex:none;background:var(--panel-2);}
+  .tprow{display:flex;gap:7px;}
+  .tprow.gap{margin-top:9px;}
+  .tprow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;
+        color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+  .tprow input:focus{border-color:var(--acc-line);}
+  .tpbtn{background:var(--acc);color:#0e1119;border:none;border-radius:8px;padding:7px 12px;font-size:12.5px;
+        font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:.13s;}
+  .tpbtn:hover{filter:brightness(1.08);}
+  .tpbtn.ghost{background:var(--panel);color:var(--muted);border:1px solid var(--line);flex:1;}
+  .tpbtn.ghost:hover{color:var(--acc);border-color:var(--acc-line);}
+  .tpsaved{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+  .tpitem{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;}
+  .tpitem .tpn{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+  .tpitem .tpn:hover{color:var(--acc);}
+  .tpitem button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);
+        color:var(--muted);cursor:pointer;font-size:11px;display:grid;place-items:center;transition:.12s;}
+  .tpitem .tpload:hover{color:var(--acc);border-color:var(--acc-line);}
+  .tpitem .tpdel:hover{color:var(--amber);border-color:var(--amber);}
+  .tpempty{font-size:12px;color:var(--faint);padding:4px 2px;}
+  .tpimport{margin-top:8px;}
+  .tpimport textarea{width:100%;height:52px;resize:none;background:var(--panel);border:1px solid var(--line);
+        border-radius:8px;padding:7px 10px;color:var(--text);font-family:ui-monospace,monospace;font-size:11px;outline:none;margin-bottom:6px;}
+  .tpmsg{font-size:11.5px;color:var(--acc-2);margin-top:8px;min-height:14px;}
+  .tpmsg.warn{color:var(--amber);}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">＋</div>
+    <div><h1>HTML 블록 조립기</h1><div class="cnt" id="totalcount"></div></div>
+    <span class="sp"></span>
+    <button class="tbtn" id="reset">↺ 처음으로</button>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input id="q" type="text" placeholder="블록 검색 (예: 회원, 표, 폼, 알림…)">
+    </div>
+    <div class="pills" id="pills"></div>
+  </div>
+
+  <div class="main">
+    <div class="catalog"><div class="grid" id="grid"></div></div>
+
+    <aside class="builder" id="builder">
+      <div class="bhead">
+        <b>내 페이지</b><span class="num" id="selnum">0</span>
+        <button class="clr" id="tpltoggle" style="margin-left:auto">💾 템플릿</button>
+        <button class="clr" id="clear">전체 비우기</button>
+      </div>
+      <div class="tplpanel" id="tplpanel" hidden>
+        <div class="tprow"><input id="tplname" type="text" placeholder="템플릿 이름 (예: 관리자 대시보드)"><button class="tpbtn" id="tplsave">저장</button></div>
+        <div class="tpsaved" id="tplsaved"></div>
+        <div class="tprow gap"><button class="tpbtn ghost" id="tplexport">📋 구성 코드 복사</button><button class="tpbtn ghost" id="tplimptoggle">📥 코드로 불러오기</button></div>
+        <div class="tpimport" id="tplimport" hidden><textarea id="tplcode" placeholder="복사한 구성 코드를 여기에 붙여넣으세요"></textarea><button class="tpbtn" id="tplimpgo">불러오기</button></div>
+        <div class="tpmsg" id="tplmsg"></div>
+      </div>
+      <div class="tray empty" id="tray">왼쪽에서 블록을 눌러 담아보세요.<br>순서는 화살표로 바꿀 수 있어요.</div>
+      <div class="themebar" id="themebar"><span class="tl">색상 테마</span></div>
+      <div class="preview-wrap">
+        <div class="ptabs">
+          <button class="ptab on" data-p="prev">미리보기</button>
+          <button class="ptab" data-p="code">코드</button>
+          <div class="pacts">
+            <button id="editmode">✏️ 직접 편집</button>
+            <button id="copy">복사</button>
+            <button id="download">다운로드</button>
+          </div>
+        </div>
+        <div class="edithint" id="edithint" hidden>미리보기에서 점선으로 표시된 글자를 클릭해 바로 수정하세요. 블록·순서·색상·옵션을 바꾸면 편집 내용은 초기화됩니다.</div>
+        <div class="ppane" id="pane-prev"><div class="emptyprev" id="emptyprev">담은 블록이 여기 조립되어 보여요.</div><iframe id="prev" style="display:none"></iframe></div>
+        <div class="ppane hide" id="pane-code"><pre id="codebox"><code></code></pre></div>
+      </div>
+    </aside>
+  </div>
+</div>
+<button class="fab" id="fab">＋ 내 페이지 <span id="fabn">0</span></button>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   블록 카탈로그 — AI 없음. {id,cat,name,desc,tags,html, js?}
+   ══════════════════════════════════════════════════════════════ */
+const CATS = {
+  input:   {label:"입력·조회", color:"#7c8cff"},
+  data:    {label:"데이터 표시", color:"#59e0c5"},
+  form:    {label:"폼 · 양식", color:"#f0b45a"},
+  layout:  {label:"레이아웃", color:"#e07ce0"},
+  feedback:{label:"상태·피드백", color:"#ff8a8a"},
+  admin:   {label:"관리자(admin)", color:"#ff9d5c"},
+};
+
+const B = [];
+const add = (cat,id,name,desc,tags,html,js,opts) => B.push({cat,id,name,desc,tags,html,js,opts});
+
+/* ─────────── 입력·조회 ─────────── */
+add("input","member","회원 조회","번호 입력 → 회원 정보 카드 (동작)",["회원","member","조회","고객","번호"],
+`  <section class="sec"><h2 class="h2">회원 조회</h2>
+    <div class="row"><input id="q" class="inp" placeholder="회원번호 (예: 10001)" inputmode="numeric"><button id="go" class="btn">조회</button></div>
+    <div id="out"></div></section>`,
+`var MEMBERS={"10001":{name:"김서연",grade:"VIP",email:"seoyeon@example.com",phone:"010-2345-6789",points:48200},"10002":{name:"이준호",grade:"Gold",email:"junho@example.com",phone:"010-8765-4321",points:12750},"10003":{name:"박민지",grade:"Silver",email:"minji@example.com",phone:"010-5555-1212",points:3100}};function lookup(){var id=document.getElementById("q").value.trim();var o=document.getElementById("out");if(!id){o.innerHTML="";return;}var m=MEMBERS[id];if(!m){o.innerHTML="<div class=\\"nf\\">"+id+" 회원을 찾을 수 없습니다.</div>";return;}var h="<div class=\\"info\\">";h+="<h3>"+m.name+"</h3>";h+="<p><b>회원번호</b> "+id+"</p><p><b>등급</b> "+m.grade+"</p><p><b>이메일</b> "+m.email+"</p><p><b>전화</b> "+m.phone+"</p><p><b>포인트</b> "+m.points.toLocaleString()+" P</p></div>";o.innerHTML=h;}document.getElementById("go").onclick=lookup;document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="Enter")lookup();});`);
+add("input","search","통합 검색창","아이콘 + 입력 + 버튼",["검색","search"],
+`  <section class="sec"><div class="searchbar"><span class="ico">🔍</span><input class="inp flat" placeholder="검색어를 입력하세요"><button class="btn">검색</button></div></section>`);
+add("input","login","로그인 폼","아이디·비밀번호 입력",["로그인","login","auth"],
+`  <section class="sec narrow"><h2 class="h2">로그인</h2><label class="lb">아이디</label><input class="inp full" placeholder="user@example.com"><label class="lb">비밀번호</label><input class="inp full" type="password" placeholder="••••••••"><button class="btn full mt">로그인</button></section>`);
+add("input","filterbar","필터 바","드롭다운으로 목록 거르기",["필터","filter","정렬"],
+`  <section class="sec"><div class="filters"><select class="sel"><option>전체 등급</option><option>VIP</option><option>Gold</option></select><select class="sel"><option>전체 상태</option><option>활성</option><option>휴면</option></select><select class="sel"><option>최신순</option><option>이름순</option></select></div></section>`);
+add("input","daterange","날짜 범위","시작·종료일 선택",["날짜","date","기간"],
+`  <section class="sec"><label class="lb">조회 기간</label><div class="row"><input class="inp" type="date"><span class="tilde">~</span><input class="inp" type="date"><button class="btn">적용</button></div></section>`);
+add("input","tagfilter","태그 필터","칩 형태 카테고리",["태그","tag","카테고리"],
+`  <section class="sec"><label class="lb">카테고리</label><div class="chips"><span class="chip on">전체</span><span class="chip">공지</span><span class="chip">이벤트</span><span class="chip">FAQ</span><span class="chip">업데이트</span></div></section>`);
+add("input","stepper","수량 선택","− 숫자 + 스텝퍼",["수량","quantity","stepper"],
+`  <section class="sec"><label class="lb">수량</label><div class="stepper"><button class="stp">−</button><span class="stpv">1</span><button class="stp">＋</button></div></section>`);
+add("input","slider","범위 슬라이더","가격·값 범위",["슬라이더","range","가격"],
+`  <section class="sec"><label class="lb">가격 범위</label><input class="rng" type="range" min="0" max="100" value="60"><div class="rngv">0원 — 60,000원</div></section>`);
+add("input","otp","인증코드 입력","6자리 OTP 칸",["otp","코드","인증"],
+`  <section class="sec"><label class="lb">인증코드 6자리</label><div class="otp"><input class="otpc" maxlength="1"><input class="otpc" maxlength="1"><input class="otpc" maxlength="1"><input class="otpc" maxlength="1"><input class="otpc" maxlength="1"><input class="otpc" maxlength="1"></div></section>`);
+add("input","toggle","설정 토글","on/off 스위치 목록",["토글","switch","설정"],
+`  <section class="sec"><div class="tgrow"><span>이메일 알림</span><label class="sw"><input type="checkbox" checked><i></i></label></div><div class="tgrow"><span>SMS 알림</span><label class="sw"><input type="checkbox"><i></i></label></div><div class="tgrow"><span>마케팅 수신</span><label class="sw"><input type="checkbox" checked><i></i></label></div></section>`);
+add("input","rating","별점 입력","클릭형 별점(라디오)",["별점","rating","리뷰"],
+`  <section class="sec"><label class="lb">만족도</label><div class="stars"><input type="radio" name="r" id="s5"><label for="s5">★</label><input type="radio" name="r" id="s4"><label for="s4">★</label><input type="radio" name="r" id="s3"><label for="s3">★</label><input type="radio" name="r" id="s2"><label for="s2">★</label><input type="radio" name="r" id="s1"><label for="s1">★</label></div></section>`);
+add("input","fileinput","파일 선택","업로드 인풋",["파일","file","업로드"],
+`  <section class="sec"><label class="lb">첨부 파일</label><div class="file"><span>파일을 선택하거나 여기에 끌어다 놓으세요</span><button class="btn ghost">찾아보기</button></div></section>`);
+add("input","select","드롭다운 선택","단일 셀렉트",["선택","select","드롭다운"],
+`  <section class="sec"><label class="lb">부서</label><select class="sel full"><option>개발팀</option><option>디자인팀</option><option>마케팅팀</option><option>영업팀</option></select></section>`);
+add("input","searchcat","검색 + 카테고리","탭이 붙은 검색",["검색","탭","카테고리"],
+`  <section class="sec"><div class="tabbar"><span class="tb on">전체</span><span class="tb">회원</span><span class="tb">주문</span><span class="tb">상품</span></div><div class="searchbar mt"><span class="ico">🔍</span><input class="inp flat" placeholder="검색"></div></section>`);
+add("input","address","주소 입력","우편번호 + 상세",["주소","address","우편번호"],
+`  <section class="sec"><label class="lb">주소</label><div class="row"><input class="inp" placeholder="우편번호"><button class="btn ghost">주소 찾기</button></div><input class="inp full mt" placeholder="기본 주소"><input class="inp full mt" placeholder="상세 주소"></section>`);
+add("input","numinput","금액 입력","단위가 붙은 숫자",["금액","숫자","통화"],
+`  <section class="sec"><label class="lb">결제 금액</label><div class="unitin"><input class="inp flat" placeholder="0" inputmode="numeric"><span class="unit">원</span></div></section>`);
+add("input","checkfilter","체크박스 필터","다중 선택 목록",["체크","filter","다중"],
+`  <section class="sec"><label class="lb">필터</label><label class="ck"><input type="checkbox" checked> 재고 있음</label><label class="ck"><input type="checkbox"> 할인 상품</label><label class="ck"><input type="checkbox"> 무료 배송</label></section>`);
+add("input","codeinput","쿠폰 코드","코드 입력 + 적용",["쿠폰","코드","할인"],
+`  <section class="sec"><label class="lb">쿠폰 코드</label><div class="row"><input class="inp" placeholder="코드를 입력하세요"><button class="btn">적용</button></div></section>`);
+
+/* ─────────── 데이터 표시 ─────────── */
+add("data","table","데이터 표","제목·컬럼 선택 가능한 테이블",["표","table","목록"],
+(v)=>{
+  const rows=[
+    {"주문번호":"#1001","고객":"김서연","금액":"32,000원","상태":'<span class="tag ok">완료</span>',"주문일":"2026-08-20","결제수단":"카드"},
+    {"주문번호":"#1002","고객":"이준호","금액":"15,500원","상태":'<span class="tag wait">배송중</span>',"주문일":"2026-08-21","결제수단":"카드"},
+    {"주문번호":"#1003","고객":"박민지","금액":"78,000원","상태":'<span class="tag ok">완료</span>',"주문일":"2026-08-19","결제수단":"계좌이체"}
+  ];
+  const cols=(v.cols&&v.cols.length)?v.cols:["주문번호","고객","금액","상태"];
+  const th=cols.map(c=>`<th>${c}</th>`).join('');
+  const tb=rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('');
+  return `  <section class="sec"><h2 class="h2">${v.title}</h2><table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table></section>`;
+}, null,
+[{key:"title",type:"text",label:"제목",def:"주문 목록"},
+ {key:"cols",type:"checks",label:"표시할 컬럼",def:["주문번호","고객","금액","상태"],options:["주문번호","고객","금액","상태","주문일","결제수단"]}]);
+add("data","stats","통계 카드","값·라벨 편집 가능한 KPI",["통계","stats","지표","kpi"],
+(v)=>{
+  const c=[[v.v1,v.k1],[v.v2,v.k2],[v.v3,v.k3],[v.v4,v.k4]];
+  return `  <section class="sec"><div class="g4">${c.map(x=>`<div class="stat"><div class="sv">${x[0]}</div><div class="sk">${x[1]}</div></div>`).join('')}</div></section>`;
+}, null,
+[{key:"v1",type:"text",label:"카드1 값",def:"1,284"},{key:"k1",type:"text",label:"카드1 라벨",def:"전체 회원"},
+ {key:"v2",type:"text",label:"카드2 값",def:"312"},{key:"k2",type:"text",label:"카드2 라벨",def:"신규"},
+ {key:"v3",type:"text",label:"카드3 값",def:"98.2%"},{key:"k3",type:"text",label:"카드3 라벨",def:"활성률"},
+ {key:"v4",type:"text",label:"카드4 값",def:"4.7"},{key:"k4",type:"text",label:"카드4 라벨",def:"만족도"}]);
+add("data","cards","카드 그리드","상품/항목 카드 나열",["카드","grid","상품"],
+`  <section class="sec"><h2 class="h2">추천 상품</h2><div class="g3">
+    <div class="pcard"><div class="thumb"></div><div class="pn">베이직 티셔츠</div><div class="pp">19,000원</div></div>
+    <div class="pcard"><div class="thumb"></div><div class="pn">데님 팬츠</div><div class="pp">48,000원</div></div>
+    <div class="pcard"><div class="thumb"></div><div class="pn">니트 가디건</div><div class="pp">62,000원</div></div></div></section>`);
+add("data","detail","상세 정보 카드","한 건의 상세 나열",["상세","detail","정보"],
+`  <section class="sec"><h2 class="h2">주문 상세</h2><dl class="dl"><dt>주문번호</dt><dd>#1001</dd><dt>주문일</dt><dd>2026-08-20</dd><dt>수령인</dt><dd>김서연</dd><dt>결제수단</dt><dd>신용카드</dd><dt>금액</dt><dd>32,000원</dd></dl></section>`);
+add("data","profile","프로필 카드","아바타 + 이름 + 정보",["프로필","profile","회원"],
+`  <section class="sec"><div class="pf"><div class="pfav">김</div><div><div class="pfn">김서연</div><div class="pfm">VIP · 가입 2021.03</div></div><button class="btn ghost sm">편집</button></div></section>`);
+add("data","list","리스트","아바타 + 텍스트 행",["리스트","list","목록"],
+`  <section class="sec"><h2 class="h2">최근 활동</h2><div class="li"><div class="av">이</div><div class="lt"><b>이준호</b><span>주문을 완료했습니다</span></div><span class="lm">5분 전</span></div><div class="li"><div class="av">박</div><div class="lt"><b>박민지</b><span>리뷰를 남겼습니다</span></div><span class="lm">1시간 전</span></div></section>`);
+add("data","timeline","타임라인","시간순 이벤트",["타임라인","timeline","이력"],
+`  <section class="sec"><h2 class="h2">배송 현황</h2><ul class="tl"><li class="done"><b>주문 접수</b><span>08-20 10:12</span></li><li class="done"><b>결제 완료</b><span>08-20 10:13</span></li><li class="cur"><b>배송 중</b><span>08-21 09:00</span></li><li><b>배송 완료</b><span>예정</span></li></ul></section>`);
+add("data","bars","막대 차트","CSS 기반 바 그래프",["차트","chart","막대","그래프"],
+`  <section class="sec"><h2 class="h2">월별 매출</h2><div class="bars"><div class="bar" style="height:40%"><span>1월</span></div><div class="bar" style="height:65%"><span>2월</span></div><div class="bar" style="height:52%"><span>3월</span></div><div class="bar" style="height:88%"><span>4월</span></div><div class="bar" style="height:70%"><span>5월</span></div></div></section>`);
+add("data","donut","원형 진행률","conic-gradient 도넛",["도넛","원형","진행","비율"],
+`  <section class="sec"><h2 class="h2">목표 달성률</h2><div class="donutwrap"><div class="donut" style="--p:72"><span>72%</span></div><div class="dleg"><div>달성 <b>72%</b></div><div class="muted">목표 대비</div></div></div></section>`);
+add("data","progress","진행바 목록","라벨 + 프로그레스",["진행","progress","바"],
+`  <section class="sec"><h2 class="h2">스토리지</h2><div class="pgrow"><span>문서</span><div class="pg"><i style="width:64%"></i></div></div><div class="pgrow"><span>이미지</span><div class="pg"><i style="width:38%"></i></div></div><div class="pgrow"><span>기타</span><div class="pg"><i style="width:12%"></i></div></div></section>`);
+add("data","pricing","요금제 표","가격 플랜 카드",["가격","pricing","요금제","플랜"],
+`  <section class="sec"><h2 class="h2">요금제</h2><div class="g3"><div class="plan"><div class="plname">Basic</div><div class="plprice">₩0</div><ul class="plul"><li>기본 기능</li><li>1인 사용</li></ul><button class="btn ghost full">선택</button></div><div class="plan hot"><div class="plname">Pro</div><div class="plprice">₩9,900</div><ul class="plul"><li>모든 기능</li><li>팀 협업</li></ul><button class="btn full">선택</button></div><div class="plan"><div class="plname">Team</div><div class="plprice">₩29,000</div><ul class="plul"><li>무제한</li><li>전용 지원</li></ul><button class="btn ghost full">선택</button></div></div></section>`);
+add("data","faq","FAQ 아코디언","펼쳐지는 Q&A (동작)",["faq","질문","아코디언"],
+`  <section class="sec"><h2 class="h2">자주 묻는 질문</h2><details class="acc"><summary>배송은 얼마나 걸리나요?</summary><p>결제 후 평균 2~3일 소요됩니다.</p></details><details class="acc"><summary>교환·환불이 가능한가요?</summary><p>수령 후 7일 이내 가능합니다.</p></details><details class="acc"><summary>회원 등급 혜택은?</summary><p>등급별 적립률과 쿠폰이 다르게 제공됩니다.</p></details></section>`);
+add("data","tabs","탭 콘텐츠","탭 전환 영역",["탭","tab","콘텐츠"],
+`  <section class="sec"><div class="tabbar"><span class="tb on">소개</span><span class="tb">스펙</span><span class="tb">리뷰</span></div><p class="tp">제품에 대한 간단한 소개 내용이 여기에 표시됩니다.</p></section>`);
+add("data","gallery","이미지 갤러리","썸네일 그리드",["갤러리","이미지","gallery"],
+`  <section class="sec"><h2 class="h2">갤러리</h2><div class="gal"><div class="gi"></div><div class="gi"></div><div class="gi"></div><div class="gi"></div><div class="gi"></div><div class="gi"></div></div></section>`);
+add("data","badges","뱃지 나열","상태·태그 모음",["뱃지","badge","태그"],
+`  <section class="sec"><h2 class="h2">상태</h2><div class="chips"><span class="tag ok">활성</span><span class="tag wait">대기</span><span class="tag err">정지</span><span class="tag">기본</span><span class="tag info">신규</span></div></section>`);
+add("data","reviewsum","평점 요약","별점 + 분포",["평점","리뷰","별점"],
+`  <section class="sec"><h2 class="h2">리뷰 요약</h2><div class="rvsum"><div class="rvbig">4.7<div class="rvstars">★★★★★</div><div class="muted">128개 리뷰</div></div><div class="rvbars"><div class="rvb"><span>5</span><div class="pg"><i style="width:80%"></i></div></div><div class="rvb"><span>4</span><div class="pg"><i style="width:14%"></i></div></div><div class="rvb"><span>3</span><div class="pg"><i style="width:4%"></i></div></div></div></div></section>`);
+add("data","feed","활동 피드","점 + 텍스트 스트림",["피드","feed","활동"],
+`  <section class="sec"><h2 class="h2">알림</h2><div class="fd"><span class="fdot" style="background:#5fd39a"></span><div><b>주문 완료</b> — #1001이 배송 완료되었습니다.<div class="muted sm">2시간 전</div></div></div><div class="fd"><span class="fdot" style="background:#7c8cff"></span><div><b>포인트 적립</b> — 480P가 적립되었습니다.<div class="muted sm">어제</div></div></div></section>`);
+add("data","compare","비교 표","항목별 대조",["비교","compare","표"],
+`  <section class="sec"><h2 class="h2">플랜 비교</h2><table class="tbl"><thead><tr><th>기능</th><th>Basic</th><th>Pro</th></tr></thead><tbody><tr><td>사용자</td><td>1명</td><td>무제한</td></tr><tr><td>저장공간</td><td>1GB</td><td>100GB</td></tr><tr><td>지원</td><td>이메일</td><td>우선 지원</td></tr></tbody></table></section>`);
+add("data","kpibanner","하이라이트 배너","큰 숫자·문구 편집 가능",["하이라이트","숫자","배너"],
+(v)=>`  <section class="sec hlbanner"><div class="hlv">${v.value}</div><div class="hlk">${v.caption}</div></section>`,
+null,
+[{key:"value",type:"text",label:"큰 숫자",def:"₩12,480,000"},
+ {key:"caption",type:"text",label:"설명 문구",def:"이번 달 총 매출 · 전월 대비 +14%"}]);
+
+/* ─────────── 폼 · 양식 ─────────── */
+add("form","contact","문의 폼","이름·이메일·내용",["문의","contact","폼"],
+`  <section class="sec"><h2 class="h2">문의하기</h2><label class="lb">이름</label><input class="inp full" placeholder="홍길동"><label class="lb">이메일</label><input class="inp full" type="email" placeholder="you@example.com"><label class="lb">내용</label><textarea class="inp full ta" placeholder="문의 내용을 적어주세요"></textarea><button class="btn full mt">보내기</button></section>`);
+add("form","signup","회원가입 폼","가입 정보 입력",["회원가입","signup","가입"],
+`  <section class="sec narrow"><h2 class="h2">회원가입</h2><label class="lb">이메일</label><input class="inp full" placeholder="you@example.com"><label class="lb">비밀번호</label><input class="inp full" type="password"><label class="lb">비밀번호 확인</label><input class="inp full" type="password"><label class="ck mt"><input type="checkbox"> 이용약관에 동의합니다</label><button class="btn full mt">가입하기</button></section>`);
+add("form","survey","설문 폼","별점 + 객관식",["설문","survey","피드백"],
+`  <section class="sec"><h2 class="h2">서비스 평가</h2><label class="lb">만족도</label><div class="stars"><input type="radio" name="sv" id="v5"><label for="v5">★</label><input type="radio" name="sv" id="v4"><label for="v4">★</label><input type="radio" name="sv" id="v3"><label for="v3">★</label><input type="radio" name="sv" id="v2"><label for="v2">★</label><input type="radio" name="sv" id="v1"><label for="v1">★</label></div><label class="lb mt">추천 의향</label><label class="ck"><input type="radio" name="nps"> 추천함</label><label class="ck"><input type="radio" name="nps"> 보통</label><label class="ck"><input type="radio" name="nps"> 아니오</label></section>`);
+add("form","booking","예약 폼","날짜·인원 선택",["예약","booking","신청"],
+`  <section class="sec"><h2 class="h2">예약하기</h2><label class="lb">날짜</label><input class="inp full" type="date"><label class="lb">인원</label><select class="sel full"><option>1명</option><option>2명</option><option>3명</option><option>4명 이상</option></select><label class="lb">요청사항</label><textarea class="inp full ta"></textarea><button class="btn full mt">예약 신청</button></section>`);
+add("form","payment","결제 폼","카드 정보 입력",["결제","payment","카드"],
+`  <section class="sec"><h2 class="h2">결제 정보</h2><label class="lb">카드 번호</label><input class="inp full" placeholder="0000 0000 0000 0000"><div class="row mt"><div><label class="lb">유효기간</label><input class="inp" placeholder="MM/YY"></div><div><label class="lb">CVC</label><input class="inp" placeholder="000"></div></div><button class="btn full mt">결제하기</button></section>`);
+add("form","shipping","배송지 폼","수령인·주소",["배송","shipping","주소"],
+`  <section class="sec"><h2 class="h2">배송지</h2><label class="lb">수령인</label><input class="inp full"><label class="lb">연락처</label><input class="inp full" placeholder="010-0000-0000"><label class="lb">주소</label><input class="inp full" placeholder="우편번호"><input class="inp full mt" placeholder="상세 주소"></section>`);
+add("form","profileedit","프로필 편집","내 정보 수정",["프로필","편집","설정"],
+`  <section class="sec"><h2 class="h2">프로필 편집</h2><label class="lb">이름</label><input class="inp full" value="김서연"><label class="lb">소개</label><textarea class="inp full ta">안녕하세요.</textarea><button class="btn full mt">저장</button></section>`);
+add("form","password","비밀번호 변경","현재·신규 입력",["비밀번호","password","변경"],
+`  <section class="sec narrow"><h2 class="h2">비밀번호 변경</h2><label class="lb">현재 비밀번호</label><input class="inp full" type="password"><label class="lb">새 비밀번호</label><input class="inp full" type="password"><label class="lb">새 비밀번호 확인</label><input class="inp full" type="password"><button class="btn full mt">변경</button></section>`);
+add("form","newsletter","뉴스레터 구독","인라인 이메일",["뉴스레터","구독","이메일"],
+`  <section class="sec nlbox"><div><b>뉴스레터 구독</b><div class="muted sm">새 소식을 이메일로 받아보세요</div></div><div class="row"><input class="inp" placeholder="you@example.com"><button class="btn">구독</button></div></section>`);
+add("form","upload","파일 업로드","드롭존",["업로드","upload","파일"],
+`  <section class="sec"><h2 class="h2">파일 업로드</h2><div class="drop"><div class="dropi">⬆</div><div>파일을 끌어다 놓거나 클릭해서 선택</div><div class="muted sm">최대 10MB · JPG, PNG, PDF</div></div></section>`);
+add("form","multistep","단계 표시","스텝 인디케이터",["단계","step","다단계"],
+`  <section class="sec"><div class="steps"><div class="st done"><i>1</i>정보</div><div class="st cur"><i>2</i>결제</div><div class="st"><i>3</i>완료</div></div></section>`);
+add("form","review","리뷰 작성","별점 + 텍스트",["리뷰","review","작성"],
+`  <section class="sec"><h2 class="h2">리뷰 작성</h2><div class="stars"><input type="radio" name="rw" id="w5"><label for="w5">★</label><input type="radio" name="rw" id="w4"><label for="w4">★</label><input type="radio" name="rw" id="w3"><label for="w3">★</label><input type="radio" name="rw" id="w2"><label for="w2">★</label><input type="radio" name="rw" id="w1"><label for="w1">★</label></div><textarea class="inp full ta mt" placeholder="상품은 어떠셨나요?"></textarea><button class="btn full mt">등록</button></section>`);
+add("form","consent","동의 목록","체크박스 약관",["동의","약관","체크"],
+`  <section class="sec"><h2 class="h2">약관 동의</h2><label class="ck"><input type="checkbox"> <b>전체 동의</b></label><hr class="hr"><label class="ck"><input type="checkbox"> (필수) 이용약관</label><label class="ck"><input type="checkbox"> (필수) 개인정보 처리방침</label><label class="ck"><input type="checkbox"> (선택) 마케팅 수신</label></section>`);
+add("form","radiogroup","선택 그룹","라디오 옵션",["라디오","radio","선택"],
+`  <section class="sec"><h2 class="h2">배송 방법</h2><label class="opt"><input type="radio" name="ship" checked> <div><b>일반 배송</b><div class="muted sm">2~3일 · 무료</div></div></label><label class="opt"><input type="radio" name="ship"> <div><b>빠른 배송</b><div class="muted sm">1일 · 3,000원</div></div></label></section>`);
+add("form","search-save","검색 조건 저장","조건 + 저장",["검색","조건","저장"],
+`  <section class="sec"><h2 class="h2">검색 조건</h2><input class="inp full" placeholder="키워드"><select class="sel full mt"><option>전체 기간</option><option>최근 7일</option></select><div class="row mt"><button class="btn">검색</button><button class="btn ghost">조건 저장</button></div></section>`);
+add("form","contactadd","연락처 추가","이름·전화·이메일",["연락처","추가","contact"],
+`  <section class="sec"><h2 class="h2">연락처 추가</h2><label class="lb">이름</label><input class="inp full"><label class="lb">전화</label><input class="inp full" placeholder="010-0000-0000"><label class="lb">이메일</label><input class="inp full" type="email"><button class="btn full mt">추가</button></section>`);
+add("form","settings","설정 목록","토글 + 셀렉트 혼합",["설정","settings","환경"],
+`  <section class="sec"><h2 class="h2">환경설정</h2><div class="tgrow"><span>다크 모드</span><label class="sw"><input type="checkbox"><i></i></label></div><div class="tgrow"><span>언어</span><select class="sel sm"><option>한국어</option><option>English</option></select></div><div class="tgrow"><span>알림 받기</span><label class="sw"><input type="checkbox" checked><i></i></label></div></section>`);
+
+/* ─────────── 레이아웃 ─────────── */
+add("layout","nav","네비게이션 바","브랜드·메뉴 편집 가능",["네비","nav","메뉴","헤더"],
+(v)=>{
+  const links=v.links.split(",").map(s=>s.trim()).filter(Boolean);
+  const nl=links.map((l,i)=>`<a${i===0?' class="on"':''}>${l}</a>`).join('');
+  return `  <nav class="navbar"><b class="brand">${v.brand}</b><div class="navlinks">${nl}</div><button class="btn sm">${v.btn}</button></nav>`;
+}, null,
+[{key:"brand",type:"text",label:"브랜드명",def:"＋ MyApp"},
+ {key:"links",type:"text",label:"메뉴 (쉼표로 구분)",def:"홈,회원,주문,설정"},
+ {key:"btn",type:"text",label:"버튼 문구",def:"로그인"}]);
+add("layout","hero","히어로 배너","제목·문구 편집 가능",["히어로","hero","배너"],
+(v)=>`  <section class="hero"><p class="eyebrow">${v.eyebrow}</p><h1>${v.title}</h1><p class="lead">${v.lead}</p><button class="btn light">${v.btn}</button></section>`,
+null,
+[{key:"eyebrow",type:"text",label:"윗 라벨",def:"MEMBERSHIP PORTAL"},
+ {key:"title",type:"text",label:"제목",def:"고객 관리 대시보드"},
+ {key:"lead",type:"text",label:"설명",def:"회원 정보를 조회하고 현황을 한눈에 확인하세요."},
+ {key:"btn",type:"text",label:"버튼 문구",def:"시작하기"}]);
+add("layout","footer","푸터","하단 정보/링크",["푸터","footer","하단"],
+`  <footer class="ft"><div><b>＋ MyApp</b><div class="muted sm mt">© 2026 MyApp Inc.</div></div><div class="ftlinks"><a>이용약관</a><a>개인정보</a><a>고객센터</a></div></footer>`);
+add("layout","pagetitle","페이지 헤더","제목 + 액션 버튼",["제목","헤더","타이틀"],
+`  <section class="phead"><div><div class="muted sm">회원 관리</div><h1 class="pt">회원 목록</h1></div><div class="row"><button class="btn ghost">내보내기</button><button class="btn">＋ 회원 추가</button></div></section>`);
+add("layout","breadcrumb","브레드크럼","경로 표시",["경로","breadcrumb","네비"],
+`  <section class="sec pad0"><nav class="crumb"><a>홈</a><span>›</span><a>회원</a><span>›</span><b>상세</b></nav></section>`);
+add("layout","empty","빈 상태","데이터 없음 안내",["빈","empty","없음"],
+`  <section class="sec"><div class="empty"><div class="ei">📭</div><b>데이터가 없습니다</b><div class="muted sm">첫 항목을 추가해보세요.</div><button class="btn mt">＋ 추가하기</button></div></section>`);
+add("layout","callout","콜아웃 박스","강조 인용",["콜아웃","인용","강조"],
+`  <section class="callout"><span class="ci">💡</span><div><b>알아두세요</b><div class="muted sm">VIP 회원은 매월 추가 적립 혜택을 받습니다.</div></div></section>`);
+add("layout","profilehead","프로필 헤더","커버 + 아바타",["프로필","헤더","커버"],
+`  <section class="pfhead"><div class="cover"></div><div class="pfhrow"><div class="pfhav">김</div><div><div class="pfhn">김서연</div><div class="muted sm">VIP 회원</div></div><button class="btn ghost sm">팔로우</button></div></section>`);
+add("layout","dashgrid","대시보드 그리드","위젯 배치",["대시보드","grid","위젯"],
+`  <section class="sec"><div class="dash"><div class="dw big">메인 차트 영역</div><div class="dw">위젯 A</div><div class="dw">위젯 B</div></div></section>`);
+add("layout","ctasplit","분할 CTA","문구·버튼 편집 가능",["cta","행동","전환"],
+(v)=>`  <section class="ctasplit"><div><h2 class="h2 white">${v.title}</h2><div class="muted2">${v.sub}</div></div><button class="btn light">${v.btn}</button></section>`,
+null,
+[{key:"title",type:"text",label:"제목",def:"지금 시작하세요"},
+ {key:"sub",type:"text",label:"부제",def:"30초면 계정을 만들 수 있어요."},
+ {key:"btn",type:"text",label:"버튼 문구",def:"무료로 시작"}]);
+add("layout","pagination","페이지네이션","페이지 이동",["페이지","pagination","이동"],
+`  <section class="sec pad0"><div class="pgn"><a>‹</a><a class="on">1</a><a>2</a><a>3</a><a>…</a><a>12</a><a>›</a></div></section>`);
+add("layout","sectionhead","섹션 헤더","제목 + 더보기",["섹션","헤더","제목"],
+`  <section class="sec pad0"><div class="shead"><h2 class="h2">추천 항목</h2><a class="more">더보기 ›</a></div></section>`);
+add("layout","tabsbar","탭 바","가로 탭 네비",["탭","tab","네비"],
+`  <section class="sec pad0"><div class="tabbar big"><span class="tb on">전체</span><span class="tb">진행중</span><span class="tb">완료</span><span class="tb">보관</span></div></section>`);
+add("layout","stepsind","가로 스텝","진행 단계 표시",["단계","step","진행"],
+`  <section class="sec"><div class="steps wide"><div class="st done"><i>✓</i>장바구니</div><div class="st done"><i>✓</i>주문</div><div class="st cur"><i>3</i>결제</div><div class="st"><i>4</i>완료</div></div></section>`);
+add("layout","split2","2단 레이아웃","사이드 + 본문",["2단","레이아웃","사이드"],
+`  <section class="sec"><div class="split"><div class="sside"><a class="on">대시보드</a><a>회원</a><a>주문</a><a>설정</a></div><div class="sbody">본문 콘텐츠 영역</div></div></section>`);
+add("layout","accordion","섹션 아코디언","접히는 섹션",["아코디언","섹션","접기"],
+`  <section class="sec"><details class="acc" open><summary>기본 정보</summary><p>이름, 연락처 등 기본 정보 영역.</p></details><details class="acc"><summary>결제 정보</summary><p>카드 및 결제 수단 영역.</p></details></section>`);
+add("layout","banner","공지 배너","상단 알림 줄",["공지","배너","알림"],
+`  <section class="topbanner">🎉 신규 가입 시 5,000P 즉시 적립! <a class="bnl">자세히 ›</a></section>`);
+
+/* ─────────── 상태·피드백 ─────────── */
+add("feedback","success","성공 알림","녹색 배너",["성공","success","알림"],
+`  <section class="alert ok"><span>✅</span><div><b>저장되었습니다</b><div class="am">변경사항이 정상적으로 반영되었어요.</div></div></section>`);
+add("feedback","warn","경고 알림","노란 배너",["경고","warning","주의"],
+`  <section class="alert warn"><span>⚠️</span><div><b>확인이 필요합니다</b><div class="am">결제 정보가 곧 만료됩니다.</div></div></section>`);
+add("feedback","error","에러 알림","빨간 배너",["에러","error","실패"],
+`  <section class="alert err"><span>⛔</span><div><b>처리에 실패했습니다</b><div class="am">잠시 후 다시 시도해주세요.</div></div></section>`);
+add("feedback","info","정보 알림","파란 배너",["정보","info","안내"],
+`  <section class="alert info"><span>ℹ️</span><div><b>안내</b><div class="am">2월 1일부터 배송 정책이 변경됩니다.</div></div></section>`);
+add("feedback","toast","토스트","우측 하단 알림",["토스트","toast","알림"],
+`  <section class="sec pad0"><div class="toast">💬 메시지가 전송되었습니다 <button class="tclose">✕</button></div></section>`);
+add("feedback","modal","모달 창","팝업 다이얼로그",["모달","modal","팝업"],
+`  <section class="sec modalstage"><div class="modal"><h3>정말 삭제할까요?</h3><p class="muted sm">이 작업은 되돌릴 수 없습니다.</p><div class="row end"><button class="btn ghost">취소</button><button class="btn danger">삭제</button></div></div></section>`);
+add("feedback","confirm","확인 배너","인라인 확인",["확인","confirm","질문"],
+`  <section class="alert info"><div><b>변경사항을 저장할까요?</b></div><div class="row"><button class="btn sm ghost">취소</button><button class="btn sm">저장</button></div></section>`);
+add("feedback","spinner","로딩 스피너","회전 인디케이터",["로딩","spinner","대기"],
+`  <section class="sec"><div class="loadwrap"><div class="spin"></div><div class="muted sm">불러오는 중…</div></div></section>`);
+add("feedback","skeleton","스켈레톤","로딩 자리표시",["스켈레톤","skeleton","로딩"],
+`  <section class="sec"><div class="sk-line w60"></div><div class="sk-line"></div><div class="sk-line w80"></div></section>`);
+add("feedback","progressbar","진행바","단일 프로그레스",["진행","progress","바"],
+`  <section class="sec"><div class="pgrow"><span>업로드 중</span><span class="muted sm">64%</span></div><div class="pg big"><i style="width:64%"></i></div></section>`);
+add("feedback","done","완료 화면","체크 성공 화면",["완료","success","done"],
+`  <section class="sec center"><div class="bigcheck">✓</div><h2 class="h2">주문이 완료되었습니다</h2><div class="muted">주문번호 #1001 · 감사합니다!</div><button class="btn mt">주문 내역 보기</button></section>`);
+add("feedback","notfound","404 화면","페이지 없음",["404","없음","오류"],
+`  <section class="sec center"><div class="big404">404</div><h2 class="h2">페이지를 찾을 수 없어요</h2><div class="muted">주소가 바뀌었거나 삭제되었을 수 있어요.</div><button class="btn mt">홈으로</button></section>`);
+add("feedback","cookie","쿠키 동의","하단 배너",["쿠키","cookie","동의"],
+`  <section class="cookiebar"><div class="muted2">더 나은 서비스를 위해 쿠키를 사용합니다.</div><div class="row"><button class="btn sm ghost light">거부</button><button class="btn sm">동의</button></div></section>`);
+add("feedback","statusdot","상태 표시","온라인/오프라인",["상태","status","온라인"],
+`  <section class="sec"><div class="stdrow"><span class="std on"></span> 정상 운영중</div><div class="stdrow"><span class="std off"></span> 점검 예정</div></section>`);
+add("feedback","tooltip","툴팁","호버 설명",["툴팁","tooltip","도움말"],
+`  <section class="sec"><span class="tip">포인트란? <span class="tipbox">구매 시 적립되어 현금처럼 사용할 수 있어요.</span></span></section>`);
+add("feedback","countbadge","카운트 뱃지","숫자 알림",["뱃지","count","알림"],
+`  <section class="sec"><div class="row"><button class="btn ghost bell">알림 <span class="cb">3</span></button><button class="btn ghost bell">메시지 <span class="cb">12</span></button></div></section>`);
+add("feedback","maintenance","점검 안내","서비스 점검",["점검","maintenance","안내"],
+`  <section class="sec center"><div class="ei big">🛠️</div><h2 class="h2">서비스 점검 중</h2><div class="muted">08:00~10:00 동안 이용이 제한됩니다.</div></section>`);
+add("feedback","emptysearch","검색 결과 없음","결과 없음 안내",["검색","없음","결과"],
+`  <section class="sec center"><div class="ei">🔍</div><b>검색 결과가 없어요</b><div class="muted sm">다른 키워드로 검색해보세요.</div></section>`);
+
+/* ─────────── 관리자(admin) ─────────── */
+add("admin","adshell","관리자 레이아웃","사이드바 + 콘텐츠 셸",["관리자","admin","레이아웃","사이드바"],
+`  <section class="adshell"><div class="adside"><div class="adbrand">⚙ Admin</div><a class="on">📊 대시보드</a><a>👤 사용자</a><a>📦 주문</a><a>📝 콘텐츠</a><a>🔧 설정</a></div><div class="adcontent"><div class="adtop"><b>대시보드</b><span class="aduser">관리자님 ▾</span></div><div class="muted sm">여기에 관리 콘텐츠가 표시됩니다.</div></div></section>`);
+add("admin","adtoolbar","목록 툴바","검색·필터·추가·내보내기",["툴바","검색","필터","admin"],
+`  <section class="sec pad0"><div class="adtoolbar"><div class="row"><div class="searchbar"><span class="ico">🔍</span><input class="inp flat" placeholder="이름·이메일 검색"></div><select class="sel sm"><option>전체 상태</option><option>활성</option><option>정지</option></select></div><div class="row"><button class="btn ghost sm">내보내기</button><button class="btn sm">＋ 추가</button></div></div></section>`);
+add("admin","adusers","사용자 관리 표","선택·역할·상태·액션 (컬럼 선택)",["사용자","user","관리","표","admin"],
+(v)=>{
+  const rows=[
+    {"이름":"김서연","이메일":"seoyeon@corp.com","역할":"관리자","상태":'<span class="tag ok">활성</span>',"최근접속":"방금"},
+    {"이름":"이준호","이메일":"junho@corp.com","역할":"편집자","상태":'<span class="tag ok">활성</span>',"최근접속":"1시간 전"},
+    {"이름":"박민지","이메일":"minji@corp.com","역할":"뷰어","상태":'<span class="tag err">정지</span>',"최근접속":"3일 전"}
+  ];
+  const cols=(v.cols&&v.cols.length)?v.cols:["이름","이메일","역할","상태"];
+  const th=cols.map(c=>`<th>${c}</th>`).join('');
+  const tb=rows.map(r=>`<tr><td class="ckcol"><input type="checkbox"></td>${cols.map(c=>`<td>${r[c]}</td>`).join('')}<td class="actcol"><button class="iact">✏️</button><button class="iact">🗑</button></td></tr>`).join('');
+  return `  <section class="sec"><h2 class="h2">${v.title}</h2><table class="tbl"><thead><tr><th class="ckcol"><input type="checkbox"></th>${th}<th></th></tr></thead><tbody>${tb}</tbody></table></section>`;
+}, null,
+[{key:"title",type:"text",label:"제목",def:"사용자 관리"},
+ {key:"cols",type:"checks",label:"표시할 컬럼",def:["이름","이메일","역할","상태"],options:["이름","이메일","역할","상태","최근접속"]}]);
+add("admin","adkpi","관리자 지표","오늘 가입·활성·대기·오류 (값 편집)",["지표","kpi","대시보드","admin"],
+(v)=>{
+  const c=[[v.v1,v.k1],[v.v2,v.k2],[v.v3,v.k3],[v.v4,v.k4]];
+  return `  <section class="sec"><div class="g4">${c.map(x=>`<div class="stat"><div class="sv">${x[0]}</div><div class="sk">${x[1]}</div></div>`).join('')}</div></section>`;
+}, null,
+[{key:"v1",type:"text",label:"1 값",def:"27"},{key:"k1",type:"text",label:"1 라벨",def:"오늘 가입"},
+ {key:"v2",type:"text",label:"2 값",def:"1,203"},{key:"k2",type:"text",label:"2 라벨",def:"활성 사용자"},
+ {key:"v3",type:"text",label:"3 값",def:"8"},{key:"k3",type:"text",label:"3 라벨",def:"승인 대기"},
+ {key:"v4",type:"text",label:"4 값",def:"2"},{key:"k4",type:"text",label:"4 라벨",def:"오류"}]);
+add("admin","adbulk","일괄 처리 바","선택 항목 액션",["일괄","bulk","선택","admin"],
+`  <section class="sec pad0"><div class="bulkbar"><span><b>3개</b> 선택됨</span><div class="row"><button class="btn ghost sm">상태 변경</button><button class="btn ghost sm">내보내기</button><button class="btn danger sm">삭제</button></div></div></section>`);
+add("admin","adaudit","활동 로그","시간·사용자·행동 감사 로그",["로그","audit","활동","admin"],
+`  <section class="sec"><h2 class="h2">활동 로그</h2><table class="tbl"><thead><tr><th>시간</th><th>사용자</th><th>행동</th></tr></thead><tbody><tr><td class="mono">10:24</td><td>김서연</td><td>사용자 '박민지' 정지</td></tr><tr><td class="mono">09:58</td><td>이준호</td><td>주문 #1002 상태 변경</td></tr><tr><td class="mono">09:31</td><td>system</td><td>일일 백업 완료</td></tr></tbody></table></section>`);
+add("admin","adapproval","승인 대기","항목 + 승인/거절",["승인","approval","대기","admin"],
+`  <section class="sec"><h2 class="h2">승인 대기 <span class="cb">3</span></h2><div class="apr"><div class="aprt"><b>휴가 신청</b><div class="muted sm">이준호 · 08-25~08-27</div></div><div class="row"><button class="btn sm">승인</button><button class="btn ghost sm">거절</button></div></div><div class="apr"><div class="aprt"><b>환불 요청</b><div class="muted sm">주문 #1003 · 78,000원</div></div><div class="row"><button class="btn sm">승인</button><button class="btn ghost sm">거절</button></div></div></section>`);
+add("admin","adroles","권한 설정","역할별 권한 토글",["권한","역할","roles","admin"],
+`  <section class="sec"><h2 class="h2">권한 설정</h2><table class="tbl"><thead><tr><th>권한</th><th>관리자</th><th>편집자</th><th>뷰어</th></tr></thead><tbody><tr><td>조회</td><td><label class="sw"><input type="checkbox" checked><i></i></label></td><td><label class="sw"><input type="checkbox" checked><i></i></label></td><td><label class="sw"><input type="checkbox" checked><i></i></label></td></tr><tr><td>편집</td><td><label class="sw"><input type="checkbox" checked><i></i></label></td><td><label class="sw"><input type="checkbox" checked><i></i></label></td><td><label class="sw"><input type="checkbox"><i></i></label></td></tr><tr><td>삭제</td><td><label class="sw"><input type="checkbox" checked><i></i></label></td><td><label class="sw"><input type="checkbox"><i></i></label></td><td><label class="sw"><input type="checkbox"><i></i></label></td></tr></tbody></table></section>`);
+add("admin","adstatus","시스템 상태","서비스별 상태·응답시간",["상태","status","시스템","admin"],
+`  <section class="sec"><h2 class="h2">시스템 상태</h2><div class="stdrow"><span class="std on"></span> API 서버 <span class="muted sm" style="margin-left:auto">42ms</span></div><div class="stdrow"><span class="std on"></span> 데이터베이스 <span class="muted sm" style="margin-left:auto">11ms</span></div><div class="stdrow"><span class="std off"></span> 결제 게이트웨이 <span class="muted sm" style="margin-left:auto">점검중</span></div></section>`);
+add("admin","adedit","상세 편집 폼","이름·역할·상태 수정 패널",["편집","수정","폼","admin"],
+`  <section class="sec"><h2 class="h2">사용자 편집</h2><label class="lb">이름</label><input class="inp full" value="김서연"><label class="lb">이메일</label><input class="inp full" value="seoyeon@corp.com"><label class="lb">역할</label><select class="sel full"><option>관리자</option><option>편집자</option><option>뷰어</option></select><div class="tgrow mt"><span>계정 활성</span><label class="sw"><input type="checkbox" checked><i></i></label></div><div class="row end mt"><button class="btn ghost">취소</button><button class="btn">저장</button></div></section>`);
+add("admin","addetailhead","상세 헤더","경로 + 제목 + 상태 + 액션",["상세","헤더","admin"],
+`  <section class="sec pad0"><nav class="crumb">사용자 <span>›</span> <b>김서연</b></nav><div class="phead" style="margin:8px 0 0"><h1 class="pt">김서연 <span class="tag ok">활성</span></h1><div class="row"><button class="btn ghost sm">정지</button><button class="btn sm">편집</button></div></div></section>`);
+add("admin","adnotice","공지 관리","공지 목록 + 작성",["공지","notice","알림","admin"],
+`  <section class="sec"><div class="shead"><h2 class="h2">공지 관리</h2><button class="btn sm">＋ 새 공지</button></div><div class="li"><span class="tag info">게시중</span><div class="lt" style="margin-left:10px"><b>정기 점검 안내</b><span>08-25 02:00~04:00</span></div><button class="iact">✏️</button></div><div class="li"><span class="tag">임시저장</span><div class="lt" style="margin-left:10px"><b>신규 기능 업데이트</b><span>초안</span></div><button class="iact">✏️</button></div></section>`);
+add("admin","adtabsform","설정 (탭+폼)","탭으로 나뉜 설정 화면",["설정","settings","탭","admin"],
+`  <section class="sec"><div class="tabbar"><span class="tb on">일반</span><span class="tb">보안</span><span class="tb">알림</span></div><label class="lb mt">사이트 이름</label><input class="inp full" value="사내 관리도구"><label class="lb">관리자 이메일</label><input class="inp full" value="admin@corp.com"><div class="tgrow mt"><span>2단계 인증 필수</span><label class="sw"><input type="checkbox" checked><i></i></label></div><button class="btn mt">저장</button></section>`);
+
+/* ══════════════════════════════════════════════════════════════
+   조립되는 페이지의 공용 디자인 시스템
+   ══════════════════════════════════════════════════════════════ */
+const CSS = `
+*{box-sizing:border-box;}
+body{font-family:system-ui,"Pretendard",sans-serif;background:#f3f4f7;color:#1a1d24;margin:0;}
+.page{max-width:680px;margin:0 auto;padding:18px 16px 40px;}
+.sec{background:#fff;border:1px solid #e6e8ec;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 3px 14px rgba(0,0,0,.04);}
+.sec.pad0{padding:12px 16px;}
+.sec.narrow{max-width:360px;margin-left:auto;margin-right:auto;}
+.sec.center{text-align:center;}
+.h2{margin:0 0 14px;font-size:17px;}
+.h2.white{color:#fff;}
+.muted{color:#6b7280;}.muted2{color:rgba(255,255,255,.85);}.sm{font-size:12.5px;}.mt{margin-top:12px;}
+.lb{display:block;font-size:12.5px;font-weight:600;margin:12px 0 6px;color:#374151;}
+.lb:first-child{margin-top:0;}
+.inp{padding:11px 13px;border:1px solid #dfe2e7;border-radius:9px;font-size:15px;font-family:inherit;outline:none;background:#fff;}
+.inp:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.13);}
+.inp.full{width:100%;}.inp.flat{border:none;box-shadow:none;flex:1;}
+.ta{min-height:88px;resize:vertical;}
+.row{display:flex;gap:8px;align-items:center;}.row.end{justify-content:flex-end;}
+.btn{border:none;background:#4f46e5;color:#fff;font-weight:600;font-size:14px;padding:10px 16px;border-radius:9px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.btn:hover{background:#4338ca;}.btn.full{width:100%;}.btn.sm{padding:6px 12px;font-size:13px;}
+.btn.ghost{background:#eef0f4;color:#374151;}.btn.ghost:hover{background:#e3e6ec;}
+.btn.light{background:#fff;color:#4f46e5;}.btn.danger{background:#dc2626;}.btn.danger:hover{background:#b91c1c;}
+.sel{padding:10px 12px;border:1px solid #dfe2e7;border-radius:9px;font-size:14px;font-family:inherit;background:#fff;}
+.sel.full{width:100%;}.sel.sm{padding:6px 10px;font-size:13px;}
+.searchbar{display:flex;align-items:center;gap:8px;border:1px solid #dfe2e7;border-radius:10px;padding:8px 12px;}
+.searchbar .ico{opacity:.5;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.tilde{color:#9aa1ac;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{font-size:13px;background:#f1f2f6;border:1px solid #e6e8ec;border-radius:20px;padding:5px 12px;cursor:pointer;}
+.chip.on{background:#eef0ff;border-color:#c7ccff;color:#4f46e5;font-weight:600;}
+.stepper{display:inline-flex;align-items:center;border:1px solid #dfe2e7;border-radius:9px;overflow:hidden;}
+.stp{border:none;background:#f1f2f6;width:38px;height:38px;font-size:18px;cursor:pointer;}
+.stpv{width:44px;text-align:center;font-weight:600;}
+.rng{width:100%;}.rngv{font-size:13px;color:#6b7280;margin-top:6px;}
+.otp{display:flex;gap:8px;}.otpc{width:44px;height:52px;text-align:center;font-size:20px;border:1px solid #dfe2e7;border-radius:9px;}
+.tgrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f1f4;}
+.tgrow:last-child{border-bottom:none;}
+.sw{position:relative;display:inline-block;width:44px;height:24px;}
+.sw input{display:none;}.sw i{position:absolute;inset:0;background:#cbd0d8;border-radius:20px;transition:.2s;}
+.sw i:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.sw input:checked+i{background:#4f46e5;}.sw input:checked+i:before{transform:translateX(20px);}
+.stars{display:inline-flex;flex-direction:row-reverse;font-size:26px;}
+.stars input{display:none;}.stars label{color:#d5d9e0;cursor:pointer;padding:0 1px;}
+.stars label:hover,.stars label:hover~label,.stars input:checked~label{color:#f5b942;}
+.file{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px dashed #cbd0d8;border-radius:10px;padding:14px;color:#6b7280;font-size:13px;flex-wrap:wrap;}
+.ck{display:block;font-size:14px;padding:6px 0;cursor:pointer;}
+.opt{display:flex;gap:10px;align-items:center;border:1px solid #e6e8ec;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;}
+.unitin{display:flex;align-items:center;border:1px solid #dfe2e7;border-radius:9px;padding:0 12px;}
+.unit{color:#6b7280;}
+.nf{margin-top:14px;color:#b91c1c;background:#fdf3f3;border:1px solid #f3c9c9;border-radius:12px;padding:14px;text-align:center;}
+.info{margin-top:14px;background:#f8f9fc;border:1px solid #eef0f4;border-radius:12px;padding:16px;}
+.info h3{margin:0 0 8px;}.info p{margin:5px 0;color:#374151;font-size:14px;}.info b{color:#4338ca;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th,.tbl td{padding:11px 12px;text-align:left;font-size:14px;border-bottom:1px solid #eef0f3;}
+.tbl th{background:#111827;color:#fff;font-size:12.5px;}
+.tbl tr:last-child td{border-bottom:none;}
+.tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;background:#eef0f4;color:#4b5563;}
+.tag.ok{background:#dcfce7;color:#15803d;}.tag.wait{background:#fef3c7;color:#b45309;}.tag.err{background:#fee2e2;color:#dc2626;}.tag.info{background:#e0eaff;color:#4f46e5;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.stat{background:#f8f9fc;border:1px solid #eef0f4;border-radius:12px;padding:14px;text-align:center;}
+.stat .sv{font-size:22px;font-weight:800;color:#4f46e5;}.stat .sk{font-size:12px;color:#6b7280;margin-top:4px;}
+.pcard{border:1px solid #eef0f4;border-radius:12px;padding:12px;}
+.thumb{height:80px;background:linear-gradient(135deg,#e7e9f5,#dfe8f0);border-radius:8px;margin-bottom:8px;}
+.pn{font-size:14px;font-weight:600;}.pp{color:#4f46e5;font-weight:700;margin-top:2px;}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0;}
+.dl dt{color:#6b7280;font-size:13px;}.dl dd{margin:0;font-size:14px;font-weight:500;}
+.pf{display:flex;align-items:center;gap:12px;}
+.pfav,.pfhav{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#7c6cf0);color:#fff;font-weight:700;font-size:20px;display:grid;place-items:center;flex:none;}
+.pfn{font-weight:700;}.pfm{color:#6b7280;font-size:13px;}
+.pf .btn{margin-left:auto;}
+.li{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #f0f1f4;}
+.li:last-child{border-bottom:none;}
+.av{width:34px;height:34px;border-radius:10px;background:#eef0ff;color:#4f46e5;font-weight:700;display:grid;place-items:center;flex:none;}
+.lt{flex:1;display:flex;flex-direction:column;}.lt b{font-size:14px;}.lt span{color:#6b7280;font-size:13px;}
+.lm{color:#9aa1ac;font-size:12px;}
+.tl{list-style:none;padding:0;margin:0;}
+.tl li{position:relative;padding:0 0 18px 24px;border-left:2px solid #e6e8ec;}
+.tl li:last-child{border-left-color:transparent;}
+.tl li:before{content:"";position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:#cbd0d8;border:2px solid #fff;}
+.tl li.done:before{background:#5fd39a;}.tl li.cur:before{background:#4f46e5;}
+.tl b{font-size:14px;}.tl span{display:block;color:#9aa1ac;font-size:12px;}
+.bars{display:flex;align-items:flex-end;gap:14px;height:150px;padding-top:10px;}
+.bar{flex:1;background:linear-gradient(#7c8cff,#4f46e5);border-radius:8px 8px 0 0;position:relative;min-height:6px;}
+.bar span{position:absolute;bottom:-22px;left:0;right:0;text-align:center;font-size:12px;color:#6b7280;}
+.donutwrap{display:flex;align-items:center;gap:20px;}
+.donut{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#4f46e5;
+       background:conic-gradient(#4f46e5 calc(var(--p)*1%),#eef0f4 0);}
+.donut span{width:84px;height:84px;background:#fff;border-radius:50%;display:grid;place-items:center;}
+.pgrow{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 5px;}
+.pg{height:8px;background:#eef0f4;border-radius:20px;overflow:hidden;}.pg.big{height:12px;}
+.pg i{display:block;height:100%;background:linear-gradient(90deg,#7c8cff,#4f46e5);border-radius:20px;}
+.plan{border:1px solid #eef0f4;border-radius:14px;padding:16px;text-align:center;}
+.plan.hot{border-color:#4f46e5;box-shadow:0 8px 24px rgba(79,70,229,.15);}
+.plname{font-weight:700;}.plprice{font-size:24px;font-weight:800;margin:8px 0;}
+.plul{list-style:none;padding:0;margin:0 0 12px;font-size:13px;color:#4b5563;}.plul li{padding:4px 0;}
+.acc{border:1px solid #eef0f4;border-radius:10px;margin-bottom:8px;padding:0 14px;}
+.acc summary{padding:13px 0;font-weight:600;cursor:pointer;font-size:14px;}
+.acc p{margin:0 0 13px;color:#6b7280;font-size:14px;}
+.tabbar{display:flex;gap:4px;border-bottom:1px solid #e6e8ec;}
+.tabbar.big{gap:8px;}
+.tb{padding:9px 14px;font-size:14px;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;}
+.tb.on{color:#4f46e5;border-bottom-color:#4f46e5;font-weight:600;}
+.tp{color:#4b5563;font-size:14px;margin:14px 0 0;}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.gi{aspect-ratio:1;background:linear-gradient(135deg,#e7e9f5,#dfe8f0);border-radius:8px;}
+.rvsum{display:flex;gap:20px;align-items:center;}
+.rvbig{text-align:center;}.rvbig{font-size:34px;font-weight:800;color:#4f46e5;}
+.rvstars{color:#f5b942;font-size:15px;}.rvbars{flex:1;}
+.rvb{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0;}.rvb .pg{flex:1;}
+.fd{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid #f0f1f4;font-size:14px;}
+.fd:last-child{border-bottom:none;}.fdot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;}
+.hlbanner{background:linear-gradient(135deg,#4f46e5,#7c6cf0);color:#fff;text-align:center;}
+.hlv{font-size:30px;font-weight:800;}.hlk{opacity:.9;margin-top:6px;font-size:13px;}
+.navbar{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:12px 18px;margin-bottom:16px;box-shadow:0 3px 14px rgba(0,0,0,.04);}
+.brand{color:#4f46e5;font-size:16px;}.navlinks{display:flex;gap:16px;}
+.navlinks a{color:#6b7280;font-size:14px;cursor:pointer;}.navlinks a.on{color:#111827;font-weight:600;}
+.navbar .btn{margin-left:auto;}
+.hero{background:linear-gradient(135deg,#4f46e5,#7c6cf0);color:#fff;border-radius:16px;padding:32px 26px;margin-bottom:16px;}
+.hero .eyebrow{font-size:11px;letter-spacing:.1em;opacity:.85;margin:0 0 8px;font-weight:600;}
+.hero h1{margin:0 0 8px;font-size:27px;}.hero .lead{margin:0 0 16px;opacity:.92;font-size:14px;}
+.ft{background:#111827;color:#fff;border-radius:16px;padding:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:16px;}
+.ft .muted,.ftlinks a{color:#9aa1ac;}.ftlinks{display:flex;gap:16px;}.ftlinks a{cursor:pointer;font-size:14px;}
+.phead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.pt{margin:4px 0 0;font-size:24px;}
+.crumb{display:flex;gap:8px;align-items:center;font-size:13px;color:#9aa1ac;}.crumb a{cursor:pointer;}.crumb b{color:#374151;}
+.empty{text-align:center;padding:24px;}.ei{font-size:38px;}.ei.big{font-size:48px;}
+.empty b{display:block;margin-top:8px;}
+.callout{display:flex;gap:12px;background:#eef0ff;border:1px solid #d6dcff;border-radius:12px;padding:16px;margin-bottom:16px;}
+.ci{font-size:22px;}
+.pfhead{border:1px solid #e6e8ec;border-radius:16px;overflow:hidden;margin-bottom:16px;background:#fff;}
+.cover{height:80px;background:linear-gradient(135deg,#7c8cff,#59e0c5);}
+.pfhrow{display:flex;align-items:center;gap:12px;padding:0 18px 16px;margin-top:-24px;}
+.pfhav{border:3px solid #fff;}.pfhn{font-weight:700;font-size:16px;}.pfhrow .btn{margin-left:auto;}
+.dash{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dw{background:#f8f9fc;border:1px solid #eef0f4;border-radius:12px;padding:24px;text-align:center;color:#6b7280;font-size:13px;}
+.dw.big{grid-column:1/-1;padding:36px;}
+.ctasplit{background:#111827;color:#fff;border-radius:16px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+.pgn{display:flex;gap:4px;justify-content:center;}
+.pgn a{min-width:34px;height:34px;display:grid;place-items:center;border:1px solid #e6e8ec;border-radius:8px;font-size:13px;cursor:pointer;}
+.pgn a.on{background:#4f46e5;color:#fff;border-color:#4f46e5;}
+.shead{display:flex;justify-content:space-between;align-items:center;}.more{color:#4f46e5;font-size:13px;cursor:pointer;}
+.steps{display:flex;gap:8px;}.steps.wide{justify-content:space-between;}
+.st{display:flex;align-items:center;gap:7px;color:#9aa1ac;font-size:13px;font-weight:600;}
+.st i{width:24px;height:24px;border-radius:50%;background:#eef0f4;display:grid;place-items:center;font-size:12px;color:#9aa1ac;font-style:normal;}
+.st.done i{background:#5fd39a;color:#fff;}.st.cur i{background:#4f46e5;color:#fff;}.st.cur{color:#111827;}.st.done{color:#374151;}
+.split{display:flex;gap:16px;}.sside{display:flex;flex-direction:column;gap:2px;width:120px;flex:none;}
+.sside a{padding:8px 10px;border-radius:8px;font-size:13px;color:#6b7280;cursor:pointer;}.sside a.on{background:#eef0ff;color:#4f46e5;font-weight:600;}
+.sbody{flex:1;background:#f8f9fc;border-radius:12px;padding:24px;color:#6b7280;font-size:13px;}
+.topbanner{background:#4f46e5;color:#fff;border-radius:12px;padding:11px 16px;text-align:center;font-size:14px;margin-bottom:16px;}
+.bnl,.bnl:visited{color:#fff;text-decoration:underline;cursor:pointer;}
+.alert{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1px solid;}
+.alert b{font-size:14px;}.am{font-size:13px;opacity:.85;margin-top:2px;}
+.alert.ok{background:#ecfdf3;border-color:#bbf7d0;color:#15803d;}
+.alert.warn{background:#fffbeb;border-color:#fde68a;color:#b45309;}
+.alert.err{background:#fef2f2;border-color:#fecaca;color:#dc2626;}
+.alert.info{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;justify-content:space-between;align-items:center;}
+.alert .row{flex:none;}
+.toast{display:inline-flex;align-items:center;gap:10px;background:#111827;color:#fff;border-radius:12px;padding:12px 16px;font-size:14px;}
+.tclose{background:none;border:none;color:#9aa1ac;cursor:pointer;font-size:14px;}
+.modalstage{background:#e9eaf0;display:flex;justify-content:center;padding:30px;}
+.modal{background:#fff;border-radius:16px;padding:22px;max-width:320px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.modal h3{margin:0 0 8px;}.modal p{margin:0 0 16px;}
+.loadwrap{text-align:center;padding:20px;}
+.spin{width:34px;height:34px;border:3px solid #eef0f4;border-top-color:#4f46e5;border-radius:50%;margin:0 auto 10px;animation:sp 0.8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.sk-line{height:14px;background:linear-gradient(90deg,#eef0f4,#e2e5ec,#eef0f4);background-size:200% 100%;border-radius:6px;margin:9px 0;animation:sk 1.4s infinite;}
+.sk-line.w60{width:60%;}.sk-line.w80{width:80%;}
+@keyframes sk{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.bigcheck{width:64px;height:64px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:34px;display:grid;place-items:center;margin:0 auto 14px;}
+.big404{font-size:64px;font-weight:800;color:#4f46e5;}
+.cookiebar{background:#111827;color:#fff;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.btn.light.ghost{background:transparent;color:#fff;border:1px solid #374151;}
+.stdrow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;}
+.std{width:10px;height:10px;border-radius:50%;}.std.on{background:#5fd39a;box-shadow:0 0 0 3px #dcfce7;}.std.off{background:#f59e0b;box-shadow:0 0 0 3px #fef3c7;}
+.tip{position:relative;border-bottom:1px dashed #9aa1ac;cursor:help;font-size:14px;}
+.tipbox{display:none;position:absolute;left:0;top:130%;background:#111827;color:#fff;font-size:12px;padding:8px 10px;border-radius:8px;width:220px;z-index:5;}
+.tip:hover .tipbox{display:block;}
+.bell{position:relative;}.cb{background:#dc2626;color:#fff;border-radius:20px;font-size:11px;padding:1px 7px;margin-left:4px;}
+.drop{border:2px dashed #cbd0d8;border-radius:12px;padding:28px;text-align:center;color:#6b7280;}
+.dropi{font-size:28px;margin-bottom:6px;}
+.nlbox{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.hr{border:none;border-top:1px solid #eef0f4;margin:10px 0;}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#6b7280;}
+.adshell{display:flex;border:1px solid #e6e8ec;border-radius:16px;overflow:hidden;margin-bottom:16px;min-height:180px;box-shadow:0 3px 14px rgba(0,0,0,.04);}
+.adside{width:150px;flex:none;background:#111827;color:#cbd0d8;padding:14px 10px;}
+.adbrand{color:#fff;font-weight:700;font-size:14px;padding:4px 8px 12px;}
+.adside a{display:block;padding:9px 10px;border-radius:8px;font-size:13px;color:#cbd0d8;cursor:pointer;margin-bottom:2px;}
+.adside a.on{background:#4f46e5;color:#fff;}
+.adcontent{flex:1;background:#fff;padding:16px 18px;}
+.adtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.aduser{font-size:13px;color:#6b7280;}
+.adtoolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.adtoolbar .searchbar{padding:7px 10px;}
+.ckcol{width:36px;text-align:center;}.actcol{width:74px;white-space:nowrap;text-align:right;}
+.iact{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:.7;}
+.iact:hover{opacity:1;}
+.bulkbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#eef0ff;border:1px solid #c7ccff;border-radius:10px;padding:10px 14px;color:#4338ca;font-size:14px;flex-wrap:wrap;}
+.apr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f0f1f4;flex-wrap:wrap;}
+.apr:last-child{border-bottom:none;}.aprt b{font-size:14px;}
+@media(max-width:560px){.g4,.g3,.gal{grid-template-columns:repeat(2,1fr);}.dash{grid-template-columns:1fr;}.split{flex-direction:column;}.sside{width:auto;flex-direction:row;flex-wrap:wrap;}.adshell{flex-direction:column;}.adside{width:auto;}}
+`;
+
+/* ══════════════════════════════════════════════════════════════
+   조립 + UI 로직
+   ══════════════════════════════════════════════════════════════ */
+const THEMES = {
+  indigo:{name:"인디고", a:"#4f46e5", d:"#4338ca", a2:"#7c6cf0", l:"#eef0ff", l2:"#c7ccff", rgb:"79,70,229"},
+  teal:  {name:"틸",     a:"#0d9488", d:"#0b5b53", a2:"#2dd4bf", l:"#e3f4f2", l2:"#9fe0d8", rgb:"13,148,136"},
+  violet:{name:"바이올렛",a:"#7c3aed", d:"#6d28d9", a2:"#a78bfa", l:"#f0e9ff", l2:"#d6c4ff", rgb:"124,58,237"},
+  rose:  {name:"로즈",   a:"#e11d55", d:"#be123c", a2:"#fb7185", l:"#ffe4ec", l2:"#fbb6ca", rgb:"225,29,85"},
+  amber: {name:"앰버",   a:"#d97706", d:"#b45309", a2:"#fbbf24", l:"#fef3c7", l2:"#fcd88a", rgb:"217,119,6"},
+  slate: {name:"슬레이트",a:"#334155", d:"#1e293b", a2:"#64748b", l:"#e9edf3", l2:"#c3ccd8", rgb:"51,65,85"},
+};
+let theme = "indigo";
+
+const optVals = {};                 // id -> {key:value}
+function optDefaults(b){ const o={}; (b.opts||[]).forEach(op=>o[op.key]=Array.isArray(op.def)?op.def.slice():op.def); return o; }
+function getHTML(b){ return (typeof b.html==="function") ? b.html(optVals[b.id]||optDefaults(b)) : b.html; }
+function themedCSS(){
+  const t=THEMES[theme];
+  return CSS.split('#4f46e5').join(t.a).split('#4338ca').join(t.d).split('#7c6cf0').join(t.a2)
+            .split('#7c8cff').join(t.a2).split('#eef0ff').join(t.l).split('#c7ccff').join(t.l2)
+            .split('#d6dcff').join(t.l2).split('rgba(79,70,229').join('rgba('+t.rgb);
+}
+
+function assemble(list){
+  const body = list.map(b=>getHTML(b)).join("\n");
+  const js = list.map(b=>b.js).filter(Boolean).join("\n");
+  const script = js ? ("<script>\n"+js+"\n<\/script>") : "";
+  return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="UTF-8">\n'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>조립된 페이지</title>\n'+
+    '<style>'+themedCSS()+'</style>\n</head>\n<body>\n<div class="page">\n'+body+'\n</div>\n'+script+'\n</body>\n</html>';
+}
+
+const byId = {}; B.forEach(b=>byId[b.id]=b);
+let selected = [];       // 담긴 블록 id (순서 유지)
+let openOpts = {};       // id -> 옵션 패널 열림 여부
+let activeCat = "all";
+let query = "";
+let editMode = false;    // 직접 편집 모드
+let editedHTML = null;   // 수동 편집된 결과 HTML (있으면 우선)
+
+const grid = document.getElementById('grid');
+const pills = document.getElementById('pills');
+const tray = document.getElementById('tray');
+
+document.getElementById('totalcount').textContent = "블록 "+B.length+"개 · 담아서 한 페이지로 조립하세요";
+
+// 카테고리 pills
+function renderPills(){
+  const counts = {all:B.length};
+  B.forEach(b=>counts[b.cat]=(counts[b.cat]||0)+1);
+  let html = '<button class="pill'+(activeCat==="all"?" on":"")+'" data-c="all">전체<span class="n">'+counts.all+'</span></button>';
+  for(const k in CATS){
+    html += '<button class="pill'+(activeCat===k?" on":"")+'" data-c="'+k+'">'+CATS[k].label+'<span class="n">'+(counts[k]||0)+'</span></button>';
+  }
+  pills.innerHTML = html;
+}
+pills.addEventListener('click',e=>{const b=e.target.closest('.pill');if(!b)return;activeCat=b.dataset.c;renderPills();renderCatalog();});
+
+// 카탈로그
+function renderCatalog(){
+  const q = query.trim().toLowerCase();
+  const items = B.filter(b=>{
+    if(activeCat!=="all" && b.cat!==activeCat) return false;
+    if(!q) return true;
+    return (b.name+" "+b.desc+" "+b.tags.join(" ")+" "+CATS[b.cat].label).toLowerCase().includes(q);
+  });
+  if(items.length===0){ grid.innerHTML='<div class="noresult">검색 결과가 없어요. 다른 키워드로 찾아보세요.</div>'; return; }
+  grid.innerHTML = items.map(b=>{
+    const on = selected.includes(b.id);
+    return '<div class="bcard'+(on?" sel":"")+'" data-id="'+b.id+'">'+
+      '<div class="add">'+(on?"✓":"＋")+'</div>'+
+      '<div><span class="dot" style="background:'+CATS[b.cat].color+'"></span><span class="bn">'+b.name+'</span></div>'+
+      '<div class="bd">'+b.desc+'</div></div>';
+  }).join('');
+}
+grid.addEventListener('click',e=>{const c=e.target.closest('.bcard');if(!c)return;toggle(c.dataset.id);});
+
+function toggle(id){
+  resetEdits();
+  const i = selected.indexOf(id);
+  if(i>=0){ selected.splice(i,1); }
+  else{ selected.push(id); if(byId[id].opts && !optVals[id]) optVals[id]=optDefaults(byId[id]); }
+  renderCatalog(); renderTray(); renderPreview();
+}
+
+// 색상 테마 스와치
+function renderThemes(){
+  const bar=document.getElementById('themebar');
+  bar.innerHTML='<span class="tl">색상 테마</span>'+Object.keys(THEMES).map(k=>
+    '<button class="swatch'+(theme===k?" on":"")+'" data-t="'+k+'" title="'+THEMES[k].name+'" style="background:'+THEMES[k].a+'"></button>'
+  ).join('');
+}
+document.getElementById('themebar').addEventListener('click',e=>{
+  const s=e.target.closest('.swatch'); if(!s)return; resetEdits(); theme=s.dataset.t; renderThemes(); renderPreview();
+});
+
+// 트레이(담긴 블록, 순서 조절)
+function renderTray(){
+  document.getElementById('selnum').textContent = selected.length;
+  document.getElementById('fabn').textContent = selected.length;
+  if(selected.length===0){
+    tray.className='tray empty';
+    tray.innerHTML='왼쪽에서 블록을 눌러 담아보세요.<br>순서는 화살표로 바꿀 수 있어요.';
+    return;
+  }
+  tray.className='tray';
+  tray.innerHTML = selected.map((id,idx)=>{
+    const b=byId[id];
+    const has=!!(b.opts&&b.opts.length);
+    const opn=has&&openOpts[id];
+    let s='<div class="titem'+(has?" hasopt":"")+'"><span class="dotc" style="background:'+CATS[b.cat].color+'"></span>'+
+      '<span class="tn">'+b.name+'</span>'+
+      (has?'<button class="gear'+(opn?" on":"")+'" data-opt="'+id+'" title="옵션">⚙</button>':'')+
+      '<button data-up="'+idx+'"'+(idx===0?" disabled":"")+' title="위로">▲</button>'+
+      '<button data-dn="'+idx+'"'+(idx===selected.length-1?" disabled":"")+' title="아래로">▼</button>'+
+      '<button class="x" data-rm="'+id+'" title="빼기">✕</button>';
+    if(opn) s+=renderOptForm(b);
+    return s+'</div>';
+  }).join('');
+}
+function renderOptForm(b){
+  const v=optVals[b.id]||optDefaults(b);
+  const fields=b.opts.map(op=>{
+    if(op.type==="checks"){
+      const boxes=op.options.map(o=>{
+        const on=(v[op.key]||[]).includes(o);
+        return '<label><input type="checkbox" data-optid="'+b.id+'" data-optkey="'+op.key+'" data-val="'+o+'"'+(on?" checked":"")+'> '+o+'</label>';
+      }).join('');
+      return '<div class="of"><label>'+op.label+'</label><div class="checks">'+boxes+'</div></div>';
+    }
+    const val=(v[op.key]!==undefined?v[op.key]:op.def);
+    return '<div class="of"><label>'+op.label+'</label><input type="text" data-optid="'+b.id+'" data-optkey="'+op.key+'" value="'+String(val).replace(/"/g,'&quot;')+'"></div>';
+  }).join('');
+  return '<div class="optform">'+fields+'</div>';
+}
+tray.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.opt!==undefined){ openOpts[b.dataset.opt]=!openOpts[b.dataset.opt]; renderTray(); }
+  else if(b.dataset.rm!==undefined){ toggle(b.dataset.rm); }
+  else if(b.dataset.up!==undefined){resetEdits();const i=+b.dataset.up;[selected[i-1],selected[i]]=[selected[i],selected[i-1]];renderTray();renderPreview();}
+  else if(b.dataset.dn!==undefined){resetEdits();const i=+b.dataset.dn;[selected[i+1],selected[i]]=[selected[i],selected[i+1]];renderTray();renderPreview();}
+});
+tray.addEventListener('input',e=>{
+  const el=e.target; const id=el.dataset.optid, key=el.dataset.optkey; if(!id)return;
+  if(!optVals[id]) optVals[id]=optDefaults(byId[id]);
+  if(el.type==="checkbox"){
+    const arr=optVals[id][key]||[]; const val=el.dataset.val;
+    if(el.checked){ if(!arr.includes(val)){ // 원래 순서 유지
+        const order=byId[id].opts.find(o=>o.key===key).options;
+        optVals[id][key]=order.filter(o=>arr.includes(o)||o===val);
+      } }
+    else optVals[id][key]=arr.filter(x=>x!==val);
+  } else {
+    optVals[id][key]=el.value;
+  }
+  resetEdits(); renderPreview();
+});
+
+// 미리보기 / 코드 / 직접 편집
+function outputHTML(){ return editedHTML!=null ? editedHTML : (selected.length ? assemble(selected.map(id=>byId[id])) : ''); }
+function updateCode(){ document.querySelector('#codebox code').textContent = outputHTML(); }
+function renderPreview(){
+  const empty=document.getElementById('emptyprev');
+  const iframe=document.getElementById('prev');
+  if(selected.length===0){ empty.style.display='flex'; iframe.style.display='none'; document.querySelector('#codebox code').textContent=''; return; }
+  empty.style.display='none'; iframe.style.display='block'; iframe.onload=null; iframe.srcdoc=outputHTML();
+  updateCode();
+}
+function resetEdits(){ editedHTML=null; if(editMode){ editMode=false; syncEditBtn(); } }
+
+// 탭 전환
+function switchTab(p){
+  document.querySelectorAll('.ptab').forEach(x=>x.classList.toggle('on',x.dataset.p===p));
+  document.getElementById('pane-prev').classList.toggle('hide',p!=='prev');
+  document.getElementById('pane-code').classList.toggle('hide',p!=='code');
+  if(p==='code') updateCode();
+}
+document.querySelectorAll('.ptab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.p)));
+
+// 직접 편집 모드 (미리보기에서 글자 클릭 → 수정 → 코드/다운로드 반영)
+function syncEditBtn(){ const b=document.getElementById('editmode'); b.classList.toggle('on',editMode); b.textContent=editMode?'✓ 편집 중':'✏️ 직접 편집'; document.getElementById('edithint').hidden=!editMode; }
+function injectEditable(html){
+  const st='<style id="__edit">[contenteditable]{outline:1px dashed rgba(124,140,255,.6);outline-offset:2px;border-radius:3px;cursor:text;}[contenteditable]:hover{background:rgba(124,140,255,.06);}[contenteditable]:focus{outline:2px solid #4f46e5;background:rgba(124,140,255,.09);}</style>';
+  const sc='<script id="__editjs">(function(){var s="h1,h2,h3,h4,h5,p,span,a,b,strong,em,li,td,th,dt,dd,summary,label,button,.sv,.sk,.hlv,.hlk,.eyebrow,.lead,.pt,.plname,.plprice,.brand,.pn,.pp,.pfn,.pfm";document.querySelectorAll(s).forEach(function(el){if(el.childElementCount===0&&el.id!=="q"&&el.id!=="go"){el.setAttribute("contenteditable","true");}});})();<\/script>';
+  return html.replace('</body>', st+sc+'\n</body>');
+}
+function grabEdited(){
+  const iframe=document.getElementById('prev'); let doc;
+  try{ doc=iframe.contentDocument; }catch(e){ return null; }
+  if(!doc||!doc.documentElement) return null;
+  const clone=doc.documentElement.cloneNode(true);
+  ['#__edit','#__editjs'].forEach(sel=>{const e=clone.querySelector(sel);if(e)e.remove();});
+  clone.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable'));
+  return '<!DOCTYPE html>\n'+clone.outerHTML;
+}
+function captureEdits(){ const h=grabEdited(); if(h!=null){ editedHTML=h; updateCode(); } }
+document.getElementById('editmode').addEventListener('click',()=>{
+  if(selected.length===0) return;
+  editMode=!editMode; syncEditBtn();
+  const iframe=document.getElementById('prev');
+  if(editMode){
+    switchTab('prev');
+    iframe.onload=function(){ iframe.onload=null; try{ iframe.contentDocument.addEventListener('input',captureEdits); }catch(e){} };
+    iframe.srcdoc=injectEditable(outputHTML());
+  } else { captureEdits(); renderPreview(); }
+});
+
+// 액션
+document.getElementById('copy').addEventListener('click',function(){
+  if(selected.length===0) return; if(editMode) captureEdits();
+  const btn=this;
+  navigator.clipboard.writeText(outputHTML()).then(()=>{btn.textContent='복사됨 ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='복사';btn.classList.remove('ok');},1400);});
+});
+document.getElementById('download').addEventListener('click',function(){
+  if(selected.length===0) return; if(editMode) captureEdits();
+  const blob=new Blob([outputHTML()],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='page.html';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+document.getElementById('clear').addEventListener('click',()=>{resetEdits();selected=[];openOpts={};renderCatalog();renderTray();renderPreview();});
+document.getElementById('reset').addEventListener('click',()=>{resetEdits();selected=[];openOpts={};theme='indigo';query='';activeCat='all';document.getElementById('q').value='';renderPills();renderThemes();renderCatalog();renderTray();renderPreview();});
+
+// 검색
+document.getElementById('q').addEventListener('input',e=>{query=e.target.value;renderCatalog();});
+
+// 모바일: 빌더 열고닫기
+const builder=document.getElementById('builder');
+document.getElementById('fab').addEventListener('click',()=>builder.classList.toggle('show'));
+
+// ── 저장 / 불러오기 ──────────────────────────────
+const TPL_KEY='blockcomposer_templates_v1';
+function tplMsg(t,warn){const m=document.getElementById('tplmsg');m.textContent=t||'';m.className='tpmsg'+(warn?' warn':'');}
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(TPL_KEY)||'{}'); }catch(e){ return null; } }
+function saveStore(o){ try{ localStorage.setItem(TPL_KEY,JSON.stringify(o)); return true; }catch(e){ return false; } }
+
+function currentState(){
+  const opts={}; selected.forEach(id=>{ if(optVals[id]) opts[id]=optVals[id]; });
+  return {v:1, sel:selected.slice(), theme, opts};
+}
+function applyState(st){
+  if(!st||!Array.isArray(st.sel)) return false;
+  selected = st.sel.filter(id=>byId[id]);
+  theme = THEMES[st.theme] ? st.theme : 'indigo';
+  Object.keys(optVals).forEach(k=>delete optVals[k]);
+  if(st.opts) for(const id in st.opts){ if(byId[id]) optVals[id]=st.opts[id]; }
+  selected.forEach(id=>{ if(byId[id].opts && !optVals[id]) optVals[id]=optDefaults(byId[id]); });
+  openOpts={}; editedHTML=null; editMode=false; syncEditBtn();
+  renderThemes(); renderCatalog(); renderTray(); renderPreview();
+  return true;
+}
+
+function renderSaved(){
+  const box=document.getElementById('tplsaved');
+  const store=loadStore();
+  if(store===null){ box.innerHTML='<div class="tpempty">이 환경에선 브라우저 저장이 막혀 있어요. 아래 "구성 코드"로 저장·복원하세요.</div>'; return; }
+  const names=Object.keys(store);
+  if(names.length===0){ box.innerHTML='<div class="tpempty">저장된 템플릿이 없어요.</div>'; return; }
+  box.innerHTML=names.map(n=>'<div class="tpitem"><span class="tpn" data-load="'+encodeURIComponent(n)+'" title="불러오기">'+n.replace(/</g,'&lt;')+'</span>'+
+    '<button class="tpload" data-load="'+encodeURIComponent(n)+'" title="불러오기">↥</button>'+
+    '<button class="tpdel" data-del="'+encodeURIComponent(n)+'" title="삭제">✕</button></div>').join('');
+}
+
+document.getElementById('tpltoggle').addEventListener('click',()=>{
+  const p=document.getElementById('tplpanel'); p.hidden=!p.hidden; if(!p.hidden){ renderSaved(); tplMsg(''); }
+});
+document.getElementById('tplsave').addEventListener('click',()=>{
+  const name=document.getElementById('tplname').value.trim();
+  if(!name){ tplMsg('이름을 입력하세요.',true); return; }
+  if(selected.length===0){ tplMsg('담은 블록이 없어요.',true); return; }
+  const store=loadStore();
+  if(store===null){ tplMsg('브라우저 저장이 막혀 있어요. "구성 코드 복사"를 이용하세요.',true); return; }
+  store[name]=currentState();
+  if(saveStore(store)){ document.getElementById('tplname').value=''; renderSaved(); tplMsg('"'+name+'" 저장됨 ✓'); }
+  else tplMsg('저장에 실패했어요.',true);
+});
+document.getElementById('tplsaved').addEventListener('click',e=>{
+  const b=e.target.closest('[data-load],[data-del]'); if(!b) return;
+  const store=loadStore(); if(store===null) return;
+  if(b.dataset.load!==undefined){ const n=decodeURIComponent(b.dataset.load); if(store[n]&&applyState(store[n])) tplMsg('"'+n+'" 불러옴 ✓'); }
+  else if(b.dataset.del!==undefined){ const n=decodeURIComponent(b.dataset.del); delete store[n]; saveStore(store); renderSaved(); tplMsg('"'+n+'" 삭제됨'); }
+});
+document.getElementById('tplexport').addEventListener('click',function(){
+  if(selected.length===0){ tplMsg('담은 블록이 없어요.',true); return; }
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(currentState()))));
+  navigator.clipboard.writeText(code).then(()=>tplMsg('구성 코드를 복사했어요. 어디든 붙여넣어 보관하세요 ✓'))
+    .catch(()=>{ const ta=document.getElementById('tplcode'); document.getElementById('tplimport').hidden=false; ta.value=code; ta.select(); tplMsg('아래 코드를 직접 복사하세요.',true); });
+});
+document.getElementById('tplimptoggle').addEventListener('click',()=>{
+  const im=document.getElementById('tplimport'); im.hidden=!im.hidden; if(!im.hidden) document.getElementById('tplcode').focus();
+});
+document.getElementById('tplimpgo').addEventListener('click',()=>{
+  const raw=document.getElementById('tplcode').value.trim();
+  if(!raw){ tplMsg('코드를 붙여넣으세요.',true); return; }
+  try{
+    const st=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(applyState(st)){ tplMsg('구성을 불러왔어요 ✓'); document.getElementById('tplcode').value=''; document.getElementById('tplimport').hidden=true; }
+    else tplMsg('올바른 구성 코드가 아니에요.',true);
+  }catch(e){ tplMsg('코드를 해석하지 못했어요. 다시 확인해주세요.',true); }
+});
+
+// 초기 렌더
+renderPills(); renderThemes(); renderCatalog(); renderTray(); renderPreview();
+</script>
+</body>
+</html>

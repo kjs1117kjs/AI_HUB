@@ -1048,10 +1048,25 @@ function diffRows(a, b){
 /* 복원 직후 바뀐 행을 표에서 5초간 깜빡이고, 첫 행으로 스크롤.
    바뀐 행이 현재 페이지에 없으면 해당 페이지로 자동 이동. */
 function flashChanged(d){
-  if(!d || !d.changed.length) return;
+  if(!d || !d.changed.length) return false;
+  let cleared = false;
   if(view === "table"){
-    const vis = visibleRows();
-    const pos = vis.indexOf(d.changed[0]);                 // 첫 변경 행의 필터/정렬 반영 위치
+    let vis = visibleRows();
+    let pos = vis.indexOf(d.changed[0]);                   // 첫 변경 행의 필터/정렬 반영 위치
+    if(pos < 0){
+      /* 변경 행이 필터·검색·탭에 가려짐 → 전부 해제하고 찾아간다 */
+      colFilters = {};
+      document.getElementById("q").value = "";
+      if(tab !== "all"){
+        tab = "all";
+        tabAll.classList.add("on");
+        tabImp.classList.remove("on");
+      }
+      cleared = true;
+      render();
+      vis = visibleRows();
+      pos = vis.indexOf(d.changed[0]);
+    }
     if(pos >= 0){
       const targetPage = Math.floor(pos / pageSize) + 1;
       if(targetPage !== page){ page = targetPage; render(); }
@@ -1064,6 +1079,7 @@ function flashChanged(d){
   }
   if(first) first.scrollIntoView({block:"center", behavior:"smooth"});
   setTimeout(()=> tbody.querySelectorAll(".hist-flash").forEach(tr=>tr.classList.remove("hist-flash")), 5200);
+  return cleared;
 }
 function histSummary(d){
   if(!d || !d.details.length) return "";
@@ -1077,16 +1093,16 @@ function undo(){
   const label = history[histIdx].label;                    // 취소되는 액션 = 현재 상태를 만든 액션
   histIdx--;
   const d = restoreTo(histIdx);
-  flashChanged(d);
-  toast(`되돌리기: ${label}${histSummary(d)}`, "ok", 6500);
+  const cleared = flashChanged(d);
+  toast(`되돌리기: ${label}${histSummary(d)}${cleared ? " · 숨김 필터를 해제했습니다" : ""}`, "ok", 6500);
 }
 function redo(){
   if(histIdx>=history.length-1) return;
   histIdx++;
   const label = history[histIdx].label;                    // 다시 적용되는 액션
   const d = restoreTo(histIdx);
-  flashChanged(d);
-  toast(`다시 실행: ${label}${histSummary(d)}`, "ok", 6500);
+  const cleared = flashChanged(d);
+  toast(`다시 실행: ${label}${histSummary(d)}${cleared ? " · 숨김 필터를 해제했습니다" : ""}`, "ok", 6500);
 }
 function updateUndoUI(){
   const u=document.getElementById("btnUndo"), r=document.getElementById("btnRedo");

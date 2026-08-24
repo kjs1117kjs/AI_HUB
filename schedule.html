@@ -768,7 +768,7 @@
           <tr>
             <th title="체크된 항목만 자동 알림에 나타납니다">알림</th>
             <th>출처</th><th>No</th><th>제목</th><th>접수일자</th>
-            <th>상세구분</th><th>개발완료예정</th><th>개발완료</th><th></th>
+            <th>상세구분</th><th>개발완료예정</th><th>개발완료</th><th>D-day</th><th></th>
           </tr>
         </thead>
         <tbody id="ntbody"></tbody>
@@ -2660,6 +2660,8 @@ function renderNoti(){
       `<td class="center"><input type="checkbox" class="ntoggle" data-t="${it.type}" data-idx="${it.idx}" ${noti?"checked":""} title="자동 알림 표시 여부"></td>`,
       `<td class="center"><span class="src ${it.type==="row"?"src-row":"src-memo"}">${it.type==="row"?"일정":"직접입력"}</span></td>`);
     for(const c of NOTI_COLS) h.push(notiCellHtml(it, c, due));
+    const di = dueInfo(it.r);
+    h.push(`<td class="center nowrap">${di.has?`<span class="dday ${di.cls}" title="개발완료예정 기준 남은 기간">${di.label}</span>`:""}</td>`);
     h.push(it.type==="memo"
       ? `<td class="del" data-mdel="${it.idx}" title="직접입력 항목 삭제">✕</td>`
       : `<td></td>`);

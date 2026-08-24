@@ -381,6 +381,15 @@
   .btn.icon:disabled{opacity:.35; cursor:default;}
   #btnUndo, #btnRedo{font-size:16px; font-weight:700;}
 
+  /* ── 되돌리기/다시실행: 변경 행 하이라이트 ── */
+  :root{--hist-flash:#ffe9a8;}
+  [data-theme="dark"]{--hist-flash:#3a3115;}
+  @keyframes histFlash{
+    0%, 75% {background:var(--hist-flash);}
+    100%    {background:transparent;}
+  }
+  tbody tr.hist-flash td{animation:histFlash 5s ease-out; box-shadow:inset 3px 0 0 var(--star);}
+
   /* ── 활성 필터 칩 ── */
   .chip.fchip{border-color:var(--accent); background:var(--accent-soft); color:var(--ink); padding-right:8px; gap:5px;}
   .chip.fchip:hover{background:var(--line-soft);}
@@ -979,21 +988,23 @@ const IDLE_MS = 5*60*1000;                      // 5분 무동작 → 자동 알
 const MAX_BACKUPS = 5;                          // 이전 파일(백업) 보관 개수
 
 let dirty = false;                               // 마지막 저장 이후 변경 여부
-/* ── 되돌리기/다시 실행 (전체 스냅샷, 최근 30단계) ── */
-let history = [], histIdx = -1, restoringHistory = false;
+/* ── 되돌리기/다시 실행 (전체 스냅샷 + 액션 라벨, 최근 30단계) ── */
 const HIST_MAX = 30;
+let history = [], histIdx = -1, restoringHistory = false;
+
 function snapshot(){ return JSON.stringify({rows:data, memos:memos}); }
-function resetHistory(){ history = [snapshot()]; histIdx = 0; updateUndoUI(); }
-function pushHistory(){
+function resetHistory(){ history = [{s:snapshot(), label:""}]; histIdx = 0; updateUndoUI(); }
+function pushHistory(label){
   if(restoringHistory) return;
   if(histIdx < history.length-1) history = history.slice(0, histIdx+1);   // 새 변경 시 redo 분기 버림
-  history.push(snapshot());
+  history.push({s:snapshot(), label: label || "변경"});
   while(history.length > HIST_MAX+1) history.shift();
   histIdx = history.length-1;
   updateUndoUI();
 }
 function restoreTo(idx){
-  const o = JSON.parse(history[idx]);
+  const before = {rows:data, memos:memos};                 // 복원 직전 상태 (diff용)
+  const o = JSON.parse(history[idx].s);
   restoringHistory = true;
   data = o.rows; memos = o.memos;
   selected.clear(); activeRowIdx = null;
@@ -1002,15 +1013,93 @@ function restoreTo(idx){
   dirty = true;
   updateUndoUI();
   updateSaveState();
+  return diffRows(before.rows, data);                      // 바뀐 행 인덱스 + 요약
 }
-function undo(){ if(histIdx<=0) return; histIdx--; restoreTo(histIdx); toast("되돌렸습니다", "ok"); }
-function redo(){ if(histIdx>=history.length-1) return; histIdx++; restoreTo(histIdx); toast("다시 실행했습니다", "ok"); }
+/* 두 상태의 행 배열을 비교 → 바뀐 행 목록 + 각 행에서 바뀐 컬럼 목록 */
+const HIST_COL_LABEL = {imp:"중요표시", noti:"알림", CODE:"CODE", CODEHIDDEN:"CODE"};
+function histRowName(r, i){
+  if(r && r.No !== "" && r.No != null) return `No ${r.No}`;
+  const t = r && String(r["제목"] || "").trim();
+  return t ? `「${t.length>10 ? t.slice(0,10)+"…" : t}」` : `${i+1}행`;
+}
+function diffRows(a, b){
+  const changed = [], details = [];
+  const n = Math.max(a.length, b.length);
+  for(let i=0; i<n; i++){
+    const ra = i < a.length ? a[i] : null;
+    const rb = i < b.length ? b[i] : null;
+    if(ra && rb){
+      if(JSON.stringify(ra) === JSON.stringify(rb)) continue;
+      const cols = [];
+      for(const k of new Set([...Object.keys(ra), ...Object.keys(rb)])){
+        if(String(ra[k] ?? "") !== String(rb[k] ?? "")) cols.push(HIST_COL_LABEL[k] || k);
+      }
+      changed.push(i);
+      details.push(`${histRowName(rb, i)}: ${[...new Set(cols)].join("·")}`);
+    }else{
+      changed.push(i);
+      details.push(rb ? `${histRowName(rb, i)} 복원` : `${histRowName(ra, i)} 제거`);
+    }
+  }
+  return {changed, details,
+          added: Math.max(0, b.length-a.length),
+          removed: Math.max(0, a.length-b.length)};
+}
+/* 복원 직후 바뀐 행을 표에서 5초간 깜빡이고, 첫 행으로 스크롤.
+   바뀐 행이 현재 페이지에 없으면 해당 페이지로 자동 이동. */
+function flashChanged(d){
+  if(!d || !d.changed.length) return;
+  if(view === "table"){
+    const vis = visibleRows();
+    const pos = vis.indexOf(d.changed[0]);                 // 첫 변경 행의 필터/정렬 반영 위치
+    if(pos >= 0){
+      const targetPage = Math.floor(pos / pageSize) + 1;
+      if(targetPage !== page){ page = targetPage; render(); }
+    }
+  }
+  let first = null;
+  for(const i of d.changed){
+    const tr = tbody.querySelector(`tr[data-i="${i}"]`);
+    if(tr){ tr.classList.add("hist-flash"); if(!first) first = tr; }
+  }
+  if(first) first.scrollIntoView({block:"center", behavior:"smooth"});
+  setTimeout(()=> tbody.querySelectorAll(".hist-flash").forEach(tr=>tr.classList.remove("hist-flash")), 5200);
+}
+function histSummary(d){
+  if(!d || !d.details.length) return "";
+  const MAX = 3;
+  const shown = d.details.slice(0, MAX).join(" / ");
+  const rest  = d.details.length > MAX ? ` 외 ${d.details.length - MAX}건` : "";
+  return ` — ${shown}${rest}`;
+}
+function undo(){
+  if(histIdx<=0) return;
+  const label = history[histIdx].label;                    // 취소되는 액션 = 현재 상태를 만든 액션
+  histIdx--;
+  const d = restoreTo(histIdx);
+  flashChanged(d);
+  toast(`되돌리기: ${label}${histSummary(d)}`, "ok", 6500);
+}
+function redo(){
+  if(histIdx>=history.length-1) return;
+  histIdx++;
+  const label = history[histIdx].label;                    // 다시 적용되는 액션
+  const d = restoreTo(histIdx);
+  flashChanged(d);
+  toast(`다시 실행: ${label}${histSummary(d)}`, "ok", 6500);
+}
 function updateUndoUI(){
   const u=document.getElementById("btnUndo"), r=document.getElementById("btnRedo");
-  if(u) u.disabled = histIdx<=0;
-  if(r) r.disabled = histIdx>=history.length-1;
+  if(u){
+    u.disabled = histIdx<=0;
+    u.title = "되돌리기 (Ctrl+Z)" + (histIdx>0 ? ` — ${history[histIdx].label}` : "");
+  }
+  if(r){
+    r.disabled = histIdx>=history.length-1;
+    r.title = "다시 실행 (Ctrl+Y)" + (histIdx<history.length-1 ? ` — ${history[histIdx+1].label}` : "");
+  }
 }
-function markDirty(){ dirty = true; pushHistory(); updateSaveState(); }
+function markDirty(label){ dirty = true; pushHistory(label); updateSaveState(); }
 
 let tab = "all";
 let view = "table";                              // table / calendar / timeline
@@ -1093,7 +1182,7 @@ function toNum(v){
 }
 
 /* ── 토스트 알림 ── */
-function toast(msg, type){
+function toast(msg, type, ms){
   const wrap = document.getElementById("toast");
   const el = document.createElement("div");
   el.className = "toast " + (type==="err" ? "err" : "ok");
@@ -1102,7 +1191,7 @@ function toast(msg, type){
   el.append(ic, tx);
   wrap.appendChild(el);
   requestAnimationFrame(()=> el.classList.add("show"));
-  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=> el.remove(), 260); }, 4500);
+  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=> el.remove(), 260); }, ms || 4500);
 }
 
 /* ── 로딩 ── */
@@ -2125,7 +2214,7 @@ tbody.addEventListener("focusout", e=>{
   if(NUMS.has(c) && v!=="" && !isNaN(v)) v = Number(v);
   if(String(data[i][c]??"") === String(v)) return;
   data[i][c] = v;
-  markDirty();
+  markDirty(`${c} 수정`);
   if(c==="상세구분" || c==="구분" || c==="개발완료예정"){
     render();                                      // 배지·좌측 컬러바·D-day·요약 스트립 동기화
     stat.textContent = `수정됨 — 저장되지 않았습니다. [데이터 저장]으로 저장하세요`;
@@ -2152,7 +2241,7 @@ tbody.addEventListener("paste", e=>{
     const val = t.replace(/\n+/g, " ").trim();   // CODE는 한 줄
     if(val === ""){ el.blur(); return; }          // 빈 붙여넣기는 기존 값 보존
     data[i].CODE = val;                           // 통째 교체
-    markDirty();
+    markDirty("CODE 입력");
     render();                                     // 옛 셀은 여기서 분리 → stale 커밋 방지
     const m = val.match(/^https?:\/\/([\w.-]+)\.dooray\.com\/(?:project\/)?(?:tasks|posts)\/(\d+)/);
     if(m) doorayFill(i, val, m[2]);               // 링크면 제목·내용·요청 자동 입력 시도
@@ -2226,7 +2315,7 @@ function applyDoorayText(i, text){
                  data[i]["내용"]     = title; }      // 내용 = 제목과 동일하게
   if(writer)     data[i]["요청"]     = writer;
   if(dateStr)    data[i]["접수일자"]  = dateStr;
-  markDirty(); render();
+  markDirty("두레이 업무 입력"); render();
   stat.textContent = `두레이 업무 입력 완료: ${title || "(제목 없음)"}${writer ? " · 등록자 " + writer : ""}${dateStr ? " · 접수 " + dateStr : ""}`;
 }
 
@@ -2238,7 +2327,7 @@ async function doorayFill(i, url, taskId){
   data[i].CODE = url;                                       // 링크는 CODE에 그대로 유지
   if(!doorayToken){
     stat.textContent = "두레이 링크 감지됨 — [저장 위치 설정]에 두레이 API 토큰을 넣으면 제목·내용·요청이 자동 입력됩니다";
-    markDirty();
+    markDirty("두레이 링크 입력");
     return;
   }
   stat.textContent = "두레이 업무 정보 가져오는 중…";
@@ -2257,7 +2346,7 @@ async function doorayFill(i, url, taskId){
     }catch(err){ lastErr = err.message; }
   }
   if(!post){
-    markDirty(); render();
+    markDirty("두레이 링크 입력"); render();
     stat.textContent = `두레이 조회 실패(${lastErr || "응답 없음"}) — 토큰/프로젝트 ID를 확인하거나, 회사망·브라우저 보안(CORS) 정책으로 차단된 경우 직접 입력해주세요`;
     return;
   }
@@ -2272,7 +2361,7 @@ async function doorayFill(i, url, taskId){
   if(subject) data[i]["제목"] = subject;
   if(content) data[i]["내용"] = content;
   if(writer)  data[i]["요청"] = writer;
-  markDirty(); render();
+  markDirty("두레이 업무 불러오기"); render();
   stat.textContent = `두레이 업무 불러옴: ${subject || "(제목 없음)"}${writer ? " · 등록자 " + writer : ""}`;
 }
 tbody.addEventListener("keydown", e=>{
@@ -2289,7 +2378,7 @@ tbody.addEventListener("click", e=>{
     const i = +star.dataset.i;
     data[i].imp = !data[i].imp;
     if(data[i].imp && data[i].noti===undefined) data[i].noti = true;
-    markDirty();
+    markDirty(data[i].imp ? "중요 표시" : "중요 해제");
     if(tab==="imp" && !data[i].imp){ render(); return; }
     star.classList.toggle("on", data[i].imp);
     star.textContent = data[i].imp ? "★" : "☆";
@@ -2304,7 +2393,7 @@ tbody.addEventListener("click", e=>{
   if(del){
     const i = +del.dataset.i;
     const name = data[i]["제목"] || data[i].CODE || `${i+1}번째 행`;
-    if(confirm(`삭제할까요?\n${name}`)){ data.splice(i,1); selected.clear(); activeRowIdx=null; markDirty(); render(); }
+    if(confirm(`삭제할까요?\n${name}`)){ data.splice(i,1); selected.clear(); activeRowIdx=null; markDirty("행 삭제"); render(); }
   }
 });
 /* 행 복제 */
@@ -2313,7 +2402,7 @@ function duplicateRow(i){
   const copy = JSON.parse(JSON.stringify(data[i]));
   data.splice(i+1, 0, copy);
   selected.clear(); activeRowIdx=null;
-  markDirty(); render();
+  markDirty("행 복제"); render();
   toast("행을 복제했습니다", "ok");
 }
 /* 다중 선택 */
@@ -2387,7 +2476,7 @@ function bulkSetColumn(){
   let v = val;
   if(NUMS.has(col) && v!=="" && !isNaN(v)) v = Number(v);
   for(const i of selected) if(data[i]) data[i][col] = v;
-  markDirty(); render();
+  markDirty(`일괄 ${clearMode ? "비움" : "변경"}: ${col}`); render();
   document.getElementById("bulkVal").value = "";
   toast(`${n}건의 ${col} ${clearMode?"비움":"변경"} 완료`, "ok");
 }
@@ -2395,7 +2484,7 @@ function bulkImp(on){
   if(!selected.size) return;
   const n = selected.size;
   for(const i of selected) if(data[i]){ data[i].imp = on; if(on && data[i].noti===undefined) data[i].noti = true; }
-  markDirty(); render();
+  markDirty(on ? "일괄 중요 표시" : "일괄 중요 해제"); render();
   toast(`${n}건 ${on?"중요 표시":"중요 해제"}`, "ok");
 }
 function bulkDelete(){
@@ -2404,7 +2493,7 @@ function bulkDelete(){
   if(!confirm(`선택한 ${n}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
   [...selected].sort((a,b)=>b-a).forEach(i=>data.splice(i,1));
   selected.clear(); activeRowIdx=null;
-  markDirty(); render();
+  markDirty(`${n}건 삭제`); render();
   toast(`${n}건 삭제`, "ok");
 }
 function bulkDuplicate(){
@@ -2414,7 +2503,7 @@ function bulkDuplicate(){
     if(data[i]) data.splice(i+1, 0, JSON.parse(JSON.stringify(data[i])));
   });
   selected.clear(); activeRowIdx=null;
-  markDirty(); render();
+  markDirty(`${n}건 복제`); render();
   toast(`${n}건 복제`, "ok");
 }
 function bulkClear(){ selected.clear(); activeRowIdx=null; render(); }
@@ -2524,7 +2613,7 @@ document.getElementById("cellpop").addEventListener("mousedown", e=>{
   e.preventDefault();                              // 셀 blur 방지
   const cv = cellPopTarget; if(!cv) return;
   const i = +cv.dataset.i, c = cv.dataset.c, v = it.dataset.val;
-  if(data[i]){ data[i][c] = v; markDirty(); }
+  if(data[i]){ data[i][c] = v; markDirty(`${c} 수정`); }
   cv.textContent = v;                              // 옛 셀 텍스트도 갱신(뒤늦은 focusout이 덮어쓰지 않도록)
   closeCellPop();
   render();
@@ -2536,7 +2625,7 @@ function addRow(){
   r["구분"]="개발"; r["상세구분"]="접수";
   r["접수"]="김중선"; r["책임"]="김중선";
   data.unshift(r);
-  markDirty();
+  markDirty("행 추가");
   page = 1; render();
   const first = tbody.querySelector('.cv[data-c="제목"]');
   if(first) first.focus();
@@ -2752,7 +2841,7 @@ ntbody.addEventListener("change", e=>{
   const t = cb.dataset.t, idx = +cb.dataset.idx;
   if(t==="row" && data[idx]) data[idx].noti = cb.checked;
   if(t==="memo" && memos[idx]) memos[idx].noti = cb.checked;
-  markDirty();
+  markDirty("알림 설정 변경");
   renderNoti();
 });
 ntbody.addEventListener("click", e=>{
@@ -2767,7 +2856,7 @@ ntbody.addEventListener("click", e=>{
   const j = +del.dataset.mdel;
   const name = memos[j] && (memos[j]["제목"] || `직접입력 ${j+1}`);
   if(confirm(`직접입력 항목을 삭제할까요?\n${name}`)){
-    memos.splice(j,1); markDirty(); renderNoti();
+    memos.splice(j,1); markDirty("직접입력 삭제"); renderNoti();
   }
 });
 /* 직접입력 항목 셀 편집 */
@@ -2779,7 +2868,7 @@ ntbody.addEventListener("focusout", e=>{
   if(c==="No" && v!=="" && !isNaN(v)) v = Number(v);
   if(String(memos[j][c]??"") === String(v)) return;
   memos[j][c] = v;
-  markDirty();
+  markDirty(`직접입력 ${c} 수정`);
   if(c==="상세구분"){
     const s = String(v).trim();
     td.innerHTML = STATUS_BADGE.has(s) ? `<span class="badge b-${s}">${esc(s)}</span>` : esc(v);
@@ -2798,7 +2887,7 @@ ntbody.addEventListener("keydown", e=>{
 function addMemo(){
   const today = new Date().toISOString().slice(0,10).replaceAll("-","");
   memos.unshift({No:"", "제목":"", "접수일자":today, "상세구분":"", "개발완료예정":"", "개발완료":"", noti:true});
-  markDirty();
+  markDirty("직접입력 추가");
   if(nFilter==="off") setNFilter("all"); else renderNoti();
   const first = ntbody.querySelector('td[data-c="제목"]');
   if(first) first.focus();
@@ -3252,7 +3341,7 @@ function applyImport(rows, newMemos, label){
   if(replace){ data = rows; memos = newMemos; }
   else{ data = data.concat(rows); memos = memos.concat(newMemos); }
   colFilters = {}; page = 1;
-  markDirty();
+  markDirty("데이터 불러오기");
   render();
   resetHistory();                                  // 불러온 상태를 되돌리기 시작점으로
   if(!nwrap.hidden) renderNoti();

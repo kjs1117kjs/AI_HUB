@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C_BLOCK_MODE = 'Y' 전환 시 사용자 영향 정리</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #333;
+    background: #f5f6f8;
+    word-break: keep-all;
+  }
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  header {
+    background: #2c3e50;
+    color: #fff;
+    padding: 28px 32px;
+    border-radius: 8px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 22px; margin-bottom: 8px; }
+  header p  { font-size: 13px; color: rgba(255,255,255,0.75); }
+  section {
+    background: #fff;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #2c3e50;
+  }
+  h3 { font-size: 15px; margin: 20px 0 8px; }
+  p  { margin-bottom: 10px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 12px 0 6px;
+  }
+  th, td {
+    border: 1px solid #d8dce1;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  thead th { background: #eef1f4; font-weight: 700; }
+  code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    background: #f0f2f5;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    background: #2d2d2d;
+    color: #e8e8e8;
+    padding: 16px 18px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+  .ok    { color: #1a7f37; font-weight: 700; }
+  .block { color: #c0392b; font-weight: 700; }
+  .warn  { color: #b26a00; font-weight: 700; }
+  .box-warn {
+    background: #fff8e6;
+    border: 1px solid #f0d998;
+    border-left: 4px solid #e6a817;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 14px 0;
+  }
+  .box-warn strong { display: block; margin-bottom: 6px; }
+  .box-info {
+    background: #eef6fd;
+    border: 1px solid #bcd9f2;
+    border-left: 4px solid #3498db;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 14px 0;
+  }
+  ol, ul { padding-left: 22px; margin-bottom: 10px; }
+  li { margin-bottom: 6px; }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 12px;
+    vertical-align: middle;
+  }
+  .badge-y { background: #dcf2e3; color: #1a7f37; }
+  .badge-n { background: #fbe1de; color: #c0392b; }
+  footer {
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>국외 IP 로그인 차단 활성화 시 사용자 영향 정리</h1>
+    <p>FN_CHK_LOGIN_BLOCK &nbsp;C_BLOCK_MODE = 'N' → 'Y' 전환 기준 &nbsp;|&nbsp; 적용 지점 : 로그인 트리거(TR_TB_WB_LOGIN_HIST_R90) · 메뉴 이동(FN_GET_MENU_CHK_YN2)</p>
+  </header>
+
+  <!-- 1. 판정 흐름 -->
+  <section>
+    <h2>1. 판정 흐름 (FN_CHK_LOGIN_BLOCK 공통)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:8%">순서</th>
+          <th>조건</th>
+          <th style="width:32%">결과</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>SMS 사용등록(<code>TB_CM_SMS_USER_REGIST</code>) 안 된 사용자</td>
+          <td><span class="ok">'Y' 허용</span> — 아무 영향 없음</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>SMS 등록자 + 한국 IP</td>
+          <td><span class="ok">'Y' 허용</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>SMS 등록자 + 해외 IP + <code>TB_CM_IP_ALLOW</code> 등재 (기간·USE_YN 유효)</td>
+          <td><span class="ok">'Y' 허용</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>SMS 등록자 + 해외 IP + 허용테이블 미등재</td>
+          <td><span class="block">'N' 차단</span> + 이력 INSERT</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>SMS 등록자 + 사설 IP·GeoIP 매칭 실패(COUNTRY_CODE = NULL) + 허용테이블 미등재</td>
+          <td><span class="block">'N' 차단</span> <span class="warn">← 주의</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. 차단 대상자가 겪는 것 -->
+  <section>
+    <h2>2. 차단 대상자가 실제로 겪는 것</h2>
+
+    <h3>① 로그인 시점 — 트리거 TR_TB_WB_LOGIN_HIST_R90</h3>
+    <p><code>TB_WB_LOGIN_HIST</code> INSERT 자체가 실패합니다. 트리거가 <code>RAISE_APPLICATION_ERROR(-20001, ...)</code>를 던지므로 애플리케이션(WAS)은 아래와 같은 오류를 받습니다.</p>
+    <pre>ORA-20001: [TR_TB_WB_LOGIN_HIST_R90 : CHK]-[Login Blocked: Country Restriction,
+momse08053,34.86.142.50,...,US,...,20260826143012]-...</pre>
+    <div class="box-warn">
+      <strong>사용자 화면에 보이는 메시지는 WAS 처리에 달려 있음</strong>
+      WAS가 이 ORA-20001 예외를 별도로 처리하지 않으면 "시스템 오류" 류의 일반 에러 페이지가 뜰 가능성이 높습니다.
+      "로그인이 실패했습니다" 같은 정상 실패 메시지가 아닐 수 있으므로,
+      배포 전 테스트 계정으로 실제 화면을 확인하고 필요하면
+      "해외 IP 접속이 제한되었습니다. 관리자에게 문의하세요" 같은 안내 문구로 변환하는 처리를 WAS에 추가하는 것을 권장합니다.
+    </div>
+    <div class="box-info">
+      <strong>로그인 이력 위치 변경</strong><br>
+      차단된 로그인 시도는 <code>TB_WB_LOGIN_HIST</code>에 남지 않습니다 (INSERT 롤백).
+      대신 <code>TB_WB_LOGIN_HIST_BLOCK</code>에 <code>BLOCKED - ...</code> 사유로 기록되므로,
+      차단 이후 추적·조회는 BLOCK 테이블에서 해야 합니다.
+    </div>
+
+    <h3>② 이미 로그인돼 있던 세션 — FN_GET_MENU_CHK_YN2</h3>
+    <p>차단 활성화 시점에 이미 로그인해 있던 해외 접속자도 <strong>다음 메뉴 클릭부터</strong> 막힙니다.
+    함수가 'N'을 리턴하여 기존 메뉴 차단과 동일하게 "사용 불가" 처리됩니다.
+    이쪽은 기존 'N' 처리 UX가 이미 있으므로 별도 대응이 필요 없습니다.</p>
+  </section>
+
+  <!-- 3. 사용자 유형별 요약 -->
+  <section>
+    <h2>3. 사용자 유형별 요약</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>사용자</th>
+          <th style="width:30%">로그인</th>
+          <th style="width:24%">메뉴 이동</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SMS 미등록 사용자 (대다수)</td>
+          <td><span class="badge badge-y">정상</span></td>
+          <td><span class="badge badge-y">정상</span></td>
+        </tr>
+        <tr>
+          <td>SMS 등록 + 국내 접속</td>
+          <td><span class="badge badge-y">정상</span></td>
+          <td><span class="badge badge-y">정상</span></td>
+        </tr>
+        <tr>
+          <td>SMS 등록 + 해외 접속 + 허용 등록됨 (출장자 등)</td>
+          <td><span class="badge badge-y">정상</span></td>
+          <td><span class="badge badge-y">정상</span></td>
+        </tr>
+        <tr>
+          <td>SMS 등록 + 해외 접속 + 미등록</td>
+          <td><span class="badge badge-n">ORA-20001 로그인 실패</span></td>
+          <td><span class="badge badge-n">차단('N')</span></td>
+        </tr>
+        <tr>
+          <td>SMS 등록 + 사설 IP 유입 (맘스터치 등 내부망)</td>
+          <td><span class="badge badge-n">차단됨 — 주의</span></td>
+          <td><span class="badge badge-n">차단됨 — 주의</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. 켜기 전 확인사항 -->
+  <section>
+    <h2>4. 켜기 전 반드시 확인할 것</h2>
+    <ol>
+      <li>
+        <strong>사설 IP 오탐</strong> —
+        GeoIP에 매칭되지 않는 IP(사설망, 맘스터치 이슈)는 '한국 아님'으로 처리되어 차단됩니다.
+        관찰 기간 동안 <code>TB_WB_LOGIN_HIST_BLOCK</code>에서 <code>COUNTRY_CODE IS NULL</code> 건을 추출해,
+        정상 사용자는 <code>TB_CM_IP_ALLOW</code>에 등록하거나
+        사설 대역(10.x, 172.16~31.x, 192.168.x)을 <code>IS_LOGIN_ALLOWED</code>에서 예외 허용할지 정책을 결정해야 합니다.
+      </li>
+      <li>
+        <strong>WAS의 ORA-20001 처리</strong> —
+        차단 시 사용자에게 보이는 최종 메시지가 의도한 안내인지 테스트 계정으로 확인해야 합니다.
+      </li>
+    </ol>
+
+    <h3>오탐 점검 쿼리 (관찰 기간 중 주기 실행)</h3>
+    <pre>SELECT  USER_ID
+,       REAL_IP
+,       COUNTRY_CODE
+,       COUNT(*)            AS CNT
+,       MIN(LOGIN_DATE)     AS FIRST_TRY
+,       MAX(LOGIN_DATE)     AS LAST_TRY
+FROM    TB_WB_LOGIN_HIST_BLOCK
+GROUP
+BY      USER_ID, REAL_IP, COUNTRY_CODE
+ORDER
+BY      CNT DESC
+;</pre>
+  </section>
+
+  <!-- 5. 전환 방법 -->
+  <section>
+    <h2>5. 차단 활성화 방법 (참고)</h2>
+    <p><code>FN_CHK_LOGIN_BLOCK</code> 함수의 아래 한 줄만 변경 후 <strong>함수만</strong> 재컴파일하면
+    로그인 트리거(R90)와 메뉴 이동(FN_GET_MENU_CHK_YN2)에 동시에 일괄 적용됩니다.
+    트리거 및 다른 호출처는 수정할 필요가 없습니다.</p>
+    <pre>C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';   -- 관찰 모드 (현재)
+C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'Y';   -- 차단 모드 (전환 시)</pre>
+  </section>
+
+  <footer>국외 IP 로그인 차단 — C_BLOCK_MODE = 'Y' 전환 영향 정리</footer>
+
+</div>
+</body>
+</html>

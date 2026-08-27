@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국외 IP 로그인 차단 시스템 — 전체 구축 가이드</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #333;
+    background: #f5f6f8;
+    word-break: keep-all;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    background: #2c3e50; color: #fff;
+    padding: 28px 32px; border-radius: 8px; margin-bottom: 16px;
+  }
+  header h1 { font-size: 22px; margin-bottom: 8px; }
+  header p  { font-size: 13px; color: rgba(255,255,255,0.75); }
+  nav.toc {
+    background: #fff; border: 1px solid #e1e4e8; border-radius: 8px;
+    padding: 20px 28px; margin-bottom: 28px; font-size: 14px;
+  }
+  nav.toc b { display: block; margin-bottom: 8px; font-size: 15px; }
+  nav.toc ol { padding-left: 22px; column-count: 2; column-gap: 40px; }
+  nav.toc li { margin-bottom: 4px; }
+  nav.toc a { color: #2c5f8a; text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    background: #fff; border: 1px solid #e1e4e8; border-radius: 8px;
+    padding: 28px 32px; margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 19px; margin-bottom: 16px; padding-bottom: 10px;
+    border-bottom: 2px solid #2c3e50;
+  }
+  h2 .step {
+    display: inline-block; background: #2c3e50; color: #fff;
+    font-size: 13px; font-weight: 700; padding: 2px 10px;
+    border-radius: 4px; margin-right: 10px; vertical-align: 2px;
+  }
+  h3 { font-size: 15px; margin: 22px 0 8px; }
+  p  { margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0 6px; }
+  th, td { border: 1px solid #d8dce1; padding: 9px 12px; text-align: left; vertical-align: top; }
+  thead th { background: #eef1f4; font-weight: 700; }
+  code {
+    font-family: Consolas, "Courier New", monospace; font-size: 13px;
+    background: #f0f2f5; padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace; font-size: 12.5px;
+    background: #2d2d2d; color: #e8e8e8;
+    padding: 16px 18px; border-radius: 6px;
+    overflow-x: auto; line-height: 1.55; margin: 12px 0;
+  }
+  .ok    { color: #1a7f37; font-weight: 700; }
+  .block { color: #c0392b; font-weight: 700; }
+  .box-warn {
+    background: #fff8e6; border: 1px solid #f0d998; border-left: 4px solid #e6a817;
+    border-radius: 6px; padding: 14px 18px; margin: 14px 0;
+  }
+  .box-warn strong { display: block; margin-bottom: 4px; }
+  .box-info {
+    background: #eef6fd; border: 1px solid #bcd9f2; border-left: 4px solid #3498db;
+    border-radius: 6px; padding: 14px 18px; margin: 14px 0;
+  }
+  .box-info strong { display: block; margin-bottom: 4px; }
+  ol, ul { padding-left: 22px; margin-bottom: 10px; }
+  li { margin-bottom: 6px; }
+  footer { font-size: 12px; color: #999; text-align: center; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>국외 IP 로그인 차단 시스템 — 전체 구축 가이드</h1>
+  <p>MaxMind GeoLite2 가입부터 Oracle 적재 · 판정 함수 · 로그인 트리거 · 메뉴 차단 · 운영 전환까지 &nbsp;|&nbsp; 처음부터 순서대로 따라 하는 런북</p>
+</header>
+
+<nav class="toc">
+  <b>목차</b>
+  <ol>
+    <li><a href="#s0">전체 아키텍처 개요</a></li>
+    <li><a href="#s1">MaxMind 가입 및 라이선스 키 발급</a></li>
+    <li><a href="#s2">GeoLite2 데이터 다운로드 · CSV 준비</a></li>
+    <li><a href="#s3">Oracle 테이블 생성 (A/B + 시노님)</a></li>
+    <li><a href="#s4">SQL*Loader 적재</a></li>
+    <li><a href="#s5">검증 · 통계수집 · 시노님 스위치</a></li>
+    <li><a href="#s6">IP_TO_NUM 함수</a></li>
+    <li><a href="#s7">IS_KOREA_IP 함수</a></li>
+    <li><a href="#s8">허용 테이블 TB_CM_IP_ALLOW</a></li>
+    <li><a href="#s9">IS_LOGIN_ALLOWED 함수</a></li>
+    <li><a href="#s10">차단 이력 테이블</a></li>
+    <li><a href="#s11">공용 판정 함수 FN_CHK_LOGIN_BLOCK</a></li>
+    <li><a href="#s12">로그인 트리거 R90</a></li>
+    <li><a href="#s13">메뉴 함수 연동 (FN_GET_MENU_CHK_YN2)</a></li>
+    <li><a href="#s14">운영 — 관찰 모드 → 차단 전환</a></li>
+    <li><a href="#s15">운영 — 월간 GeoIP 재적재 절차</a></li>
+  </ol>
+</nav>
+
+<!-- ======================================================================= -->
+<section id="s0">
+  <h2><span class="step">0</span>전체 아키텍처 개요</h2>
+  <pre>[MaxMind GeoLite2]                      [Oracle]
+  Country CSV  ──다운로드──▶  prepare_csv.py  ──▶  geoip_ranges.csv
+                                                      │ SQL*Loader
+                                                      ▼
+                          TB_CM_GEOIP_RANGE_A / _B  (A/B 이중화)
+                                    ▲
+                        SYNONYM TB_CM_GEOIP_RANGE (무중단 스위칭)
+                                    │
+        IP_TO_NUM ──▶ IS_KOREA_IP / IS_LOGIN_ALLOWED ◀── TB_CM_IP_ALLOW(예외 허용)
+                                    │
+                          FN_CHK_LOGIN_BLOCK  (판정 + 이력 + 모드 스위치)
+                          │                      │
+        TR_TB_WB_LOGIN_HIST_R90          FN_GET_MENU_CHK_YN2
+        (로그인 시 차단)                   (메뉴 이동 시 차단)
+                          │
+                TB_WB_LOGIN_HIST_BLOCK (차단/관찰 이력)</pre>
+  <table>
+    <thead><tr><th style="width:26%">구성 요소</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td>GeoIP 대역 테이블 (A/B)</td><td>IP 대역 → 국가 매핑. 월간 재적재 시 대기 테이블에 적재 후 시노님만 스위치 (무중단)</td></tr>
+      <tr><td>허용 테이블</td><td>해외 출장자·해외법인 등 예외 사용자 (USER_ID + IP + 기간, 승인자 기록)</td></tr>
+      <tr><td>판정 함수</td><td>SMS 등록자만 검사 → 한국 IP 허용 → 허용테이블 허용 → 그 외 차단 대상</td></tr>
+      <tr><td>모드 스위치</td><td><code>C_BLOCK_MODE</code> 상수 하나로 관찰('N') / 차단('Y') 전체 일괄 제어</td></tr>
+    </tbody>
+  </table>
+  <div class="box-info">
+    <strong>제한 정책 요약</strong>
+    ① 제한 대상은 SMS 사용등록(<code>TB_CM_SMS_USER_REGIST</code>)한 USER_ID만 — 그 외 사용자는 무조건 통과.<br>
+    ② 국내 IP 허용, 그 외 차단. &nbsp;③ 허용테이블(USER_ID+IP)에 있으면 해외라도 허용.<br>
+    ④ 처음엔 관찰 모드로 이력만 쌓고, 오탐(사설 IP 등) 정리 후 차단 전환.
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s1">
+  <h2><span class="step">1</span>MaxMind 가입 및 라이선스 키 발급</h2>
+  <ol>
+    <li><b>가입</b> — <code>https://www.maxmind.com/en/geolite2/signup</code> 에서 GeoLite2 무료 계정 생성 (회사 이메일 권장). 가입 승인 메일의 링크로 비밀번호 설정.</li>
+    <li><b>라이선스 키 생성</b> — 로그인 후 <b>My Account → Manage License Keys → Generate new license key</b>. 키는 생성 시 한 번만 표시되므로 즉시 안전한 곳에 보관.</li>
+    <li><b>라이선스 확인</b> — GeoLite2는 무료지만 EULA 동의 필요. 재배포 제한이 있으므로 사내 사용 범위 확인.</li>
+    <li><b>다운로드 URL 형식</b> (Country CSV 에디션):</li>
+  </ol>
+  <pre>https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country-CSV&amp;license_key=YOUR_LICENSE_KEY&amp;suffix=zip</pre>
+  <div class="box-warn">
+    <strong>보안 주의</strong>
+    라이선스 키는 비밀번호에 준해 관리합니다. 스크립트·문서에 평문으로 남기지 말고 환경변수나 별도 설정 파일(권한 제한)로 분리하세요. 키가 노출됐다면 MaxMind 콘솔에서 폐기 후 재발급합니다.
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s2">
+  <h2><span class="step">2</span>GeoLite2 데이터 다운로드 · CSV 준비</h2>
+  <h3>2-1. 작업 폴더 준비 및 다운로드</h3>
+  <pre>:: 작업 폴더 (예시 경로 — 환경에 맞게 변경)
+E:\_work\GeoLite2\oracle_chk
+
+:: 위 다운로드 URL로 zip 수령 → 압축 해제 → 모든 파일을 작업 폴더로 이동
+:: 압축 안에 들어있는 주요 파일:
+::   GeoLite2-Country-Blocks-IPv4.csv     (network CIDR, geoname_id, ...)
+::   GeoLite2-Country-Locations-en.csv    (geoname_id, country_iso_code, country_name, ...)</pre>
+
+  <h3>2-2. prepare_csv.py — 적재용 CSV 생성</h3>
+  <p>CIDR(<code>1.0.0.0/24</code>)을 시작/끝 숫자로 풀고 국가 정보를 조인하여 <code>geoip_ranges.csv</code>를 만듭니다.</p>
+  <pre>> cd E:\_work\GeoLite2\oracle_chk
+> python prepare_csv.py
+→ geoip_ranges.csv 생성됨</pre>
+  <pre># prepare_csv.py — GeoLite2 Country CSV → Oracle 적재용 CSV 변환
+# 출력: geoip_ranges.csv (NETWORK, START_IP_NUM, END_IP_NUM, COUNTRY_CODE, COUNTRY_NAME)
+import csv, ipaddress
+
+BLOCKS = 'GeoLite2-Country-Blocks-IPv4.csv'
+LOCS   = 'GeoLite2-Country-Locations-en.csv'
+OUT    = 'geoip_ranges.csv'
+
+# 1) geoname_id → (국가코드, 국가명) 매핑
+loc = {}
+with open(LOCS, encoding='utf-8') as f:
+    for r in csv.DictReader(f):
+        loc[r['geoname_id']] = (r['country_iso_code'], r['country_name'])
+
+# 2) 블록 CSV 변환
+cnt = 0
+with open(BLOCKS, encoding='utf-8') as f, \
+     open(OUT, 'w', newline='', encoding='utf-8') as o:
+    w = csv.writer(o)
+    w.writerow(['NETWORK', 'START_IP_NUM', 'END_IP_NUM', 'COUNTRY_CODE', 'COUNTRY_NAME'])
+    for r in csv.DictReader(f):
+        # geoname_id 없으면 registered_country_geoname_id 로 대체
+        gid = r['geoname_id'] or r['registered_country_geoname_id']
+        if not gid or gid not in loc:
+            continue
+        net = ipaddress.ip_network(r['network'])
+        cc, cn = loc[gid]
+        w.writerow([r['network'],
+                    int(net.network_address),
+                    int(net.broadcast_address),
+                    cc, cn])
+        cnt += 1
+print(f'완료: {cnt}건 → {OUT}')</pre>
+  <div class="box-info">
+    <strong>참고</strong>
+    GeoLite2 Country IPv4 블록은 보통 30~50만 행입니다. 대역은 서로 겹치지 않으며 START_IP_NUM 기준 정렬 상태 — 이후 "내림차순 첫 행" 조회 최적화의 전제가 됩니다.
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s3">
+  <h2><span class="step">3</span>Oracle 테이블 생성 (A/B 이중화 + 시노님)</h2>
+  <p>재적재 중에도 서비스가 끊기지 않도록 물리 테이블 2개를 두고, 애플리케이션은 시노님 하나만 바라봅니다.</p>
+  <pre>-- 물리 테이블 2개 (컬럼 구조 동일)
+CREATE TABLE TB_CM_GEOIP_RANGE_A (
+    NETWORK        VARCHAR2(30),
+    START_IP_NUM   NUMBER,
+    END_IP_NUM     NUMBER,
+    COUNTRY_CODE   VARCHAR2(10),
+    COUNTRY_NAME   VARCHAR2(100)
+) TABLESPACE TS_NEO_DAT;
+
+CREATE TABLE TB_CM_GEOIP_RANGE_B (
+    NETWORK        VARCHAR2(30),
+    START_IP_NUM   NUMBER,
+    END_IP_NUM     NUMBER,
+    COUNTRY_CODE   VARCHAR2(10),
+    COUNTRY_NAME   VARCHAR2(100)
+) TABLESPACE TS_NEO_DAT;
+
+CREATE INDEX TB_CM_GEOIP_RANGE_A_X01 ON TB_CM_GEOIP_RANGE_A (START_IP_NUM, END_IP_NUM) TABLESPACE TS_NEO_IDX;
+CREATE INDEX TB_CM_GEOIP_RANGE_B_X01 ON TB_CM_GEOIP_RANGE_B (START_IP_NUM, END_IP_NUM) TABLESPACE TS_NEO_IDX;
+
+-- 애플리케이션/함수는 이 이름만 참조
+CREATE OR REPLACE SYNONYM TB_CM_GEOIP_RANGE FOR TB_CM_GEOIP_RANGE_A;
+
+-- 현재 시노님이 가리키는 테이블 확인
+SELECT table_name FROM user_synonyms WHERE synonym_name = 'TB_CM_GEOIP_RANGE';</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s4">
+  <h2><span class="step">4</span>SQL*Loader 적재</h2>
+  <h3>4-1. 컨트롤 파일 (geoipA.ctl / geoipB.ctl)</h3>
+  <p>내용은 동일하고 <code>INTO TABLE</code>의 대상 테이블만 다릅니다.</p>
+  <pre>-- geoipA.ctl  (B용은 INTO TABLE TB_CM_GEOIP_RANGE_B 로만 변경)
+OPTIONS (DIRECT=TRUE, ROWS=100000)
+LOAD DATA
+CHARACTERSET UTF8
+INFILE 'geoip_ranges.csv'
+TRUNCATE
+INTO TABLE TB_CM_GEOIP_RANGE_A
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+TRAILING NULLCOLS
+(
+    NETWORK,
+    START_IP_NUM,
+    END_IP_NUM,
+    COUNTRY_CODE,
+    COUNTRY_NAME
+)</pre>
+
+  <h3>4-2. 실행 (PowerShell)</h3>
+  <pre>cd E:\_work\GeoLite2\oracle_chk
+
+:: 접속 정보는 예시 — 실제 계정/비밀번호/접속 문자열로 교체
+:: 최초 구축 시에는 A에 적재. (이후 월간 재적재는 "대기 테이블"에 적재 — 15장 참고)
+sqlldr USERID=USER/PASSWORD@HOST:PORT/SERVICE CONTROL=geoipA.ctl SKIP=1</pre>
+  <ul>
+    <li><code>SKIP=1</code> : CSV 첫 줄(헤더) 건너뜀</li>
+    <li>실행 후 같은 폴더에 <code>geoip.log</code> 생성, 오류가 있으면 <code>geoip.bad</code> 확인</li>
+  </ul>
+  <div class="box-warn">
+    <strong>DIRECT=TRUE 사용 시</strong>
+    다이렉트 패스 적재 후 인덱스 상태를 확인하세요. <code>SELECT index_name, status FROM user_indexes WHERE table_name LIKE 'TB_CM_GEOIP_RANGE_%';</code> — UNUSABLE이면 <code>ALTER INDEX ... REBUILD;</code>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s5">
+  <h2><span class="step">5</span>검증 · 통계수집 · 시노님 스위치</h2>
+  <p><b>순서가 중요합니다: 적재 → 건수 검증 → 통계수집 → 스위치.</b> 통계수집을 빠뜨리면 옵티마이저가 dynamic sampling에 의존해 조회가 수 초씩 걸릴 수 있습니다 (실제 겪은 이슈).</p>
+  <pre>-- 1) 건수 검증 (신규가 기존의 90% 미만이면 데이터 이상으로 보고 중단)
+DECLARE
+    v_new_cnt NUMBER;
+    v_old_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_new_cnt FROM TB_CM_GEOIP_RANGE_A;   -- 이번에 적재한 테이블
+    SELECT COUNT(*) INTO v_old_cnt FROM TB_CM_GEOIP_RANGE_B;   -- 기존 테이블
+
+    IF v_old_cnt > 0 AND v_new_cnt &lt; v_old_cnt * 0.9 THEN
+        RAISE_APPLICATION_ERROR(-20001, '신규 GeoIP 데이터 건수 이상 - 스위치 중단');
+    END IF;
+END;
+/
+
+-- 2) 통계수집 (★ 필수 — 재적재 때마다)
+EXEC DBMS_STATS.GATHER_TABLE_STATS(USER, 'TB_CM_GEOIP_RANGE_A', CASCADE =&gt; TRUE);
+
+-- 3) 시노님 스위치 (CREATE OR REPLACE SYNONYM은 원자적/즉시 적용 — 무중단)
+CREATE OR REPLACE SYNONYM TB_CM_GEOIP_RANGE FOR TB_CM_GEOIP_RANGE_A;
+
+-- 4) 확인
+SELECT COUNT(*) FROM TB_CM_GEOIP_RANGE;</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s6">
+  <h2><span class="step">6</span>IP_TO_NUM — IP 문자열 → 숫자 변환 함수</h2>
+  <pre>CREATE OR REPLACE FUNCTION IP_TO_NUM(p_ip IN VARCHAR2) RETURN NUMBER IS
+BEGIN
+    RETURN
+        TO_NUMBER(REGEXP_SUBSTR(p_ip, '[0-9]+', 1, 1)) * 16777216 +
+        TO_NUMBER(REGEXP_SUBSTR(p_ip, '[0-9]+', 1, 2)) * 65536 +
+        TO_NUMBER(REGEXP_SUBSTR(p_ip, '[0-9]+', 1, 3)) * 256 +
+        TO_NUMBER(REGEXP_SUBSTR(p_ip, '[0-9]+', 1, 4));
+EXCEPTION WHEN OTHERS THEN
+    RETURN NULL;   -- IPv6·형식 오류 등은 NULL (호출측에서 매칭실패 처리)
+END;
+/
+
+SELECT IP_TO_NUM('8.8.8.8') FROM DUAL;   -- 134744072 이면 정상</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s7">
+  <h2><span class="step">7</span>IS_KOREA_IP — 한국 IP 여부 판정</h2>
+  <div class="box-info">
+    <strong>성능 핵심 — "내림차순 첫 행" 패턴</strong>
+    <code>BETWEEN START_IP_NUM AND END_IP_NUM</code> 방식은 후보 구간을 거의 다 훑어야 해서 느립니다 (223.x대 IP에서 3초 발생 사례).
+    GeoIP 대역은 겹치지 않으므로 "v 이하의 START_IP_NUM 중 최대값 1건"만 집어 END를 확인하는 방식으로 재작성 — 어떤 IP든 인덱스 접근이 사실상 1건으로 고정됩니다.
+  </div>
+  <pre>CREATE OR REPLACE FUNCTION IS_KOREA_IP(
+    p_ip IN VARCHAR2                 -- 체크할 IP 문자열
+) RETURN VARCHAR2                    -- 'Y' = 한국, 'N' = 한국 아님(매칭 실패 포함)
+IS
+    v_country_code  VARCHAR2(10);
+    v_num           NUMBER;
+BEGIN
+    v_num := IP_TO_NUM(p_ip);        -- 한 번만 변환해 상수화
+    IF v_num IS NULL THEN
+        RETURN 'N';                  -- 변환 실패(IPv6·형식오류)
+    END IF;
+
+    -- 내림차순 첫 행: v_num 이하 START 중 최대 1건 → 그 대역이 v_num 포함하는지 확인
+    -- ※ end_ip_num 조건은 반드시 ROWNUM 바깥에 — 안에 넣으면 다시 전체 필터로 회귀
+    SELECT country_code
+    INTO   v_country_code
+    FROM (
+        SELECT country_code, end_ip_num
+        FROM   TB_CM_GEOIP_RANGE
+        WHERE  start_ip_num &lt;= v_num
+        ORDER BY start_ip_num DESC
+    )
+    WHERE ROWNUM = 1
+    AND   end_ip_num &gt;= v_num;
+
+    RETURN CASE WHEN v_country_code = 'KR' THEN 'Y' ELSE 'N' END;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN RETURN 'N';   -- 사설 IP·미할당·대역 사이 빈 구간
+    WHEN OTHERS       THEN RETURN 'N';
+END;
+/
+
+SELECT IS_KOREA_IP('223.62.180.1') FROM DUAL;   -- 'Y'
+SELECT IS_KOREA_IP('8.8.8.8')      FROM DUAL;   -- 'N'</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s8">
+  <h2><span class="step">8</span>허용 테이블 TB_CM_IP_ALLOW (해외 예외 사용자)</h2>
+  <p>해외거주자·해외법인·국외 출장자 등 예외 이용자를 승인 절차와 함께 관리합니다 (승인자·사유·기간 기록).</p>
+  <pre>CREATE TABLE TB_CM_IP_ALLOW (
+    SEQ           NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    USER_ID       VARCHAR2(50)  NOT NULL,        -- 허용 대상자
+    ALLOW_IP      VARCHAR2(45)  NOT NULL,
+    USE_YN        VARCHAR2(1)   DEFAULT 'Y' NOT NULL,
+    START_DT      VARCHAR2(14),                  -- 허용 시작일시 (YYYYMMDDHH24MISS)
+    END_DT        VARCHAR2(14),                  -- 허용 종료일시, NULL이면 무기한
+    APPROVE_ID    VARCHAR2(20),                  -- 승인 처리 담당자
+    REMARK        VARCHAR2(200),                 -- 허용 사유
+    REG_DT        VARCHAR2(14),
+    REG_ID        VARCHAR2(20),
+    MOD_DT        VARCHAR2(14),
+    MOD_ID        VARCHAR2(20)
+) TABLESPACE TS_NEO_DAT;
+
+CREATE UNIQUE INDEX TB_CM_IP_ALLOW_X01 ON TB_CM_IP_ALLOW (USER_ID, ALLOW_IP)
+TABLESPACE TS_NEO_IDX;</pre>
+
+  <h3>등록 예시</h3>
+  <pre>INSERT INTO TB_CM_IP_ALLOW
+(
+    USER_ID
+,   ALLOW_IP
+,   START_DT
+,   END_DT
+,   APPROVE_ID
+,   REMARK
+,   REG_DT
+,   REG_ID
+)
+VALUES
+(
+    'hong123'
+,   '203.0.113.55'
+,   TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+,   '20260831235959'
+,   'manager01'
+,   '출장 - 싱가포르 지사'
+,   TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+,   'admin'
+)
+;
+COMMIT;</pre>
+
+  <h3>수정 예시 (만료일 연장)</h3>
+  <pre>UPDATE  TB_CM_IP_ALLOW
+SET     END_DT      = '20260930235959'
+,       MOD_DT      = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+,       MOD_ID      = 'admin'
+WHERE   USER_ID     = 'hong123'
+AND     ALLOW_IP    = '203.0.113.55'
+;
+COMMIT;</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s9">
+  <h2><span class="step">9</span>IS_LOGIN_ALLOWED — 허용 여부 판정 함수</h2>
+  <p>한국 IP이거나 허용테이블에 등재돼 있으면 'Y', 그 외 'N'. GeoIP 조회는 7장과 동일한 내림차순 방식입니다.</p>
+  <pre>CREATE OR REPLACE FUNCTION IS_LOGIN_ALLOWED(
+    p_user_id IN VARCHAR2,           -- 로그인 시도 사용자 ID
+    p_ip      IN VARCHAR2            -- 로그인 시도 IP (실제 IP — XFF 추출 후)
+) RETURN VARCHAR2                    -- 'Y' = 허용, 'N' = 차단
+IS
+    v_country_code  VARCHAR2(10);
+    v_allow_cnt     NUMBER;
+    v_num           NUMBER;
+    v_now           VARCHAR2(14) := TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS');
+BEGIN
+    v_num := IP_TO_NUM(p_ip);
+
+    -- 1) 한국 IP 확인 (내림차순 첫 행 방식)
+    IF v_num IS NOT NULL THEN
+        BEGIN
+            SELECT country_code
+            INTO   v_country_code
+            FROM (
+                SELECT country_code, end_ip_num
+                FROM   TB_CM_GEOIP_RANGE
+                WHERE  start_ip_num &lt;= v_num
+                ORDER BY start_ip_num DESC
+            )
+            WHERE ROWNUM = 1
+            AND   end_ip_num &gt;= v_num;
+        EXCEPTION WHEN NO_DATA_FOUND THEN
+            v_country_code := NULL;             -- 사설 IP / 미할당 등
+        END;
+
+        IF v_country_code = 'KR' THEN
+            RETURN 'Y';
+        END IF;
+    END IF;
+
+    -- 2) 한국이 아니면 허용 테이블 확인 (USER_ID + IP 정확 일치, 기간·사용여부 체크)
+    SELECT COUNT(*)
+    INTO   v_allow_cnt
+    FROM   TB_CM_IP_ALLOW
+    WHERE  USER_ID  = p_user_id
+    AND    ALLOW_IP = p_ip
+    AND    USE_YN   = 'Y'
+    AND    (START_DT IS NULL OR v_now &gt;= START_DT)
+    AND    (END_DT   IS NULL OR v_now &lt;= END_DT);
+
+    RETURN CASE WHEN v_allow_cnt &gt; 0 THEN 'Y' ELSE 'N' END;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'N';
+END;
+/
+
+SET TIMING ON
+SELECT IS_LOGIN_ALLOWED('hong123', '223.62.180.1') FROM DUAL;   -- 'Y' (즉시 응답이어야 정상)
+SELECT IS_LOGIN_ALLOWED('hong123', '8.8.8.8')      FROM DUAL;   -- 'N'</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s10">
+  <h2><span class="step">10</span>차단 이력 테이블 TB_WB_LOGIN_HIST_BLOCK</h2>
+  <p>차단(또는 관찰 모드의 차단 대상) 건을 기록합니다. 컬럼 타입/길이는 <code>TB_WB_LOGIN_HIST</code> 실제 정의에 맞춰 조정하세요.</p>
+  <pre>CREATE TABLE TB_WB_LOGIN_HIST_BLOCK
+(
+    PROC_DT                 VARCHAR2(  20),   -- 처리 일시 (YYYYMMDDHH24MISSFF)
+    PROC_FG                 VARCHAR2(   1),   -- I(로그인) / C(메뉴) 등
+    SEQ                     NUMBER,           -- 원본 TB_WB_LOGIN_HIST.SEQ
+    USER_ID                 VARCHAR2(  50),
+    STAT_CD                 VARCHAR2(  10),
+    LOGIN_ORGN              VARCHAR2(  50),
+    LOGIN_IP                VARCHAR2( 200),   -- 원본 IP (XFF 체인 포함 가능)
+    REAL_IP                 VARCHAR2(  45),   -- 실제 접속 IP (체인 맨 뒤 토큰)
+    COUNTRY_CODE            VARCHAR2(  10),   -- 매칭 국가코드 (NULL = 매칭실패)
+    BLOCK_REASON            VARCHAR2( 200),   -- 'MONITOR - ...' / 'BLOCKED - ...'
+    BRWSR_INFO              VARCHAR2(1000),
+    LOGIN_DATE              VARCHAR2(   8),
+    LOGIN_DT                VARCHAR2(  14),
+    V_USER_ID               VARCHAR2(  50),
+    ORGN_CD                 VARCHAR2(  20),
+    SESSION_ID              VARCHAR2( 100),
+    USERENV_SESSIONID       VARCHAR2( 100),
+    USERENV_OS_USER         VARCHAR2( 100),
+    USERENV_SESSION_USER    VARCHAR2( 100),
+    USERENV_MODULE          VARCHAR2( 100),
+    USERENV_HOST            VARCHAR2( 100),
+    USERENV_DB_NAME         VARCHAR2( 100),
+    USERENV_INSTANCE_NAME   VARCHAR2( 100),
+    USERENV_SID             VARCHAR2( 100),
+    USERENV_TERMINAL        VARCHAR2( 100),
+    USERENV_IP_ADDRESS      VARCHAR2( 100)
+) TABLESPACE TS_NEO_DAT;
+
+CREATE INDEX TB_WB_LOGIN_HIST_BLOCK_X01 ON TB_WB_LOGIN_HIST_BLOCK (USER_ID, PROC_DT)
+TABLESPACE TS_NEO_IDX;</pre>
+  <div class="box-warn">
+    <strong>사전 확인 — SMS 등록 테이블 인덱스</strong>
+    판정 함수는 모든 로그인마다 <code>TB_CM_SMS_USER_REGIST</code>를 USER_ID로 조회합니다. PK/유니크에 USER_ID가 선두 컬럼으로 없다면 인덱스를 만드세요:<br>
+    <code>CREATE INDEX TB_CM_SMS_USER_REGIST_X01 ON TB_CM_SMS_USER_REGIST (USER_ID) TABLESPACE TS_NEO_IDX;</code>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s11">
+  <h2><span class="step">11</span>공용 판정 함수 FN_CHK_LOGIN_BLOCK</h2>
+  <p>판정 + 이력 기록 + 모드 스위치를 모두 담당하는 공용 함수입니다. 트리거·메뉴 함수 등 어디서든 호출하며, <b>차단 활성화 시 이 함수의 <code>C_BLOCK_MODE</code> 한 줄만 바꾸면 모든 호출처에 일괄 적용</b>됩니다.</p>
+  <table>
+    <thead><tr><th style="width:14%">리턴값</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td><span class="ok">'Y'</span></td><td>허용 (SMS 미등록 / 한국 IP / 허용테이블 등재)</td></tr>
+      <tr><td><b>'M'</b></td><td>차단 대상이지만 관찰 모드라 허용 (이력만 기록)</td></tr>
+      <tr><td><span class="block">'N'</span></td><td>차단 (이력 기록됨 — 호출측에서 RAISE 등 차단 처리)</td></tr>
+    </tbody>
+  </table>
+  <pre>CREATE OR REPLACE FUNCTION FN_CHK_LOGIN_BLOCK
+/* ***********************************************************************************************
+   국가 기반 로그인 제한 판정 (트리거·프로시저·화면 등 공용)
+     1) SMS 사용등록 안 된 USER_ID          → 'Y' (검사 없이 허용)
+     2) 한국 IP                            → 'Y'
+     3) TB_CM_IP_ALLOW 등재                → 'Y'
+     4) 그 외 = 차단 대상
+        - 관찰 모드(C_BLOCK_MODE='N')       → 'M' (이력만 기록, 허용)
+        - 차단 모드(C_BLOCK_MODE='Y')       → 'N' (이력 기록, 호출측에서 차단)
+   ★ 차단 활성화 : C_BLOCK_MODE 'N'→'Y' 변경 후 함수만 재컴파일 (호출처 수정 불필요)
+*********************************************************************************************** */
+(
+    p_proc_fg       IN VARCHAR2                     -- I/U/D/C (트리거 외 호출 시 'I' 권장)
+,   p_seq           IN NUMBER       DEFAULT NULL
+,   p_user_id       IN VARCHAR2                     -- 필수
+,   p_login_ip      IN VARCHAR2                     -- 필수 (XFF 체인 원본 그대로)
+,   p_stat_cd       IN VARCHAR2     DEFAULT NULL    -- ↓ 이하 이력 기록용
+,   p_login_orgn    IN VARCHAR2     DEFAULT NULL
+,   p_brwsr_info    IN VARCHAR2     DEFAULT NULL
+,   p_login_date    IN VARCHAR2     DEFAULT NULL
+,   p_login_dt      IN VARCHAR2     DEFAULT NULL
+,   p_v_user_id     IN VARCHAR2     DEFAULT NULL
+,   p_orgn_cd       IN VARCHAR2     DEFAULT NULL
+,   p_session_id    IN VARCHAR2     DEFAULT NULL
+,   p_log_yn        IN VARCHAR2     DEFAULT 'Y'     -- 차단 대상 시 이력 INSERT 여부
+) RETURN VARCHAR2
+IS
+    -- ★★★ 차단 활성화 스위치 : 'N' 관찰(현재) / 'Y' 차단 ★★★
+    C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';
+
+    V_SMS_CNT       NUMBER;
+    V_REAL_IP       VARCHAR2(  45);
+    V_IP_NUM        NUMBER;
+    V_COUNTRY_CODE  VARCHAR2(  10);
+    V_ALLOW_YN      VARCHAR2(   1);
+    V_BLOCK_REASON  VARCHAR2( 200);
+
+    -- 차단 이력 INSERT (AUTONOMOUS — 호출측 롤백과 무관하게 커밋)
+    PROCEDURE SUB_SP_INSERT_BLOCK_HIST
+    IS
+        PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        INSERT INTO TB_WB_LOGIN_HIST_BLOCK
+        (
+                PROC_DT, PROC_FG, SEQ, USER_ID, STAT_CD, LOGIN_ORGN
+        ,       LOGIN_IP, REAL_IP, COUNTRY_CODE, BLOCK_REASON
+        ,       BRWSR_INFO, LOGIN_DATE, LOGIN_DT, V_USER_ID, ORGN_CD, SESSION_ID
+        ,       USERENV_SESSIONID, USERENV_OS_USER, USERENV_SESSION_USER
+        ,       USERENV_MODULE, USERENV_HOST, USERENV_DB_NAME
+        ,       USERENV_INSTANCE_NAME, USERENV_SID, USERENV_TERMINAL, USERENV_IP_ADDRESS
+        )
+        VALUES
+        (
+                TO_CHAR(SYSTIMESTAMP, 'YYYYMMDDHH24MISSFF')
+        ,       p_proc_fg, p_seq, p_user_id, p_stat_cd, p_login_orgn
+        ,       p_login_ip, V_REAL_IP, V_COUNTRY_CODE, V_BLOCK_REASON
+        ,       p_brwsr_info, p_login_date, p_login_dt, p_v_user_id, p_orgn_cd, p_session_id
+        ,       SYS_CONTEXT('USERENV','SESSIONID'),  SYS_CONTEXT('USERENV','OS_USER')
+        ,       SYS_CONTEXT('USERENV','SESSION_USER'), SYS_CONTEXT('USERENV','MODULE')
+        ,       SYS_CONTEXT('USERENV','HOST'), SYS_CONTEXT('USERENV','DB_NAME')
+        ,       SYS_CONTEXT('USERENV','INSTANCE_NAME'), SYS_CONTEXT('USERENV','SID')
+        ,       SYS_CONTEXT('USERENV','TERMINAL'), SYS_CONTEXT('USERENV','IP_ADDRESS')
+        );
+        COMMIT;
+    END SUB_SP_INSERT_BLOCK_HIST;
+
+BEGIN
+    -- 1) 제한 대상 확인 : SMS 사용등록 한 USER_ID 만 검사
+    SELECT  COUNT(*)
+    INTO    V_SMS_CNT
+    FROM    TB_CM_SMS_USER_REGIST A
+    WHERE   A.USER_ID   =   p_user_id
+    AND     ROWNUM      =   1;
+
+    IF V_SMS_CNT = 0 THEN
+        RETURN 'Y';
+    END IF;
+
+    -- 2) 실제 클라이언트 IP 추출 (XFF 체인 대응 — 콤마 있으면 마지막 토큰)
+    V_REAL_IP := TRIM(p_login_ip);
+    IF INSTR(V_REAL_IP, ',') &gt; 0 THEN
+        V_REAL_IP := TRIM(SUBSTR(V_REAL_IP, INSTR(V_REAL_IP, ',', -1) + 1));
+    END IF;
+
+    -- 3) 허용 여부 판정
+    V_ALLOW_YN := IS_LOGIN_ALLOWED(p_user_id, V_REAL_IP);
+    IF V_ALLOW_YN = 'Y' THEN
+        RETURN 'Y';
+    END IF;
+
+    -- 4) 차단 대상 : 국가코드 조회(이력용) → 이력 INSERT
+    V_IP_NUM := IP_TO_NUM(V_REAL_IP);
+    IF V_IP_NUM IS NOT NULL THEN
+        BEGIN
+            SELECT  COUNTRY_CODE
+            INTO    V_COUNTRY_CODE
+            FROM    (
+                        SELECT  COUNTRY_CODE, END_IP_NUM
+                        FROM    TB_CM_GEOIP_RANGE
+                        WHERE   START_IP_NUM &lt;= V_IP_NUM
+                        ORDER   BY START_IP_NUM DESC
+                    )
+            WHERE   ROWNUM = 1
+            AND     END_IP_NUM &gt;= V_IP_NUM;
+        EXCEPTION WHEN NO_DATA_FOUND THEN
+            V_COUNTRY_CODE := NULL;
+        END;
+    END IF;
+
+    V_BLOCK_REASON := CASE WHEN C_BLOCK_MODE = 'Y' THEN 'BLOCKED' ELSE 'MONITOR' END
+                      || ' - Not Korea IP / Not Allowed'
+                      || ' [CC=' || NVL(V_COUNTRY_CODE, 'UNKNOWN') || ']';
+
+    IF p_log_yn = 'Y' THEN
+        SUB_SP_INSERT_BLOCK_HIST;
+    END IF;
+
+    -- 5) 모드에 따른 최종 리턴
+    RETURN CASE WHEN C_BLOCK_MODE = 'Y' THEN 'N' ELSE 'M' END;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'Y';   -- 판정 오류로 전체 로그인이 막히는 사고 방지 (허용 우선)
+                      -- 차단 전환 후 보안 우선 정책이면 'N' 으로 변경
+END;
+/</pre>
+  <h3>단독 테스트</h3>
+  <pre>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123', '223.62.180.1', p_log_yn =&gt; 'N') FROM DUAL;  -- 'Y'
+SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123', '8.8.8.8',      p_log_yn =&gt; 'N') FROM DUAL;  -- 'M' (관찰모드)</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s12">
+  <h2><span class="step">12</span>로그인 트리거 TR_TB_WB_LOGIN_HIST_R90</h2>
+  <p>트리거는 함수 호출 + 결과 'N'일 때 RAISE만 담당하는 얇은 구조입니다.</p>
+  <pre>CREATE OR REPLACE
+TRIGGER SBPORA.TR_TB_WB_LOGIN_HIST_R90
+/* ***********************************************************************************************
+   국가 기반 로그인 제한 — 판정은 FN_CHK_LOGIN_BLOCK 위임
+     'Y' 허용 / 'M' 관찰모드 허용(이력만) / 'N' 차단(RAISE)
+   차단 활성화 : FN_CHK_LOGIN_BLOCK 의 C_BLOCK_MODE 'N'→'Y' (트리거 수정 불필요)
+*********************************************************************************************** */
+       AFTER INSERT ON "SBPORA"."TB_WB_LOGIN_HIST" FOR EACH ROW
+DECLARE
+    V_TRG_NM        VARCHAR2(  50) := 'TR_TB_WB_LOGIN_HIST_R90';
+    V_USER_DEF_EXP  EXCEPTION;
+    V_ERR_MSG       VARCHAR2(1000);
+    V_LINE_NM       VARCHAR2(   4);
+    V_PROC_FG       VARCHAR2(   1);
+    V_CHK_RESULT    VARCHAR2(   1);
+BEGIN
+    IF INSERTING THEN
+        V_PROC_FG := 'I';
+        V_LINE_NM := 'CHK';
+
+        V_CHK_RESULT := FN_CHK_LOGIN_BLOCK(
+                            p_proc_fg       =&gt;  V_PROC_FG
+                        ,   p_seq           =&gt;  :new.SEQ
+                        ,   p_user_id       =&gt;  :new.USER_ID
+                        ,   p_login_ip      =&gt;  :new.LOGIN_IP
+                        ,   p_stat_cd       =&gt;  :new.STAT_CD
+                        ,   p_login_orgn    =&gt;  :new.LOGIN_ORGN
+                        ,   p_brwsr_info    =&gt;  :new.BRWSR_INFO
+                        ,   p_login_date    =&gt;  :new.LOGIN_DATE
+                        ,   p_login_dt      =&gt;  :new.LOGIN_DT
+                        ,   p_v_user_id     =&gt;  :new.V_USER_ID
+                        ,   p_orgn_cd       =&gt;  :new.ORGN_CD
+                        ,   p_session_id    =&gt;  :new.SESSION_ID
+                        );
+
+        -- 'N' 일 때만 차단. 'Y'·'M' 은 통과
+        IF V_CHK_RESULT = 'N' THEN
+            V_ERR_MSG := 'Login Blocked: Country Restriction'
+                         ||','|| :new.USER_ID
+                         ||','|| :new.LOGIN_IP
+                         ||','|| :new.STAT_CD
+                         ||','|| :new.SESSION_ID
+                         ||','|| TO_CHAR(SYSTIMESTAMP, 'YYYYMMDDHH24MISS');
+            RAISE V_USER_DEF_EXP;
+        END IF;
+    END IF;
+
+EXCEPTION
+    WHEN V_USER_DEF_EXP THEN
+        V_ERR_MSG := '[' || V_TRG_NM || ' : ' || V_LINE_NM || ']-' ||'['||V_ERR_MSG||']-'|| SQLERRM;
+        RAISE_APPLICATION_ERROR(-20001, V_ERR_MSG);
+    WHEN OTHERS THEN
+        V_ERR_MSG := '[' || V_TRG_NM || ' : ' || V_LINE_NM || ']-' ||'['||V_ERR_MSG||']-'|| SQLERRM;
+        RAISE_APPLICATION_ERROR(-20002, V_ERR_MSG);
+END;
+/</pre>
+  <div class="box-info">
+    <strong>같은 테이블에 다른 트리거(R98 등)가 이미 있다면</strong>
+    동일 타이밍 트리거 간 실행 순서는 보장되지 않습니다. 순서가 중요하면 <code>FOLLOWS TR_TB_WB_LOGIN_HIST_R98</code> 절을 추가하세요.
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s13">
+  <h2><span class="step">13</span>메뉴 이동 함수 연동 (FN_GET_MENU_CHK_YN2)</h2>
+  <p>기존 메뉴 체크 함수 본문 마지막(기존 차단 STEP들 뒤, <code>V_RET_STR := V_USE_YN;</code> 앞)에 아래 블록을 추가하고, DECLARE에 변수 하나를 선언합니다.</p>
+  <pre>-- DECLARE 에 추가
+V_GEO_CHK       VARCHAR2(   1); -- 국외 IP 차단 판정 결과 (Y/M/N)</pre>
+  <pre>/* -----------------------------------------------------------------------------------------
+   STEP 6. 국외 IP 차단 (FN_CHK_LOGIN_BLOCK 공용 함수 호출)
+   - p_log_yn =&gt; 'N' : 메뉴 이동은 호출 빈도가 높아 이력 INSERT 생략 (판정만)
+     로그인 시점 이력은 트리거(R90)가 이미 남김
+   - 이미 V_USE_YN = 'N' 이면 추가 판정 스킵 (불필요한 GeoIP 조회 방지)
+   - 차단 활성화는 FN_CHK_LOGIN_BLOCK 의 C_BLOCK_MODE 로 일괄 제어 — 이 함수 수정 불필요
+----------------------------------------------------------------------------------------- */
+IF  V_USE_YN &lt;&gt; 'N' THEN
+
+    V_GEO_CHK := FN_CHK_LOGIN_BLOCK(
+                     p_proc_fg      =&gt;  'C'                 -- 메뉴 접근 체크
+                 ,   p_user_id      =&gt;  S_USER_ID
+                 ,   p_login_ip     =&gt;  S_USER_IP           -- 원본 그대로 (XFF 추출은 함수 내부)
+                 ,   p_brwsr_info   =&gt;  S_RESRCE_CD_URL     -- 이력 기록 시 URL 식별용
+                 ,   p_log_yn       =&gt;  'N'                 -- 판정만
+                 );
+
+    IF V_GEO_CHK = 'N' THEN
+        V_USE_YN := 'N';
+    END IF;
+
+END IF;</pre>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s14">
+  <h2><span class="step">14</span>운영 — 관찰 모드 → 차단 전환</h2>
+  <h3>14-1. 관찰 기간 (권장 1~2주 이상)</h3>
+  <p><code>C_BLOCK_MODE = 'N'</code> 상태에서는 아무도 차단되지 않고 <code>TB_WB_LOGIN_HIST_BLOCK</code>에 <code>MONITOR - ...</code> 이력만 쌓입니다. 주기적으로 오탐을 점검합니다.</p>
+  <pre>-- 차단 예정 건 집계 (오탐 점검)
+SELECT  USER_ID
+,       REAL_IP
+,       COUNTRY_CODE
+,       COUNT(*)            AS CNT
+,       MIN(LOGIN_DATE)     AS FIRST_TRY
+,       MAX(LOGIN_DATE)     AS LAST_TRY
+FROM    TB_WB_LOGIN_HIST_BLOCK
+GROUP
+BY      USER_ID, REAL_IP, COUNTRY_CODE
+ORDER
+BY      CNT DESC
+;
+
+-- 사설 IP·매칭 실패 건만 (내부망 유입 오탐 후보 — 반드시 확인)
+SELECT  USER_ID, REAL_IP, COUNT(*) AS CNT
+FROM    TB_WB_LOGIN_HIST_BLOCK
+WHERE   COUNTRY_CODE IS NULL
+GROUP   BY USER_ID, REAL_IP
+ORDER   BY CNT DESC
+;</pre>
+  <ul>
+    <li>정상 사용자(출장자·해외법인)는 <code>TB_CM_IP_ALLOW</code>에 승인 절차와 함께 등록</li>
+    <li>사설 IP 유입(내부망 이슈)이 확인되면 허용테이블 등록 또는 사설 대역(10.x, 172.16~31.x, 192.168.x) 예외 정책 결정</li>
+  </ul>
+
+  <h3>14-2. 차단 활성화 — 수정할 곳 단 한 줄</h3>
+  <pre>-- FN_CHK_LOGIN_BLOCK 함수 내
+C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';   -- 관찰 모드 (현재)
+C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'Y';   -- 차단 모드 (전환 시)
+-- → 함수만 재컴파일하면 로그인 트리거·메뉴 함수 모두 동시 적용</pre>
+
+  <h3>14-3. 전환 후 사용자별 결과</h3>
+  <table>
+    <thead><tr><th>사용자</th><th style="width:30%">로그인</th><th style="width:24%">메뉴 이동</th></tr></thead>
+    <tbody>
+      <tr><td>SMS 미등록 사용자 (대다수)</td><td class="ok">정상</td><td class="ok">정상</td></tr>
+      <tr><td>SMS 등록 + 국내 접속</td><td class="ok">정상</td><td class="ok">정상</td></tr>
+      <tr><td>SMS 등록 + 해외 접속 + 허용 등록됨</td><td class="ok">정상</td><td class="ok">정상</td></tr>
+      <tr><td>SMS 등록 + 해외 접속 + 미등록</td><td class="block">ORA-20001 로그인 실패</td><td class="block">차단('N')</td></tr>
+      <tr><td>SMS 등록 + 사설 IP 유입</td><td class="block">차단됨 — 주의</td><td class="block">차단됨 — 주의</td></tr>
+    </tbody>
+  </table>
+  <div class="box-warn">
+    <strong>전환 전 필수 확인 2가지</strong>
+    ① 차단 시 트리거의 <code>ORA-20001</code>을 WAS가 어떻게 표시하는지 테스트 계정으로 확인 — 처리 없으면 일반 "시스템 오류" 화면이 뜰 수 있으므로, 필요 시 "해외 IP 접속이 제한되었습니다" 안내로 변환.<br>
+    ② 차단된 로그인은 <code>TB_WB_LOGIN_HIST</code>에 남지 않고(롤백) <code>TB_WB_LOGIN_HIST_BLOCK</code>에만 남음 — 이후 추적은 BLOCK 테이블 기준.
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="s15">
+  <h2><span class="step">15</span>운영 — 월간 GeoIP 재적재 절차 (A/B 무중단 스위칭)</h2>
+  <p>GeoLite2는 주기적으로 갱신됩니다(주 2회 배포, 월 1회 재적재 권장). 현재 시노님이 A를 가리키면 B에 적재하고, B를 가리키면 A에 적재합니다.</p>
+  <pre>-- 0) 현재 시노님 대상 확인 → 반대쪽이 "대기 테이블"
+SELECT table_name FROM user_synonyms WHERE synonym_name = 'TB_CM_GEOIP_RANGE';
+
+-- 1) 최신 zip 다운로드 → 압축해제 → prepare_csv.py 실행 (2장과 동일)
+
+-- 2) 대기 테이블 비우고 적재 (예: 현재 A 사용 중 → B에 적재)
+TRUNCATE TABLE TB_CM_GEOIP_RANGE_B;
+--   sqlldr USERID=... CONTROL=geoipB.ctl SKIP=1
+
+-- 3) 건수 검증 (신규 &lt; 기존×0.9 이면 중단)
+DECLARE
+    v_new_cnt NUMBER;
+    v_old_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_new_cnt FROM TB_CM_GEOIP_RANGE_B;
+    SELECT COUNT(*) INTO v_old_cnt FROM TB_CM_GEOIP_RANGE_A;
+    IF v_new_cnt &lt; v_old_cnt * 0.9 THEN
+        RAISE_APPLICATION_ERROR(-20001, '신규 GeoIP 데이터 건수 이상 - 스위치 중단');
+    END IF;
+END;
+/
+
+-- 4) 통계수집 (★ 재적재 때마다 필수 — 누락 시 조회 성능 급락)
+EXEC DBMS_STATS.GATHER_TABLE_STATS(USER, 'TB_CM_GEOIP_RANGE_B', CASCADE =&gt; TRUE);
+
+-- 5) 검증 통과 후에만 스위치 (원자적/즉시 적용 — 무중단)
+CREATE OR REPLACE SYNONYM TB_CM_GEOIP_RANGE FOR TB_CM_GEOIP_RANGE_B;
+
+-- 6) 스위치 후 동작 확인
+SELECT COUNT(*) FROM TB_CM_GEOIP_RANGE;
+SELECT IS_KOREA_IP('223.62.180.1') FROM DUAL;   -- 'Y'
+SELECT IS_KOREA_IP('8.8.8.8')      FROM DUAL;   -- 'N'</pre>
+  <div class="box-info">
+    <strong>체크리스트 요약</strong>
+    ☐ 대기 테이블 확인 → ☐ 다운로드·CSV 변환 → ☐ TRUNCATE + sqlldr → ☐ geoip.log/.bad 확인 →
+    ☐ 건수 검증 → ☐ <b>DBMS_STATS 수집</b> → ☐ 시노님 스위치 → ☐ IS_KOREA_IP 동작·속도 확인
+  </div>
+</section>
+
+<footer>국외 IP 로그인 차단 시스템 — 전체 구축 가이드 (MaxMind GeoLite2 + Oracle)</footer>
+
+</div>
+</body>
+</html>

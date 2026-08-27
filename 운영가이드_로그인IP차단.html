@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 · 메뉴 IP 차단 — 운영 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f5f7; --paper:#ffffff; --ink:#1b2430; --ink-2:#3d4754; --ink-3:#6b7684; --rule:#d9dee4; --rule-soft:#e9edf1;
+    --allow:#0b6e4f; --allow-bg:#e3f3ec;
+    --temp:#9a5b00;  --temp-bg:#fbefd6;
+    --block:#b42318; --block-bg:#fbe6e3;
+    --code-bg:#1e252e; --code-ink:#e6ebf0; --code-cm:#8a97a6; --code-kw:#9ecbff; --code-str:#f2c187;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);font-size:15px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+  a{color:inherit}
+  code{font-family:var(--mono);font-size:.9em;background:#e7ebef;padding:1px 5px;border-radius:3px;color:var(--ink)}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:6px;overflow-x:auto;margin:14px 0}
+  pre .c{color:var(--code-cm)} pre .k{color:var(--code-kw)} pre .s{color:var(--code-str)}
+  .wrap{display:grid;grid-template-columns:220px minmax(0,860px);gap:48px;max-width:1180px;margin:0 auto;padding:40px 32px 120px}
+  nav{position:sticky;top:32px;align-self:start;font-size:13px}
+  nav .t{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+  nav a{display:block;padding:5px 0 5px 12px;border-left:2px solid var(--rule);color:var(--ink-3);text-decoration:none}
+  nav a:hover{color:var(--ink);border-left-color:var(--ink)}
+  header{margin-bottom:56px}
+  .eyebrow{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+  h1{font-size:34px;line-height:1.25;font-weight:700;color:var(--ink);margin:10px 0 16px;letter-spacing:-.01em}
+  header p{max-width:640px;color:var(--ink-2)}
+  .meta{display:flex;gap:24px;margin-top:20px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  section{margin-top:72px}
+  h2{font-size:22px;font-weight:700;color:var(--ink);padding-bottom:10px;border-bottom:2px solid var(--ink);margin-bottom:22px}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:32px 0 10px}
+  p+p{margin-top:10px}
+  ul,ol{padding-left:22px;margin:8px 0}
+  li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:14px 0;background:var(--paper)}
+  th{text-align:left;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.03em;color:var(--ink-3);background:#eef1f4;padding:9px 12px;border-bottom:1px solid var(--rule)}
+  td{padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--ink-2)}
+  tr:last-child td{border-bottom:1px solid var(--rule)}
+  td code{white-space:nowrap}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:3px;line-height:1.5;white-space:nowrap}
+  .b-y{background:var(--allow-bg);color:var(--allow)} .b-t{background:var(--temp-bg);color:var(--temp)} .b-n{background:var(--block-bg);color:var(--block)}
+  .note{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--ink);padding:14px 18px;border-radius:4px;margin:18px 0;font-size:14px}
+  .note.warn{border-left-color:var(--block)} .note.warn b{color:var(--block)}
+  .note b{color:var(--ink)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:14px 0}
+  .card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 18px}
+  .card .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:6px}
+  .card .f{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;word-break:break-all}
+  .card p{font-size:13.5px;color:var(--ink-2)}
+  /* decision ladder */
+  .ladder{border:1px solid var(--rule);border-radius:6px;background:var(--paper);margin:14px 0;overflow:hidden}
+  .step{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--rule-soft)}
+  .step:last-child{border-bottom:none}
+  .step .no{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .step .what{font-size:14px;color:var(--ink)}
+  .step .what small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+  .tree{font-family:var(--mono);font-size:12.5px;line-height:1.55;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 20px;white-space:pre;overflow-x:auto;color:var(--ink)}
+  .checklist li{list-style:none;position:relative;padding-left:26px}
+  .checklist li::before{content:"";position:absolute;left:0;top:7px;width:14px;height:14px;border:1.5px solid var(--ink-3);border-radius:3px}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr;padding:24px 18px 80px}nav{display:none}h1{font-size:28px}}
+  @media print{body{background:#fff}nav{display:none}.wrap{grid-template-columns:1fr;padding:0}pre{white-space:pre-wrap}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <div class="t">목차</div>
+  <a href="#s1">1. 무엇이 바뀌었나</a>
+  <a href="#s2">2. 객체 구조</a>
+  <a href="#s3">3. 판정 흐름</a>
+  <a href="#s4">4. 대상 관리 — 어디를 고치나</a>
+  <a href="#s5">5. 변경 배포 절차</a>
+  <a href="#s6">6. 정기 점검 쿼리</a>
+  <a href="#s7">7. 장애 대응</a>
+  <a href="#s8">8. 성능 · 인덱스</a>
+  <a href="#s9">9. 하지 말아야 할 것</a>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">SBPORA · TB_WB_LOGIN_HIST / FN_GET_MENU_CHK_YN2</div>
+  <h1>로그인 · 메뉴 IP 차단<br>운영 가이드</h1>
+  <p>로그인 트리거와 메뉴 접근 함수에 각각 복사돼 있던 차단 규칙을 공용 함수 5개로 합쳤습니다. 이 문서는 그 구조를 설명하고, 계정·IP를 추가하거나 문제가 났을 때 무엇을 어디서 해야 하는지 정리한 운영 문서입니다.</p>
+  <div class="meta"><span>작성 2026.08.26</span><span>대상 Oracle SBPORA 스키마</span></div>
+</header>
+
+<!-- ============================================================ -->
+<section id="s1">
+<h2>1. 무엇이 바뀌었나</h2>
+<p>이전에는 같은 IP 차단 목록(클라우드 대역 180줄, 개인 계정+IP 쌍, H0268 직원 체크, XFF 추출)이 <code>TR_TB_WB_LOGIN_HIST_R98</code>과 <code>FN_GET_MENU_CHK_YN2</code>에 각각 들어 있어서, 한쪽만 고치면 로그인과 메뉴의 차단 기준이 어긋났습니다.</p>
+<p>지금은 규칙이 공용 함수 안의 <b>상수 목록</b>에 한 번만 존재하고, 트리거와 메뉴 함수는 그 함수를 호출해 결과만 받습니다. 대상을 추가할 때 트리거나 메뉴 함수를 열 일은 없습니다.</p>
+
+<div class="cards">
+  <div class="card"><div class="n">로그인 시점</div><div class="f">TR_TB_WB_LOGIN_HIST_R98</div><p>결과가 <span class="badge b-n">N</span>이면 이력 INSERT 후 RAISE → 로그인 실패. 임시 차단 쌍은 09~18시에 실제 차단.</p></div>
+  <div class="card"><div class="n">메뉴 클릭 시점</div><div class="f">FN_GET_MENU_CHK_YN2</div><p>결과가 <span class="badge b-n">N</span>이면 USE_YN='N'. <span class="badge b-t">T</span>면 과호출 카운트 가중과 조회 딜레이만.</p></div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s2">
+<h2>2. 객체 구조</h2>
+<div class="tree">FN_GET_REAL_IP ──────┬──▶ FN_GET_CLOUD_IP_LABEL ──▶ FN_CHK_CLOUD_IP_YN
+                     │            │
+                     │            ▼
+                     └──▶ FN_CHK_LOGIN_IP_BLOCK ◀── FN_CHK_BLOCK_TARGET_USER_YN
+                                   │
+                   ┌───────────────┴───────────────┐
+                   ▼                               ▼
+   TR_TB_WB_LOGIN_HIST_R98               FN_GET_MENU_CHK_YN2
+   (S_TEMP_BLOCK_YN = 'Y')               (S_TEMP_BLOCK_YN = 'N')</div>
+
+<table>
+<tr><th>객체</th><th>역할</th><th>DB 접근</th><th>관리하는 목록</th></tr>
+<tr><td><code>FN_GET_REAL_IP</code></td><td>XFF 체인 <code>'10.1.0.177, 112.216.111.58'</code>에서 실제 IP(맨 뒤) 추출</td><td>없음</td><td>—</td></tr>
+<tr><td><code>FN_GET_CLOUD_IP_LABEL</code></td><td>클라우드·HostRoyale 대역 판정. 해당하면 라벨('AWS','GCP','HostRoyale'), 아니면 NULL</td><td>없음</td><td><code>C_CIDR_LIST</code></td></tr>
+<tr><td><code>FN_CHK_CLOUD_IP_YN</code></td><td>위 함수의 Y/N 래퍼</td><td>없음</td><td>—</td></tr>
+<tr><td><code>FN_CHK_BLOCK_TARGET_USER_YN</code></td><td>감시 대상 계정 여부. 개별 계정 / 본사 코드 소속 / 매장 코드 소속</td><td><code>TB_HQ_EMPLOYEE</code>, <code>TB_MS_EMPLOYEE</code> COUNT</td><td><code>C_TARGET_USERS</code> <code>C_TARGET_HQ_CDS</code> <code>C_TARGET_STORE_CDS</code></td></tr>
+<tr><td><code>FN_CHK_LOGIN_IP_BLOCK</code></td><td><b>메인 판정.</b> 계정+IP 확정 차단 → 클라우드 대역 → 임시 차단 순으로 검사</td><td>위 함수 경유만</td><td><code>C_HARD_LIST</code> <code>C_TEMP_LIST</code> 시간대 상수</td></tr>
+</table>
+<p>공용 함수 5개 모두 INSERT/UPDATE가 없습니다. 그래서 SELECT 문 안에서 바로 호출해 점검할 수 있고, 메뉴 함수가 SELECT 안에서 불려도 ORA-14551이 나지 않습니다. 차단 이력 INSERT는 예전처럼 트리거·메뉴 함수가 자기 AUTONOMOUS 프로시저로 남깁니다.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s3">
+<h2>3. 판정 흐름</h2>
+<p><code>FN_CHK_LOGIN_IP_BLOCK(계정, IP, 임시차단적용YN)</code>은 아래 순서로 검사하고, 먼저 걸리는 단계에서 바로 결과를 돌려줍니다.</p>
+
+<div class="ladder">
+  <div class="step"><span class="no">0</span><span class="what">운영 시간대·요일 밖<small>C_BLOCK_HH_FROM~TO (현재 00~23), C_BLOCK_DAYS (현재 전 요일) — 지금은 항상 통과</small></span><span class="badge b-y">Y</span></div>
+  <div class="step"><span class="no">1</span><span class="what">계정 + IP 확정 차단 목록에 있음<small>C_HARD_LIST · 감시 대상 계정이 아니어도 적용</small></span><span class="badge b-n">N</span></div>
+  <div class="step"><span class="no">2</span><span class="what">클라우드/호스팅 대역이고, 감시 대상 계정임<small>C_CIDR_LIST 먼저 → 해당할 때만 DB 조회</small></span><span class="badge b-n">N</span></div>
+  <div class="step"><span class="no">3</span><span class="what">임시 차단 쌍이고, 임시차단적용='Y'이고, 09~18시<small>C_TEMP_LIST · 로그인 트리거만 'Y'로 호출</small></span><span class="badge b-n">N</span></div>
+  <div class="step"><span class="no">3'</span><span class="what">임시 차단 쌍이지만 위 조건 미충족<small>메뉴 함수는 이 값으로 +5/+15 가중, 딜레이 +1.5초</small></span><span class="badge b-t">T</span></div>
+  <div class="step"><span class="no">4</span><span class="what">해당 없음</span><span class="badge b-y">Y</span></div>
+</div>
+
+<table>
+<tr><th>결과</th><th>로그인 트리거</th><th>메뉴 함수</th></tr>
+<tr><td><span class="badge b-n">N</span> 차단</td><td>TB_WB_LOGIN_HIST_CHK INSERT → RAISE_APPLICATION_ERROR(-20001)</td><td>USE_YN = 'N'</td></tr>
+<tr><td><span class="badge b-t">T</span> 임시 대상</td><td>로그인 통과</td><td>1분 요청 카운트 +5 (09~18시 +15 추가), 특정 화면 조회 시 1.5초 추가 대기</td></tr>
+<tr><td><span class="badge b-y">Y</span> 허용</td><td>통과</td><td>통과 (이후 국외 IP 판정 FN_CHK_LOGIN_BLOCK 은 별도)</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section id="s4">
+<h2>4. 대상 관리 — 어디를 고치나</h2>
+<p>추가하려는 것이 무엇인지에 따라 아래 표에서 한 곳만 고치고, 그 함수만 다시 컴파일합니다.</p>
+
+<table>
+<tr><th>추가하려는 것</th><th>파일 / 상수</th><th>한 줄 형식</th></tr>
+<tr><td>감시 대상 <b>계정</b> 하나</td><td><code>03 · C_TARGET_USERS</code></td><td><code>'userid'</code></td></tr>
+<tr><td>특정 <b>본사</b> 소속 직원 전체</td><td><code>03 · C_TARGET_HQ_CDS</code></td><td><code>'H0268'</code> (TB_HQ_EMPLOYEE.HQ_OFFICE_CD)</td></tr>
+<tr><td>특정 <b>매장</b> 소속 직원 전체</td><td><code>03 · C_TARGET_STORE_CDS</code></td><td><code>'DS00001'</code> (TB_MS_EMPLOYEE.STORE_CD)</td></tr>
+<tr><td>클라우드/호스팅 <b>IP 대역</b></td><td><code>02 · C_CIDR_LIST</code></td><td><code>'167.160.96.0/19|HostRoyale'</code></td></tr>
+<tr><td>단일 IP를 대역처럼</td><td><code>02 · C_CIDR_LIST</code></td><td><code>'44.196.52.83/32|AWS'</code></td></tr>
+<tr><td><b>계정 + IP 쌍</b> 확정 차단</td><td><code>04 · C_HARD_LIST</code></td><td><code>'h0268|34.47.98.37|설명'</code></td></tr>
+<tr><td>계정 + IP 쌍 <b>임시 차단</b> (잦은 접속)</td><td><code>04 · C_TEMP_LIST</code></td><td><code>'h0268|58.123.54.42|설명'</code></td></tr>
+<tr><td>차단 시간대 · 요일</td><td><code>04 · C_BLOCK_HH_*, C_TEMP_HH_*, C_BLOCK_DAYS</code></td><td><code>'09'</code> / <code>'1234567'</code></td></tr>
+<tr><td>특정 <b>URL</b> 차단 (메뉴 전용)</td><td><code>06 · STEP 2</code></td><td>기존 IF 문에 추가 — 트리거에 없는 규칙이라 예외적으로 여기서 관리</td></tr>
+</table>
+
+<h3>어느 목록에 넣을지 판단</h3>
+<ul>
+  <li><b>"이 계정은 어느 IP로 오든 지켜봐야 한다"</b> → <code>C_TARGET_USERS</code>. 넣는 순간 클라우드 IP 차단, 1분 60회 제한, 접근 이력 INSERT, 특정 화면 2초 딜레이가 모두 적용됩니다.</li>
+  <li><b>"이 IP 대역은 감시 대상 계정이 쓰면 무조건 막는다"</b> → <code>C_CIDR_LIST</code>. 일반 계정에는 영향 없음.</li>
+  <li><b>"이 계정이 이 IP로 오면 막는다"</b> → <code>C_HARD_LIST</code>. 감시 대상이 아니어도 동작.</li>
+  <li><b>"국내 통신사 IP인데 특정 계정만 과하게 접속"</b> → <code>C_TEMP_LIST</code>. 대역에는 절대 넣지 말 것(9절).</li>
+</ul>
+
+<h3>예시 — HostRoyale 대역 하나 추가</h3>
+<pre><span class="c">-- 02_FN_GET_CLOUD_IP_LABEL.sql 의 C_CIDR_LIST 끝에</span>
+    ,   <span class="s">'45.10.192.0/21|HostRoyale'</span>
+    ,   <span class="s">'203.0.113.0/24|HostRoyale'</span>     <span class="c">-- ← 추가. 형식: 네트워크/프리픽스|라벨</span>
+    );</pre>
+<p>예전처럼 <code>/24</code>를 <code>LIKE '203.0.113.%'</code> 256줄로 풀 필요 없고, <code>/19</code>·<code>/21</code>처럼 옥텟 경계에 안 맞는 대역도 한 줄입니다.</p>
+
+<h3>예시 — 계정 + IP 확정 차단 추가</h3>
+<pre><span class="c">-- 04_FN_CHK_LOGIN_IP_BLOCK.sql 의 C_HARD_LIST</span>
+    ,   <span class="s">'momse12345|203.0.113.7|2026.09 비정상 접속 확인'</span>   <span class="c">-- 설명은 판정에 안 쓰임, 이력용</span></pre>
+</section>
+
+<!-- ============================================================ -->
+<section id="s5">
+<h2>5. 변경 배포 절차</h2>
+<ol>
+  <li><b>어느 상수를 고칠지 4절 표에서 확인</b>하고 해당 <code>.sql</code> 파일만 수정합니다.</li>
+  <li>수정한 함수를 <code>CREATE OR REPLACE</code>로 컴파일합니다. 의존 객체(트리거·메뉴 함수)는 Oracle이 자동 재검증합니다.</li>
+  <li>컴파일 직후 INVALID 객체가 없는지 확인합니다.
+<pre><span class="k">SELECT</span> OBJECT_NAME, OBJECT_TYPE, STATUS
+<span class="k">FROM</span>   USER_OBJECTS
+<span class="k">WHERE</span>  OBJECT_NAME <span class="k">IN</span> (<span class="s">'FN_GET_REAL_IP'</span>,<span class="s">'FN_GET_CLOUD_IP_LABEL'</span>,<span class="s">'FN_CHK_CLOUD_IP_YN'</span>,
+                       <span class="s">'FN_CHK_BLOCK_TARGET_USER_YN'</span>,<span class="s">'FN_CHK_LOGIN_IP_BLOCK'</span>,
+                       <span class="s">'FN_GET_MENU_CHK_YN2'</span>,<span class="s">'TR_TB_WB_LOGIN_HIST_R98'</span>);
+<span class="c">-- 전부 VALID 여야 함. INVALID 면 ALTER ... COMPILE 후 SHOW ERRORS</span></pre></li>
+  <li>추가한 대상이 실제로 걸리는지 SELECT로 확인합니다.
+<pre><span class="k">SELECT</span> FN_CHK_LOGIN_IP_BLOCK(<span class="s">'momse12345'</span>, <span class="s">'203.0.113.7'</span>) <span class="k">FROM</span> DUAL;  <span class="c">-- N 기대</span>
+<span class="k">SELECT</span> FN_GET_CLOUD_IP_LABEL(<span class="s">'203.0.113.200'</span>)              <span class="k">FROM</span> DUAL;  <span class="c">-- HostRoyale 기대</span>
+<span class="k">SELECT</span> FN_CHK_BLOCK_TARGET_USER_YN(<span class="s">'대상계정'</span>)               <span class="k">FROM</span> DUAL;  <span class="c">-- Y 기대</span></pre></li>
+  <li>정상 계정이 영향받지 않는지 반대 케이스도 한 번 봅니다 (국내 IP + 일반 계정 → Y).</li>
+  <li>배포 후 10~30분 <code>TB_WB_LOGIN_HIST_CHK</code>를 보며 예상 밖 계정이 차단되지 않는지 확인합니다 (6절 첫 쿼리).</li>
+</ol>
+
+<div class="note"><b>전체 최초 설치</b>는 의존 순서 때문에 파일 번호 순(01 → 06)으로 컴파일해야 합니다. <code>ALL_IN_ONE.sql</code>이 그 순서로 합쳐져 있습니다.</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s6">
+<h2>6. 정기 점검 쿼리</h2>
+
+<h3>오늘 차단된 로그인 (트리거)</h3>
+<pre><span class="k">SELECT</span> A.PROC_DT, A.USER_ID, A.LOGIN_IP, FN_GET_REAL_IP(A.LOGIN_IP) <span class="k">AS</span> REAL_IP,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">AS</span> CLOUD, A.STAT_CD, A.BRWSR_INFO
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_CHK A
+<span class="k">WHERE</span>  A.PROC_FG <span class="k">IN</span> (<span class="s">'I'</span>,<span class="s">'U'</span>)
+<span class="k">AND</span>    A.PROC_DT >= TO_CHAR(SYSDATE, <span class="s">'YYYYMMDD'</span>)
+<span class="k">ORDER  BY</span> A.PROC_DT <span class="k">DESC</span>;</pre>
+
+<h3>최근 7일 클라우드 대역에서 온 로그인 시도 (차단 여부 무관)</h3>
+<pre><span class="k">SELECT</span> A.LOGIN_DATE, A.USER_ID, A.LOGIN_IP,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP)          <span class="k">AS</span> CLOUD,
+       FN_CHK_BLOCK_TARGET_USER_YN(A.USER_ID)     <span class="k">AS</span> TARGET_YN,
+       FN_CHK_LOGIN_IP_BLOCK(A.USER_ID, A.LOGIN_IP) <span class="k">AS</span> BLOCK_NOW
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+<span class="k">WHERE</span>  TO_DATE(A.LOGIN_DATE, <span class="s">'YYYYMMDD'</span>) >= TRUNC(SYSDATE) - 7
+<span class="k">AND</span>    FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">IS NOT NULL</span>
+<span class="k">ORDER  BY</span> A.LOGIN_DATE <span class="k">DESC</span>, A.LOGIN_DT <span class="k">DESC</span>;
+<span class="c">-- TARGET_YN='N' 인데 클라우드 IP 가 반복되면 → C_TARGET_USERS 추가 검토</span></pre>
+
+<h3>계정 · IP 별 집계 (감시 후보 찾기)</h3>
+<pre><span class="k">SELECT</span> A.USER_ID, FN_GET_REAL_IP(A.LOGIN_IP) <span class="k">AS</span> REAL_IP, COUNT(*) CNT,
+       MIN(A.LOGIN_DATE) FIRST_DT, MAX(A.LOGIN_DATE) LAST_DT,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">AS</span> CLOUD
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+<span class="k">WHERE</span>  TO_DATE(A.LOGIN_DATE, <span class="s">'YYYYMMDD'</span>) >= TRUNC(SYSDATE) - 7
+<span class="k">GROUP  BY</span> A.USER_ID, FN_GET_REAL_IP(A.LOGIN_IP), FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP)
+<span class="k">HAVING</span> COUNT(*) >= 50
+<span class="k">ORDER  BY</span> CNT <span class="k">DESC</span>;</pre>
+
+<h3>1분 60회 초과로 막힌 메뉴 호출</h3>
+<pre><span class="k">SELECT</span> A.PROC_DT, A.USER_ID, A.LOGIN_IP
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_CHK A
+<span class="k">WHERE</span>  A.PROC_FG = <span class="s">'C'</span> <span class="k">AND</span> A.BRWSR_INFO <span class="k">LIKE</span> <span class="s">'60%'</span>
+<span class="k">AND</span>    A.PROC_DT >= TO_CHAR(SYSDATE - 1, <span class="s">'YYYYMMDD'</span>)
+<span class="k">ORDER  BY</span> A.PROC_DT <span class="k">DESC</span>;</pre>
+
+<h3>현재 감시 대상 전체 명단</h3>
+<pre><span class="k">SELECT</span> A.USER_ID, <span class="s">'HQ:'</span> || A.HQ_OFFICE_CD <span class="k">AS</span> SRC <span class="k">FROM</span> TB_HQ_EMPLOYEE A <span class="k">WHERE</span> A.HQ_OFFICE_CD <span class="k">IN</span> (<span class="s">'H0268'</span>,<span class="s">'DS001'</span>)
+<span class="k">UNION ALL</span>
+<span class="k">SELECT</span> A.USER_ID, <span class="s">'MS:'</span> || A.STORE_CD     <span class="k">AS</span> SRC <span class="k">FROM</span> TB_MS_EMPLOYEE A <span class="k">WHERE</span> A.STORE_CD     <span class="k">IN</span> (<span class="s">'DS00001'</span>,<span class="s">'DS00002'</span>);
+<span class="c">-- 여기에 C_TARGET_USERS 4개(h0268, momse09686, kjsun1117, kjsun11177) 를 더한 것이 전체</span></pre>
+
+<h3>이력 테이블 크기 관리</h3>
+<p><code>TB_WB_LOGIN_HIST_CHK</code>는 감시 대상 계정의 메뉴 클릭마다 한 행씩 쌓입니다(PROC_FG='C'). 감시 대상이 늘면 증가 속도도 늘어나니 월 1회 정도 30일 이전 데이터를 정리합니다. 1분 카운트에는 최근 1분만 쓰이므로 삭제해도 판정에 영향 없습니다.</p>
+<pre><span class="k">DELETE FROM</span> TB_WB_LOGIN_HIST_CHK
+<span class="k">WHERE</span>  PROC_FG = <span class="s">'C'</span> <span class="k">AND</span> PROC_DT < TO_CHAR(SYSDATE - 30, <span class="s">'YYYYMMDD'</span>);
+<span class="c">-- I/U(로그인 차단 이력) 는 보안 감사용이니 별도 보관 정책에 따를 것</span></pre>
+</section>
+
+<!-- ============================================================ -->
+<section id="s7">
+<h2>7. 장애 대응</h2>
+
+<h3>정상 사용자가 로그인이 안 된다고 한다</h3>
+<ol>
+  <li>에러 메시지에 <code>Login Blocked: Security Violation,계정,IP,...</code>가 있으면 이 트리거가 막은 것입니다. 없으면 다른 원인.</li>
+  <li>왜 걸렸는지 확인:
+<pre><span class="k">SELECT</span> FN_GET_REAL_IP(<span class="s">'에러메시지의 IP'</span>)               <span class="k">AS</span> REAL_IP,
+       FN_GET_CLOUD_IP_LABEL(<span class="s">'에러메시지의 IP'</span>)        <span class="k">AS</span> CLOUD,       <span class="c">-- NULL 아니면 대역 차단</span>
+       FN_CHK_BLOCK_TARGET_USER_YN(<span class="s">'계정'</span>)             <span class="k">AS</span> TARGET,      <span class="c">-- Y 면 감시 대상</span>
+       FN_CHK_LOGIN_IP_BLOCK(<span class="s">'계정'</span>, <span class="s">'IP'</span>, <span class="s">'Y'</span>)        <span class="k">AS</span> RESULT
+<span class="k">FROM</span>   DUAL;</pre></li>
+  <li>대역 오탐(국내 통신사인데 CLOUD가 찍힘)이면 <code>C_CIDR_LIST</code>에서 해당 대역을 빼고 02 재컴파일. 계정 오탐이면 <code>C_TARGET_USERS</code>·본사/매장 코드 확인.</li>
+  <li>급하게 특정 계정만 풀어야 하면 <code>C_HARD_LIST</code>/<code>C_TEMP_LIST</code>에서 그 줄을 지우고 04 재컴파일. 재컴파일은 수 초.</li>
+</ol>
+
+<h3>메뉴가 열리지 않는다 (USE_YN='N')</h3>
+<p>원인이 네 가지입니다. 위 쿼리로 <b>RESULT</b>가 N이면 IP 차단, Y인데도 막히면 ① 1분 60회 초과(6절 쿼리), ② 메뉴 함수 STEP 2 URL 규칙, ③ 국외 IP <code>FN_CHK_LOGIN_BLOCK</code> 순으로 봅니다.</p>
+
+<h3>전체 차단을 잠시 꺼야 한다</h3>
+<p>04의 <code>C_BLOCK_HH_FROM</code>/<code>TO</code>를 <code>'25'</code>/<code>'25'</code>처럼 만족 불가능한 값으로 바꾸고 재컴파일하면 STEP 0에서 전부 Y가 되어 판정이 꺼집니다. 다시 켤 때 <code>'00'</code>/<code>'23'</code>. 이 방법은 공용 함수만 건드리므로 트리거를 DISABLE하는 것보다 안전합니다(트리거 DISABLE은 이력 INSERT도 함께 멈춤).</p>
+
+<h3>ORA-04068 / 함수 INVALID</h3>
+<p>상수 목록만 바꿔도 함수 재컴파일이라, 접속 중인 세션에서 첫 호출 시 <code>ORA-04068 existing state of packages has been discarded</code>가 한 번 뜰 수 있습니다. 패키지가 아닌 standalone 함수라 보통 안 나지만, 나면 WAS 재시도로 해소됩니다. INVALID가 남으면 <code>ALTER FUNCTION ... COMPILE</code> 후 <code>SHOW ERRORS</code>.</p>
+
+<h3>트리거 에러로 로그인 자체가 전부 실패</h3>
+<p>공용 함수가 예외를 던지면 트리거 <code>WHEN OTHERS</code>가 -20002로 올려 모든 로그인이 막힙니다. 배포 직후 로그인이 전부 실패하면 즉시 이전 버전 파일로 롤백 컴파일하고 원인(대개 오타·컬럼명)을 찾습니다. 그래서 5절 3~5단계를 건너뛰지 않는 게 중요합니다.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s8">
+<h2>8. 성능 · 인덱스</h2>
+<table>
+<tr><th>구간</th><th>비용</th><th>비고</th></tr>
+<tr><td>XFF 추출 · CIDR 판정</td><td>&lt; 1ms</td><td>순수 연산, DB 미접근. 예전 OR LIKE 180개보다 가벼움</td></tr>
+<tr><td>감시 대상 판정</td><td>COUNT 최대 4회</td><td>메뉴 요청마다 1회 호출. 클라우드 IP 일 때만 추가 1회</td></tr>
+<tr><td>메뉴 함수 기존 로직</td><td>변동 없음</td><td>60회 COUNT, 30분 COUNT, DBMS_LOCK.SLEEP 은 그대로</td></tr>
+</table>
+<div class="note warn"><b>TB_MS_EMPLOYEE 인덱스 확인 필수.</b> 매장 코드 감시는 이번에 새로 생긴 조회라, <code>USER_ID</code>를 포함한 인덱스가 없으면 메뉴 요청마다 풀스캔 2회가 발생합니다.</div>
+<pre><span class="k">SELECT</span> TABLE_NAME, INDEX_NAME, COLUMN_NAME, COLUMN_POSITION
+<span class="k">FROM</span>   USER_IND_COLUMNS
+<span class="k">WHERE</span>  TABLE_NAME <span class="k">IN</span> (<span class="s">'TB_HQ_EMPLOYEE'</span>, <span class="s">'TB_MS_EMPLOYEE'</span>)
+<span class="k">ORDER  BY</span> 1,2,4;
+
+<span class="c">-- USER_ID 선두 인덱스가 없을 때만</span>
+<span class="k">CREATE INDEX</span> IDX_TB_HQ_EMPLOYEE_USER <span class="k">ON</span> TB_HQ_EMPLOYEE (USER_ID, HQ_OFFICE_CD);
+<span class="k">CREATE INDEX</span> IDX_TB_MS_EMPLOYEE_USER <span class="k">ON</span> TB_MS_EMPLOYEE (USER_ID, STORE_CD);</pre>
+<p>본사·매장 코드가 10개를 넘어가면 03의 루프를 <code>IN</code> 절 한 번으로 바꾸는 편이 낫습니다. 그 전까지는 현재 구조로 충분합니다.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s9">
+<h2>9. 하지 말아야 할 것</h2>
+<ul class="checklist">
+  <li><b>국내 통신사 대역을 C_CIDR_LIST에 넣지 않는다.</b> 58.123.54.42(SK브로드밴드 58.120.0.0/13), 182.208.192.55(182.208.0.0/12) 같은 IP는 가입자 회선이라 대역으로 막으면 정상 매장이 통째로 차단된다. 특정 계정만 문제면 <code>C_TEMP_LIST</code>에 쌍으로.</li>
+  <li><b>공용 함수 5개에 INSERT/UPDATE를 넣지 않는다.</b> 메뉴 함수가 SELECT 안에서 호출되므로 ORA-14551이 난다. 이력이 필요하면 호출부의 AUTONOMOUS 프로시저에서.</li>
+  <li><b>트리거·메뉴 함수 안에 IP 목록을 다시 쓰지 않는다.</b> 그 순간 이번 작업 이전으로 돌아간다. URL 기반 규칙만 06 STEP 2 예외.</li>
+  <li><b>C_TARGET_HQ_CDS / STORE_CDS에 큰 본사·매장을 넣기 전에 명단 크기를 본다.</b> 감시 대상이 되는 계정은 메뉴 클릭마다 이력 INSERT + 60회 제한 + 특정 화면 2초 딜레이를 받는다. 수백 명이 갑자기 대상이 되면 <code>TB_WB_LOGIN_HIST_CHK</code>가 급증하고 체감 속도가 떨어진다.</li>
+  <li><b>C_HARD_LIST와 C_TEMP_LIST에 같은 쌍을 두지 않는다.</b> 확정 차단이 먼저 걸려 임시 차단이 의미 없어진다. (현재 momse09686/39.115.138.12가 양쪽에 있는데, 원본 트리거 동작 유지를 위해 남겼다. 임시로 낮추려면 HARD에서 제거.)</li>
+  <li><b>요일 조건을 좁힐 때 NLS를 확인한다.</b> <code>TO_CHAR(SYSDATE,'D')</code>는 NLS_TERRITORY에 따라 1이 일요일일 수도 월요일일 수도 있다.</li>
+</ul>
+</section>
+
+</main>
+</div>
+</body>
+</html>

@@ -216,6 +216,74 @@
   #ovSec thead th{position:static;}
   .nm-empty{padding:40px; text-align:center; color:var(--ink-soft);}
 
+  /* ── 회의일정 관리 모달 ── */
+  #mwrap{
+    position:fixed; inset:0; z-index:51; background:rgba(20,32,44,.45);
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #mwrap[hidden]{display:none;}
+  #mmodal{
+    background:var(--panel); border-radius:10px; box-shadow:0 16px 48px var(--shadow);
+    width:min(1080px, 100%); max-height:90vh; display:flex; flex-direction:column;
+  }
+  #mmodal .mm-head{
+    display:flex; align-items:center; gap:10px; padding:13px 18px;
+    border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  #mmodal .mm-head h2{font-size:15px; color:#1c5db3;}
+  #mmodal .mm-head h2::before{content:"🗓 ";}
+  [data-theme="dark"] #mmodal .mm-head h2{color:#7fb3f2;}
+  #mmodal .mm-tabs{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  #mmodal .mm-tabs button{
+    border:0; background:var(--panel); padding:5px 13px; font-size:12.5px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; font-family:inherit;
+  }
+  #mmodal .mm-tabs button.on{background:#2f74d0; color:#fff;}
+  #mmodal .mm-body{display:flex; flex:1; min-height:0;}
+  #mmodal .mm-list{flex:1 1 55%; overflow:auto; border-right:1px solid var(--line); min-width:0;}
+  #mmodal .mm-list table{width:100%; min-width:520px;}
+  #mmodal .mm-list thead th{position:sticky; top:0;}
+  #mmodal .mm-list tbody tr{cursor:pointer;}
+  #mmodal .mm-list tbody tr.sel td{background:var(--accent-soft) !important;}
+  #mmodal .mm-list tr.mt-past td{color:#9aa6b1;}
+  #mmodal .mm-list tr.mt-today td{background:#fff6e0;}
+  [data-theme="dark"] #mmodal .mm-list tr.mt-today td{background:#332c17;}
+  #mmodal .mm-list tr.mt-done td{text-decoration:line-through; color:#9aa6b1;}
+  #mmodal td.center{text-align:center;}
+  #mmodal .mm-form{flex:0 0 380px; overflow:auto; padding:14px 18px; display:flex; flex-direction:column; gap:10px; font-size:12.5px;}
+  #mmodal .mm-form .f-row{display:flex; flex-direction:column; gap:4px;}
+  #mmodal .mm-form .f-row b{font-size:12px; color:var(--ink);}
+  #mmodal .mm-form .f-2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  #mmodal .mm-form input, #mmodal .mm-form select, #mmodal .mm-form textarea{
+    border:1px solid var(--line); border-radius:5px; padding:7px 9px; width:100%;
+    font-family:inherit; font-size:12.5px; outline:none; background:var(--panel); color:var(--ink);
+  }
+  #mmodal .mm-form textarea{min-height:70px; resize:vertical; line-height:1.5;}
+  #mmodal .mm-form input:focus, #mmodal .mm-form select:focus, #mmodal .mm-form textarea:focus{border-color:var(--accent);}
+  #mmodal .mm-form .f-chk{display:flex; align-items:center; gap:6px; font-size:12.5px;}
+  #mmodal .mm-form .f-chk input{width:auto;}
+  #mmodal .mm-form .f-btns{display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;}
+  #mmodal .mm-form .f-btns .btn.danger{border-color:var(--danger); color:var(--danger);}
+  #mmodal .mm-form .f-empty{color:var(--ink-soft); padding:30px 0; text-align:center; line-height:1.7;}
+  #mmodal .mm-foot{
+    display:flex; align-items:center; gap:10px; padding:11px 18px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--ink-soft); flex-wrap:wrap;
+  }
+  #mmodal .mm-foot .btn{margin-left:auto;}
+  .src-mt{background:#e3f4ec; color:#0f6b54;}
+  .mt-time{font-family:inherit; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .mt-now{display:inline-block; padding:1px 7px; border-radius:9px; background:var(--danger); color:#fff; font-size:11px; font-weight:700; margin-left:4px;}
+  .mt-soon{display:inline-block; padding:1px 7px; border-radius:9px; background:#fdeee5; color:#c05621; font-size:11px; font-weight:700; margin-left:4px;}
+  #nmodal .nm-ovh.mt{color:#1c5db3;}
+  [data-theme="dark"] #nmodal .nm-ovh.mt{color:#7fb3f2;}
+  #nmodal td.mt-go{cursor:pointer; color:var(--accent); font-weight:700; text-decoration:underline;}
+  #nmodal td.mt-go:hover{background:var(--accent-soft);}
+  @media (max-width:820px){
+    #mmodal .mm-body{flex-direction:column; overflow:auto;}
+    #mmodal .mm-list{border-right:0; border-bottom:1px solid var(--line); flex:0 0 auto; max-height:45vh;}
+    #mmodal .mm-form{flex:0 0 auto;}
+  }
+
   /* ── 사용법(도움말) 모달 ── */
   #hwrap{
     position:fixed; inset:0; z-index:52; background:rgba(20,32,44,.45);
@@ -678,6 +746,7 @@
 
   <div class="toolbar">
     <button class="btn bell" onclick="openNoti('on', false)" title="중요일정 알림 목록을 엽니다 (5분간 화면 동작이 없으면 자동으로 표시됩니다)">🔔 중요알림<span id="cntNoti"></span></button>
+    <button class="btn" onclick="openMeet()" title="회의일정을 등록·관리합니다 (예정 회의는 중요알림에도 함께 표시됩니다)">🗓 회의일정<span id="cntMeet"></span></button>
     <input type="search" id="q" placeholder="전체 검색">
     <button class="btn warn" id="btnClearF" onclick="clearFilters()" hidden>필터 해제</button>
     <button class="btn primary" onclick="addRow()">＋ 행 추가</button>
@@ -783,6 +852,13 @@
         <tbody id="ntbody"></tbody>
       </table>
       <div class="nm-empty" id="nEmpty" hidden></div>
+      <div id="mtSec" class="nm-ov" hidden>
+        <div class="nm-ovh mt">🗓 회의일정 <span class="nm-ovsub">(예정 회의 · 가까운 순 · 알림 켜진 항목만)</span><span id="mtCnt"></span></div>
+        <table>
+          <thead><tr><th>일시</th><th>제목</th><th>장소</th><th>참석자</th><th>등록자</th><th>D-day</th></tr></thead>
+          <tbody id="mttbody"></tbody>
+        </table>
+      </div>
       <div id="ovSec" class="nm-ov" hidden>
         <div class="nm-ovh">⏰ 지연된 일정 <span class="nm-ovsub">(중요 외 · 개발완료예정이 지났는데 미완료)</span><span id="ovCnt"></span></div>
         <table>
@@ -801,6 +877,76 @@
     <div class="nm-foot">
       <span>[알림] 체크를 해제하면 자동 알림에는 나오지 않습니다 · <span style="background:#fdeee5;color:#c05621;font-weight:700;padding:1px 6px;border-radius:4px;">주황</span> 완료예정일 경과(완료됨) · <span style="background:#c0392b;color:#fff;font-weight:700;padding:1px 6px;border-radius:4px;">빨강</span> 완료예정일이 지났는데 미완료</span>
       <button class="btn" onclick="closeNoti()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 회의일정 관리 모달 -->
+<div id="mwrap" hidden>
+  <div id="mmodal">
+    <div class="mm-head">
+      <h2>회의일정 관리</h2>
+      <div class="mm-tabs">
+        <button id="mfUp" class="on" onclick="setMFilter('up')">예정<span id="mCntUp"></span></button>
+        <button id="mfToday" onclick="setMFilter('today')">오늘<span id="mCntToday"></span></button>
+        <button id="mfPast" onclick="setMFilter('past')">지난 회의<span id="mCntPast"></span></button>
+        <button id="mfAll" onclick="setMFilter('all')">전체<span id="mCntAll"></span></button>
+      </div>
+      <input type="search" id="mq" placeholder="회의 검색" style="border:1px solid var(--line);border-radius:5px;padding:6px 9px;font-size:12.5px;font-family:inherit;background:var(--panel);color:var(--ink);outline:none;width:160px;margin-left:auto;">
+      <button class="btn primary" onclick="newMeet()">＋ 회의 추가</button>
+    </div>
+    <div class="mm-body">
+      <div class="mm-list">
+        <table>
+          <thead><tr><th>날짜</th><th>시간</th><th>제목</th><th>장소</th><th>등록자</th><th title="체크된 회의만 중요알림에 나타납니다">알림</th></tr></thead>
+          <tbody id="mtbody"></tbody>
+        </table>
+        <div class="nm-empty" id="mEmpty" hidden></div>
+      </div>
+      <div class="mm-form" id="mform">
+        <div class="f-empty" id="mFormEmpty">왼쪽 목록에서 회의를 선택하거나<br>[＋ 회의 추가]를 눌러 새 회의를 등록하세요.</div>
+        <div id="mFormBody" hidden>
+          <div class="f-row"><b>두레이 일정 붙여넣기</b>
+            <textarea id="mfPaste" rows="2" style="min-height:44px" placeholder="두레이 일정 상세 화면을 제목부터 끝까지 드래그해 복사한 뒤 여기(또는 아무 칸)에 붙여넣으면 자동으로 채워집니다"></textarea>
+          </div>
+          <div class="f-row"><b>제목 *</b><input type="text" id="mfTitle" placeholder="예: 전송자격인증 서류작성 및 사전심사확인"></div>
+          <div class="f-2">
+            <div class="f-row"><b>날짜 *</b><input type="date" id="mfDate"></div>
+            <div class="f-row"><b>상태</b>
+              <select id="mfStatus"><option value="">예정</option><option value="완료">완료</option><option value="취소">취소</option></select>
+            </div>
+          </div>
+          <div class="f-2">
+            <div class="f-row"><b>시작</b><input type="time" id="mfStart" step="300"></div>
+            <div class="f-row"><b>종료</b><input type="time" id="mfEnd" step="300"></div>
+          </div>
+          <div class="f-row"><b>장소</b><input type="text" id="mfPlace" placeholder="예: NHN KCP 5층 5-4(외/정문측)"></div>
+          <div class="f-row"><b>참석자</b><input type="text" id="mfAttendees" placeholder="예: 전체 3명 (수락 2명, 대기 1명) 또는 이름 나열"></div>
+          <div class="f-2">
+            <div class="f-row"><b>등록자</b><input type="text" id="mfOwner" placeholder="예: 김중선"></div>
+            <div class="f-row"><b>공개</b>
+              <select id="mfOpen"><option value="공개">공개</option><option value="비공개">비공개</option></select>
+            </div>
+          </div>
+          <div class="f-2">
+            <div class="f-row"><b>사전 알림</b>
+              <select id="mfRemind"><option value="0">없음</option><option value="5">5분 전</option><option value="10" selected>10분 전</option><option value="30">30분 전</option><option value="60">1시간 전</option><option value="1440">하루 전</option></select>
+            </div>
+            <div class="f-row"><b>링크</b><input type="text" id="mfLink" placeholder="두레이 일정 URL 등"></div>
+          </div>
+          <div class="f-row"><b>메모</b><textarea id="mfMemo" placeholder="안건, 준비물, 회의록 링크 등"></textarea></div>
+          <label class="f-chk"><input type="checkbox" id="mfNoti" checked> 중요알림 팝업에 표시</label>
+          <div class="f-btns">
+            <button class="btn primary" onclick="saveMeet()">저장</button>
+            <button class="btn" onclick="dupMeet()" id="mfDupBtn">복사해서 새 회의</button>
+            <button class="btn danger" onclick="delMeet()" id="mfDelBtn">삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mm-foot">
+      <span>회의를 클릭하면 오른쪽에서 편집 · [알림] 체크된 예정 회의는 🔔 중요알림 팝업에도 함께 표시됩니다 · 데이터 저장/엑셀 내보내기 시 함께 저장됩니다</span>
+      <button class="btn" onclick="closeMeet()">닫기</button>
     </div>
   </div>
 </div>
@@ -840,6 +986,8 @@
         <li>목록은 <b>개발완료예정 빠른 순</b>(없으면 접수일자 순)으로 정렬되고, 완료예정일이 지난 항목은 주황(완료됨) 또는 <b>빨강(미완료)</b>으로 강조됩니다.</li>
         <li>각 항목의 [알림] 체크를 끄면 자동 알림에서 빠지고, 전체/표시/미표시 탭으로 관리합니다. <b>No를 클릭하면</b> 알림이 닫히며 해당 업무로 바로 이동합니다.</li>
         <li><b>[＋ 직접입력 추가]</b>로 일정 목록과 무관한 중요일정을 알림에만 등록할 수도 있습니다.</li>
+        <li>두레이 일정 상세 화면을 <b>제목부터 드래그해 복사</b>한 뒤 회의 폼의 어느 칸에나 <b>붙여넣으면</b> 제목·일시·장소·참석자·등록자·알림·공개가 자동으로 채워집니다.</li>
+        <li><b>[🗓 회의일정]</b> 버튼에서 회의(제목·일시·장소·참석자·등록자·사전알림·메모)를 별도로 등록·관리합니다. 알림이 켜진 예정 회의는 중요알림 팝업의 <b>회의일정</b> 영역에 가까운 순으로 표시되며, 시작 임박·진행 중 회의는 붉게 강조됩니다.</li>
         <li>알림 창 <b>아래쪽</b>에는 중요 표시가 없어도 <b>개발완료예정이 지났는데 미완료</b>인 <b>지연된 일정</b>이 함께 표시되며, No를 누르면 해당 업무로 이동합니다.</li>
       </ul>
 
@@ -992,7 +1140,7 @@ let dirty = false;                               // 마지막 저장 이후 변�
 const HIST_MAX = 30;
 let history = [], histIdx = -1, restoringHistory = false;
 
-function snapshot(){ return JSON.stringify({rows:data, memos:memos}); }
+function snapshot(){ return JSON.stringify({rows:data, memos:memos, meetings:meetings}); }
 function resetHistory(){ history = [{s:snapshot(), label:""}]; histIdx = 0; updateUndoUI(); }
 function pushHistory(label){
   if(restoringHistory) return;
@@ -1006,7 +1154,9 @@ function restoreTo(idx){
   const before = {rows:data, memos:memos};                 // 복원 직전 상태 (diff용)
   const o = JSON.parse(history[idx].s);
   restoringHistory = true;
-  data = o.rows; memos = o.memos;
+  data = o.rows; memos = o.memos; meetings = o.meetings || [];
+  if(!mwrap.hidden) renderMeet();
+  cntMeet.textContent = ` ${upcomingMeetings().length}`;
   selected.clear(); activeRowIdx = null;
   render();
   restoringHistory = false;
@@ -1135,6 +1285,9 @@ function colValues(c){                            // 해당 컬럼의 기존 고
 }
 let nFilter = "on";                              // 알림 모달 필터: all/on/off
 let memos = [];                                  // 직접입력 중요일정 [{No,제목,접수일자,상세구분,개발완료예정,개발완료,noti}]
+/* 회의일정: {id, 제목, 날짜(YYYYMMDD), 시작(HH:MM), 종료(HH:MM), 장소, 참석자, 등록자, 공개, 알림분, 링크, 메모, 상태(""/완료/취소), noti} */
+let meetings = [];
+const MEET_COLS = ["제목","날짜","시작","종료","장소","참석자","등록자","공개","알림분","링크","메모","상태"];
 let data = [
   {imp:true, noti:true, CODEHIDDEN:"-", CODE:"NXPOS_20200703_10__250", PROJECT:"NXPOS", No:250,
    "제목":"[내부][W][-대기-] 메뉴 수정 필요",
@@ -1187,6 +1340,18 @@ function normMemo(src){
   }
   return m;
 }
+function normMeet(src){
+  const m = {id: src.id || ("m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+             noti: src.noti !== false && !offMark(src["알림"])};
+  for(const c of MEET_COLS){
+    let v = clean(src[c]);
+    if(c==="날짜"){ const d = parseYmd(v); v = d ? fmtYmd(d).replaceAll(".","") : String(v??"").replace(/\D/g,"").slice(0,8); }
+    if((c==="시작"||c==="종료") && v){ const mm = String(v).match(/(\d{1,2})\s*[:시]\s*(\d{0,2})/); if(mm) v = `${mm[1].padStart(2,"0")}:${(mm[2]||"0").padStart(2,"0")}`; }
+    if(c==="알림분") v = v===""||isNaN(v) ? 10 : Number(v);
+    m[c] = v;
+  }
+  return m;
+}
 function offMark(v){ return ["N","n","FALSE","false","미표시","X","x"].includes(String(v??"").trim()); }
 function esc(s){
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -1201,8 +1366,8 @@ function toNum(v){
 function toast(msg, type, ms){
   const wrap = document.getElementById("toast");
   const el = document.createElement("div");
-  el.className = "toast " + (type==="err" ? "err" : "ok");
-  const ic = document.createElement("span"); ic.className="ic"; ic.textContent = type==="err" ? "⚠" : "✓";
+  el.className = "toast " + (type==="err"||type==="warn" ? "err" : "ok");
+  const ic = document.createElement("span"); ic.className="ic"; ic.textContent = (type==="err"||type==="warn") ? "⚠" : "✓";
   const tx = document.createElement("span"); tx.textContent = msg;
   el.append(ic, tx);
   wrap.appendChild(el);
@@ -1309,7 +1474,7 @@ function cellHtml(r, i, c){
   return `<td class="${cls}"><div class="cv${clip}"${capStyle}${titleAttr} contenteditable data-i="${i}" data-c="${c}">${esc(v)}</div></td>`;
 }
 function notiCount(){
-  return data.filter(r=>r.imp && r.noti!==false).length + memos.filter(m=>m.noti!==false).length;
+  return data.filter(r=>r.imp && r.noti!==false).length + memos.filter(m=>m.noti!==false).length + upcomingMeetings().length;
 }
 function render(){
   const rows = visibleRows();
@@ -2782,6 +2947,7 @@ function renderNoti(){
   }
   ntbody.parentElement.style.display = list.length? "" : "none";
   cntNoti.textContent = ` ${notiCount().toLocaleString()}`;
+  renderMeetNoti();
   renderOverdue();
   renderDueAll();
 }
@@ -2909,6 +3075,291 @@ function addMemo(){
   if(first) first.focus();
 }
 
+/* ══ 회의일정 ══════════════════════════════ */
+const mwrap = document.getElementById("mwrap");
+let mFilter = "up";                                // up / today / past / all
+let mSel = null;                                   // 편집 중인 회의 id (null=새 회의)
+const WD = ["일","월","화","수","목","금","토"];
+function meetKey(m){ return `${m["날짜"]||"99999999"} ${m["시작"]||"99:99"}`; }
+function meetSort(a,b){ return meetKey(a) < meetKey(b) ? -1 : meetKey(a) > meetKey(b) ? 1 : 0; }
+function meetDate(m){ const d = parseYmd(m["날짜"]); return d; }
+function meetStartMs(m){
+  const d = meetDate(m); if(!d) return null;
+  const [h,mi] = String(m["시작"]||"00:00").split(":").map(Number);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h||0, mi||0).getTime();
+}
+function meetEndMs(m){
+  const d = meetDate(m); if(!d) return null;
+  if(!m["종료"]){ const s = meetStartMs(m); return s===null ? null : s + 60*60*1000; }
+  const [h,mi] = String(m["종료"]).split(":").map(Number);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h||0, mi||0).getTime();
+}
+function meetIsDone(m){ return m["상태"]==="완료" || m["상태"]==="취소"; }
+function meetDayDiff(m){
+  const d = meetDate(m); if(!d) return null;
+  const t = new Date(); t.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.round((d - t)/86400000);
+}
+/* 예정 회의: 오늘 이후(오늘 포함, 종료 안 지남) · 완료/취소 아님 · 알림 켜짐 */
+function upcomingMeetings(){
+  const now = Date.now();
+  return meetings.filter(m=>{
+    if(m.noti===false || meetIsDone(m)) return false;
+    const e = meetEndMs(m); if(e===null) return false;
+    return e >= now;
+  }).sort(meetSort);
+}
+function fmtMeetDate(m, withWd){
+  const d = meetDate(m); if(!d) return "—";
+  return fmtYmd(d) + (withWd ? `(${WD[d.getDay()]})` : "");
+}
+function fmtMeetTime(m){
+  const s = m["시작"]||"", e = m["종료"]||"";
+  return s ? (e ? `${s}~${e}` : s) : (e ? `~${e}` : "");
+}
+/* 회의 상태 라벨: 진행중 / n분 후 / 오늘 / D-n / 지남 */
+function meetBadge(m){
+  const s = meetStartMs(m), e = meetEndMs(m), now = Date.now();
+  if(s===null) return {label:"", cls:""};
+  if(meetIsDone(m)) return {label:m["상태"], cls:"ok"};
+  if(now >= s && now <= e) return {label:"진행 중", cls:"late", hot:true};
+  if(now > e) return {label:"지남", cls:"ok"};
+  const minLeft = Math.round((s-now)/60000);
+  const dd = meetDayDiff(m);
+  if(dd===0){
+    if(minLeft <= (Number(m["알림분"])||10)) return {label:`${minLeft}분 후`, cls:"late", hot:true};
+    if(minLeft < 120) return {label:`${minLeft}분 후`, cls:"soon", hot:true};
+    return {label:"오늘", cls:"soon"};
+  }
+  if(dd===1) return {label:"내일", cls:"near"};
+  if(dd<=7) return {label:`D-${dd}`, cls:"near"};
+  return {label:`D-${dd}`, cls:"ok"};
+}
+/* 중요알림 팝업 안의 회의 영역 */
+function renderMeetNoti(){
+  const sec = document.getElementById("mtSec"), tb = document.getElementById("mttbody");
+  const list = upcomingMeetings();
+  document.getElementById("mtCnt").textContent = ` ${list.length}`;
+  cntMeet.textContent = list.length ? ` ${list.length}` : "";
+  if(!list.length){ sec.hidden = true; tb.innerHTML = ""; return; }
+  sec.hidden = false;
+  const h = [];
+  for(const m of list){
+    const b = meetBadge(m);
+    h.push(`<tr${b.hot?' class="overdue"':''}>
+      <td class="center nowrap mt-go" data-mgo="${esc(m.id)}" title="알림을 닫고 이 회의를 편집"><span class="mt-time">${fmtMeetDate(m,true)} ${esc(fmtMeetTime(m))}</span></td>
+      <td>${esc(m["제목"]||"(제목 없음)")}${m["링크"]?` <a href="${esc(m["링크"])}" target="_blank" rel="noopener" title="링크 열기" onclick="event.stopPropagation()">↗</a>`:""}</td>
+      <td>${esc(m["장소"]||"")}</td>
+      <td>${esc(m["참석자"]||"")}</td>
+      <td class="center nowrap">${esc(m["등록자"]||"")}</td>
+      <td class="center nowrap">${b.label?`<span class="dday ${b.cls}">${esc(b.label)}</span>`:""}</td></tr>`);
+  }
+  tb.innerHTML = h.join("");
+}
+document.getElementById("mttbody").addEventListener("click", e=>{
+  const go = e.target.closest("[data-mgo]"); if(!go) return;
+  closeNoti(); openMeet(go.dataset.mgo);
+});
+
+/* ── 회의일정 관리 모달 ── */
+function openMeet(selectId){
+  mwrap.hidden = false;
+  if(selectId){ mFilter = "all"; }
+  setMFilter(mFilter, true);
+  if(selectId) selectMeet(selectId); else if(mSel===null) showMeetForm(null);
+}
+function closeMeet(){ mwrap.hidden = true; resetIdle(); if(!nwrap.hidden) renderNoti(); }
+mwrap.addEventListener("mousedown", e=>{ if(e.target===mwrap) closeMeet(); });
+function setMFilter(f, noRender){
+  mFilter = f;
+  for(const [id,k] of [["mfUp","up"],["mfToday","today"],["mfPast","past"],["mfAll","all"]])
+    document.getElementById(id).classList.toggle("on", k===f);
+  renderMeet();
+}
+document.getElementById("mq").addEventListener("input", ()=>renderMeet());
+function meetLists(){
+  const now = Date.now();
+  const up=[], today=[], past=[];
+  for(const m of meetings){
+    const e = meetEndMs(m), dd = meetDayDiff(m);
+    if(dd===0) today.push(m);
+    if(e!==null && e>=now && !meetIsDone(m)) up.push(m);
+    else past.push(m);
+  }
+  return {up, today, past, all:[...meetings]};
+}
+function renderMeet(){
+  const L = meetLists();
+  mCntUp.textContent = ` ${L.up.length}`; mCntToday.textContent = ` ${L.today.length}`;
+  mCntPast.textContent = ` ${L.past.length}`; mCntAll.textContent = ` ${L.all.length}`;
+  let list = L[mFilter] || L.all;
+  const q = document.getElementById("mq").value.trim().toLowerCase();
+  if(q) list = list.filter(m => MEET_COLS.some(c => String(m[c]??"").toLowerCase().includes(q)));
+  list = [...list].sort(mFilter==="past" ? (a,b)=>meetSort(b,a) : meetSort);
+  const h = [];
+  for(const m of list){
+    const dd = meetDayDiff(m), e = meetEndMs(m);
+    const cls = [m.id===mSel?"sel":"", meetIsDone(m)?"mt-done":"", dd===0&&!meetIsDone(m)?"mt-today":"", (e!==null&&e<Date.now()&&!meetIsDone(m))?"mt-past":""].filter(Boolean).join(" ");
+    h.push(`<tr class="${cls}" data-mid="${esc(m.id)}">
+      <td class="center nowrap"><span class="mt-time">${fmtMeetDate(m,true)}</span></td>
+      <td class="center nowrap"><span class="mt-time">${esc(fmtMeetTime(m))}</span></td>
+      <td>${esc(m["제목"]||"(제목 없음)")}${m["상태"]?` <span class="badge b-${m["상태"]==="완료"?"완료":"보류"}">${esc(m["상태"])}</span>`:""}</td>
+      <td>${esc(m["장소"]||"")}</td>
+      <td class="center nowrap">${esc(m["등록자"]||"")}</td>
+      <td class="center"><input type="checkbox" class="mtoggle" data-mid="${esc(m.id)}" ${m.noti!==false?"checked":""} title="중요알림 팝업 표시 여부"></td></tr>`);
+  }
+  mtbody.innerHTML = h.join("");
+  const emptyEl = document.getElementById("mEmpty");
+  emptyEl.hidden = list.length>0;
+  emptyEl.textContent = q ? "검색 결과가 없습니다." : mFilter==="up" ? "예정된 회의가 없습니다. [＋ 회의 추가]로 등록하세요." : mFilter==="today" ? "오늘 회의가 없습니다." : mFilter==="past" ? "지난 회의가 없습니다." : "등록된 회의가 없습니다.";
+  mtbody.parentElement.style.display = list.length ? "" : "none";
+  cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
+}
+mtbody.addEventListener("change", e=>{
+  const cb = e.target.closest(".mtoggle"); if(!cb) return;
+  const m = meetings.find(x=>x.id===cb.dataset.mid); if(!m) return;
+  m.noti = cb.checked; markDirty("회의 알림 설정 변경"); renderMeet();
+  if(m.id===mSel) document.getElementById("mfNoti").checked = cb.checked;
+});
+mtbody.addEventListener("click", e=>{
+  if(e.target.closest(".mtoggle")) return;
+  const tr = e.target.closest("tr[data-mid]"); if(!tr) return;
+  selectMeet(tr.dataset.mid);
+});
+function selectMeet(id){
+  const m = meetings.find(x=>x.id===id); if(!m) return;
+  mSel = id; showMeetForm(m); renderMeet();
+}
+function ymdToInput(v){ const d = parseYmd(v); if(!d) return ""; const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function showMeetForm(m){
+  const body = document.getElementById("mFormBody"), empty = document.getElementById("mFormEmpty");
+  if(m===undefined){ body.hidden = true; empty.hidden = false; return; }
+  body.hidden = false; empty.hidden = true;
+  const v = m || {};
+  mfTitle.value = v["제목"]||""; mfDate.value = ymdToInput(v["날짜"]) || (m?"":new Date().toISOString().slice(0,10));
+  mfStart.value = v["시작"]||""; mfEnd.value = v["종료"]||"";
+  mfPlace.value = v["장소"]||""; mfAttendees.value = v["참석자"]||""; mfOwner.value = v["등록자"]||"";
+  mfOpen.value = v["공개"]||"공개"; mfRemind.value = String(v["알림분"] ?? 10); mfLink.value = v["링크"]||"";
+  mfMemo.value = v["메모"]||""; mfStatus.value = v["상태"]||""; mfNoti.checked = v.noti!==false; mfPaste.value = "";
+  mfDelBtn.hidden = !m; mfDupBtn.hidden = !m;
+}
+/* ── 두레이 일정 상세 텍스트 파싱 → 폼 자동 채움 ──
+   예) 제목 / 등록자 / 2026.08.27(목) 09:00am ~ 12:00pm / 장소 / 전체 3명(...) / 필수 / 이름들 / 김중선(08.24 10:01)등록자 / 알림 / 앱 / 10분 전 / 바쁨 / 공개 / 장소 */
+const DOORAY_DT = /(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\s*(?:\([^)]*\))?\s*(\d{1,2}):(\d{2})\s*(am|pm|오전|오후)?\s*[~\-–]\s*(?:(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\s*(?:\([^)]*\))?\s*)?(\d{1,2}):(\d{2})\s*(am|pm|오전|오후)?/i;
+function to24(h, mi, ap){
+  h = Number(h); ap = (ap||"").toLowerCase();
+  if((ap==="pm"||ap==="오후") && h<12) h += 12;
+  if((ap==="am"||ap==="오전") && h===12) h = 0;
+  return `${String(h).padStart(2,"0")}:${mi}`;
+}
+function parseDoorayMeeting(text){
+  let t = clean(text).replace(/\s*더\s*보기\s*/g," ").replace(/\s+/g," ").trim();
+  const m = t.match(DOORAY_DT);
+  if(!m) return null;
+  const o = {};
+  o["날짜"] = `${m[1]}${m[2].padStart(2,"0")}${m[3].padStart(2,"0")}`;
+  o["시작"] = to24(m[4], m[5], m[6]);
+  o["종료"] = to24(m[10], m[11], m[12]);
+  const before = t.slice(0, m.index).trim();
+  const after  = t.slice(m.index + m[0].length).trim();
+  /* 등록자: "김중선(08.24 10:01)등록자" */
+  const reg = t.match(/(\S+?)\s*\(\d{1,2}\.\d{1,2}\s+\d{1,2}:\d{2}\)\s*등록자/);
+  if(reg) o["등록자"] = reg[1];
+  /* 제목: 날짜 앞 텍스트에서 끝의 등록자 이름 제거 */
+  let title = before.replace(/\s*(편집|수정)\s*/g," ").trim();
+  if(o["등록자"] && title.endsWith(o["등록자"])) title = title.slice(0, -o["등록자"].length).trim();
+  else{ const parts = title.split(" "); if(parts.length>1 && /^[가-힣]{2,4}$/.test(parts[parts.length-1])) { o["등록자"] = o["등록자"]||parts.pop(); title = parts.join(" "); } }
+  o["제목"] = title;
+  /* 참석자: "전체 3명(수락 2명, …)" + 이름들 (필수/선택 제외, 등록자 패턴 전까지) */
+  const att = after.match(/전체\s*(\d+)\s*명\s*(\([^)]*\))?/);
+  if(att){
+    o["장소"] = after.slice(0, att.index).trim();
+    let rest = after.slice(att.index + att[0].length);
+    if(reg) rest = rest.slice(0, rest.indexOf(reg[0]) >= 0 ? rest.indexOf(reg[0]) : undefined);
+    const names = rest.split(" ").map(x=>x.trim()).filter(x=>x && !/^(필수|선택|참조|주최자|참석자|수락|대기|미정|거절)$/.test(x) && !/[:~()]/.test(x) && x.length<=12);
+    o["참석자"] = `${att[1]}명` + (names.length ? " · " + names.join(", ") : "");
+    if(att[2]) o["메모"] = `참석 현황 ${att[2]}`;
+  }else{
+    const endIdx = reg ? after.indexOf(reg[0]) : -1;
+    o["장소"] = (endIdx>=0 ? after.slice(0,endIdx) : after.split(" 알림 ")[0]).trim();
+  }
+  const rem = t.match(/(\d+)\s*(분|시간|일)\s*전|하루\s*전/);
+  if(rem){ o["알림분"] = /하루/.test(rem[0]) ? 1440 : Number(rem[1]) * (rem[2]==="시간"?60:rem[2]==="일"?1440:1); }
+  if(/\b비공개\b/.test(t) || / 비공개( |$)/.test(t)) o["공개"] = "비공개"; else if(/ 공개( |$)/.test(t)) o["공개"] = "공개";
+  return o;
+}
+function applyDoorayMeeting(o){
+  mfTitle.value = o["제목"]||""; mfDate.value = ymdToInput(o["날짜"]);
+  mfStart.value = o["시작"]||""; mfEnd.value = o["종료"]||"";
+  if(o["장소"]!==undefined) mfPlace.value = o["장소"];
+  if(o["참석자"]!==undefined) mfAttendees.value = o["참석자"];
+  if(o["등록자"]!==undefined) mfOwner.value = o["등록자"];
+  if(o["공개"]) mfOpen.value = o["공개"];
+  if(o["메모"] && !mfMemo.value.trim()) mfMemo.value = o["메모"];
+  if(o["알림분"]!==undefined){ const sel=[...mfRemind.options].some(op=>op.value==String(o["알림분"])); mfRemind.value = sel ? String(o["알림분"]) : "10"; }
+  mfPaste.value = "";
+  toast("두레이 일정 내용을 자동으로 채웠습니다 — 확인 후 [저장]", "ok");
+  mfTitle.focus();
+}
+/* 폼 안 어느 칸에 붙여넣어도 두레이 형식이면 자동 채움 */
+document.getElementById("mform").addEventListener("paste", e=>{
+  const t = (e.clipboardData || window.clipboardData).getData("text");
+  if(!t || t.trim().length < 20) return;
+  const o = parseDoorayMeeting(t);
+  if(!o) return;
+  e.preventDefault();
+  applyDoorayMeeting(o);
+});
+function newMeet(){ mSel = null; showMeetForm(null); renderMeet(); mfTitle.focus(); }
+function readMeetForm(){
+  return normMeet({
+    id: mSel || undefined,
+    "제목": mfTitle.value, "날짜": mfDate.value.replaceAll("-",""), "시작": mfStart.value, "종료": mfEnd.value,
+    "장소": mfPlace.value, "참석자": mfAttendees.value, "등록자": mfOwner.value, "공개": mfOpen.value,
+    "알림분": mfRemind.value, "링크": mfLink.value, "메모": mfMemo.value, "상태": mfStatus.value, noti: mfNoti.checked
+  });
+}
+function saveMeet(){
+  if(!mfTitle.value.trim()){ toast("회의 제목을 입력하세요", "warn"); mfTitle.focus(); return; }
+  if(!mfDate.value){ toast("회의 날짜를 입력하세요", "warn"); mfDate.focus(); return; }
+  if(mfStart.value && mfEnd.value && mfEnd.value < mfStart.value){ toast("종료 시간이 시작보다 빠릅니다", "warn"); mfEnd.focus(); return; }
+  const m = readMeetForm();
+  const i = meetings.findIndex(x=>x.id===m.id);
+  if(i>=0){ meetings[i] = m; markDirty("회의 수정"); }
+  else{ meetings.push(m); markDirty("회의 추가"); }
+  mSel = m.id; showMeetForm(m);
+  if(mFilter==="past" && !meetIsDone(m) && (meetEndMs(m)??0) >= Date.now()) mFilter = "up";
+  setMFilter(mFilter);
+  toast(i>=0 ? "회의 수정됨" : "회의 추가됨", "ok");
+  if(!nwrap.hidden) renderNoti();
+}
+function dupMeet(){
+  const src = meetings.find(x=>x.id===mSel); if(!src) return;
+  mSel = null; showMeetForm({...src, id:undefined, "상태":""}); mfTitle.focus(); renderMeet();
+}
+function delMeet(){
+  const i = meetings.findIndex(x=>x.id===mSel); if(i<0) return;
+  if(!confirm(`회의를 삭제할까요?\n${meetings[i]["제목"]||"(제목 없음)"} · ${fmtMeetDate(meetings[i],true)}`)) return;
+  meetings.splice(i,1); mSel = null; showMeetForm(undefined); markDirty("회의 삭제"); renderMeet();
+  if(!nwrap.hidden) renderNoti();
+}
+/* 회의 사전 알림: 시작 (알림분) 전이 되면 토스트 + 중요알림 팝업 자동 표시 (회의당 1회) */
+const meetNotified = new Set();
+setInterval(()=>{
+  const now = Date.now();
+  for(const m of upcomingMeetings()){
+    const s = meetStartMs(m); if(s===null) continue;
+    const lead = (Number(m["알림분"])||0) * 60000;
+    if(lead<=0) continue;
+    if(now >= s-lead && now < s && !meetNotified.has(m.id)){
+      meetNotified.add(m.id);
+      toast(`🗓 ${Math.max(1,Math.round((s-now)/60000))}분 후 회의: ${m["제목"]||"(제목 없음)"}${m["장소"]?` · ${m["장소"]}`:""}`, "warn", 12000);
+      if(nwrap.hidden && mwrap.hidden) openNoti("on", false);
+    }
+  }
+  cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
+}, 30000);
+
 /* ── 5분 무동작 자동 알림 (남은 시간을 하단에 표시) ── */
 let lastActivity = Date.now();
 function resetIdle(){ lastActivity = Date.now(); }
@@ -2918,6 +3369,7 @@ function resetIdle(){ lastActivity = Date.now(); }
 setInterval(()=>{
   const el = document.getElementById("idleLeft");
   if(!nwrap.hidden){ el.textContent = "🔔 중요알림 표시 중"; el.classList.remove("soon"); return; }
+  if(!mwrap.hidden){ el.textContent = "🗓 회의일정 편집 중"; el.classList.remove("soon"); resetIdle(); return; }
   const remain = IDLE_MS - (Date.now() - lastActivity);
   if(remain <= 0){
     openNoti("on", true);                        // 표시(체크된) 항목만으로 자동 팝업
@@ -3081,7 +3533,7 @@ function stamp(){
 function payload(){
   return JSON.stringify({
     app:"일정관리", version:2, savedAt:new Date().toISOString(),
-    count:data.length, rows:data, memos:memos
+    count:data.length, rows:data, memos:memos, meetings:meetings
   });
 }
 /* ── 맨 아래 '마지막 저장' 표시 갱신 ── */
@@ -3309,8 +3761,10 @@ function parseAndApply(text){
   const rows = src.filter(r=>r && typeof r==="object").map(normRow);
   const newMemos = Array.isArray(parsed.memos)
     ? parsed.memos.filter(m=>m && typeof m==="object").map(normMemo) : [];
-  if(!rows.length && !newMemos.length){ alert("불러올 데이터가 없습니다."); return false; }
-  applyImport(rows, newMemos, "데이터");
+  const newMeets = Array.isArray(parsed.meetings)
+    ? parsed.meetings.filter(m=>m && typeof m==="object").map(normMeet) : [];
+  if(!rows.length && !newMemos.length && !newMeets.length){ alert("불러올 데이터가 없습니다."); return false; }
+  applyImport(rows, newMemos, "데이터", newMeets);
   if(!Array.isArray(parsed) && parsed.savedAt) setLastSaved(parsed.savedAt);
   return true;
 }
@@ -3343,25 +3797,38 @@ xlsxInput.addEventListener("change", ev=>{
         newMemos = mjson.map(normMemo)
           .filter(m => NOTI_COLS.some(c => String(m[c]??"").trim() !== ""));
       }
-      if(!rows.length && !newMemos.length){
+      /* 회의일정 시트 */
+      let newMeets = [];
+      if(wb.Sheets["회의일정"]){
+        const tjson = XLSX.utils.sheet_to_json(wb.Sheets["회의일정"], {defval:""});
+        newMeets = tjson.map(normMeet).filter(m => String(m["제목"]).trim()!=="" || m["날짜"]!=="");
+      }
+      if(!rows.length && !newMemos.length && !newMeets.length){
         alert("가져올 데이터가 없습니다. 첫 행이 제목행(CODE, PROJECT…)인지 확인하세요."); return;
       }
-      applyImport(rows, newMemos, "엑셀");
+      applyImport(rows, newMemos, "엑셀", newMeets);
     });
   };
   reader.readAsArrayBuffer(f);
 });
-function applyImport(rows, newMemos, label){
+function applyImport(rows, newMemos, label, newMeets){
+  newMeets = newMeets || [];
   const memoTxt = newMemos.length ? ` + 직접입력 ${newMemos.length}건` : "";
-  const replace = confirm(`${label}에서 일정 ${rows.length.toLocaleString()}건${memoTxt}을 불러왔습니다.\n\n[확인] 기존 목록 교체\n[취소] 기존 목록 뒤에 추가`);
-  if(replace){ data = rows; memos = newMemos; }
-  else{ data = data.concat(rows); memos = memos.concat(newMemos); }
+  const meetTxt = newMeets.length ? ` + 회의 ${newMeets.length}건` : "";
+  const replace = confirm(`${label}에서 일정 ${rows.length.toLocaleString()}건${memoTxt}${meetTxt}을 불러왔습니다.\n\n[확인] 기존 목록 교체\n[취소] 기존 목록 뒤에 추가`);
+  if(replace){ data = rows; memos = newMemos; meetings = newMeets; }
+  else{
+    data = data.concat(rows); memos = memos.concat(newMemos);
+    const ids = new Set(meetings.map(m=>m.id));
+    meetings = meetings.concat(newMeets.filter(m=>!ids.has(m.id)));
+  }
+  if(!mwrap.hidden) renderMeet();
   colFilters = {}; page = 1;
   markDirty("데이터 불러오기");
   render();
   resetHistory();                                  // 불러온 상태를 되돌리기 시작점으로
   if(!nwrap.hidden) renderNoti();
-  stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건`;
+  stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건, 회의 ${meetings.length}건`;
   toast(`${label} 불러오기 완료 · ${data.length.toLocaleString()}건`, "ok");
 }
 async function exportExcel(filteredOnly){
@@ -3390,6 +3857,17 @@ async function exportExcel(filteredOnly){
     if(!mrows.length) XLSX.utils.sheet_add_aoa(mws, [["알림","No","제목","접수일자","상세구분","개발완료예정","개발완료"]], {origin:"A1"});
     mws["!cols"] = [{wch:5},{wch:6},{wch:38},{wch:10},{wch:8},{wch:12},{wch:10}];
     XLSX.utils.book_append_sheet(wb, mws, "중요메모");
+    /* 시트3: 회의일정 */
+    const MEET_HDR = ["알림","제목","날짜","시작","종료","장소","참석자","등록자","공개","알림분","상태","링크","메모"];
+    const trows = [...meetings].sort(meetSort).map(m=>{
+      const o = {"알림": m.noti!==false?"Y":"N"};
+      for(const c of MEET_HDR.slice(1)) o[c] = m[c] ?? "";
+      return o;
+    });
+    const tws = XLSX.utils.json_to_sheet(trows.length ? trows : [Object.fromEntries(MEET_HDR.map(h=>[h,""]))], {header:MEET_HDR});
+    if(!trows.length) XLSX.utils.sheet_add_aoa(tws, [MEET_HDR], {origin:"A1"});
+    tws["!cols"] = [{wch:5},{wch:38},{wch:10},{wch:7},{wch:7},{wch:26},{wch:26},{wch:9},{wch:7},{wch:7},{wch:6},{wch:30},{wch:40}];
+    XLSX.utils.book_append_sheet(wb, tws, "회의일정");
 
     const xname = `일정관리${filteredOnly?"_화면":""}_${stamp()}.xlsx`;
     /* 1) 지정 폴더가 있으면 그 폴더에 바로 저장 */
@@ -3427,6 +3905,7 @@ async function exportExcel(filteredOnly){
 }
 
 render();
+cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
 resetHistory();
 fillBulkColOptions();
 restoreSettings();

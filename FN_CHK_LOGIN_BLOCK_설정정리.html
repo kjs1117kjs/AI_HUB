@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #222;
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+    word-break: keep-all;
+  }
+  h1 { font-size: 26px; margin-bottom: 8px; }
+  .subtitle { color: #666; font-size: 14px; margin-bottom: 40px; }
+  h2 {
+    font-size: 19px;
+    margin: 44px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #333;
+  }
+  h2:first-of-type { margin-top: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 12px 0 8px;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f2f2f2; font-weight: 700; white-space: nowrap; }
+  code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .block { color: #c0392b; font-weight: 700; }
+  .pass { color: #27ae60; }
+  .current {
+    background: #fff9dd;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    background: #c0392b;
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin-bottom: 6px; }
+  .note {
+    background: #f6f8fa;
+    border-left: 4px solid #888;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .note.warn { border-left-color: #c0392b; background: #fdf3f2; }
+  .steps li { margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h1>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</h1>
+<p class="subtitle">국외 IP 로그인 차단 — 판정 함수 운영 모드 가이드 (작성일 2026.08.28)</p>
+
+<h2>1. 스위치 2개</h2>
+<table>
+  <thead>
+    <tr><th>스위치</th><th>값</th><th>의미</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2"><code>C_BLOCK_MODE</code></td>
+      <td><code>'N'</code></td>
+      <td><b>관찰 모드</b> — 차단 대상이어도 통과('M'), 이력만 기록</td>
+    </tr>
+    <tr>
+      <td><code>'Y'</code></td>
+      <td><b>차단 모드</b> — 차단 대상은 'N' 리턴 → 트리거가 RAISE (로그인 실패)</td>
+    </tr>
+    <tr>
+      <td rowspan="2"><code>C_CHK_TARGET</code></td>
+      <td><code>'S'</code></td>
+      <td><b>SMS 등록자만 검사</b> — 미등록자는 판정·이력 없이 즉시 'Y'</td>
+    </tr>
+    <tr>
+      <td><code>'A'</code></td>
+      <td><b>전체 사용자 검사</b> — 미등록자도 판정·이력·차단 대상</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. 조합별 동작</h2>
+<p>국외 IP + 허용테이블(TB_CM_IP_ALLOW) 미등재인 경우 기준.</p>
+<table>
+  <thead>
+    <tr><th>조합</th><th>SMS 등록자</th><th>SMS 미등록자</th><th>용도</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>N</code> + <code>S</code></td>
+      <td class="pass">통과 + 이력 <code>[SMS=Y]</code></td>
+      <td class="pass">통과, 이력 없음</td>
+      <td>등록자만 관찰 (원본 초기 상태)</td>
+    </tr>
+    <tr class="current">
+      <td><code>N</code> + <code>A</code><span class="badge">현재</span></td>
+      <td class="pass">통과 + 이력 <code>[SMS=Y]</code></td>
+      <td class="pass">통과 + 이력 <code>[SMS=N]</code></td>
+      <td><b>전체 관찰</b> — 아무도 차단되지 않음</td>
+    </tr>
+    <tr>
+      <td><code>Y</code> + <code>S</code></td>
+      <td class="block">차단 + 이력</td>
+      <td class="pass">통과, 이력 없음</td>
+      <td>등록자만 차단</td>
+    </tr>
+    <tr>
+      <td><code>Y</code> + <code>A</code></td>
+      <td class="block">차단 + 이력</td>
+      <td class="block">차단 + 이력</td>
+      <td>전체 차단 (최종 목표)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. 조합과 무관하게 항상 동일한 것</h2>
+<ul>
+  <li><b>한국 IP</b> → 무조건 'Y' 허용, 이력 없음</li>
+  <li><b>TB_CM_IP_ALLOW 등재자</b> (기간·USE_YN 유효) → 국외여도 'Y' 허용, 이력 없음</li>
+  <li><b>판정 중 오류 발생</b> → 'Y' 허용 (전체 로그인 장애 방지 — fail-open)</li>
+  <li><b>메뉴 접근</b> (FN_GET_MENU_CHK_YN2, <code>p_log_yn=&gt;'N'</code>) → 판정은 동일하게 수행, 이력만 생략</li>
+  <li>이력 라벨: 관찰 모드 <code>MONITOR - ...</code>, 차단 모드 <code>BLOCKED - ...</code></li>
+</ul>
+
+<div class="note warn">
+  <b>주의 — fail-open 구조:</b> 판정 중 내부 오류(테이블 없음·권한 문제 등)가 발생하면 에러 없이 조용히 'Y'로 허용됩니다.
+  이력이 예상보다 적으면 "국외 접속이 없는 것"인지 "함수가 예외로 빠지는 것"인지
+  단독 테스트(<code>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, '아이디', '8.8.8.8') FROM DUAL</code> → 'M' + 이력 1건)로 검증 필요.
+</div>
+
+<h2>4. 리턴값 의미</h2>
+<table>
+  <thead>
+    <tr><th>리턴</th><th>의미</th><th>트리거(R90) 처리</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>'Y'</code></td><td>허용 (한국 IP / 허용테이블 / 검사 제외 대상)</td><td>통과</td></tr>
+    <tr><td><code>'M'</code></td><td>차단 대상이지만 관찰 모드라 통과 (이력 기록)</td><td>통과</td></tr>
+    <tr><td><code>'N'</code></td><td>차단 (이력 기록)</td><td>RAISE → 로그인 실패</td></tr>
+  </tbody>
+</table>
+
+<h2>5. 운영 시나리오 (권장 순서)</h2>
+<ol class="steps">
+  <li><b><code>N</code> + <code>A</code></b> (현재) — 전체 국외 접속 현황 수집</li>
+  <li>이력에서 <code>[SMS=Y]</code> 건 검토 → 정당한 해외 사용자는 허용테이블(TB_CM_IP_ALLOW) 등재</li>
+  <li><b><code>Y</code> + <code>S</code></b> — 등록자부터 차단 개시
+    <br><span style="color:#888; font-size:13px;">※ 이 조합에서는 미등록자 이력도 안 남는 점 주의 — 미등록자 이력을 유지하려면 이 단계를 건너뛰고 4로</span></li>
+  <li><b><code>Y</code> + <code>A</code></b> — 전체 차단</li>
+</ol>
+
+<div class="note">
+  스위치 변경은 함수 상수 두 줄 수정 후 <b>재컴파일만</b> 하면 됩니다.
+  트리거(TR_TB_WB_LOGIN_HIST_R90)·메뉴 함수(FN_GET_MENU_CHK_YN2)는 수정 불필요.
+</div>
+
+<h2>6. 이력 확인 쿼리</h2>
+<table>
+  <thead>
+    <tr><th>목적</th><th>쿼리</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>등록/미등록 구분 집계</td>
+      <td><code>SELECT CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END AS SMS_DIV, COUNT(*) CNT, COUNT(DISTINCT USER_ID) USER_CNT FROM TB_WB_LOGIN_HIST_BLOCK GROUP BY CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END</code></td>
+    </tr>
+    <tr>
+      <td>차단 전환 시 영향받을 사용자</td>
+      <td><code>SELECT DISTINCT USER_ID, REAL_IP, COUNTRY_CODE FROM TB_WB_LOGIN_HIST_BLOCK WHERE BLOCK_REASON LIKE '%[SMS=Y]%'</code></td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>

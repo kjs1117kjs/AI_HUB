@@ -81,6 +81,7 @@
 <header>
   <h1>국외 IP 로그인 차단 시스템 — 전체 구축 가이드</h1>
   <p>MaxMind GeoLite2 가입부터 Oracle 적재 · 판정 함수 · 로그인 트리거 · 메뉴 차단 · 운영 전환까지 &nbsp;|&nbsp; 처음부터 순서대로 따라 하는 런북</p>
+  <p style="margin-top:6px; color:#f0c674;">개정 2026.08.28 — 검사 대상 스위치 <code style="background:rgba(255,255,255,0.15); color:#fff;">C_CHK_TARGET</code>('S' SMS 등록자만 / 'A' 전체) 추가, 이력 [SMS=Y/N] 태그 추가</p>
 </header>
 
 <nav class="toc">
@@ -129,15 +130,15 @@
     <tbody>
       <tr><td>GeoIP 대역 테이블 (A/B)</td><td>IP 대역 → 국가 매핑. 월간 재적재 시 대기 테이블에 적재 후 시노님만 스위치 (무중단)</td></tr>
       <tr><td>허용 테이블</td><td>해외 출장자·해외법인 등 예외 사용자 (USER_ID + IP + 기간, 승인자 기록)</td></tr>
-      <tr><td>판정 함수</td><td>SMS 등록자만 검사 → 한국 IP 허용 → 허용테이블 허용 → 그 외 차단 대상</td></tr>
-      <tr><td>모드 스위치</td><td><code>C_BLOCK_MODE</code> 상수 하나로 관찰('N') / 차단('Y') 전체 일괄 제어</td></tr>
+      <tr><td>판정 함수</td><td>검사 대상 확인(<code>C_CHK_TARGET</code>) → 한국 IP 허용 → 허용테이블 허용 → 그 외 차단 대상</td></tr>
+      <tr><td>모드 스위치 (2개)</td><td><code>C_BLOCK_MODE</code> 관찰('N')/차단('Y') + <code>C_CHK_TARGET</code> SMS 등록자만('S')/전체('A') — 상수 2개로 전체 일괄 제어</td></tr>
     </tbody>
   </table>
   <div class="box-info">
     <strong>제한 정책 요약</strong>
-    ① 제한 대상은 SMS 사용등록(<code>TB_CM_SMS_USER_REGIST</code>)한 USER_ID만 — 그 외 사용자는 무조건 통과.<br>
+    ① 검사 대상은 <code>C_CHK_TARGET</code>으로 선택 — 'S': SMS 사용등록(<code>TB_CM_SMS_USER_REGIST</code>)한 USER_ID만 (미등록자는 검사·이력 없이 통과) / 'A': 전체 사용자.<br>
     ② 국내 IP 허용, 그 외 차단. &nbsp;③ 허용테이블(USER_ID+IP)에 있으면 해외라도 허용.<br>
-    ④ 처음엔 관찰 모드로 이력만 쌓고, 오탐(사설 IP 등) 정리 후 차단 전환.
+    ④ 처음엔 관찰 모드(<code>C_BLOCK_MODE='N'</code>)로 이력만 쌓고, 오탐(사설 IP 등) 정리 후 차단 전환.
   </div>
 </section>
 
@@ -538,11 +539,20 @@ TABLESPACE TS_NEO_IDX;</pre>
 <!-- ======================================================================= -->
 <section id="s11">
   <h2><span class="step">11</span>공용 판정 함수 FN_CHK_LOGIN_BLOCK</h2>
-  <p>판정 + 이력 기록 + 모드 스위치를 모두 담당하는 공용 함수입니다. 트리거·메뉴 함수 등 어디서든 호출하며, <b>차단 활성화 시 이 함수의 <code>C_BLOCK_MODE</code> 한 줄만 바꾸면 모든 호출처에 일괄 적용</b>됩니다.</p>
+  <p>판정 + 이력 기록 + 모드 스위치를 모두 담당하는 공용 함수입니다. 트리거·메뉴 함수 등 어디서든 호출하며, <b>함수 안의 상수 스위치 2개만 바꾸면 모든 호출처에 일괄 적용</b>됩니다.</p>
+  <table>
+    <thead><tr><th style="width:18%">스위치</th><th style="width:10%">값</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="2"><code>C_BLOCK_MODE</code></td><td><code>'N'</code></td><td><b>관찰 모드</b> — 차단 대상이어도 통과('M'), 이력만 기록</td></tr>
+      <tr><td><code>'Y'</code></td><td><b>차단 모드</b> — 차단 대상은 'N' 리턴 → 호출측(트리거)에서 RAISE</td></tr>
+      <tr><td rowspan="2"><code>C_CHK_TARGET</code></td><td><code>'S'</code></td><td><b>SMS 등록자만 검사</b> — 미등록자는 판정·이력 없이 즉시 'Y'</td></tr>
+      <tr><td><code>'A'</code></td><td><b>전체 사용자 검사</b> — 미등록자도 판정·이력·차단 대상</td></tr>
+    </tbody>
+  </table>
   <table>
     <thead><tr><th style="width:14%">리턴값</th><th>의미</th></tr></thead>
     <tbody>
-      <tr><td><span class="ok">'Y'</span></td><td>허용 (SMS 미등록 / 한국 IP / 허용테이블 등재)</td></tr>
+      <tr><td><span class="ok">'Y'</span></td><td>허용 (검사 제외 대상 / 한국 IP / 허용테이블 등재)</td></tr>
       <tr><td><b>'M'</b></td><td>차단 대상이지만 관찰 모드라 허용 (이력만 기록)</td></tr>
       <tr><td><span class="block">'N'</span></td><td>차단 (이력 기록됨 — 호출측에서 RAISE 등 차단 처리)</td></tr>
     </tbody>
@@ -550,13 +560,14 @@ TABLESPACE TS_NEO_IDX;</pre>
   <pre>CREATE OR REPLACE FUNCTION FN_CHK_LOGIN_BLOCK
 /* ***********************************************************************************************
    국가 기반 로그인 제한 판정 (트리거·프로시저·화면 등 공용)
-     1) SMS 사용등록 안 된 USER_ID          → 'Y' (검사 없이 허용)
+     1) 검사 대상 확인 — C_CHK_TARGET='S' 이면 SMS 미등록자는 즉시 'Y' (검사·이력 없음)
+                        C_CHK_TARGET='A' 이면 전체 사용자 검사 진행
      2) 한국 IP                            → 'Y'
      3) TB_CM_IP_ALLOW 등재                → 'Y'
-     4) 그 외 = 차단 대상
+     4) 그 외 = 차단 대상 → 이력 기록 [CC=..][SMS=Y/N]
         - 관찰 모드(C_BLOCK_MODE='N')       → 'M' (이력만 기록, 허용)
         - 차단 모드(C_BLOCK_MODE='Y')       → 'N' (이력 기록, 호출측에서 차단)
-   ★ 차단 활성화 : C_BLOCK_MODE 'N'→'Y' 변경 후 함수만 재컴파일 (호출처 수정 불필요)
+   ★ 스위치 변경 후 함수만 재컴파일 (호출처 수정 불필요)
 *********************************************************************************************** */
 (
     p_proc_fg       IN VARCHAR2                     -- I/U/D/C (트리거 외 호출 시 'I' 권장)
@@ -574,8 +585,11 @@ TABLESPACE TS_NEO_IDX;</pre>
 ,   p_log_yn        IN VARCHAR2     DEFAULT 'Y'     -- 차단 대상 시 이력 INSERT 여부
 ) RETURN VARCHAR2
 IS
-    -- ★★★ 차단 활성화 스위치 : 'N' 관찰(현재) / 'Y' 차단 ★★★
+    -- ★★★ 스위치 1 : 차단 활성화 — 'N' 관찰(현재) / 'Y' 차단 ★★★
     C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';
+
+    -- ★★★ 스위치 2 : 검사 대상 — 'S' SMS 등록자만 / 'A' 전체 사용자 ★★★
+    C_CHK_TARGET    CONSTANT VARCHAR2(1) := 'A';
 
     V_SMS_CNT       NUMBER;
     V_REAL_IP       VARCHAR2(  45);
@@ -614,14 +628,16 @@ IS
     END SUB_SP_INSERT_BLOCK_HIST;
 
 BEGIN
-    -- 1) 제한 대상 확인 : SMS 사용등록 한 USER_ID 만 검사
+    -- 1) SMS 사용등록 여부 확인 (검사 대상 판단 + 이력 태그용)
     SELECT  COUNT(*)
     INTO    V_SMS_CNT
     FROM    TB_CM_SMS_USER_REGIST A
     WHERE   A.USER_ID   =   p_user_id
     AND     ROWNUM      =   1;
 
-    IF V_SMS_CNT = 0 THEN
+    -- ★ C_CHK_TARGET='S' : SMS 미등록자는 검사·이력 없이 즉시 허용
+    --   C_CHK_TARGET='A' : 통과하지 않고 전원 검사 진행
+    IF C_CHK_TARGET = 'S' AND V_SMS_CNT = 0 THEN
         RETURN 'Y';
     END IF;
 
@@ -658,7 +674,8 @@ BEGIN
 
     V_BLOCK_REASON := CASE WHEN C_BLOCK_MODE = 'Y' THEN 'BLOCKED' ELSE 'MONITOR' END
                       || ' - Not Korea IP / Not Allowed'
-                      || ' [CC=' || NVL(V_COUNTRY_CODE, 'UNKNOWN') || ']';
+                      || ' [CC='  || NVL(V_COUNTRY_CODE, 'UNKNOWN') || ']'
+                      || ' [SMS=' || CASE WHEN V_SMS_CNT &gt; 0 THEN 'Y' ELSE 'N' END || ']';
 
     IF p_log_yn = 'Y' THEN
         SUB_SP_INSERT_BLOCK_HIST;
@@ -674,8 +691,9 @@ EXCEPTION
 END;
 /</pre>
   <h3>단독 테스트</h3>
-  <pre>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123', '223.62.180.1', p_log_yn =&gt; 'N') FROM DUAL;  -- 'Y'
-SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123', '8.8.8.8',      p_log_yn =&gt; 'N') FROM DUAL;  -- 'M' (관찰모드)</pre>
+  <pre>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123',     '223.62.180.1', p_log_yn =&gt; 'N') FROM DUAL;  -- 'Y' (한국 IP)
+SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'hong123',     '8.8.8.8',      p_log_yn =&gt; 'N') FROM DUAL;  -- 'M' (관찰모드)
+SELECT FN_CHK_LOGIN_BLOCK('I', NULL, 'sms미등록ID', '8.8.8.8',      p_log_yn =&gt; 'N') FROM DUAL;  -- TARGET='A': 'M' / 'S': 'Y'</pre>
 </section>
 
 <!-- ======================================================================= -->
@@ -777,8 +795,28 @@ END IF;</pre>
 <!-- ======================================================================= -->
 <section id="s14">
   <h2><span class="step">14</span>운영 — 관찰 모드 → 차단 전환</h2>
+  <h3>14-0. 스위치 조합별 동작</h3>
+  <p>국외 IP + 허용테이블 미등재인 경우 기준. 한국 IP·허용테이블 등재자는 어떤 조합에서도 항상 허용(이력 없음)입니다.</p>
+  <table>
+    <thead><tr><th style="width:16%">조합</th><th style="width:28%">SMS 등록자</th><th style="width:28%">SMS 미등록자</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td><code>N</code> + <code>S</code></td><td class="ok">통과 + 이력 [SMS=Y]</td><td class="ok">통과, 이력 없음</td><td>등록자만 관찰</td></tr>
+      <tr style="background:#fff9dd;"><td><code>N</code> + <code>A</code></td><td class="ok">통과 + 이력 [SMS=Y]</td><td class="ok">통과 + 이력 [SMS=N]</td><td><b>전체 관찰 (현재 설정)</b></td></tr>
+      <tr><td><code>Y</code> + <code>S</code></td><td class="block">차단 + 이력</td><td class="ok">통과, 이력 없음</td><td>등록자만 차단</td></tr>
+      <tr><td><code>Y</code> + <code>A</code></td><td class="block">차단 + 이력</td><td class="block">차단 + 이력</td><td>전체 차단 (최종 목표)</td></tr>
+    </tbody>
+  </table>
+
   <h3>14-1. 관찰 기간 (권장 1~2주 이상)</h3>
   <p><code>C_BLOCK_MODE = 'N'</code> 상태에서는 아무도 차단되지 않고 <code>TB_WB_LOGIN_HIST_BLOCK</code>에 <code>MONITOR - ...</code> 이력만 쌓입니다. 주기적으로 오탐을 점검합니다.</p>
+  <pre>-- SMS 등록/미등록 구분 집계 (차단 전환 시 영향 범위 확인)
+SELECT  CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END AS SMS_DIV
+,       COUNT(*)                AS CNT
+,       COUNT(DISTINCT USER_ID) AS USER_CNT
+FROM    TB_WB_LOGIN_HIST_BLOCK
+GROUP
+BY      CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END
+;</pre>
   <pre>-- 차단 예정 건 집계 (오탐 점검)
 SELECT  USER_ID
 ,       REAL_IP
@@ -805,23 +843,30 @@ ORDER   BY CNT DESC
     <li>사설 IP 유입(내부망 이슈)이 확인되면 허용테이블 등록 또는 사설 대역(10.x, 172.16~31.x, 192.168.x) 예외 정책 결정</li>
   </ul>
 
-  <h3>14-2. 차단 활성화 — 수정할 곳 단 한 줄</h3>
+  <h3>14-2. 차단 활성화 — 수정할 곳은 함수 상수 스위치뿐</h3>
   <pre>-- FN_CHK_LOGIN_BLOCK 함수 내
-C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';   -- 관찰 모드 (현재)
-C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'Y';   -- 차단 모드 (전환 시)
+C_BLOCK_MODE    CONSTANT VARCHAR2(1) := 'N';   -- 'N' 관찰 (현재) / 'Y' 차단
+C_CHK_TARGET    CONSTANT VARCHAR2(1) := 'A';   -- 'S' SMS 등록자만 / 'A' 전체 (현재)
 -- → 함수만 재컴파일하면 로그인 트리거·메뉴 함수 모두 동시 적용</pre>
+  <div class="box-info">
+    <strong>권장 전환 순서</strong>
+    ① <code>N + A</code> (현재) — 전체 국외 접속 현황 수집 →
+    ② 이력의 <code>[SMS=Y]</code> 건 검토, 정당한 해외 사용자는 허용테이블 등재 →
+    ③ <code>Y + S</code> — 등록자부터 차단 개시 (※ 이 조합에서는 미등록자 이력도 남지 않음 — 미등록자 이력 유지가 필요하면 이 단계를 건너뜀) →
+    ④ <code>Y + A</code> — 전체 차단.
+  </div>
 
-  <h3>14-3. 전환 후 사용자별 결과</h3>
+  <h3>14-3. 전환 후 사용자별 결과 (Y + A 전체 차단 기준)</h3>
   <table>
     <thead><tr><th>사용자</th><th style="width:30%">로그인</th><th style="width:24%">메뉴 이동</th></tr></thead>
     <tbody>
-      <tr><td>SMS 미등록 사용자 (대다수)</td><td class="ok">정상</td><td class="ok">정상</td></tr>
-      <tr><td>SMS 등록 + 국내 접속</td><td class="ok">정상</td><td class="ok">정상</td></tr>
-      <tr><td>SMS 등록 + 해외 접속 + 허용 등록됨</td><td class="ok">정상</td><td class="ok">정상</td></tr>
-      <tr><td>SMS 등록 + 해외 접속 + 미등록</td><td class="block">ORA-20001 로그인 실패</td><td class="block">차단('N')</td></tr>
-      <tr><td>SMS 등록 + 사설 IP 유입</td><td class="block">차단됨 — 주의</td><td class="block">차단됨 — 주의</td></tr>
+      <tr><td>국내 접속 (SMS 등록 무관)</td><td class="ok">정상</td><td class="ok">정상</td></tr>
+      <tr><td>해외 접속 + 허용 등록됨</td><td class="ok">정상</td><td class="ok">정상</td></tr>
+      <tr><td>해외 접속 + 미등록 (SMS 등록 무관)</td><td class="block">ORA-20001 로그인 실패</td><td class="block">차단('N')</td></tr>
+      <tr><td>사설 IP 유입</td><td class="block">차단됨 — 주의</td><td class="block">차단됨 — 주의</td></tr>
     </tbody>
   </table>
+  <p style="font-size:13px; color:#777;">※ <code>Y + S</code> 조합이면 위 표에서 "SMS 미등록자"는 전부 정상 통과(이력 없음)로 바뀝니다.</p>
   <div class="box-warn">
     <strong>전환 전 필수 확인 2가지</strong>
     ① 차단 시 트리거의 <code>ORA-20001</code>을 WAS가 어떻게 표시하는지 테스트 계정으로 확인 — 처리 없으면 일반 "시스템 오류" 화면이 뜰 수 있으므로, 필요 시 "해외 IP 접속이 제한되었습니다" 안내로 변환.<br>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 IP 점검 쿼리 런북 — SBPORA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F3;
+  --card:#FFFFFF;
+  --ink:#172321;
+  --muted:#5C6B66;
+  --faint:#8B9691;
+  --line:#D9DFDC;
+  --line-soft:#E7EBE9;
+  --term:#101917;
+  --term-line:#233029;
+  --term-text:#D7E2DC;
+  --term-comment:#7C8F86;
+  --term-kw:#8FD4B4;
+  --term-str:#E8C583;
+  --accent:#0B6E4F;
+  --accent-soft:#E2EFE9;
+  --warn:#B45309;
+  --warn-soft:#F6EADA;
+  --danger:#B3372F;
+  --danger-soft:#F5E3E1;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --sans:"IBM Plex Sans KR","IBM Plex Sans",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.65;
+  word-break:keep-all;
+  overflow-wrap:break-word;
+}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px}
+
+/* ---------- header ---------- */
+header{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+.sys-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:14px;
+}
+.sys-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+h1{font-size:30px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.subtitle{margin-top:10px;color:var(--muted);font-size:14.5px;max-width:640px}
+.src-note{
+  margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;
+  font-family:var(--mono);font-size:11.5px;color:var(--faint);
+}
+.src-note span{background:var(--card);border:1px solid var(--line-soft);padding:3px 9px;border-radius:4px}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(242,244,243,.92);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);
+  padding:12px 0;
+}
+.toolbar-inner{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  padding:6px 13px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--muted);cursor:pointer;
+  transition:all .15s ease;user-select:none;
+}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.search{
+  margin-left:auto;flex:0 1 240px;min-width:160px;
+  font-family:var(--mono);font-size:12.5px;
+  padding:7px 12px;border:1px solid var(--line);border-radius:6px;
+  background:var(--card);color:var(--ink);outline:none;
+}
+.search:focus{border-color:var(--accent)}
+.search::placeholder{color:var(--faint)}
+
+/* ---------- sections ---------- */
+main{padding:8px 0 80px}
+.group{margin-top:48px}
+.group-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.group-head h2{font-size:19px;font-weight:700}
+.group-head .cnt{font-family:var(--mono);font-size:12px;color:var(--faint)}
+.group-desc{color:var(--muted);font-size:13.5px;margin-bottom:18px;max-width:680px}
+
+/* ---------- query card ---------- */
+.qcard{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  margin-bottom:20px;overflow:hidden;
+}
+.qcard.hidden{display:none}
+.qhead{padding:16px 20px 0;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.qhead h3{font-size:15.5px;font-weight:600;flex:1;min-width:200px}
+.badge{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;
+  padding:3px 8px;border-radius:4px;text-transform:uppercase;white-space:nowrap;
+}
+.badge.daily{background:var(--accent-soft);color:var(--accent)}
+.badge.weekly{background:#E4E9F4;color:#3B5AA6}
+.badge.monthly{background:#ECE6F2;color:#6B4B9E}
+.badge.adhoc{background:var(--warn-soft);color:var(--warn)}
+.badge.new{background:var(--ink);color:#fff}
+.qdesc{padding:6px 20px 14px;color:var(--muted);font-size:13.5px}
+
+/* terminal pane — 페이지의 시그니처: 밝은 관제 시트 안에 박힌 어두운 터미널 창 */
+.term{position:relative;background:var(--term);border-top:1px solid var(--line)}
+.term-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-bottom:1px solid var(--term-line);
+}
+.term-bar .tgt{font-family:var(--mono);font-size:11px;color:var(--term-comment)}
+.copy{
+  margin-left:auto;
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  background:transparent;color:var(--term-comment);
+  border:1px solid var(--term-line);border-radius:5px;
+  padding:4px 12px;cursor:pointer;transition:all .15s ease;
+}
+.copy:hover{color:var(--term-text);border-color:var(--term-comment)}
+.copy.done{color:var(--term-kw);border-color:var(--term-kw)}
+.copy:focus-visible{outline:2px solid var(--term-kw);outline-offset:2px}
+pre{
+  padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:12.5px;line-height:1.7;
+  color:var(--term-text);tab-size:4;
+}
+pre .c{color:var(--term-comment)}
+pre .k{color:var(--term-kw)}
+pre .s{color:var(--term-str)}
+.qfoot{
+  padding:12px 20px;border-top:1px solid var(--line-soft);
+  font-size:12.5px;color:var(--muted);
+  display:flex;gap:8px;align-items:flex-start;
+}
+.qfoot .arr{color:var(--accent);font-weight:700;flex-shrink:0}
+
+/* ---------- caution box ---------- */
+.caution{
+  margin-top:44px;background:var(--card);
+  border:1px solid var(--line);border-left:4px solid var(--danger);
+  border-radius:8px;padding:20px 22px;
+}
+.caution h2{font-size:15.5px;font-weight:700;margin-bottom:10px;color:var(--danger)}
+.caution li{margin-left:18px;margin-top:7px;font-size:13.5px;color:var(--ink)}
+.caution b{font-weight:600}
+.caution code{
+  font-family:var(--mono);font-size:12px;
+  background:var(--paper);border:1px solid var(--line-soft);
+  padding:1px 6px;border-radius:4px;
+}
+
+footer{
+  border-top:1px solid var(--line);padding:24px 0 48px;
+  font-family:var(--mono);font-size:11.5px;color:var(--faint);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+
+@media (max-width:640px){
+  header{padding:40px 0 22px}
+  h1{font-size:24px}
+  .search{flex:1 1 100%;margin-left:0}
+  pre{font-size:11.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .chip,.copy{transition:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="sys-tag"><span class="dot"></span>SBPORA · LOGIN IP CONTROL</div>
+    <h1>로그인 IP 점검 쿼리 런북</h1>
+    <p class="subtitle">클라우드 대역 차단 · 국외 IP 관찰 · 로그인 이력 분류를 한 페이지에서 점검합니다. 주기 칩으로 거르고, 쿼리는 복사해서 바로 실행하세요.</p>
+    <div class="src-note">
+      <span>출처 ① 로그인·메뉴 IP 차단 운영 가이드 §6</span>
+      <span>출처 ② 국외 IP 차단 구축 가이드 §14</span>
+      <span>출처 ③ 고속 분류 쿼리 (2026.08.28)</span>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap toolbar-inner">
+    <span class="chip on" data-f="all">전체</span>
+    <span class="chip" data-f="daily">일일</span>
+    <span class="chip" data-f="weekly">주간</span>
+    <span class="chip" data-f="monthly">월간</span>
+    <span class="chip" data-f="adhoc">수시·장애</span>
+    <input class="search" type="text" placeholder="테이블·함수명 검색…" aria-label="쿼리 검색">
+  </div>
+</div>
+
+<main class="wrap">
+
+  <!-- ============ 1. 일일 점검 ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>1 · 일일 점검</h2><span class="cnt"></span></div>
+    <p class="group-desc">아침에 한 번. 어제~오늘 실제로 차단된 건과, 관찰 모드로 쌓인 국외 접속 이력을 확인합니다.</p>
+
+    <article class="qcard" data-freq="daily">
+      <div class="qhead"><h3>오늘 차단된 로그인 (클라우드·계정+IP 차단)</h3><span class="badge daily">Daily</span></div>
+      <p class="qdesc">트리거 R98이 실제로 막은 건. 예상 밖 계정이 있으면 대역 오탐부터 의심합니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_CHK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.PROC_DT, A.USER_ID, A.LOGIN_IP, FN_GET_REAL_IP(A.LOGIN_IP) <span class="k">AS</span> REAL_IP,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">AS</span> CLOUD, A.STAT_CD, A.BRWSR_INFO
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_CHK A
+<span class="k">WHERE</span>  A.PROC_FG <span class="k">IN</span> (<span class="s">'I'</span>,<span class="s">'U'</span>)
+<span class="k">AND</span>    A.PROC_DT &gt;= TO_CHAR(SYSDATE, <span class="s">'YYYYMMDD'</span>)
+<span class="k">ORDER</span>  <span class="k">BY</span> A.PROC_DT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>CLOUD가 NULL인데 차단됐다면 계정+IP 확정 차단(C_HARD_LIST) 건. 국내 통신사 IP에 CLOUD 라벨이 찍히면 대역 오탐 — C_CIDR_LIST에서 제거.</div>
+    </article>
+
+    <article class="qcard" data-freq="daily">
+      <div class="qhead"><h3>오늘 쌓인 국외 접속 관찰 이력</h3><span class="badge daily">Daily</span></div>
+      <p class="qdesc">관찰 모드(C_BLOCK_MODE='N')에서 차단 대상으로 판정돼 MONITOR로 기록된 건. 차단 전환 시 이 사람들이 막힙니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_BLOCK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.PROC_DT, A.PROC_FG, A.USER_ID, A.REAL_IP, A.COUNTRY_CODE, A.BLOCK_REASON
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_BLOCK A
+<span class="k">WHERE</span>  A.PROC_DT &gt;= TO_CHAR(SYSDATE, <span class="s">'YYYYMMDD'</span>)
+<span class="k">ORDER</span>  <span class="k">BY</span> A.PROC_DT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>정당한 해외 사용자(출장·해외법인)는 TB_CM_IP_ALLOW에 승인 절차와 함께 등록. COUNTRY_CODE가 NULL이면 사설 IP 유입 후보 — 아래 국외 IP 점검의 오탐 쿼리로 확인.</div>
+    </article>
+  </section>
+
+  <!-- ============ 2. 주간 점검 ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>2 · 주간 점검</h2><span class="cnt"></span></div>
+    <p class="group-desc">주 1회. 클라우드 대역 접속 추이와 감시 후보 계정을 찾습니다.</p>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>최근 7일 클라우드 대역 로그인 (차단 여부 무관)</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">AWS·GCP·HostRoyale 대역에서 온 모든 시도. 감시 대상이 아닌 계정의 반복 접속을 잡아냅니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.LOGIN_DATE, A.USER_ID, A.LOGIN_IP,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP)            <span class="k">AS</span> CLOUD,
+       FN_CHK_BLOCK_TARGET_USER_YN(A.USER_ID)       <span class="k">AS</span> TARGET_YN,
+       FN_CHK_LOGIN_IP_BLOCK(A.USER_ID, A.LOGIN_IP) <span class="k">AS</span> BLOCK_NOW
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+<span class="k">WHERE</span>  A.LOGIN_DATE &gt;= TO_CHAR(TRUNC(SYSDATE) - 7, <span class="s">'YYYYMMDD'</span>)
+<span class="k">AND</span>    FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">IS NOT NULL</span>
+<span class="k">ORDER</span>  <span class="k">BY</span> A.LOGIN_DATE <span class="k">DESC</span>, A.LOGIN_DT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>TARGET_YN='N'인데 클라우드 IP가 반복되면 C_TARGET_USERS 추가 검토. <em>날짜 필터는 컬럼 가공 없는 문자열 비교로 바꿔 인덱스를 타도록 수정한 버전입니다.</em></div>
+    </article>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>계정·IP별 접속 집계 — 감시 후보 찾기</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">최근 7일간 50회 이상 접속한 계정+IP 조합. 잦은 접속의 임시 차단(C_TEMP_LIST) 후보를 고릅니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.USER_ID, FN_GET_REAL_IP(A.LOGIN_IP) <span class="k">AS</span> REAL_IP, <span class="k">COUNT</span>(*) CNT,
+       <span class="k">MIN</span>(A.LOGIN_DATE) FIRST_DT, <span class="k">MAX</span>(A.LOGIN_DATE) LAST_DT,
+       FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP) <span class="k">AS</span> CLOUD
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+<span class="k">WHERE</span>  A.LOGIN_DATE &gt;= TO_CHAR(TRUNC(SYSDATE) - 7, <span class="s">'YYYYMMDD'</span>)
+<span class="k">GROUP</span>  <span class="k">BY</span> A.USER_ID, FN_GET_REAL_IP(A.LOGIN_IP), FN_GET_CLOUD_IP_LABEL(A.LOGIN_IP)
+<span class="k">HAVING</span> <span class="k">COUNT</span>(*) &gt;= 50
+<span class="k">ORDER</span>  <span class="k">BY</span> CNT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>국내 통신사 IP는 절대 대역(C_CIDR_LIST)에 넣지 않습니다. 특정 계정만 문제면 C_TEMP_LIST에 쌍으로.</div>
+    </article>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>1분 60회 초과로 막힌 메뉴 호출</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">감시 대상 계정의 과호출 차단 이력. 급증하면 스크립트성 접근을 의심합니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_CHK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.PROC_DT, A.USER_ID, A.LOGIN_IP
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_CHK A
+<span class="k">WHERE</span>  A.PROC_FG = <span class="s">'C'</span> <span class="k">AND</span> A.BRWSR_INFO <span class="k">LIKE</span> <span class="s">'60%'</span>
+<span class="k">AND</span>    A.PROC_DT &gt;= TO_CHAR(SYSDATE - 1, <span class="s">'YYYYMMDD'</span>)
+<span class="k">ORDER</span>  <span class="k">BY</span> A.PROC_DT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>동일 계정이 매일 걸리면 C_HARD_LIST 승격 또는 계정 소유자 확인.</div>
+    </article>
+  </section>
+
+  <!-- ============ 3. 국외 IP 점검 ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>3 · 국외 IP 점검 (관찰 모드)</h2><span class="cnt"></span></div>
+    <p class="group-desc">차단 전환(C_BLOCK_MODE 'N'→'Y') 전에 돌리는 오탐 점검 세트. 관찰 기간 1~2주 동안 주기적으로 확인합니다.</p>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>SMS 등록/미등록 구분 집계 — 차단 전환 영향 범위</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">C_CHK_TARGET을 'S'로 좁힐지 'A'로 갈지 판단하는 근거. [SMS=Y] 건이 차단 1순위 영향권입니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_BLOCK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> <span class="k">CASE WHEN</span> BLOCK_REASON <span class="k">LIKE</span> <span class="s">'%[SMS=Y]%'</span> <span class="k">THEN</span> <span class="s">'SMS등록'</span> <span class="k">ELSE</span> <span class="s">'미등록'</span> <span class="k">END</span> <span class="k">AS</span> SMS_DIV
+,      <span class="k">COUNT</span>(*)                <span class="k">AS</span> CNT
+,      <span class="k">COUNT</span>(<span class="k">DISTINCT</span> USER_ID) <span class="k">AS</span> USER_CNT
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_BLOCK
+<span class="k">GROUP</span>  <span class="k">BY</span> <span class="k">CASE WHEN</span> BLOCK_REASON <span class="k">LIKE</span> <span class="s">'%[SMS=Y]%'</span> <span class="k">THEN</span> <span class="s">'SMS등록'</span> <span class="k">ELSE</span> <span class="s">'미등록'</span> <span class="k">END</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>권장 전환 순서: N+A(현재, 전체 관찰) → [SMS=Y] 검토·정당 사용자 허용테이블 등재 → Y+S(등록자 차단) → Y+A(전체 차단).</div>
+    </article>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>차단 예정 건 집계 — 국가별 오탐 점검</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">차단 전환 시 막힐 사용자·IP·국가 목록. 정당한 사용자를 여기서 걸러 허용테이블로 옮깁니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_BLOCK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> USER_ID, REAL_IP, COUNTRY_CODE
+,      <span class="k">COUNT</span>(*)        <span class="k">AS</span> CNT
+,      <span class="k">MIN</span>(LOGIN_DATE) <span class="k">AS</span> FIRST_TRY
+,      <span class="k">MAX</span>(LOGIN_DATE) <span class="k">AS</span> LAST_TRY
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_BLOCK
+<span class="k">GROUP</span>  <span class="k">BY</span> USER_ID, REAL_IP, COUNTRY_CODE
+<span class="k">ORDER</span>  <span class="k">BY</span> CNT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>출장자·해외법인은 TB_CM_IP_ALLOW에 USER_ID+IP+기간+승인자로 등록. 차단된 로그인은 TB_WB_LOGIN_HIST에 남지 않으므로(롤백) 전환 후 추적은 이 BLOCK 테이블 기준.</div>
+    </article>
+
+    <article class="qcard" data-freq="weekly">
+      <div class="qhead"><h3>사설 IP·매칭 실패 건 — 내부망 오탐 후보</h3><span class="badge weekly">Weekly</span></div>
+      <p class="qdesc">COUNTRY_CODE가 NULL인 건은 GeoIP에 없는 IP(사설·미할당)입니다. 차단 전환 전 반드시 비워야 합니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_BLOCK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> USER_ID, REAL_IP, <span class="k">COUNT</span>(*) <span class="k">AS</span> CNT
+<span class="k">FROM</span>   TB_WB_LOGIN_HIST_BLOCK
+<span class="k">WHERE</span>  COUNTRY_CODE <span class="k">IS NULL</span>
+<span class="k">GROUP</span>  <span class="k">BY</span> USER_ID, REAL_IP
+<span class="k">ORDER</span>  <span class="k">BY</span> CNT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>10.x / 172.16~31.x / 192.168.x가 보이면 내부망 유입 — 허용테이블 등록 또는 사설 대역 예외 정책을 먼저 결정하고 전환.</div>
+    </article>
+  </section>
+
+  <!-- ============ 4. IP 분류 조회 (고속판) ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>4 · LOGIN_IP 분류 조회 — 고속판</h2><span class="cnt"></span></div>
+    <p class="group-desc">국내 / 국외 / 차단대역(클라우드)을 한 번에 보는 쿼리. 함수를 행마다 부르지 않고 <b>고유 IP·계정당 1번</b>만 호출해 원판보다 크게 빠릅니다.</p>
+
+    <article class="qcard" data-freq="adhoc">
+      <div class="qhead"><h3>상세 조회 — 최근 7일, 국내 일반 IP 제외</h3><span class="badge new">Fast</span><span class="badge adhoc">수시</span></div>
+      <p class="qdesc">건별로 실제 IP·국내여부·클라우드 라벨·분류를 표시. 전체를 보려면 마지막 WHERE 한 줄만 삭제.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST + IS_KOREA_IP / FN_GET_CLOUD_IP_LABEL</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">WITH</span> H <span class="k">AS</span> (
+    <span class="k">SELECT</span> A.LOGIN_DATE, A.LOGIN_DT, A.USER_ID, A.LOGIN_IP
+    <span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+    <span class="k">WHERE</span>  A.LOGIN_DATE &gt;= TO_CHAR(TRUNC(SYSDATE) - 7, <span class="s">'YYYYMMDD'</span>)  <span class="c">-- 컬럼 가공 없이 (인덱스)</span>
+),
+IPS <span class="k">AS</span> (    <span class="c">-- IP 판정: 고유 IP당 1번</span>
+    <span class="k">SELECT</span> <span class="c">/*+ MATERIALIZE */</span>
+           LOGIN_IP
+    ,      FN_GET_REAL_IP(LOGIN_IP)              <span class="k">AS</span> REAL_IP
+    ,      IS_KOREA_IP(FN_GET_REAL_IP(LOGIN_IP)) <span class="k">AS</span> KOREA_YN
+    ,      FN_GET_CLOUD_IP_LABEL(LOGIN_IP)       <span class="k">AS</span> CLOUD_LABEL
+    ,      IP_TO_NUM(FN_GET_REAL_IP(LOGIN_IP))   <span class="k">AS</span> IP_NUM
+    <span class="k">FROM</span>   (<span class="k">SELECT DISTINCT</span> LOGIN_IP <span class="k">FROM</span> H)
+),
+USERS <span class="k">AS</span> (  <span class="c">-- 계정 판정: 고유 USER_ID당 1번 (직원테이블 COUNT가 여기서만 실행)</span>
+    <span class="k">SELECT</span> <span class="c">/*+ MATERIALIZE */</span>
+           USER_ID
+    ,      FN_CHK_BLOCK_TARGET_USER_YN(USER_ID) <span class="k">AS</span> TARGET_YN
+    <span class="k">FROM</span>   (<span class="k">SELECT DISTINCT</span> USER_ID <span class="k">FROM</span> H)
+)
+<span class="k">SELECT</span> H.LOGIN_DATE, H.LOGIN_DT, H.USER_ID, H.LOGIN_IP
+,      I.REAL_IP, I.KOREA_YN, I.CLOUD_LABEL
+,      <span class="k">CASE</span>
+           <span class="k">WHEN</span> I.CLOUD_LABEL <span class="k">IS NOT NULL</span> <span class="k">THEN</span> <span class="s">'차단대역('</span> || I.CLOUD_LABEL || <span class="s">')'</span>
+           <span class="k">WHEN</span> I.KOREA_YN = <span class="s">'Y'</span>          <span class="k">THEN</span> <span class="s">'국내'</span>
+           <span class="k">WHEN</span> I.IP_NUM <span class="k">IS NULL</span>          <span class="k">THEN</span> <span class="s">'판정불가(형식오류/IPv6)'</span>
+           <span class="k">ELSE</span> <span class="s">'국외/사설·미할당'</span>
+       <span class="k">END</span>                               <span class="k">AS</span> IP_CLASS
+,      U.TARGET_YN
+<span class="k">FROM</span>   H
+<span class="k">JOIN</span>   IPS   I <span class="k">ON</span> I.LOGIN_IP = H.LOGIN_IP
+<span class="k">JOIN</span>   USERS U <span class="k">ON</span> U.USER_ID  = H.USER_ID
+<span class="k">WHERE</span>  <span class="k">NOT</span> (I.KOREA_YN = <span class="s">'Y'</span> <span class="k">AND</span> I.CLOUD_LABEL <span class="k">IS NULL</span>)  <span class="c">-- 국내 일반 IP 제외 (전체 보려면 삭제)</span>
+<span class="k">ORDER</span>  <span class="k">BY</span> H.LOGIN_DATE <span class="k">DESC</span>, H.LOGIN_DT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>IS_KOREA_IP에는 반드시 FN_GET_REAL_IP를 거친 IP를 넣습니다. XFF 체인 원본을 넣으면 맨 앞 사내 프록시(10.x)로 판정됩니다.</div>
+    </article>
+
+    <article class="qcard" data-freq="adhoc">
+      <div class="qhead"><h3>분류별 요약 집계 — 국내/국외/차단대역 분포</h3><span class="badge new">Fast</span><span class="badge adhoc">수시</span></div>
+      <p class="qdesc">긴 기간을 볼 때는 상세 대신 이 집계를 사용. 분류별 로그인 수·계정 수·IP 수.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">WITH</span> H <span class="k">AS</span> (
+    <span class="k">SELECT</span> A.USER_ID, A.LOGIN_IP
+    <span class="k">FROM</span>   TB_WB_LOGIN_HIST A
+    <span class="k">WHERE</span>  A.LOGIN_DATE &gt;= TO_CHAR(TRUNC(SYSDATE) - 7, <span class="s">'YYYYMMDD'</span>)
+),
+IPS <span class="k">AS</span> (
+    <span class="k">SELECT</span> <span class="c">/*+ MATERIALIZE */</span>
+           LOGIN_IP
+    ,      FN_GET_REAL_IP(LOGIN_IP)              <span class="k">AS</span> REAL_IP
+    ,      IS_KOREA_IP(FN_GET_REAL_IP(LOGIN_IP)) <span class="k">AS</span> KOREA_YN
+    ,      FN_GET_CLOUD_IP_LABEL(LOGIN_IP)       <span class="k">AS</span> CLOUD_LABEL
+    ,      IP_TO_NUM(FN_GET_REAL_IP(LOGIN_IP))   <span class="k">AS</span> IP_NUM
+    <span class="k">FROM</span>   (<span class="k">SELECT DISTINCT</span> LOGIN_IP <span class="k">FROM</span> H)
+)
+<span class="k">SELECT</span> <span class="k">CASE</span>
+           <span class="k">WHEN</span> I.CLOUD_LABEL <span class="k">IS NOT NULL</span> <span class="k">THEN</span> <span class="s">'차단대역('</span> || I.CLOUD_LABEL || <span class="s">')'</span>
+           <span class="k">WHEN</span> I.KOREA_YN = <span class="s">'Y'</span>          <span class="k">THEN</span> <span class="s">'국내'</span>
+           <span class="k">WHEN</span> I.IP_NUM <span class="k">IS NULL</span>          <span class="k">THEN</span> <span class="s">'판정불가(형식오류/IPv6)'</span>
+           <span class="k">ELSE</span> <span class="s">'국외/사설·미할당'</span>
+       <span class="k">END</span>                          <span class="k">AS</span> IP_CLASS
+,      <span class="k">COUNT</span>(*)                     <span class="k">AS</span> LOGIN_CNT
+,      <span class="k">COUNT</span>(<span class="k">DISTINCT</span> H.USER_ID)    <span class="k">AS</span> USER_CNT
+,      <span class="k">COUNT</span>(<span class="k">DISTINCT</span> I.REAL_IP)    <span class="k">AS</span> IP_CNT
+<span class="k">FROM</span>   H
+<span class="k">JOIN</span>   IPS I <span class="k">ON</span> I.LOGIN_IP = H.LOGIN_IP
+<span class="k">GROUP</span>  <span class="k">BY</span> <span class="k">CASE</span>
+           <span class="k">WHEN</span> I.CLOUD_LABEL <span class="k">IS NOT NULL</span> <span class="k">THEN</span> <span class="s">'차단대역('</span> || I.CLOUD_LABEL || <span class="s">')'</span>
+           <span class="k">WHEN</span> I.KOREA_YN = <span class="s">'Y'</span>          <span class="k">THEN</span> <span class="s">'국내'</span>
+           <span class="k">WHEN</span> I.IP_NUM <span class="k">IS NULL</span>          <span class="k">THEN</span> <span class="s">'판정불가(형식오류/IPv6)'</span>
+           <span class="k">ELSE</span> <span class="s">'국외/사설·미할당'</span>
+       <span class="k">END</span>
+<span class="k">ORDER</span>  <span class="k">BY</span> LOGIN_CNT <span class="k">DESC</span>;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>기간을 30일 이상으로 늘릴 때도 이 구조면 함수 호출이 고유 IP 수만큼만 늘어 부담이 적습니다.</div>
+    </article>
+  </section>
+
+  <!-- ============ 5. 수시·장애 대응 ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>5 · 수시 · 장애 대응</h2><span class="cnt"></span></div>
+    <p class="group-desc">"로그인이 안 된다"는 문의가 오면 이 순서로. 에러 메시지에 Login Blocked가 있어야 이 시스템이 막은 것입니다.</p>
+
+    <article class="qcard" data-freq="adhoc">
+      <div class="qhead"><h3>단건 즉석 판정 — 왜 막혔나</h3><span class="badge adhoc">수시</span></div>
+      <p class="qdesc">에러 메시지의 계정·IP를 넣고 한 번에 판정. 공용 함수는 전부 읽기 전용이라 안심하고 호출.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">DUAL</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> FN_GET_REAL_IP(<span class="s">'에러메시지의IP'</span>)                    <span class="k">AS</span> REAL_IP
+,      FN_GET_CLOUD_IP_LABEL(<span class="s">'에러메시지의IP'</span>)             <span class="k">AS</span> CLOUD      <span class="c">-- NULL 아니면 대역 차단</span>
+,      IS_KOREA_IP(FN_GET_REAL_IP(<span class="s">'에러메시지의IP'</span>))       <span class="k">AS</span> KOREA_YN   <span class="c">-- N 이면 국외</span>
+,      FN_CHK_BLOCK_TARGET_USER_YN(<span class="s">'계정'</span>)                 <span class="k">AS</span> TARGET     <span class="c">-- Y 면 감시 대상</span>
+,      FN_CHK_LOGIN_IP_BLOCK(<span class="s">'계정'</span>, <span class="s">'에러메시지의IP'</span>, <span class="s">'Y'</span>) <span class="k">AS</span> RESULT   <span class="c">-- N=차단 / T=임시 / Y=허용</span>
+,      IS_LOGIN_ALLOWED(<span class="s">'계정'</span>, FN_GET_REAL_IP(<span class="s">'에러메시지의IP'</span>)) <span class="k">AS</span> GEO_ALLOW <span class="c">-- 국외차단 관점</span>
+<span class="k">FROM</span>   DUAL;</pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>RESULT='N'이면 IP 차단. 'Y'인데도 막히면 ① 1분 60회 초과 → ② 메뉴 함수 URL 규칙 → ③ 국외 IP(GEO_ALLOW='N') 순으로 확인. 국외 IP 차단은 로그인(R90) · 메뉴(STEP 7) · <b>SMS 인증(FN_GET_TB_CM_SMS_VFC_CODE C10~C21)</b> 세 곳 공통 — 인증번호 화면에서 <b>'05|허용되지 않은 국가(IP)'</b> 메시지가 떴다면 이 판정입니다. 메뉴·SMS 쪽은 p_log_yn='N'(판정만)이라 <b>BLOCK 이력이 남지 않으니</b> 이력이 없다고 차단이 없었던 게 아닙니다.</div>
+    </article>
+
+    <article class="qcard" data-freq="adhoc">
+      <div class="qhead"><h3>현재 감시 대상 전체 명단</h3><span class="badge adhoc">수시</span></div>
+      <p class="qdesc">본사·매장 코드 소속 + 개별 지정 계정의 합집합이 전체 감시 대상입니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_HQ_EMPLOYEE / TB_MS_EMPLOYEE</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> A.USER_ID, <span class="s">'HQ:'</span> || A.HQ_OFFICE_CD <span class="k">AS</span> SRC <span class="k">FROM</span> TB_HQ_EMPLOYEE A <span class="k">WHERE</span> A.HQ_OFFICE_CD <span class="k">IN</span> (<span class="s">'H0268'</span>,<span class="s">'DS001'</span>)
+<span class="k">UNION ALL</span>
+<span class="k">SELECT</span> A.USER_ID, <span class="s">'MS:'</span> || A.STORE_CD     <span class="k">AS</span> SRC <span class="k">FROM</span> TB_MS_EMPLOYEE A <span class="k">WHERE</span> A.STORE_CD     <span class="k">IN</span> (<span class="s">'DS00001'</span>,<span class="s">'DS00002'</span>);
+<span class="c">-- 여기에 C_TARGET_USERS 4개(h0268, momse09686, kjsun1117, kjsun11177)를 더한 것이 전체</span></pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>큰 본사·매장 코드를 추가하기 전에 명단 크기 확인 — 감시 대상은 메뉴 클릭마다 이력 INSERT + 60회 제한 + 화면 딜레이를 받습니다.</div>
+    </article>
+
+    <article class="qcard" data-freq="adhoc">
+      <div class="qhead"><h3>배포 후 INVALID 객체 확인</h3><span class="badge adhoc">수시</span></div>
+      <p class="qdesc">상수 목록을 고치고 재컴파일한 직후 반드시 실행. 전부 VALID여야 합니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">USER_OBJECTS</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> OBJECT_NAME, OBJECT_TYPE, STATUS
+<span class="k">FROM</span>   USER_OBJECTS
+<span class="k">WHERE</span>  OBJECT_NAME <span class="k">IN</span> (<span class="s">'FN_GET_REAL_IP'</span>,<span class="s">'FN_GET_CLOUD_IP_LABEL'</span>,<span class="s">'FN_CHK_CLOUD_IP_YN'</span>,
+                        <span class="s">'FN_CHK_BLOCK_TARGET_USER_YN'</span>,<span class="s">'FN_CHK_LOGIN_IP_BLOCK'</span>,
+                        <span class="s">'FN_GET_MENU_CHK_YN2'</span>,<span class="s">'TR_TB_WB_LOGIN_HIST_R98'</span>,
+                        <span class="s">'IS_KOREA_IP'</span>,<span class="s">'IS_LOGIN_ALLOWED'</span>,<span class="s">'FN_CHK_LOGIN_BLOCK'</span>,
+                        <span class="s">'TR_TB_WB_LOGIN_HIST_R90'</span>,<span class="s">'FN_GET_TB_CM_SMS_VFC_CODE'</span>);
+<span class="c">-- INVALID 면 ALTER ... COMPILE 후 SHOW ERRORS</span></pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>배포 직후 로그인이 전부 실패하면 즉시 이전 버전으로 롤백 컴파일. 트리거 WHEN OTHERS가 -20002로 전체 로그인을 막을 수 있습니다.</div>
+    </article>
+  </section>
+
+  <!-- ============ 6. 월간 ============ -->
+  <section class="group" data-group>
+    <div class="group-head"><h2>6 · 월간</h2><span class="cnt"></span></div>
+    <p class="group-desc">이력 테이블 정리와 GeoIP 재적재 후 확인.</p>
+
+    <article class="qcard" data-freq="monthly">
+      <div class="qhead"><h3>메뉴 클릭 이력 정리 (30일 이전)</h3><span class="badge monthly">Monthly</span></div>
+      <p class="qdesc">PROC_FG='C'(메뉴 클릭)만 정리. 1분 카운트는 최근 1분만 쓰므로 삭제해도 판정에 영향 없습니다.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_WB_LOGIN_HIST_CHK</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">DELETE FROM</span> TB_WB_LOGIN_HIST_CHK
+<span class="k">WHERE</span>  PROC_FG = <span class="s">'C'</span>
+<span class="k">AND</span>    PROC_DT &lt; TO_CHAR(SYSDATE - 30, <span class="s">'YYYYMMDD'</span>);
+<span class="k">COMMIT</span>;
+<span class="c">-- I/U(로그인 차단 이력)는 보안 감사용 — 별도 보관 정책에 따를 것</span></pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>감시 대상 계정이 늘면 증가 속도도 늘어납니다. 정리 전 건수를 한 번 확인하세요.</div>
+    </article>
+
+    <article class="qcard" data-freq="monthly">
+      <div class="qhead"><h3>GeoIP 재적재 후 확인 — 시노님·건수·통계</h3><span class="badge monthly">Monthly</span></div>
+      <p class="qdesc">월간 재적재 후: 건수 검증 → 통계수집 → 시노님 스위치 순서를 지켰는지 확인.</p>
+      <div class="term">
+        <div class="term-bar"><span class="tgt">TB_CM_GEOIP_RANGE</span><button class="copy" type="button">복사</button></div>
+<pre><span class="c">-- 현재 시노님이 가리키는 테이블</span>
+<span class="k">SELECT</span> table_name <span class="k">FROM</span> user_synonyms <span class="k">WHERE</span> synonym_name = <span class="s">'TB_CM_GEOIP_RANGE'</span>;
+
+<span class="c">-- 건수 (보통 30~50만 행)</span>
+<span class="k">SELECT COUNT</span>(*) <span class="k">FROM</span> TB_CM_GEOIP_RANGE;
+
+<span class="c">-- 인덱스 상태 (DIRECT=TRUE 적재 후 UNUSABLE 확인)</span>
+<span class="k">SELECT</span> index_name, status <span class="k">FROM</span> user_indexes <span class="k">WHERE</span> table_name <span class="k">LIKE</span> <span class="s">'TB_CM_GEOIP_RANGE_%'</span>;
+
+<span class="c">-- 판정 속도 샘플 (즉시 응답이어야 정상 — 느리면 통계수집 누락 의심)</span>
+<span class="k">SELECT</span> IS_KOREA_IP(<span class="s">'223.62.180.1'</span>) <span class="k">FROM</span> DUAL;  <span class="c">-- 'Y'</span>
+<span class="k">SELECT</span> IS_KOREA_IP(<span class="s">'8.8.8.8'</span>)      <span class="k">FROM</span> DUAL;  <span class="c">-- 'N'</span></pre>
+      </div>
+      <div class="qfoot"><span class="arr">→</span>조회가 수 초 걸리면 DBMS_STATS.GATHER_TABLE_STATS 누락. 통계수집 후 재확인.</div>
+    </article>
+  </section>
+
+  <!-- ============ 주의 ============ -->
+  <div class="caution">
+    <h2>점검 시 하지 말 것</h2>
+    <ul>
+      <li><b>FN_CHK_LOGIN_BLOCK을 SELECT 점검에 쓰지 않는다</b> — 차단 대상 판정 시 AUTONOMOUS로 이력을 INSERT하는 함수라, 점검하는 것만으로 TB_WB_LOGIN_HIST_BLOCK에 행이 쌓입니다. 점검은 읽기 전용 함수(IS_KOREA_IP, FN_GET_CLOUD_IP_LABEL, FN_CHK_LOGIN_IP_BLOCK 등)만 사용.</li>
+      <li><b>FN_GET_TB_CM_SMS_VFC_CODE도 SELECT 테스트에 주의</b> — AUTONOMOUS 함수라 C10/C20은 호출 즉시 인증번호가 실제 저장·발송되고, C11/C21은 실패 카운트가 올라갑니다. 점검용 호출은 조회성인 CHK/CDI만.</li>
+      <li><b>날짜 필터에서 컬럼을 가공하지 않는다</b> — <code>TO_DATE(LOGIN_DATE,…) >= …</code>는 인덱스를 못 탑니다. <code>LOGIN_DATE >= TO_CHAR(…)</code> 형태로.</li>
+      <li><b>"국내 제외" WHERE는 속도와 무관</b> — 국내 판정 자체가 함수 호출이라 필터에 넣어도 호출 횟수는 같습니다. 속도는 고유 IP당 1번 호출 구조(4번 그룹)로 해결.</li>
+      <li><b>국내 통신사 대역을 C_CIDR_LIST에 넣지 않는다</b> — 가입자 회선이라 정상 매장이 통째로 차단됩니다. 특정 계정만 문제면 C_TEMP_LIST에 쌍으로.</li>
+      <li><b>기간 필터 없이 전체 이력에 함수 쿼리를 돌리지 않는다</b> — 긴 기간은 요약 집계 쿼리로.</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:0 24px">
+    <span>SBPORA · LOGIN IP CONTROL RUNBOOK</span>
+    <span>2026.08.28 작성</span>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var chips  = document.querySelectorAll('.chip');
+  var search = document.querySelector('.search');
+  var cards  = document.querySelectorAll('.qcard');
+  var groups = document.querySelectorAll('[data-group]');
+  var freq   = 'all';
+
+  function apply(){
+    var q = (search.value || '').trim().toLowerCase();
+    cards.forEach(function(c){
+      var okFreq = (freq === 'all') || (c.dataset.freq === freq);
+      var okText = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
+      c.classList.toggle('hidden', !(okFreq && okText));
+    });
+    groups.forEach(function(g){
+      var vis = g.querySelectorAll('.qcard:not(.hidden)').length;
+      g.style.display = vis ? '' : 'none';
+      var cnt = g.querySelector('.cnt');
+      if (cnt) cnt.textContent = vis + '건';
+    });
+  }
+
+  chips.forEach(function(ch){
+    ch.addEventListener('click', function(){
+      chips.forEach(function(x){ x.classList.remove('on'); });
+      ch.classList.add('on');
+      freq = ch.dataset.f;
+      apply();
+    });
+  });
+  search.addEventListener('input', apply);
+  apply();
+
+  /* 복사 — clipboard API 실패 시 textarea fallback */
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pre = btn.closest('.term').querySelector('pre');
+      var txt = pre.textContent;
+      function done(){
+        btn.textContent = '복사됨';
+        btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(done).catch(function(){ fallback(); });
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>

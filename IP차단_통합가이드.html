@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IP 차단 — 통합 가이드</title>
+<title>로그인 IP 차단 — 통합 가이드</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -22,28 +22,37 @@ body{font-family:var(--sans);background:var(--paper);display:flex;flex-direction
 .topbar{
   background:var(--bar);color:var(--bar-text);
   border-bottom:1px solid var(--bar-line);
-  display:flex;align-items:stretch;gap:0;flex-shrink:0;
+  display:flex;align-items:stretch;flex-shrink:0;
   padding:0 16px;overflow-x:auto;
 }
 .brand{
-  display:flex;align-items:center;gap:9px;padding:0 18px 0 4px;
-  border-right:1px solid var(--bar-line);white-space:nowrap;
+  display:flex;flex-direction:column;justify-content:center;gap:2px;
+  padding:0 18px 0 4px;border-right:1px solid var(--bar-line);white-space:nowrap;
 }
+.brand .b1{display:flex;align-items:center;gap:8px}
 .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .brand b{font-size:13.5px;font-weight:700;letter-spacing:-.01em}
-.brand span{font-family:var(--mono);font-size:10.5px;color:var(--bar-muted);letter-spacing:.04em}
+.brand .b2{font-family:var(--mono);font-size:10px;color:var(--bar-muted);letter-spacing:.05em}
 .tabs{display:flex;align-items:stretch}
 .tab{
   appearance:none;background:none;border:none;cursor:pointer;
-  display:flex;align-items:center;gap:8px;
-  padding:14px 18px;color:var(--bar-muted);
+  display:flex;flex-direction:column;justify-content:center;gap:3px;
+  padding:10px 18px;color:var(--bar-muted);text-align:left;
   border-bottom:2px solid transparent;
-  font-family:var(--sans);font-size:13.5px;font-weight:600;white-space:nowrap;
+  font-family:var(--sans);white-space:nowrap;
   transition:color .15s ease,border-color .15s ease;
 }
-.tab .tnum{font-family:var(--mono);font-size:10.5px;font-weight:600;opacity:.75}
+.tab.grp{border-left:1px solid var(--bar-line)}
+.tabs .tab.grp:first-child{border-left:none}
+.tab .tcat{
+  font-family:var(--mono);font-size:9.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;opacity:.65;
+}
+.tab .tname{font-size:13.5px;font-weight:600;display:flex;align-items:baseline;gap:7px}
+.tab .tnum{font-family:var(--mono);font-size:10.5px;font-weight:600;opacity:.7}
 .tab:hover{color:var(--bar-text)}
 .tab.on{color:#fff;border-bottom-color:var(--accent)}
+.tab.on .tcat{color:var(--accent);opacity:1}
 .tab.on .tnum{color:var(--accent);opacity:1}
 .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
@@ -53,7 +62,10 @@ body{font-family:var(--sans);background:var(--paper);display:flex;flex-direction
   padding:7px 20px;font-size:12.5px;color:#5C6B66;
   display:flex;gap:10px;align-items:baseline;
 }
-.strip .k{font-family:var(--mono);font-size:10.5px;font-weight:600;color:#0B6E4F;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0}
+.strip .k{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;color:#0B6E4F;
+  letter-spacing:.05em;text-transform:uppercase;flex-shrink:0;
+}
 
 /* ---- 패널 ---- */
 .panes{flex:1;min-height:0;position:relative}
@@ -61,26 +73,30 @@ body{font-family:var(--sans);background:var(--paper);display:flex;flex-direction
 .pane.on{display:block}
 iframe{width:100%;height:100%;border:none;background:#fff}
 
-@media (max-width:640px){
-  .brand span{display:none}
-  .tab{padding:12px 13px;font-size:12.5px}
+@media (max-width:720px){
+  .brand .b2{display:none}
+  .tab{padding:9px 12px}
+  .tab .tname{font-size:12.5px}
 }
 </style>
 </head>
 <body>
 
 <div class="topbar" role="tablist" aria-label="문서 선택">
-  <div class="brand"><span class="dot"></span><b>IP 차단 통합 가이드</b><span>SBPORA</span></div>
+  <div class="brand">
+    <span class="b1"><span class="dot"></span><b>로그인 IP 차단</b></span>
+    <span class="b2">SBPORA · 통합 가이드</span>
+  </div>
   <div class="tabs">
-    <button class="tab" data-tab="build" role="tab" aria-selected="false"><span class="tnum">01</span><span class="tname">구축 가이드</span></button>
-    <button class="tab" data-tab="ops" role="tab" aria-selected="false"><span class="tnum">02</span><span class="tname">운영 가이드</span></button>
-    <button class="tab" data-tab="switch" role="tab" aria-selected="false"><span class="tnum">03</span><span class="tname">스위치 설정 정리</span></button>
-    <button class="tab" data-tab="runbook" role="tab" aria-selected="false"><span class="tnum">04</span><span class="tname">점검 쿼리 런북</span></button>
+    <button class="tab grp" data-tab="build" role="tab" aria-selected="false"><span class="tcat">국외 IP 차단</span><span class="tname"><span class="tnum">01</span>구축 가이드</span></button>
+    <button class="tab" data-tab="switch" role="tab" aria-selected="false"><span class="tcat">국외 IP 차단</span><span class="tname"><span class="tnum">02</span>스위치 설정</span></button>
+    <button class="tab grp" data-tab="ops" role="tab" aria-selected="false"><span class="tcat">사용자·IP 차단</span><span class="tname"><span class="tnum">03</span>운영 가이드</span></button>
+    <button class="tab grp" data-tab="runbook" role="tab" aria-selected="false"><span class="tcat">공통</span><span class="tname"><span class="tnum">04</span>점검 쿼리 런북</span></button>
   </div>
 </div>
 <div class="strip"><span class="k">About</span><span id="strip-desc"></span></div>
 <div class="panes">
-<section class="pane" id="pane-build" role="tabpanel" aria-label="구축 가이드"><iframe title="구축 가이드" srcdoc="<!DOCTYPE html>
+<section class="pane" id="pane-build" role="tabpanel" aria-label="국외 IP 차단 — 구축 가이드"><iframe title="구축 가이드" srcdoc="<!DOCTYPE html>
 <html lang=&quot;ko&quot;>
 <head>
 <meta charset=&quot;UTF-8&quot;>
@@ -1005,7 +1021,211 @@ SELECT IS_KOREA_IP('8.8.8.8')      FROM DUAL;   -- 'N'</pre>
 </body>
 </html>
 "></iframe></section>
-<section class="pane" id="pane-ops" role="tabpanel" aria-label="운영 가이드"><iframe title="운영 가이드" srcdoc="<!DOCTYPE html>
+<section class="pane" id="pane-switch" role="tabpanel" aria-label="국외 IP 차단 — 스위치 설정"><iframe title="스위치 설정" srcdoc="<!DOCTYPE html>
+<html lang=&quot;ko&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: &quot;Malgun Gothic&quot;, &quot;맑은 고딕&quot;, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #222;
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+    word-break: keep-all;
+  }
+  h1 { font-size: 26px; margin-bottom: 8px; }
+  .subtitle { color: #666; font-size: 14px; margin-bottom: 40px; }
+  h2 {
+    font-size: 19px;
+    margin: 44px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #333;
+  }
+  h2:first-of-type { margin-top: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 12px 0 8px;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f2f2f2; font-weight: 700; white-space: nowrap; }
+  code {
+    font-family: Consolas, &quot;Courier New&quot;, monospace;
+    font-size: 13px;
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .block { color: #c0392b; font-weight: 700; }
+  .pass { color: #27ae60; }
+  .current {
+    background: #fff9dd;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    background: #c0392b;
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin-bottom: 6px; }
+  .note {
+    background: #f6f8fa;
+    border-left: 4px solid #888;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .note.warn { border-left-color: #c0392b; background: #fdf3f2; }
+  .steps li { margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h1>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</h1>
+<p class=&quot;subtitle&quot;>국외 IP 로그인 차단 — 판정 함수 운영 모드 가이드 (작성일 2026.08.28)</p>
+
+<h2>1. 스위치 2개</h2>
+<table>
+  <thead>
+    <tr><th>스위치</th><th>값</th><th>의미</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan=&quot;2&quot;><code>C_BLOCK_MODE</code></td>
+      <td><code>'N'</code></td>
+      <td><b>관찰 모드</b> — 차단 대상이어도 통과('M'), 이력만 기록</td>
+    </tr>
+    <tr>
+      <td><code>'Y'</code></td>
+      <td><b>차단 모드</b> — 차단 대상은 'N' 리턴 → 트리거가 RAISE (로그인 실패)</td>
+    </tr>
+    <tr>
+      <td rowspan=&quot;2&quot;><code>C_CHK_TARGET</code></td>
+      <td><code>'S'</code></td>
+      <td><b>SMS 등록자만 검사</b> — 미등록자는 판정·이력 없이 즉시 'Y'</td>
+    </tr>
+    <tr>
+      <td><code>'A'</code></td>
+      <td><b>전체 사용자 검사</b> — 미등록자도 판정·이력·차단 대상</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. 조합별 동작</h2>
+<p>국외 IP + 허용테이블(TB_CM_IP_ALLOW) 미등재인 경우 기준.</p>
+<table>
+  <thead>
+    <tr><th>조합</th><th>SMS 등록자</th><th>SMS 미등록자</th><th>용도</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>N</code> + <code>S</code></td>
+      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=Y]</code></td>
+      <td class=&quot;pass&quot;>통과, 이력 없음</td>
+      <td>등록자만 관찰 (원본 초기 상태)</td>
+    </tr>
+    <tr class=&quot;current&quot;>
+      <td><code>N</code> + <code>A</code><span class=&quot;badge&quot;>현재</span></td>
+      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=Y]</code></td>
+      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=N]</code></td>
+      <td><b>전체 관찰</b> — 아무도 차단되지 않음</td>
+    </tr>
+    <tr>
+      <td><code>Y</code> + <code>S</code></td>
+      <td class=&quot;block&quot;>차단 + 이력</td>
+      <td class=&quot;pass&quot;>통과, 이력 없음</td>
+      <td>등록자만 차단</td>
+    </tr>
+    <tr>
+      <td><code>Y</code> + <code>A</code></td>
+      <td class=&quot;block&quot;>차단 + 이력</td>
+      <td class=&quot;block&quot;>차단 + 이력</td>
+      <td>전체 차단 (최종 목표)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. 조합과 무관하게 항상 동일한 것</h2>
+<ul>
+  <li><b>한국 IP</b> → 무조건 'Y' 허용, 이력 없음</li>
+  <li><b>TB_CM_IP_ALLOW 등재자</b> (기간·USE_YN 유효) → 국외여도 'Y' 허용, 이력 없음</li>
+  <li><b>판정 중 오류 발생</b> → 'Y' 허용 (전체 로그인 장애 방지 — fail-open)</li>
+  <li><b>메뉴 접근</b> (FN_GET_MENU_CHK_YN2, <code>p_log_yn=&amp;gt;'N'</code>) → 판정은 동일하게 수행, 이력만 생략</li>
+  <li>이력 라벨: 관찰 모드 <code>MONITOR - ...</code>, 차단 모드 <code>BLOCKED - ...</code></li>
+</ul>
+
+<div class=&quot;note warn&quot;>
+  <b>주의 — fail-open 구조:</b> 판정 중 내부 오류(테이블 없음·권한 문제 등)가 발생하면 에러 없이 조용히 'Y'로 허용됩니다.
+  이력이 예상보다 적으면 &quot;국외 접속이 없는 것&quot;인지 &quot;함수가 예외로 빠지는 것&quot;인지
+  단독 테스트(<code>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, '아이디', '8.8.8.8') FROM DUAL</code> → 'M' + 이력 1건)로 검증 필요.
+</div>
+
+<h2>4. 리턴값 의미</h2>
+<table>
+  <thead>
+    <tr><th>리턴</th><th>의미</th><th>트리거(R90) 처리</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>'Y'</code></td><td>허용 (한국 IP / 허용테이블 / 검사 제외 대상)</td><td>통과</td></tr>
+    <tr><td><code>'M'</code></td><td>차단 대상이지만 관찰 모드라 통과 (이력 기록)</td><td>통과</td></tr>
+    <tr><td><code>'N'</code></td><td>차단 (이력 기록)</td><td>RAISE → 로그인 실패</td></tr>
+  </tbody>
+</table>
+
+<h2>5. 운영 시나리오 (권장 순서)</h2>
+<ol class=&quot;steps&quot;>
+  <li><b><code>N</code> + <code>A</code></b> (현재) — 전체 국외 접속 현황 수집</li>
+  <li>이력에서 <code>[SMS=Y]</code> 건 검토 → 정당한 해외 사용자는 허용테이블(TB_CM_IP_ALLOW) 등재</li>
+  <li><b><code>Y</code> + <code>S</code></b> — 등록자부터 차단 개시
+    <br><span style=&quot;color:#888; font-size:13px;&quot;>※ 이 조합에서는 미등록자 이력도 안 남는 점 주의 — 미등록자 이력을 유지하려면 이 단계를 건너뛰고 4로</span></li>
+  <li><b><code>Y</code> + <code>A</code></b> — 전체 차단</li>
+</ol>
+
+<div class=&quot;note&quot;>
+  스위치 변경은 함수 상수 두 줄 수정 후 <b>재컴파일만</b> 하면 됩니다.
+  트리거(TR_TB_WB_LOGIN_HIST_R90)·메뉴 함수(FN_GET_MENU_CHK_YN2)는 수정 불필요.
+</div>
+
+<h2>6. 이력 확인 쿼리</h2>
+<table>
+  <thead>
+    <tr><th>목적</th><th>쿼리</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>등록/미등록 구분 집계</td>
+      <td><code>SELECT CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END AS SMS_DIV, COUNT(*) CNT, COUNT(DISTINCT USER_ID) USER_CNT FROM TB_WB_LOGIN_HIST_BLOCK GROUP BY CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END</code></td>
+    </tr>
+    <tr>
+      <td>차단 전환 시 영향받을 사용자</td>
+      <td><code>SELECT DISTINCT USER_ID, REAL_IP, COUNTRY_CODE FROM TB_WB_LOGIN_HIST_BLOCK WHERE BLOCK_REASON LIKE '%[SMS=Y]%'</code></td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>
+"></iframe></section>
+<section class="pane" id="pane-ops" role="tabpanel" aria-label="사용자·IP 차단 — 운영 가이드"><iframe title="운영 가이드" srcdoc="<!DOCTYPE html>
 <html lang=&quot;ko&quot;>
 <head>
 <meta charset=&quot;UTF-8&quot;>
@@ -1341,211 +1561,7 @@ SELECT IS_KOREA_IP('8.8.8.8')      FROM DUAL;   -- 'N'</pre>
 </body>
 </html>
 "></iframe></section>
-<section class="pane" id="pane-switch" role="tabpanel" aria-label="스위치 설정 정리"><iframe title="스위치 설정 정리" srcdoc="<!DOCTYPE html>
-<html lang=&quot;ko&quot;>
-<head>
-<meta charset=&quot;UTF-8&quot;>
-<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
-<title>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: &quot;Malgun Gothic&quot;, &quot;맑은 고딕&quot;, -apple-system, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
-    color: #222;
-    background: #fff;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 48px 32px 96px;
-    word-break: keep-all;
-  }
-  h1 { font-size: 26px; margin-bottom: 8px; }
-  .subtitle { color: #666; font-size: 14px; margin-bottom: 40px; }
-  h2 {
-    font-size: 19px;
-    margin: 44px 0 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #333;
-  }
-  h2:first-of-type { margin-top: 0; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-    margin: 12px 0 8px;
-  }
-  th, td {
-    border: 1px solid #ccc;
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: top;
-  }
-  th { background: #f2f2f2; font-weight: 700; white-space: nowrap; }
-  code {
-    font-family: Consolas, &quot;Courier New&quot;, monospace;
-    font-size: 13px;
-    background: #f4f4f4;
-    padding: 2px 6px;
-    border-radius: 3px;
-  }
-  .block { color: #c0392b; font-weight: 700; }
-  .pass { color: #27ae60; }
-  .current {
-    background: #fff9dd;
-  }
-  .badge {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 700;
-    background: #c0392b;
-    color: #fff;
-    padding: 1px 8px;
-    border-radius: 10px;
-    margin-left: 6px;
-    vertical-align: middle;
-  }
-  ul, ol { margin: 8px 0 8px 24px; }
-  li { margin-bottom: 6px; }
-  .note {
-    background: #f6f8fa;
-    border-left: 4px solid #888;
-    padding: 14px 18px;
-    margin: 16px 0;
-    font-size: 14px;
-  }
-  .note.warn { border-left-color: #c0392b; background: #fdf3f2; }
-  .steps li { margin-bottom: 10px; }
-</style>
-</head>
-<body>
-
-<h1>FN_CHK_LOGIN_BLOCK 스위치 설정 정리</h1>
-<p class=&quot;subtitle&quot;>국외 IP 로그인 차단 — 판정 함수 운영 모드 가이드 (작성일 2026.08.28)</p>
-
-<h2>1. 스위치 2개</h2>
-<table>
-  <thead>
-    <tr><th>스위치</th><th>값</th><th>의미</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td rowspan=&quot;2&quot;><code>C_BLOCK_MODE</code></td>
-      <td><code>'N'</code></td>
-      <td><b>관찰 모드</b> — 차단 대상이어도 통과('M'), 이력만 기록</td>
-    </tr>
-    <tr>
-      <td><code>'Y'</code></td>
-      <td><b>차단 모드</b> — 차단 대상은 'N' 리턴 → 트리거가 RAISE (로그인 실패)</td>
-    </tr>
-    <tr>
-      <td rowspan=&quot;2&quot;><code>C_CHK_TARGET</code></td>
-      <td><code>'S'</code></td>
-      <td><b>SMS 등록자만 검사</b> — 미등록자는 판정·이력 없이 즉시 'Y'</td>
-    </tr>
-    <tr>
-      <td><code>'A'</code></td>
-      <td><b>전체 사용자 검사</b> — 미등록자도 판정·이력·차단 대상</td>
-    </tr>
-  </tbody>
-</table>
-
-<h2>2. 조합별 동작</h2>
-<p>국외 IP + 허용테이블(TB_CM_IP_ALLOW) 미등재인 경우 기준.</p>
-<table>
-  <thead>
-    <tr><th>조합</th><th>SMS 등록자</th><th>SMS 미등록자</th><th>용도</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>N</code> + <code>S</code></td>
-      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=Y]</code></td>
-      <td class=&quot;pass&quot;>통과, 이력 없음</td>
-      <td>등록자만 관찰 (원본 초기 상태)</td>
-    </tr>
-    <tr class=&quot;current&quot;>
-      <td><code>N</code> + <code>A</code><span class=&quot;badge&quot;>현재</span></td>
-      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=Y]</code></td>
-      <td class=&quot;pass&quot;>통과 + 이력 <code>[SMS=N]</code></td>
-      <td><b>전체 관찰</b> — 아무도 차단되지 않음</td>
-    </tr>
-    <tr>
-      <td><code>Y</code> + <code>S</code></td>
-      <td class=&quot;block&quot;>차단 + 이력</td>
-      <td class=&quot;pass&quot;>통과, 이력 없음</td>
-      <td>등록자만 차단</td>
-    </tr>
-    <tr>
-      <td><code>Y</code> + <code>A</code></td>
-      <td class=&quot;block&quot;>차단 + 이력</td>
-      <td class=&quot;block&quot;>차단 + 이력</td>
-      <td>전체 차단 (최종 목표)</td>
-    </tr>
-  </tbody>
-</table>
-
-<h2>3. 조합과 무관하게 항상 동일한 것</h2>
-<ul>
-  <li><b>한국 IP</b> → 무조건 'Y' 허용, 이력 없음</li>
-  <li><b>TB_CM_IP_ALLOW 등재자</b> (기간·USE_YN 유효) → 국외여도 'Y' 허용, 이력 없음</li>
-  <li><b>판정 중 오류 발생</b> → 'Y' 허용 (전체 로그인 장애 방지 — fail-open)</li>
-  <li><b>메뉴 접근</b> (FN_GET_MENU_CHK_YN2, <code>p_log_yn=&amp;gt;'N'</code>) → 판정은 동일하게 수행, 이력만 생략</li>
-  <li>이력 라벨: 관찰 모드 <code>MONITOR - ...</code>, 차단 모드 <code>BLOCKED - ...</code></li>
-</ul>
-
-<div class=&quot;note warn&quot;>
-  <b>주의 — fail-open 구조:</b> 판정 중 내부 오류(테이블 없음·권한 문제 등)가 발생하면 에러 없이 조용히 'Y'로 허용됩니다.
-  이력이 예상보다 적으면 &quot;국외 접속이 없는 것&quot;인지 &quot;함수가 예외로 빠지는 것&quot;인지
-  단독 테스트(<code>SELECT FN_CHK_LOGIN_BLOCK('I', NULL, '아이디', '8.8.8.8') FROM DUAL</code> → 'M' + 이력 1건)로 검증 필요.
-</div>
-
-<h2>4. 리턴값 의미</h2>
-<table>
-  <thead>
-    <tr><th>리턴</th><th>의미</th><th>트리거(R90) 처리</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><code>'Y'</code></td><td>허용 (한국 IP / 허용테이블 / 검사 제외 대상)</td><td>통과</td></tr>
-    <tr><td><code>'M'</code></td><td>차단 대상이지만 관찰 모드라 통과 (이력 기록)</td><td>통과</td></tr>
-    <tr><td><code>'N'</code></td><td>차단 (이력 기록)</td><td>RAISE → 로그인 실패</td></tr>
-  </tbody>
-</table>
-
-<h2>5. 운영 시나리오 (권장 순서)</h2>
-<ol class=&quot;steps&quot;>
-  <li><b><code>N</code> + <code>A</code></b> (현재) — 전체 국외 접속 현황 수집</li>
-  <li>이력에서 <code>[SMS=Y]</code> 건 검토 → 정당한 해외 사용자는 허용테이블(TB_CM_IP_ALLOW) 등재</li>
-  <li><b><code>Y</code> + <code>S</code></b> — 등록자부터 차단 개시
-    <br><span style=&quot;color:#888; font-size:13px;&quot;>※ 이 조합에서는 미등록자 이력도 안 남는 점 주의 — 미등록자 이력을 유지하려면 이 단계를 건너뛰고 4로</span></li>
-  <li><b><code>Y</code> + <code>A</code></b> — 전체 차단</li>
-</ol>
-
-<div class=&quot;note&quot;>
-  스위치 변경은 함수 상수 두 줄 수정 후 <b>재컴파일만</b> 하면 됩니다.
-  트리거(TR_TB_WB_LOGIN_HIST_R90)·메뉴 함수(FN_GET_MENU_CHK_YN2)는 수정 불필요.
-</div>
-
-<h2>6. 이력 확인 쿼리</h2>
-<table>
-  <thead>
-    <tr><th>목적</th><th>쿼리</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>등록/미등록 구분 집계</td>
-      <td><code>SELECT CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END AS SMS_DIV, COUNT(*) CNT, COUNT(DISTINCT USER_ID) USER_CNT FROM TB_WB_LOGIN_HIST_BLOCK GROUP BY CASE WHEN BLOCK_REASON LIKE '%[SMS=Y]%' THEN 'SMS등록' ELSE '미등록' END</code></td>
-    </tr>
-    <tr>
-      <td>차단 전환 시 영향받을 사용자</td>
-      <td><code>SELECT DISTINCT USER_ID, REAL_IP, COUNTRY_CODE FROM TB_WB_LOGIN_HIST_BLOCK WHERE BLOCK_REASON LIKE '%[SMS=Y]%'</code></td>
-    </tr>
-  </tbody>
-</table>
-
-</body>
-</html>
-"></iframe></section>
-<section class="pane" id="pane-runbook" role="tabpanel" aria-label="점검 쿼리 런북"><iframe title="점검 쿼리 런북" srcdoc="<!DOCTYPE html>
+<section class="pane" id="pane-runbook" role="tabpanel" aria-label="공통 — 점검 쿼리 런북"><iframe title="점검 쿼리 런북" srcdoc="<!DOCTYPE html>
 <html lang=&quot;ko&quot;>
 <head>
 <meta charset=&quot;UTF-8&quot;>
@@ -1998,7 +2014,7 @@ IPS <span class=&quot;k&quot;>AS</span> (
 ,      IS_LOGIN_ALLOWED(<span class=&quot;s&quot;>'계정'</span>, FN_GET_REAL_IP(<span class=&quot;s&quot;>'에러메시지의IP'</span>)) <span class=&quot;k&quot;>AS</span> GEO_ALLOW <span class=&quot;c&quot;>-- 국외차단 관점</span>
 <span class=&quot;k&quot;>FROM</span>   DUAL;</pre>
       </div>
-      <div class=&quot;qfoot&quot;><span class=&quot;arr&quot;>→</span>RESULT='N'이면 IP 차단. 'Y'인데도 막히면 ① 1분 60회 초과 → ② 메뉴 함수 URL 규칙 → ③ 국외 IP(GEO_ALLOW='N') 순으로 확인.</div>
+      <div class=&quot;qfoot&quot;><span class=&quot;arr&quot;>→</span>RESULT='N'이면 IP 차단. 'Y'인데도 막히면 ① 1분 60회 초과 → ② 메뉴 함수 URL 규칙 → ③ 국외 IP(GEO_ALLOW='N') 순으로 확인. 국외 IP 차단은 로그인(R90) · 메뉴(STEP 7) · <b>SMS 인증(FN_GET_TB_CM_SMS_VFC_CODE C10~C21)</b> 세 곳 공통 — 인증번호 화면에서 <b>'05|허용되지 않은 국가(IP)'</b> 메시지가 떴다면 이 판정입니다. 메뉴·SMS 쪽은 p_log_yn='N'(판정만)이라 <b>BLOCK 이력이 남지 않으니</b> 이력이 없다고 차단이 없었던 게 아닙니다.</div>
     </article>
 
     <article class=&quot;qcard&quot; data-freq=&quot;adhoc&quot;>
@@ -2025,7 +2041,7 @@ IPS <span class=&quot;k&quot;>AS</span> (
                         <span class=&quot;s&quot;>'FN_CHK_BLOCK_TARGET_USER_YN'</span>,<span class=&quot;s&quot;>'FN_CHK_LOGIN_IP_BLOCK'</span>,
                         <span class=&quot;s&quot;>'FN_GET_MENU_CHK_YN2'</span>,<span class=&quot;s&quot;>'TR_TB_WB_LOGIN_HIST_R98'</span>,
                         <span class=&quot;s&quot;>'IS_KOREA_IP'</span>,<span class=&quot;s&quot;>'IS_LOGIN_ALLOWED'</span>,<span class=&quot;s&quot;>'FN_CHK_LOGIN_BLOCK'</span>,
-                        <span class=&quot;s&quot;>'TR_TB_WB_LOGIN_HIST_R90'</span>);
+                        <span class=&quot;s&quot;>'TR_TB_WB_LOGIN_HIST_R90'</span>,<span class=&quot;s&quot;>'FN_GET_TB_CM_SMS_VFC_CODE'</span>);
 <span class=&quot;c&quot;>-- INVALID 면 ALTER ... COMPILE 후 SHOW ERRORS</span></pre>
       </div>
       <div class=&quot;qfoot&quot;><span class=&quot;arr&quot;>→</span>배포 직후 로그인이 전부 실패하면 즉시 이전 버전으로 롤백 컴파일. 트리거 WHEN OTHERS가 -20002로 전체 로그인을 막을 수 있습니다.</div>
@@ -2078,6 +2094,7 @@ IPS <span class=&quot;k&quot;>AS</span> (
     <h2>점검 시 하지 말 것</h2>
     <ul>
       <li><b>FN_CHK_LOGIN_BLOCK을 SELECT 점검에 쓰지 않는다</b> — 차단 대상 판정 시 AUTONOMOUS로 이력을 INSERT하는 함수라, 점검하는 것만으로 TB_WB_LOGIN_HIST_BLOCK에 행이 쌓입니다. 점검은 읽기 전용 함수(IS_KOREA_IP, FN_GET_CLOUD_IP_LABEL, FN_CHK_LOGIN_IP_BLOCK 등)만 사용.</li>
+      <li><b>FN_GET_TB_CM_SMS_VFC_CODE도 SELECT 테스트에 주의</b> — AUTONOMOUS 함수라 C10/C20은 호출 즉시 인증번호가 실제 저장·발송되고, C11/C21은 실패 카운트가 올라갑니다. 점검용 호출은 조회성인 CHK/CDI만.</li>
       <li><b>날짜 필터에서 컬럼을 가공하지 않는다</b> — <code>TO_DATE(LOGIN_DATE,…) >= …</code>는 인덱스를 못 탑니다. <code>LOGIN_DATE >= TO_CHAR(…)</code> 형태로.</li>
       <li><b>&quot;국내 제외&quot; WHERE는 속도와 무관</b> — 국내 판정 자체가 함수 호출이라 필터에 넣어도 호출 횟수는 같습니다. 속도는 고유 IP당 1번 호출 구조(4번 그룹)로 해결.</li>
       <li><b>국내 통신사 대역을 C_CIDR_LIST에 넣지 않는다</b> — 가입자 회선이라 정상 매장이 통째로 차단됩니다. 특정 계정만 문제면 C_TEMP_LIST에 쌍으로.</li>
@@ -2163,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   var tabs  = document.querySelectorAll('.tab');
-  var descs = {"build": "구축 가이드 — 국외 IP 로그인 차단 시스템 — 전체 구축", "ops": "운영 가이드 — 로그인 · 메뉴 IP 차단 — 클라우드 대역·계정 관리", "switch": "스위치 설정 정리 — FN_CHK_LOGIN_BLOCK — 모드 조합별 동작", "runbook": "점검 쿼리 런북 — 일일·주간·월간 점검 + 국외 IP 확인 + 분류 쿼리"};
+  var descs = {"build": "국외 IP 로그인 차단 (전체 사용자 대상) — MaxMind GeoIP 적재부터 판정 함수·트리거까지. 적용 지점: 로그인(R90) · 메뉴(STEP 7) · SMS 인증(C10~C21)", "switch": "국외 IP 차단의 운영 모드 — FN_CHK_LOGIN_BLOCK 스위치(C_BLOCK_MODE · C_CHK_TARGET) 조합별 동작. 스위치 하나로 로그인·메뉴·SMS 인증 세 곳 일괄 제어", "ops": "특정 사용자·클라우드 IP 차단 — 감시 대상 계정과 차단 목록(C_HARD_LIST · C_TEMP_LIST · C_CIDR_LIST) 관리, 트리거 R98", "runbook": "두 시스템 공통 점검 — 일일·주간·월간 쿼리, 국외 IP 관찰 확인, LOGIN_IP 국내/국외/차단대역 분류"};
   function activate(key, pushHash){
     tabs.forEach(function(t){
       var on = t.dataset.tab === key;

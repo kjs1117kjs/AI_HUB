@@ -170,7 +170,7 @@
   #nwrap[hidden]{display:none;}
   #nmodal{
     background:var(--panel); border-radius:10px; box-shadow:0 16px 48px var(--shadow);
-    width:min(880px, 100%); max-height:88vh; display:flex; flex-direction:column;
+    width:min(1280px, 100%); max-height:88vh; display:flex; flex-direction:column;
   }
   #nmodal .nm-head{
     display:flex; align-items:center; gap:10px; padding:13px 18px;
@@ -186,8 +186,20 @@
   }
   #nmodal .nm-tabs button.on{background:var(--star); color:#fff;}
   #nmodal .nm-body{overflow:auto; flex:1;}
-  #nmodal table{width:100%; min-width:680px;}
+  #nmodal table{width:100%; min-width:960px; table-layout:fixed;}
+  /* 한 줄 고정 + 말줄임: 행 클릭 시 .nm-x 로 펼침 */
+  #nmodal td{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; word-break:normal;}
+  #nmodal thead th{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #nmodal tbody tr{cursor:default;}
+  #nmodal tbody td.nm-title{cursor:pointer;}
+  #nmodal tbody tr.nm-x td{white-space:normal; overflow:visible; text-overflow:clip; word-break:break-all;}
+  #nmodal tbody tr.nm-x td.nm-title{background:var(--accent-soft);}
   #nmodal thead th{position:sticky; top:0;}
+  /* YYYYMMDD 8자리 전용 컬럼: 숫자 8자 폭(13px·tnum)에 딱 맞게 고정 */
+  #nmodal col.c-ymd{width:82px;}
+  #nmodal table{font-feature-settings:"tnum";}
+  #nmodal thead th{padding-left:4px; padding-right:4px;}
+  #nmodal tbody td{padding-left:6px; padding-right:6px; min-width:0;}
   #nmodal td.center{text-align:center;}
   #nmodal td[contenteditable]:focus{outline:2px solid var(--accent); outline-offset:-2px; background:var(--panel);}
   #nmodal tr.noti-off td{color:#9aa6b1; background:#fafbfc;}
@@ -842,6 +854,11 @@
     </div>
     <div class="nm-body">
       <table>
+        <colgroup>
+          <col style="width:46px"><col style="width:74px"><col style="width:58px"><col>
+          <col class="c-ymd"><col style="width:76px"><col class="c-ymd"><col class="c-ymd">
+          <col style="width:66px"><col style="width:32px">
+        </colgroup>
         <thead>
           <tr>
             <th title="체크된 항목만 자동 알림에 나타납니다">알림</th>
@@ -855,6 +872,7 @@
       <div id="mtSec" class="nm-ov" hidden>
         <div class="nm-ovh mt">🗓 회의일정 <span class="nm-ovsub">(예정 회의 · 가까운 순 · 알림 켜진 항목만)</span><span id="mtCnt"></span></div>
         <table>
+          <colgroup><col style="width:200px"><col><col style="width:190px"><col style="width:190px"><col style="width:76px"><col style="width:66px"></colgroup>
           <thead><tr><th>일시</th><th>제목</th><th>장소</th><th>참석자</th><th>등록자</th><th>D-day</th></tr></thead>
           <tbody id="mttbody"></tbody>
         </table>
@@ -862,6 +880,7 @@
       <div id="ovSec" class="nm-ov" hidden>
         <div class="nm-ovh">⏰ 지연된 일정 <span class="nm-ovsub">(중요 외 · 개발완료예정이 지났는데 미완료)</span><span id="ovCnt"></span></div>
         <table>
+          <colgroup><col style="width:58px"><col><col style="width:76px"><col class="c-ymd"><col style="width:66px"></colgroup>
           <thead><tr><th>No</th><th>제목</th><th>상세구분</th><th>개발완료예정</th><th>지연</th></tr></thead>
           <tbody id="ovtbody"></tbody>
         </table>
@@ -869,6 +888,7 @@
       <div id="dueAllSec" class="nm-ov" hidden>
         <div class="nm-ovh alt">📅 개발완료예정 일정 <span class="nm-ovsub">(중요 외 · 완료·미진행 제외 · 마감일 순)</span><span id="dueAllCnt"></span></div>
         <table>
+          <colgroup><col style="width:58px"><col><col style="width:76px"><col class="c-ymd"><col style="width:66px"></colgroup>
           <thead><tr><th>No</th><th>제목</th><th>상세구분</th><th>개발완료예정</th><th>D-day</th></tr></thead>
           <tbody id="dueAlltbody"></tbody>
         </table>
@@ -2842,6 +2862,13 @@ function openNoti(filter, isAuto){
   renderNoti();
 }
 function closeNoti(){ nwrap.hidden = true; resetIdle(); }
+/* 알림 모달: 행 클릭 시 한 줄 고정(말줄임) ↔ 전체 보기 토글 */
+document.getElementById("nmodal").querySelector(".nm-body").addEventListener("click", e=>{
+  if(e.target.closest("input,a,button,[data-goto],[data-mgo],[data-mdel],[contenteditable]")) return;
+  const tr = e.target.closest("tbody tr"); if(!tr) return;
+  if(window.getSelection && String(window.getSelection()).length) return;   // 텍스트 드래그 선택 중이면 무시
+  tr.classList.toggle("nm-x");
+});
 nwrap.addEventListener("mousedown", e=>{ if(e.target===nwrap) closeNoti(); });
 
 /* 개발완료예정 마감 상태: 0=해당없음, 1=지났지만 완료, 2=지났는데 미완료 */
@@ -2884,7 +2911,7 @@ function notiCellHtml(item, c, due){
   if(c==="상세구분" && STATUS_BADGE.has(s)){
     return `<td class="center"${editable}><span class="badge b-${s}">${esc(s)}</span></td>`;
   }
-  let cls = c==="제목" ? "" : "center nowrap";
+  let cls = c==="제목" ? "nm-title" : "center nowrap";
   if(c==="No" && item.type==="row"){
     return `<td class="${cls} noti-go" data-goto="${item.idx}" title="알림을 닫고 이 업무로 이동">${esc(v)}</td>`;
   }
@@ -2973,7 +3000,7 @@ function renderOverdue(){
     const badge = STATUS_BADGE.has(st)?`<span class="badge b-${st}">${esc(st)}</span>`:esc(st);
     h.push(`<tr class="overdue">
       <td class="center noti-go" data-goto="${i}" title="알림을 닫고 이 업무로 이동">${esc(r.No??"")}</td>
-      <td>${esc(evTitle(r))}</td>
+      <td class="nm-title">${esc(evTitle(r))}</td>
       <td class="center">${badge}</td>
       <td class="center due-hot">${esc(r["개발완료예정"]??"")}</td>
       <td class="center">${dlabel}</td></tr>`);
@@ -3003,7 +3030,7 @@ function renderDueAll(){
     const badge=STATUS_BADGE.has(st)?`<span class="badge b-${st}">${esc(st)}</span>`:esc(st);
     h.push(`<tr class="${overdue?'overdue':''}">
       <td class="center noti-go" data-goto="${i}" title="알림을 닫고 이 업무로 이동">${esc(r.No??"")}</td>
-      <td>${esc(evTitle(r))}</td>
+      <td class="nm-title">${esc(evTitle(r))}</td>
       <td class="center">${badge}</td>
       <td class="center${overdue?' due-hot':''}">${esc(r["개발완료예정"]??"")}</td>
       <td class="center">${di.has?di.label:""}</td></tr>`);
@@ -3148,9 +3175,9 @@ function renderMeetNoti(){
     const b = meetBadge(m);
     h.push(`<tr${b.hot?' class="overdue"':''}>
       <td class="center nowrap mt-go" data-mgo="${esc(m.id)}" title="알림을 닫고 이 회의를 편집"><span class="mt-time">${fmtMeetDate(m,true)} ${esc(fmtMeetTime(m))}</span></td>
-      <td>${esc(m["제목"]||"(제목 없음)")}${m["링크"]?` <a href="${esc(m["링크"])}" target="_blank" rel="noopener" title="링크 열기" onclick="event.stopPropagation()">↗</a>`:""}</td>
-      <td>${esc(m["장소"]||"")}</td>
-      <td>${esc(m["참석자"]||"")}</td>
+      <td class="nm-title">${esc(m["제목"]||"(제목 없음)")}${m["링크"]?` <a href="${esc(m["링크"])}" target="_blank" rel="noopener" title="링크 열기" onclick="event.stopPropagation()">↗</a>`:""}</td>
+      <td class="nm-title">${esc(m["장소"]||"")}</td>
+      <td class="nm-title">${esc(m["참석자"]||"")}</td>
       <td class="center nowrap">${esc(m["등록자"]||"")}</td>
       <td class="center nowrap">${b.label?`<span class="dday ${b.cls}">${esc(b.label)}</span>`:""}</td></tr>`);
   }

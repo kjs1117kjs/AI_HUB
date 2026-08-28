@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoIP 재적재 자동화 — 실행 방법 &amp; 기능 설명</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F3; --card:#FFFFFF; --ink:#172321; --muted:#5C6B66; --faint:#8B9691;
+  --line:#D9DFDC; --line-soft:#E7EBE9;
+  --term:#101917; --term-line:#233029; --term-text:#D7E2DC; --term-dim:#7C8F86;
+  --term-kw:#8FD4B4; --term-str:#E8C583;
+  --accent:#0B6E4F; --accent-soft:#E2EFE9;
+  --warn:#B45309; --warn-soft:#F6EADA;
+  --danger:#B3372F; --danger-soft:#F5E3E1;
+  --run:#3B5AA6; --run-soft:#E4E9F4;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --sans:"IBM Plex Sans KR","IBM Plex Sans",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);
+  font-size:15px;line-height:1.65;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:880px;margin:0 auto;padding:0 24px}
+
+header{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.sys-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);
+  font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:14px}
+.sys-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+h1{font-size:28px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.subtitle{margin-top:10px;color:var(--muted);font-size:14.5px;max-width:660px}
+
+main{padding:8px 0 80px}
+section{margin-top:46px}
+h2{font-size:19px;font-weight:700;margin-bottom:6px}
+.sec-desc{color:var(--muted);font-size:13.5px;margin-bottom:16px;max-width:680px}
+h3{font-size:15px;font-weight:700;margin:22px 0 8px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;margin-bottom:14px}
+p+p{margin-top:8px}
+
+/* 파일 목록 */
+.files{display:grid;grid-template-columns:1fr;gap:10px}
+.file{display:flex;gap:14px;align-items:flex-start;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.file .fname{font-family:var(--mono);font-size:12.5px;font-weight:600;
+  color:var(--accent);white-space:nowrap;padding-top:2px}
+.file .fdesc{font-size:13.5px;color:var(--muted)}
+.file .fdesc b{color:var(--ink);font-weight:600}
+
+/* 단계 플로우 */
+.flow{display:flex;flex-wrap:wrap;gap:0;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.fstep{flex:1;min-width:150px;padding:14px 16px;border-left:1px solid var(--line-soft);position:relative}
+.fstep:first-child{border-left:none}
+.fstep .no{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--faint)}
+.fstep .nm{font-weight:700;font-size:13.5px;margin:2px 0 4px}
+.fstep .gt{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-weight:600}
+.fstep .dt{font-size:12px;color:var(--muted);margin-top:4px}
+.fstep.hl{background:var(--accent-soft)}
+.fstep.hl .nm{color:var(--accent)}
+
+/* 터미널 코드 */
+.term{background:var(--term);border-radius:10px;overflow:hidden;margin:10px 0 4px}
+.term-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--term-line)}
+.term-bar .tgt{font-family:var(--mono);font-size:11px;color:var(--term-dim)}
+.copy{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;
+  background:transparent;color:var(--term-dim);border:1px solid var(--term-line);
+  border-radius:5px;padding:4px 12px;cursor:pointer;transition:all .15s ease}
+.copy:hover{color:var(--term-text);border-color:var(--term-dim)}
+.copy.done{color:var(--term-kw);border-color:var(--term-kw)}
+pre{padding:14px 18px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;
+  line-height:1.7;color:var(--term-text);tab-size:4}
+pre .c{color:var(--term-dim)}
+pre .k{color:var(--term-kw)}
+pre .s{color:var(--term-str)}
+
+/* 표 */
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{background:#EDEFEE;text-align:left;padding:10px 14px;font-weight:700;
+  font-size:12.5px;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--line-soft);vertical-align:top;color:#2c3835}
+td code,li code,p code{font-family:var(--mono);font-size:12px;background:#EDEFEE;
+  border:1px solid var(--line-soft);padding:1px 6px;border-radius:4px}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag-ok{background:var(--accent-soft);color:var(--accent)}
+.tag-run{background:var(--run-soft);color:var(--run)}
+.tag-warn{background:var(--warn-soft);color:var(--warn)}
+.tag-danger{background:var(--danger-soft);color:var(--danger)}
+
+ul.plain{margin:8px 0 0 18px}
+ul.plain li{margin-top:6px;font-size:13.5px}
+
+/* 강조 박스 */
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13.5px}
+.note.warn{border-left-color:var(--danger)}
+.note b{font-weight:700}
+
+footer{border-top:1px solid var(--line);padding:22px 0 46px;margin-top:56px;
+  font-family:var(--mono);font-size:11.5px;color:var(--faint);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media(max-width:640px){
+  header{padding:38px 0 20px} h1{font-size:23px}
+  .fstep{min-width:100%}
+  .fstep{border-left:none;border-top:1px solid var(--line-soft)}
+  .fstep:first-child{border-top:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="sys-tag"><span class="dot"></span>SBPORA · GEOIP MONTHLY RELOAD</div>
+    <h1>GeoIP 재적재 자동화 — 실행 방법 &amp; 기능 설명</h1>
+    <p class="subtitle">월간 GeoIP 재적재(A/B 무중단 스위칭)를 버튼 클릭으로. 수작업 8단계가 [전체 실행] 한 번 + 스위치 확인 한 번으로 줄었습니다.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 1. 핵심 설계 ============ -->
+  <section>
+    <h2>1 · 핵심 설계 — 왜 안전한가</h2>
+    <div class="card">
+      <p><b>시노님 스위치 전의 모든 작업은 대기 테이블에서만 일어납니다.</b> 다운로드·변환·적재·검증 어느 단계가 실패해도 서비스는 기존 테이블로 계속 동작하고, 스크립트는 그냥 중단 + 로그만 남깁니다.</p>
+      <p>위험한 순간은 시노님 스위치 하나뿐이라, 그 앞에 <b>게이트 5개(G1~G5)</b>를 두고 전부 통과해야만 스위치 버튼이 활성화됩니다. 스위치 후 문제가 보이면 [롤백] 버튼으로 이전 테이블에 즉시 원복됩니다 (역시 무중단).</p>
+    </div>
+    <div class="flow">
+      <div class="fstep"><span class="no">①</span><div class="nm">다운로드</div><div class="dt">MaxMind zip 수령 · 압축 해제</div></div>
+      <div class="fstep"><span class="no">②</span><div class="nm">변환 · 로컬 검증</div><span class="gt">G1 · G2</span><div class="dt">CIDR→숫자 + 국가 조인</div></div>
+      <div class="fstep"><span class="no">③</span><div class="nm">DB 적재</div><span class="gt">G3</span><div class="dt">대기 테이블 자동 판별 · 배치 INSERT</div></div>
+      <div class="fstep"><span class="no">④</span><div class="nm">검증 · 통계</div><span class="gt">G4 · G5</span><div class="dt">DBMS_STATS + 판정 리허설</div></div>
+      <div class="fstep hl"><span class="no">⑤</span><div class="nm">시노님 스위치</div><div class="dt">사람이 버튼으로 확정 · 무중단</div></div>
+    </div>
+    <div class="note">기존 수작업 대비 <b>sqlldr이 사라졌습니다</b> — 배치 INSERT로 대체해서 ctl 파일 2벌, geoip.bad 확인, DIRECT=TRUE 인덱스 UNUSABLE 리빌드가 전부 필요 없습니다. "지금 A였나 B였나"도 시노님을 읽어 자동 판별합니다.</div>
+  </section>
+
+  <!-- ============ 2. 구성 파일 ============ -->
+  <section>
+    <h2>2 · 구성 파일</h2>
+    <p class="sec-desc">전부 <code>E:\_work\GeoLite2</code> 한 폴더에 둡니다.</p>
+    <div class="files">
+      <div class="file"><span class="fname">start.bat</span>
+        <span class="fdesc"><b>더블클릭 실행기.</b> python·설정 파일을 확인하고 콘솔 서버를 띄운 뒤 브라우저를 자동으로 엽니다. CP949 인코딩이라 한글 Windows cmd에서 바로 동작.</span></div>
+      <div class="file"><span class="fname">geoip_console.py</span>
+        <span class="fdesc"><b>웹 콘솔 서버.</b> 127.0.0.1:8765 로만 뜨는 로컬 서버 — 본인 PC에서만 접속 가능. 화면의 버튼·배지·실시간 로그를 제공하며, 실제 재적재 로직이 여기 들어 있습니다.</span></div>
+      <div class="file"><span class="fname">geoip_config.json</span>
+        <span class="fdesc"><b>설정 파일 (직접 생성, 1회).</b> 라이선스 키·DB 접속 정보·작업 폴더. 아래 3장 참고.</span></div>
+      <div class="file"><span class="fname">logs\</span>
+        <span class="fdesc"><b>실행 이력.</b> 매 세션의 로그가 <code>console_날짜_OK / _FAIL / _ROLLBACK.log</code> 로 저장됩니다.</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 3. 사전 준비 ============ -->
+  <section>
+    <h2>3 · 사전 준비 (최초 1회)</h2>
+    <h3>3-1. 패키지 설치</h3>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">PowerShell / cmd</span><button class="copy" type="button">복사</button></div>
+<pre>cd E:\_work\GeoLite2
+python --version          <span class="c">:: 3.8 이상이면 OK</span>
+pip install oracledb requests</pre>
+    </div>
+
+    <h3>3-2. geoip_config.json 생성</h3>
+    <p class="sec-desc">sqlldr 쓸 때의 접속 문자열 <code>USER/PASSWORD@HOST:PORT/SERVICE</code>에서 값을 나눠 넣으면 됩니다. 경로 구분자는 <code>/</code> 권장.</p>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">geoip_config.json</span><button class="copy" type="button">복사</button></div>
+<pre>{
+  <span class="s">"license_key"</span>: <span class="s">"MaxMind 라이선스 키"</span>,
+  <span class="s">"db_user"</span>:     <span class="s">"SBPORA"</span>,
+  <span class="s">"db_password"</span>: <span class="s">"비밀번호"</span>,
+  <span class="s">"db_dsn"</span>:      <span class="s">"HOST:PORT/SERVICE"</span>,
+  <span class="s">"work_dir"</span>:    <span class="s">"E:/_work/GeoLite2"</span>,
+  <span class="s">"min_rows"</span>:    300000
+}</pre>
+    </div>
+    <div class="note">비밀번호를 파일에 남기기 싫으면 <code>"db_password": "ENV"</code> 로 적고, bat 파일 안의 <code>rem set GEOIP_DB_PASSWORD=...</code> 줄의 rem을 지우고 값을 넣으세요 (또는 실행 전 <code>set GEOIP_DB_PASSWORD=...</code>).</div>
+  </section>
+
+  <!-- ============ 4. 실행 방법 ============ -->
+  <section>
+    <h2>4 · 실행 방법 — 웹 콘솔</h2>
+    <div class="card">
+      <p><b>start.bat 더블클릭</b> → 검은 창이 뜨고 브라우저가 자동으로 <code>http://127.0.0.1:8765</code> 를 엽니다. 검은 창은 서버라서 닫으면 콘솔도 꺼집니다 — 작업 끝날 때까지 그대로 두세요.</p>
+      <p>월간 재적재의 일반 순서:</p>
+      <ul class="plain">
+        <li><b>[▶ 전체 실행]</b> 클릭 — ①~④가 자동으로 진행되고 로그가 실시간으로 흐릅니다 (수 분).</li>
+        <li>④까지 전부 <span class="tag tag-ok">완료</span>가 되면 요약줄에 "기존 N건 → 신규 M건"이 뜨고 <b>⑤ [스위치]</b> 버튼이 활성화됩니다.</li>
+        <li>숫자를 확인하고 [스위치] 클릭 → 확인창 → 전환 완료. 스위치 후 IS_KOREA_IP 동작까지 자동 확인해 줍니다.</li>
+      </ul>
+      <p style="margin-top:10px">zip을 이미 수동으로 받아 CSV를 폴더에 풀어뒀다면 <b>[다운로드 생략]</b> 체크박스를 켜고 실행하면 ①이 로컬 파일을 사용합니다.</p>
+    </div>
+  </section>
+
+  <!-- ============ 5. 화면 기능 ============ -->
+  <section>
+    <h2>5 · 콘솔 화면 기능</h2>
+    <table>
+      <tr><th style="width:170px">요소</th><th>설명</th></tr>
+      <tr><td><b>[▶ 전체 실행]</b></td><td>①~④를 순서대로 자동 진행. <b>⑤ 스위치는 절대 자동으로 하지 않습니다</b> — 항상 사람이 확정.</td></tr>
+      <tr><td>단계 카드 ①~⑤</td><td>각 단계를 개별 실행할 수도 있습니다. 순서를 건너뛰면 "③을 먼저 실행하세요"라고 로그에 안내. 상태 배지: <span class="tag" style="background:#EDEFEE;color:#8B9691">대기</span> <span class="tag tag-run">진행중</span> <span class="tag tag-ok">완료</span> <span class="tag tag-danger">실패</span></td></tr>
+      <tr><td>[다운로드 생략] 체크</td><td>폴더에 풀어둔 <code>GeoLite2-Country-Blocks-IPv4.csv</code> / <code>Locations-en.csv</code> 를 사용. zip을 수동으로 받았거나 재시도할 때 유용.</td></tr>
+      <tr><td>⑤ [스위치] 버튼</td><td>④ 통과 시에만 활성화. 확인창을 거쳐 <code>CREATE OR REPLACE SYNONYM</code> 실행 (원자적·무중단). 전환 직후 건수와 IS_KOREA_IP 샘플 판정을 자동 확인.</td></tr>
+      <tr><td>[롤백] 버튼</td><td>이번 세션에 스위치한 경우에만 활성화. 이전 테이블로 즉시 원복 (역시 무중단).</td></tr>
+      <tr><td>LIVE LOG</td><td>실시간 진행 로그. 게이트 통과는 <span style="color:var(--accent);font-weight:700">초록</span>, 실패는 <span style="color:var(--danger);font-weight:700">빨강</span>. 적재 중에는 2만 건 단위 진행률 표시. [지우기]는 화면만 지우고 파일 로그는 유지.</td></tr>
+      <tr><td>요약줄</td><td>활성/대기 테이블, 기존→신규 건수, 스위치 완료 여부를 한 줄로 표시.</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 6. 게이트 ============ -->
+  <section>
+    <h2>6 · 게이트 5개 — 전부 통과해야 스위치</h2>
+    <table>
+      <tr><th style="width:64px">게이트</th><th style="width:110px">단계</th><th>검사 내용</th><th>실패하면</th></tr>
+      <tr><td><b>G1</b></td><td>② 변환</td><td>변환 건수 ≥ 300,000 (min_rows 설정값)</td><td>다운로드 파일 불완전 의심 — 재다운로드</td></tr>
+      <tr><td><b>G2</b></td><td>② 변환</td><td>적재 전 CSV 자체에서 샘플 판정: 223.62.180.1=KR / 8.8.8.8=US</td><td>데이터 자체 이상 — DB에 넣기 전에 차단됨</td></tr>
+      <tr><td><b>G3</b></td><td>③ 적재</td><td>DB 적재 건수 == CSV 건수</td><td>적재 유실 — 재실행</td></tr>
+      <tr><td><b>G4</b></td><td>④ 검증</td><td>신규 건수 ≥ 기존 활성 테이블 × 0.9</td><td>급감 = 데이터 이상 — 스위치 차단</td></tr>
+      <tr><td><b>G5</b></td><td>④ 검증</td><td>통계수집 후 <b>대기 테이블을 직접 조회</b>해 샘플 판정 + 응답속도 &lt; 0.5s</td><td>판정 오류 또는 통계 누락(조회 수 초 이슈) — 스위치 차단</td></tr>
+    </table>
+    <div class="note">G5가 스위치 직전의 <b>실전 리허설</b>입니다 — 새 테이블이 실제 판정 쿼리로 올바른 국가를, 빠르게 돌려주는지 확인한 뒤에만 전환합니다. 가이드에 기록된 "통계 누락으로 조회가 수 초 걸린 이슈"가 여기서 자동으로 잡힙니다.</div>
+  </section>
+
+  <!-- ============ 7. 문제 해결 ============ -->
+  <section>
+    <h2>7 · 문제 해결</h2>
+    <table>
+      <tr><th style="width:280px">증상</th><th>조치</th></tr>
+      <tr><td>bat 더블클릭 시 한글이 깨지고 "내부 또는 외부 명령…이 아닙니다" 연발</td><td>구버전 bat(UTF-8 저장본)의 인코딩 문제. <b>CP949로 저장된 최신 bat</b>로 교체하면 해결.</td></tr>
+      <tr><td><code>ModuleNotFoundError: oracledb</code> (③에서 실패)</td><td><code>pip install oracledb</code> 후 ③부터 다시 실행. 앞 단계 결과는 유지됩니다.</td></tr>
+      <tr><td>"geoip_config.json 이 없습니다"</td><td>3-2 참고해 같은 폴더에 설정 파일 생성.</td></tr>
+      <tr><td>① 다운로드 실패 HTTP 401</td><td>라이선스 키 오류 — MaxMind 계정에서 키 재발급. 급하면 브라우저로 zip 수동 다운로드 → 압축 해제 → [다운로드 생략] 체크 후 진행.</td></tr>
+      <tr><td>G5 실패 — 조회 0.5s 초과</td><td>통계수집이 안 먹었거나 인덱스 문제. ④를 한 번 더 실행 (통계 재수집). 반복되면 <code>SELECT index_name, status FROM user_indexes WHERE table_name LIKE 'TB_CM_GEOIP_RANGE_%'</code> 확인.</td></tr>
+      <tr><td>스위치 후 판정이 이상함</td><td><b>[롤백] 버튼</b> — 이전 테이블로 즉시 원복. 콘솔을 이미 껐다면 SQL로: <code>CREATE OR REPLACE SYNONYM TB_CM_GEOIP_RANGE FOR 이전테이블;</code></td></tr>
+      <tr><td>브라우저가 안 열림 / 페이지 접속 안 됨</td><td>검은 창(서버)이 살아있는지 확인 후 주소창에 <code>http://127.0.0.1:8765</code> 직접 입력. 8765 포트를 다른 프로그램이 쓰면 geoip_console.py 상단 <code>PORT</code> 변경.</td></tr>
+      <tr><td>다른 PC에서 접속하고 싶음</td><td>보안상 의도적으로 막혀 있습니다 (127.0.0.1 전용). DB 계정 정보가 있는 콘솔이므로 본인 PC에서만 사용.</td></tr>
+    </table>
+    <div class="note warn"><b>기억할 것 하나:</b> ⑤ 스위치 전에는 무엇이 실패해도 서비스에 영향이 없습니다. 에러가 나면 당황하지 말고 로그 확인 → 해당 단계부터 재실행하면 됩니다.</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:0 24px">
+    <span>SBPORA · GEOIP RELOAD AUTOMATION GUIDE</span>
+    <span>2026.08.28 작성</span>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var pre = btn.closest('.term').querySelector('pre');
+    var txt = pre.textContent;
+    function done(){
+      btn.textContent = '복사됨'; btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1600);
+    }
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e){}
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(fallback);
+    } else { fallback(); }
+  });
+});
+</script>
+</body>
+</html>

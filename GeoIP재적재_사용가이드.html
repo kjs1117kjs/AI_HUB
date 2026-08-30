@@ -34,6 +34,21 @@ header{padding:52px 0 26px;border-bottom:1px solid var(--line)}
 h1{font-size:28px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
 .subtitle{margin-top:10px;color:var(--muted);font-size:14.5px;max-width:660px}
 
+/* 상단 문서 탭 */
+.tabsbar{position:sticky;top:0;z-index:100;background:var(--term);border-bottom:1px solid var(--term-line)}
+.tabsbar-inner{display:flex;gap:0}
+.dtab{appearance:none;background:none;border:none;cursor:pointer;
+  display:flex;align-items:baseline;gap:9px;padding:13px 20px;
+  color:var(--term-dim);font-family:var(--sans);font-size:14px;font-weight:600;
+  border-bottom:2px solid transparent;transition:color .15s ease,border-color .15s ease}
+.dtab small{font-family:var(--mono);font-size:10.5px;font-weight:600;opacity:.75;letter-spacing:.03em}
+.dtab .dnum{font-family:var(--mono);font-size:11px;font-weight:600;opacity:.7}
+.dtab:hover{color:var(--term-text)}
+.dtab.on{color:#fff;border-bottom-color:var(--term-kw)}
+.dtab.on .dnum{color:var(--term-kw);opacity:1}
+.tabpane{display:none}
+.tabpane.on{display:block}
+
 main{padding:8px 0 80px}
 section{margin-top:46px}
 h2{font-size:19px;font-weight:700;margin-bottom:6px}
@@ -121,11 +136,219 @@ footer{border-top:1px solid var(--line);padding:22px 0 46px;margin-top:56px;
   <div class="wrap">
     <div class="sys-tag"><span class="dot"></span>SBPORA · GEOIP MONTHLY RELOAD</div>
     <h1>GeoIP 재적재 자동화 — 실행 방법 &amp; 기능 설명</h1>
-    <p class="subtitle">월간 GeoIP 재적재(A/B 무중단 스위칭)를 버튼 클릭으로. 수작업 8단계가 [전체 실행] 한 번 + 스위치 확인 한 번으로 줄었습니다.</p>
+    <p class="subtitle">월간 GeoIP 재적재(A/B 무중단 스위칭)를 두 가지 방식으로 — 평소엔 DB 서버의 cron이 자동으로 돌고, 필요할 때 PC 웹 콘솔에서 버튼으로 수동 실행합니다.</p>
   </div>
 </header>
 
+<div class="tabsbar">
+  <div class="wrap tabsbar-inner">
+    <button class="dtab on" data-tab="server" type="button"><span class="dnum">A</span>서버 자동 적재 <small>soldb1 · cron</small></button>
+    <button class="dtab" data-tab="pc" type="button"><span class="dnum">B</span>PC 수동 실행 <small>웹 콘솔</small></button>
+  </div>
+</div>
+
 <main class="wrap">
+
+<!-- ==================== 탭 A: 서버 자동 적재 ==================== -->
+<div class="tabpane on" id="pane-server">
+
+  <section>
+    <h2>A1 · 개요 — 무엇을 구축하나</h2>
+    <div class="card">
+      <p>DB 서버 <b>soldb1</b>의 <code>/home/oranx/kjscheck/</code>에 bash 스크립트 <b>geoip_auto.sh</b>를 설치하고, cron이 <b>매월 1일·14일 06:30</b>에 실행하게 합니다. 파이썬 없이 서버에 원래 있는 도구(curl · unzip · awk · sqlplus · sqlldr)만 사용합니다.</p>
+      <p>동작: 다운로드 → 변환 → 대기 테이블 적재 → <b>게이트 5개(G1~G5)</b> → 전부 통과한 경우에만 시노님 스위치. 게이트를 하나라도 못 넘으면 <b>스위치 없이 중단하고 로그만 남기므로 서비스에는 영향이 없고</b>, 다음 회차가 자연스러운 재시도가 됩니다.</p>
+    </div>
+    <div class="files">
+      <div class="file"><span class="fname">geoip_auto.sh</span>
+        <span class="fdesc"><b>재적재 스크립트 본체.</b> 원본 검증값: 262줄 / md5 <code>07cef72b9aa9fc9f1e268c2854318244</code></span></div>
+      <div class="file"><span class="fname">geoip_auto.b64</span>
+        <span class="fdesc"><b>전송용 base64 사본.</b> 붙여넣기로 옮겨도 깨지지 않는 형식 — 구축 시 이것으로 설치.</span></div>
+      <div class="file"><span class="fname">geoip.conf</span>
+        <span class="fdesc"><b>설정.</b> LICENSE_KEY · DB 계정 · ORACLE_HOME · ORACLE_SID(SBP) · MIN_ROWS. <code>chmod 600</code> 유지.</span></div>
+      <div class="file"><span class="fname">logs/</span>
+        <span class="fdesc"><b>실행 이력.</b> 회차마다 <code>auto_날짜_OK.log</code> 또는 <code>_FAIL.log</code>, cron 전체 출력은 <code>cron.log</code>에 누적.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A2 · 구축 전 사전 검증 — 이게 다 되어야 함</h2>
+    <p class="sec-desc">서버(oranx 계정)에서 아래 4개를 확인합니다. 하나라도 안 되면 구축 전에 먼저 해결해야 합니다.</p>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">① 필수 도구 — 6개 전부 경로가 나와야 함</span><button class="copy" type="button">복사</button></div>
+<pre>which curl unzip awk sort sqlplus sqlldr</pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">② 인터넷 (MaxMind) — HTTP/1.1 302 면 정상</span><button class="copy" type="button">복사</button></div>
+<pre>curl -sI --max-time 10 https://download.maxmind.com | head -1</pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">③ Oracle 인스턴스 — ora_pmon_SBP 가 보여야 함 (SID=SBP)</span><button class="copy" type="button">복사</button></div>
+<pre>ps -ef | grep pmon | grep -v grep
+df -h /home                          <span class="c"># 폴더 공간 — 수백 MB면 충분</span></pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">④ DB 오브젝트 — sqlplus SBPORA 접속 후, 시노님 1건 + 테이블 2건 나와야 함</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">SELECT</span> synonym_name, table_name <span class="k">FROM</span> user_synonyms <span class="k">WHERE</span> synonym_name = <span class="s">'TB_CM_GEOIP_RANGE'</span>;
+<span class="k">SELECT</span> table_name <span class="k">FROM</span> user_tables <span class="k">WHERE</span> table_name <span class="k">IN</span> (<span class="s">'TB_CM_GEOIP_RANGE_A'</span>,<span class="s">'TB_CM_GEOIP_RANGE_B'</span>);</pre>
+    </div>
+    <div class="note">이 외에 <b>MaxMind 라이선스 키</b>가 준비돼 있어야 합니다 (구축 가이드 2장 참고 — maxmind.com 계정에서 발급). sqlplus 접속 자체가 안 되면 계정/비밀번호부터 확인.</div>
+  </section>
+
+  <section>
+    <h2>A3 · 구축 — 파일 설치</h2>
+    <p class="sec-desc"><b>vi에 붙여넣기 금지</b> — 자동 들여쓰기가 파일을 변형시킵니다. base64 방식으로 설치하고 md5로 검증합니다.</p>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">1) 폴더 준비</span><button class="copy" type="button">복사</button></div>
+<pre>mkdir -p /home/oranx/kjscheck/logs
+cd /home/oranx/kjscheck</pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">2) 스크립트 설치 — PC에서 geoip_auto.b64 를 메모장으로 열어 전체 복사한 뒤</span><button class="copy" type="button">복사</button></div>
+<pre>cat > geoip_auto.b64
+<span class="c"># → 마우스 우클릭으로 붙여넣기 → Enter 한 번 → Ctrl+D</span>
+base64 -d geoip_auto.b64 > geoip_auto.sh
+md5sum geoip_auto.sh
+<span class="c"># → 07cef72b9aa9fc9f1e268c2854318244  이어야 함 (다르면 다시)</span>
+chmod +x geoip_auto.sh</pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">3) 설정 파일 생성 — 아래를 통째로 붙여넣고, 키·비밀번호만 실제 값으로</span><button class="copy" type="button">복사</button></div>
+<pre>cat > geoip.conf << 'EOF'
+LICENSE_KEY=여기에_MaxMind_라이선스_키
+DB_USER=SBPORA
+DB_PASS=여기에_비밀번호
+ORACLE_HOME=/oracle/oranx/product/19.12.0.0
+ORACLE_SID=SBP
+MIN_ROWS=300000
+EOF
+vi geoip.conf                <span class="c"># LICENSE_KEY, DB_PASS 실제 값 입력</span>
+grep -c $'\r' geoip.conf     <span class="c"># 0 이어야 함 (CR 오염 확인)</span>
+chmod 600 geoip.conf         <span class="c"># 비밀번호 보호</span></pre>
+    </div>
+    <div class="note">WinSCP를 쓸 수 있으면 base64 대신 파일을 직접 끌어다 놓아도 됩니다 — 단 전송 모드를 <b>Binary</b>로. 어느 방식이든 설치 후 <b>md5 일치 확인이 필수</b>입니다.</div>
+  </section>
+
+  <section>
+    <h2>A4 · 첫 실행 검증 (스위치 없이) + 첫 스위치</h2>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">1) 테스트 실행 — 서비스 영향 0</span><button class="copy" type="button">복사</button></div>
+<pre>cd /home/oranx/kjscheck
+./geoip_auto.sh --no-switch</pre>
+    </div>
+    <div class="card">
+      <p>정상이면 이렇게 진행됩니다 (수 분): <code>DB 접속 확인: DB_OK</code> → ① 다운로드 → ② 변환 (약 56만 건) → G1·G2 통과 → ③ 대기 테이블 적재 → G3 통과 → ④ G4 통과 → 통계수집 → G5 통과 → 마지막 줄에 <b>수동 스위치 SQL</b> 출력.</p>
+      <p>중간의 <code>stty: 부적절한 ioctl</code> 메시지는 셸 환경설정의 무해한 경고이니 무시하세요 (cron 실행에서는 안 나옵니다).</p>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">2) 첫 스위치는 수동으로 — sqlplus 에서</span><button class="copy" type="button">복사</button></div>
+<pre><span class="c">-- 테스트 출력 마지막에 찍힌 SQL 그대로 (대상 테이블명 확인)</span>
+<span class="k">CREATE OR REPLACE SYNONYM</span> TB_CM_GEOIP_RANGE <span class="k">FOR</span> TB_CM_GEOIP_RANGE_B;
+
+<span class="c">-- 확인: Y 와 N 이 나와야 정상</span>
+<span class="k">SELECT</span> IS_KOREA_IP(<span class="s">'223.62.180.1'</span>), IS_KOREA_IP(<span class="s">'8.8.8.8'</span>) <span class="k">FROM</span> DUAL;
+
+<span class="c">-- 건수 확인</span>
+<span class="k">SELECT COUNT</span>(*) <span class="k">FROM</span> TB_CM_GEOIP_RANGE;</pre>
+    </div>
+    <div class="note">첫 회만 이렇게 눈으로 확인하며 넘기고, 이후부터는 cron이 스위치까지 무인으로 합니다.</div>
+  </section>
+
+  <section>
+    <h2>A5 · 정기 스케줄 등록 — 매월 1일·14일 06:30</h2>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">crontab 등록</span><button class="copy" type="button">복사</button></div>
+<pre>crontab -e
+<span class="c"># 아래 한 줄 추가 후 저장</span>
+30 6 1,14 * * /home/oranx/kjscheck/geoip_auto.sh >> /home/oranx/kjscheck/logs/cron.log 2>&1
+
+crontab -l        <span class="c"># 등록 확인</span></pre>
+    </div>
+    <div class="note">스크립트가 ORACLE_HOME · ORACLE_SID · PATH를 conf에서 직접 설정하므로, 환경변수가 비어 있는 cron에서도 로그인 셸과 동일하게 동작합니다. DB 서버는 24시간 켜져 있어 "PC가 꺼져 있어 회차를 놓치는" 문제가 없습니다. <b>여기까지가 구축입니다</b> — 이후는 운영(A6~).</div>
+  </section>
+
+  <section>
+    <h2>A6 · 잘 돌았는지 확인하는 법</h2>
+    <p class="sec-desc">매월 1일·14일 이후 아무 때나 아래로 확인합니다. 파일명 끝이 <b>OK</b>면 스위치까지 성공, <b>FAIL</b>이면 실패(시노님 미변경), <b>LOADED</b>는 --no-switch로 적재만 한 것.</p>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">서버에서 — 로그 확인</span><button class="copy" type="button">복사</button></div>
+<pre>ls -lt /home/oranx/kjscheck/logs/ | head -5     <span class="c"># 최근 회차 결과 (OK/FAIL)</span>
+tail -30 /home/oranx/kjscheck/logs/cron.log     <span class="c"># 최근 실행 상세 로그</span></pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">DB에서 — 실제 반영 확인</span><button class="copy" type="button">복사</button></div>
+<pre><span class="c">-- 지금 어느 테이블(A/B)이 활성인지</span>
+<span class="k">SELECT</span> table_name <span class="k">FROM</span> user_synonyms <span class="k">WHERE</span> synonym_name = <span class="s">'TB_CM_GEOIP_RANGE'</span>;
+
+<span class="c">-- 건수 (재적재 시 매월 소폭 변동, 50만~60만대)</span>
+<span class="k">SELECT COUNT</span>(*) <span class="k">FROM</span> TB_CM_GEOIP_RANGE;
+
+<span class="c">-- 판정 동작 (Y / N 이면 정상)</span>
+<span class="k">SELECT</span> IS_KOREA_IP(<span class="s">'223.62.180.1'</span>), IS_KOREA_IP(<span class="s">'8.8.8.8'</span>) <span class="k">FROM</span> DUAL;</pre>
+    </div>
+    <div class="note">활성 테이블은 회차마다 A ↔ B로 번갈아 바뀌는 것이 정상입니다 (무중단 스위칭의 원리).</div>
+  </section>
+
+  <section>
+    <h2>A7 · 수동 실행 (서버에서 바로 돌리기)</h2>
+    <p class="sec-desc">스케줄과 무관하게 아무 때나 실행할 수 있습니다. 이미 실행 중이면 락 파일이 중복 실행을 막습니다.</p>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">oranx@soldb1</span><button class="copy" type="button">복사</button></div>
+<pre>cd /home/oranx/kjscheck
+./geoip_auto.sh                    <span class="c"># 전체 실행 (게이트 통과 시 스위치까지)</span>
+./geoip_auto.sh --no-switch        <span class="c"># 적재·검증까지만 — 스위치 SQL 출력 (테스트용)</span>
+./geoip_auto.sh --skip-download    <span class="c"># 폴더의 기존 CSV 재사용</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>A8 · 중지 / 재개</h2>
+    <div class="card">
+      <p><b>중지</b>: <code>crontab -e</code>로 열어 해당 줄 <b>맨 앞에 #</b>을 붙이고 저장하면 그 회차부터 돌지 않습니다.</p>
+      <p><b>재개</b>: 같은 방법으로 #을 지우면 됩니다. 오래 중지했다가 재개하는 경우, 재개 직후 A7의 수동 실행을 한 번 돌려 데이터를 최신으로 맞춰두는 것을 권장합니다.</p>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">중지 상태 예시</span><button class="copy" type="button">복사</button></div>
+<pre><span class="c">#30 6 1,14 * * /home/oranx/kjscheck/geoip_auto.sh >> /home/oranx/kjscheck/logs/cron.log 2>&1</span></pre>
+    </div>
+    <div class="note warn"><b>주의:</b> <code>crontab -r</code>은 이 줄만이 아니라 <b>계정의 crontab 전체를 삭제</b>합니다. 중지는 반드시 # 주석으로.</div>
+  </section>
+
+  <section>
+    <h2>A9 · 실패했을 때</h2>
+    <div class="card">
+      <p>실패 회차는 <code>logs/auto_날짜_FAIL.log</code>로 남고, 로그 끝의 "■ 중단: ..." 줄에 어느 게이트에서 왜 멈췄는지 적혀 있습니다. <b>실패해도 시노님은 그대로라 서비스는 정상</b>이고, 다음 회차(1일 실패 → 14일)가 자동 재시도입니다. 급하면 A7로 수동 재실행하면 됩니다.</p>
+      <p>스위치까지 된 뒤 판정이 이상하면 이전 테이블로 즉시 원복합니다 (완료 로그 맨 아래에 그 회차의 롤백 SQL이 항상 찍혀 있습니다):</p>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="tgt">롤백 (무중단)</span><button class="copy" type="button">복사</button></div>
+<pre><span class="k">CREATE OR REPLACE SYNONYM</span> TB_CM_GEOIP_RANGE <span class="k">FOR</span> 이전테이블;   <span class="c">-- 예: TB_CM_GEOIP_RANGE_A</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>A10 · 서버 쪽 문제 해결</h2>
+    <table>
+      <tr><th style="width:280px">증상</th><th>조치</th></tr>
+      <tr><td><code>syntax error near unexpected token</code> — 스크립트가 실행 초반에 죽음</td><td>파일 전송 중 변형(vi 붙여넣기의 자동 들여쓰기, CRLF). <b>vi에 붙여넣지 말 것.</b> A3의 base64 방식으로 재설치 후 <b>md5 검증</b>: <code>md5sum geoip_auto.sh</code> → <code>07cef72b9aa9fc9f1e268c2854318244</code></td></tr>
+      <tr><td><code>ORA-01034: ORACLE not available</code></td><td>conf의 ORACLE_SID가 실제 인스턴스와 다름. <code>ps -ef | grep pmon</code>으로 확인 — 이 서버는 <b>SBP</b>(oranx 소유)가 맞고, TSP는 다른 DB.</td></tr>
+      <tr><td>다운로드 실패 (HTTP 401)</td><td>MaxMind 라이선스 키 만료/오류 — 키 재발급 후 conf 수정. 급하면 CSV를 수동으로 폴더에 두고 <code>--skip-download</code>.</td></tr>
+      <tr><td>"이미 실행 중입니다 (락...)"</td><td>실제 실행 중이면 대기. 비정상 종료 잔재라면 6시간 뒤 자동 무시되며, 즉시 지우려면 <code>rm /home/oranx/kjscheck/.geoip_auto.lock</code></td></tr>
+      <tr><td><code>stty: 부적절한 ioctl</code> 경고</td><td>셸 환경설정에서 나오는 무해한 경고 — 무시. cron 실행에서는 나오지 않습니다.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>A11 · 구축 이력</h2>
+    <table>
+      <tr><th style="width:120px">일자</th><th>내용</th></tr>
+      <tr><td>2026.08.30</td><td>서버 자동 적재 최초 가동. 첫 적재 562,086건. <b>가동 전 기존 활성 테이블이 0건(빈 상태)이었음</b> — 즉 첫 스위치가 GeoIP 판정의 사실상 최초 정상화. 이후 회차부터 G4(기존×0.9) 검증이 실질 동작.</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<!-- ==================== 탭 B: PC 수동 (웹 콘솔) ==================== -->
+<div class="tabpane" id="pane-pc">
 
   <!-- ============ 1. 핵심 설계 ============ -->
   <section>
@@ -248,6 +471,8 @@ pip install oracledb requests</pre>
     <div class="note warn"><b>기억할 것 하나:</b> ⑤ 스위치 전에는 무엇이 실패해도 서비스에 영향이 없습니다. 에러가 나면 당황하지 말고 로그 확인 → 해당 단계부터 재실행하면 됩니다.</div>
   </section>
 
+</div><!-- /pane-pc -->
+
 </main>
 
 <footer>
@@ -258,6 +483,18 @@ pip install oracledb requests</pre>
 </footer>
 
 <script>
+/* 문서 탭 전환 */
+document.querySelectorAll('.dtab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.dtab').forEach(function(x){ x.classList.remove('on'); });
+    t.classList.add('on');
+    document.querySelectorAll('.tabpane').forEach(function(p){
+      p.classList.toggle('on', p.id === 'pane-' + t.dataset.tab);
+    });
+    window.scrollTo(0, 0);
+  });
+});
+
 document.querySelectorAll('.copy').forEach(function(btn){
   btn.addEventListener('click', function(){
     var pre = btn.closest('.term').querySelector('pre');

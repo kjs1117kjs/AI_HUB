@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매장 설정 비교 쿼리 생성기</title>
+<style>
+  :root{
+    --bg:#E8EBEF;
+    --surface:#FFFFFF;
+    --ink:#14202B;
+    --muted:#5E6D7C;
+    --line:#D2D9E1;
+    --navy:#0E1D2B;
+    --navy-2:#16293B;
+    --brass:#A8801F;
+    --brass-lite:#D7B354;
+    --code:#DCE5EE;
+    --code-kw:#8FB8E8;
+    --code-str:#D7B354;
+    --code-cmt:#6B8299;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  code,pre,.mono,input,textarea{
+    font-family:ui-monospace,SFMono-Regular,Menlo,"D2Coding",Consolas,monospace;
+  }
+
+  header{
+    background:var(--navy);
+    color:#EAF0F6;
+    padding:14px 22px;
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  header h1{
+    margin:0;
+    font-size:15px;
+    font-weight:650;
+    letter-spacing:-0.01em;
+  }
+  header p{margin:0;color:#8FA3B5;font-size:12px}
+
+  .wrap{
+    display:grid;
+    grid-template-columns:340px minmax(0,1fr);
+    gap:18px;
+    padding:18px 22px 40px;
+    align-items:start;
+  }
+
+  /* ---- form ---- */
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+  }
+  .form{padding:16px 16px 18px;position:sticky;top:18px}
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:5px;
+  }
+  .hint{font-size:11.5px;color:var(--muted);font-weight:400;margin-top:4px;line-height:1.45}
+  input[type=text],textarea,select{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:#FBFCFD;
+    color:var(--ink);
+    padding:7px 9px;
+    font-size:13px;
+  }
+  select{font-family:inherit}
+  textarea{resize:vertical;min-height:76px;line-height:1.6}
+  input:focus,textarea:focus,select:focus{
+    outline:2px solid var(--brass);
+    outline-offset:-1px;
+    background:#fff;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .checks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:2px}
+  .checks label{
+    display:flex;align-items:center;gap:5px;
+    font-weight:400;font-size:12.5px;margin:0;cursor:pointer;
+  }
+  .checks input{accent-color:var(--brass)}
+  fieldset{
+    border:0;border-top:1px solid var(--line);
+    margin:16px 0 0;padding:14px 0 0;
+  }
+  legend{padding:0;font-size:11.5px;color:var(--muted);font-weight:600}
+
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;min-height:0}
+  .chip{
+    font-size:11.5px;
+    padding:2px 7px;
+    border-radius:3px;
+    background:#EDF1F5;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:ui-monospace,Consolas,monospace;
+  }
+  .chip.base{background:var(--navy);color:#EAF0F6;border-color:var(--navy)}
+
+  /* ---- output ---- */
+  .out{overflow:hidden;display:flex;flex-direction:column;min-width:0}
+  .tabs{
+    display:flex;
+    gap:0;
+    border-bottom:1px solid var(--line);
+    background:#F4F6F9;
+    overflow-x:auto;
+  }
+  .tab{
+    appearance:none;background:none;border:0;
+    padding:11px 15px 9px;
+    font:inherit;font-size:12.5px;font-weight:550;
+    color:var(--muted);cursor:pointer;white-space:nowrap;
+    border-bottom:2px solid transparent;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--brass);background:var(--surface)}
+  .tab small{display:block;font-size:10.5px;font-weight:400;color:var(--muted);font-family:ui-monospace,Consolas,monospace}
+
+  .bar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);
+    background:var(--surface);
+  }
+  .bar .meta{font-size:11.5px;color:var(--muted)}
+  .btns{display:flex;gap:7px}
+  button.act{
+    appearance:none;
+    border:1px solid var(--line);
+    background:#fff;color:var(--ink);
+    padding:5px 11px;border-radius:4px;
+    font:inherit;font-size:12px;font-weight:550;cursor:pointer;
+  }
+  button.act:hover{border-color:#A9B5C1;background:#F7F9FB}
+  button.act.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+  button.act.primary:hover{background:var(--navy-2)}
+  button.act.done{border-color:var(--brass);color:var(--brass)}
+  button.act:focus-visible{outline:2px solid var(--brass);outline-offset:1px}
+
+  pre.sql{
+    margin:0;
+    background:var(--navy);
+    color:var(--code);
+    padding:16px 18px 20px;
+    overflow:auto;
+    font-size:12.5px;
+    line-height:1.62;
+    tab-size:4;
+    max-height:calc(100vh - 210px);
+    white-space:pre;
+  }
+  pre.sql .kw{color:var(--code-kw)}
+  pre.sql .str{color:var(--code-str)}
+  pre.sql .cmt{color:var(--code-cmt);font-style:italic}
+  .empty{padding:28px 18px;color:var(--muted);font-size:13px;background:var(--surface)}
+
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr;padding:14px}
+    .form{position:static}
+    pre.sql{max-height:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>매장 설정 비교 쿼리 생성기</h1>
+  <p>기준 매장과 비교 매장의 환경설정 · 명칭코드 차이를 찾는 SQL을 만듭니다</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= 입력 ================= -->
+  <section class="panel form">
+    <div class="field">
+      <label for="base">기준 매장코드</label>
+      <input type="text" id="base" value="DS00090" spellcheck="false">
+    </div>
+
+    <div class="field">
+      <label for="cmps">비교 매장코드</label>
+      <textarea id="cmps" spellcheck="false">S615806, BSC0001, BSC0022</textarea>
+      <div class="hint">쉼표 · 공백 · 줄바꿈으로 구분</div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="field row2">
+      <div>
+        <label for="posno">POS 번호</label>
+        <input type="text" id="posno" value="01" spellcheck="false">
+        <div class="hint">비우면 POS별 전체 비교</div>
+      </div>
+      <div>
+        <label for="dialect">비교 방식</label>
+        <select id="dialect">
+          <option value="oracle">Oracle · DECODE</option>
+          <option value="coalesce">범용 · COALESCE</option>
+          <option value="pg">PostgreSQL · IS DISTINCT FROM</option>
+        </select>
+        <div class="hint">NULL을 같은 값으로 취급</div>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>명칭코드에서 비교할 항목</legend>
+      <div class="checks" id="cols">
+        <label><input type="checkbox" value="NMCODE_NM" checked> NMCODE_NM</label>
+        <label><input type="checkbox" value="NMCODE_ITEM_1" checked> NMCODE_ITEM_1</label>
+        <label><input type="checkbox" value="NMCODE_ITEM_2" checked> NMCODE_ITEM_2</label>
+        <label><input type="checkbox" value="USE_YN" checked> USE_YN</label>
+        <label><input type="checkbox" value="PARENT_CD"> PARENT_CD</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>환경설정 명칭</legend>
+      <div class="checks">
+        <label><input type="checkbox" id="withNm" checked> 항목명 · 값명 함께 보기</label>
+      </div>
+      <div class="hint">TB_CM_ENVST 의 ENVST_NM, TB_CM_ENVST_DTL 의 ENVST_VAL_NM 을 조인합니다</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>범위</legend>
+      <div class="checks">
+        <label><input type="checkbox" id="onlyBase"> 기준 매장에 등록된 항목만</label>
+      </div>
+      <div class="hint">체크를 풀면 비교 매장에만 있는 항목도 함께 나옵니다</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>테이블</legend>
+      <div class="field">
+        <label for="prefix">스키마 접두사</label>
+        <input type="text" id="prefix" placeholder="예: MSTR." spellcheck="false">
+      </div>
+    </fieldset>
+  </section>
+
+  <!-- ================= 출력 ================= -->
+  <section class="panel out">
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-i="0" aria-selected="true">매장 환경설정<small>TB_MS_STORE_ENVST</small></button>
+      <button class="tab" role="tab" data-i="1" aria-selected="false">POS 환경설정<small>TB_MS_POS_ENVST</small></button>
+      <button class="tab" role="tab" data-i="2" aria-selected="false">명칭코드<small>TB_MS_STORE_NMCODE</small></button>
+    </div>
+    <div class="bar">
+      <span class="meta" id="meta"></span>
+      <div class="btns">
+        <button class="act" id="copyAll">쿼리 3개 모두 복사</button>
+        <button class="act primary" id="copyOne">이 쿼리 복사</button>
+      </div>
+    </div>
+    <div id="body"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var active = 0;
+  var queries = ["","",""];
+
+  /* ---------- helpers ---------- */
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function lit(s){ return "'" + String(s).replace(/'/g,"''") + "'"; }
+
+  // 한글은 화면에서 두 칸을 차지하므로 표시폭 기준으로 정렬한다
+  function dw(s){
+    var n = 0;
+    for(var i = 0; i < s.length; i++){
+      n += /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60]/.test(s[i]) ? 2 : 1;
+    }
+    return n;
+  }
+  function pad(s,n){
+    s = String(s);
+    var g = n - dw(s);
+    return g <= 0 ? s + " " : s + " ".repeat(g);
+  }
+
+  function alias(code){
+    var a = String(code).replace(/[^A-Za-z0-9_]/g,"_").toUpperCase();
+    if(/^[0-9]/.test(a)) a = "S" + a;
+    return a;
+  }
+
+  function splitCodes(raw){
+    return raw.split(/[\s,;|]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+
+  // "두 값이 다르다" 조건 (NULL = NULL 은 같은 것으로 처리)
+  function neq(a, b, d){
+    if(d === "pg")       return a + " IS DISTINCT FROM " + b;
+    if(d === "coalesce") return "COALESCE(" + a + ", '@@NULL@@') <> COALESCE(" + b + ", '@@NULL@@')";
+    return "DECODE(" + a + ", " + b + ", 1, 0) = 0";
+  }
+
+  // SELECT 절 정렬 조립
+  function selectBlock(rows){
+    var w = 0;
+    rows.forEach(function(r){
+      var last = r[0].split("\n").pop();
+      if(dw(last) > w) w = dw(last);
+    });
+    w = Math.max(w + 1, 44);
+    return rows.map(function(r,i){
+      var parts = r[0].split("\n");
+      var last  = parts.pop();
+      var head  = (i === 0 ? "SELECT  " : ",       ") + (parts.length ? parts.join("\n") + "\n" : "");
+      return head + pad(last, w) + "AS " + r[1];
+    });
+  }
+
+  // WHERE ( a OR b OR c )
+  function orBlock(conds){
+    if(conds.length === 1) return ["WHERE   " + conds[0]];
+    return conds.map(function(c,i){
+      if(i === 0) return "WHERE   ( " + c;
+      if(i === conds.length - 1) return "OR        " + c + " )";
+      return "OR        " + c;
+    });
+  }
+
+  function inList(codes){
+    return codes.map(lit).join(",");
+  }
+
+  /* ---------- 1 & 2. 환경설정 (가로 비교) ---------- */
+
+  function buildEnvst(cfg, opt){
+    var tbl   = cfg.prefix + opt.table;
+    var cmTbl = cfg.prefix + "TB_CM_ENVST";
+    var dtTbl = cfg.prefix + "TB_CM_ENVST_DTL";
+    var all   = [cfg.base].concat(cfg.cmps);
+    var byPos = opt.pos !== null;              // POS 번호 고정 여부
+    var allPos = opt.posAll;                   // POS를 키에 포함
+    var nm    = cfg.withNm;                    // 명칭 조인 여부
+    var L = [];
+
+    L.push("-- " + opt.title + " : 기준 " + cfg.base + " vs " + cfg.cmps.join(", "));
+    L.push("-- 키 " + opt.keyDesc);
+    L.push("WITH KEYS AS (");
+    L.push("    SELECT  DISTINCT " + (allPos ? "POS_NO, ENVST_CD" : "ENVST_CD"));
+    L.push("    FROM    " + tbl);
+    L.push("    WHERE   STORE_CD IN (" + inList(all) + ")");
+    if(byPos) L.push("    AND     POS_NO   = " + lit(cfg.posno));
+    L.push(")");
+
+    var rows = [];
+    if(allPos) rows.push(["K.POS_NO", "POS_NO"]);
+    rows.push(["K.ENVST_CD", "ENVST_CD"]);
+    if(nm) rows.push(["CM.ENVST_NM", "ENVST_NM"]);
+    rows.push(["B.ENVST_VAL", alias(cfg.base) + "_VAL"]);
+    if(nm) rows.push(["D0.ENVST_VAL_NM", alias(cfg.base) + "_VAL_NM"]);
+    cfg.cmps.forEach(function(c,i){
+      rows.push(["T" + (i+1) + ".ENVST_VAL", alias(c) + "_VAL"]);
+      if(nm) rows.push(["D" + (i+1) + ".ENVST_VAL_NM", alias(c) + "_VAL_NM"]);
+    });
+    rows.push(["CASE WHEN B.ENVST_CD IS NULL THEN 'X' ELSE 'O' END", alias(cfg.base) + "_EXIST"]);
+    cfg.cmps.forEach(function(c,i){
+      rows.push(["CASE WHEN T" + (i+1) + ".ENVST_CD IS NULL THEN 'X' ELSE 'O' END", alias(c) + "_EXIST"]);
+    });
+    L = L.concat(selectBlock(rows));
+
+    // 어느 매장이 다른지 표시
+    L.push(",       TRIM( " + cfg.cmps.map(function(c,i){
+      return "CASE WHEN " + neq("B.ENVST_VAL", "T" + (i+1) + ".ENVST_VAL", cfg.dialect) + " THEN " + lit(c + " ") + " END";
+    }).join("\n           || ") );
+    L.push("            )                                           AS DIFF_STORES");
+
+    L.push("FROM        KEYS K");
+    var joins = [["B", cfg.base]].concat(cfg.cmps.map(function(c,i){ return ["T" + (i+1), c]; }));
+    var w = 0;
+    joins.forEach(function(j){ if(j[0].length > w) w = j[0].length; });
+    var cw   = w + 11;                                   // 별칭.컬럼 정렬 폭
+    var ind  = " ".repeat(12 + tbl.length + 1 + w + 1);  // ON 절 연결 들여쓰기
+
+    if(nm){
+      L.push("LEFT JOIN   " + cmTbl + " " + pad("CM", w + 1) + " ON  " + pad("CM.ENVST_CD", cw) + "= K.ENVST_CD");
+    }
+    joins.forEach(function(j){
+      var a = j[0];
+      L.push("LEFT JOIN   " + tbl + " " + pad(a, w + 1) + " ON  " + pad(a + ".STORE_CD", cw) + "= " + lit(j[1]));
+      if(byPos)  L.push(ind + " AND " + pad(a + ".POS_NO", cw) + "= " + lit(cfg.posno));
+      if(allPos) L.push(ind + " AND " + pad(a + ".POS_NO", cw) + "= K.POS_NO");
+      L.push(ind + " AND " + pad(a + ".ENVST_CD", cw) + "= K.ENVST_CD");
+    });
+    if(nm){
+      var cwD  = w + 15;
+      var indD = " ".repeat(12 + dtTbl.length + 1 + w + 1);
+      joins.forEach(function(j,idx){
+        var d = "D" + idx;
+        L.push("LEFT JOIN   " + dtTbl + " " + pad(d, w + 1) + " ON  " + pad(d + ".ENVST_CD", cwD) + "= K.ENVST_CD");
+        L.push(indD + " AND " + pad(d + ".ENVST_VAL_CD", cwD) + "= " + j[0] + ".ENVST_VAL");
+      });
+    }
+
+    var conds = cfg.cmps.map(function(c,i){
+      return neq("B.ENVST_VAL", "T" + (i+1) + ".ENVST_VAL", cfg.dialect);
+    });
+    L = L.concat(orBlock(conds));
+    if(cfg.onlyBase) L.push("AND     B.ENVST_CD IS NOT NULL");
+    L.push("ORDER BY " + (allPos ? "K.POS_NO, K.ENVST_CD" : "K.ENVST_CD"));
+    L.push(";");
+    return L.join("\n");
+  }
+
+  /* ---------- 3. 명칭코드 (세로 비교) ---------- */
+
+  function buildNmcode(cfg){
+    var tbl  = cfg.prefix + "TB_MS_STORE_NMCODE";
+    var cols = cfg.cols;
+    var L = [];
+
+    L.push("-- 명칭코드 : 기준 " + cfg.base + " vs " + cfg.cmps.join(", "));
+    L.push("-- 키 STORE_CD, NMCODE_GRP_CD, NMCODE_CD");
+    L.push("WITH BASE AS (");
+    L.push("    SELECT  NMCODE_GRP_CD, NMCODE_CD, " + cols.join(", "));
+    L.push("    FROM    " + tbl);
+    L.push("    WHERE   STORE_CD = " + lit(cfg.base));
+    L.push(")");
+    L.push(", TGT AS (");
+    L.push("    SELECT  STORE_CD, NMCODE_GRP_CD, NMCODE_CD, " + cols.join(", "));
+    L.push("    FROM    " + tbl);
+    L.push("    WHERE   STORE_CD IN (" + inList(cfg.cmps) + ")");
+    L.push(")");
+    L.push(", CMP_STORE AS (");
+    var dual = cfg.dialect === "oracle" ? " FROM DUAL" : "";
+    cfg.cmps.forEach(function(c,i){
+      L.push(i === 0
+        ? "    SELECT " + lit(c) + " AS STORE_CD" + dual
+        : "    UNION ALL SELECT " + lit(c) + dual);
+    });
+    L.push(")");
+    L.push(", KEYS AS (");
+    L.push("    SELECT NMCODE_GRP_CD, NMCODE_CD FROM BASE");
+    L.push("    UNION");
+    L.push("    SELECT NMCODE_GRP_CD, NMCODE_CD FROM TGT");
+    L.push(")");
+
+    var rows = [
+      ["C.STORE_CD", "CMP_STORE_CD"],
+      ["K.NMCODE_GRP_CD", "NMCODE_GRP_CD"],
+      ["K.NMCODE_CD", "NMCODE_CD"],
+      ["CASE WHEN B.NMCODE_CD IS NULL THEN '기준없음'\n             WHEN T.NMCODE_CD IS NULL THEN '비교매장없음'\n             ELSE '값상이' END", "DIFF_TYPE"]
+    ];
+    L = L.concat(selectBlock(rows));
+
+    var w = 0;
+    cols.forEach(function(c){ if(c.length > w) w = c.length; });
+    cols.forEach(function(c){
+      L.push(",       " + pad("B." + c, w + 3) + "AS " + pad("BASE_" + c, w + 7) +
+             ", " + pad("T." + c, w + 3) + "AS CMP_" + c);
+    });
+
+    L.push(",       TRIM( " + cols.map(function(c){
+      return "CASE WHEN " + neq("B." + c, "T." + c, cfg.dialect) + " THEN " + lit(c + " ") + " END";
+    }).join("\n           || "));
+    L.push("            )                                           AS DIFF_COLS");
+
+    L.push("FROM        KEYS K");
+    L.push("CROSS JOIN  CMP_STORE C");
+    L.push("LEFT JOIN   BASE B  ON  B.NMCODE_GRP_CD = K.NMCODE_GRP_CD");
+    L.push("                    AND B.NMCODE_CD     = K.NMCODE_CD");
+    L.push("LEFT JOIN   TGT  T  ON  T.STORE_CD      = C.STORE_CD");
+    L.push("                    AND T.NMCODE_GRP_CD = K.NMCODE_GRP_CD");
+    L.push("                    AND T.NMCODE_CD     = K.NMCODE_CD");
+
+    var conds = [];
+    if(!cfg.onlyBase) conds.push("B.NMCODE_CD IS NULL");
+    conds.push("T.NMCODE_CD IS NULL");
+    cols.forEach(function(c){ conds.push(neq("B." + c, "T." + c, cfg.dialect)); });
+    L = L.concat(orBlock(conds));
+    if(cfg.onlyBase) L.push("AND     B.NMCODE_CD IS NOT NULL");
+    L.push("ORDER BY C.STORE_CD, K.NMCODE_GRP_CD, K.NMCODE_CD");
+    L.push(";");
+    return L.join("\n");
+  }
+
+  /* ---------- 화면 ---------- */
+
+  function highlight(sql){
+    var out = esc(sql);
+    out = out.replace(/(--[^\n]*)/g, '<span class="cmt">$1</span>');
+    out = out.replace(/('(?:[^']|'')*')/g, '<span class="str">$1</span>');
+    out = out.replace(/\b(WITH|SELECT|DISTINCT|FROM|WHERE|AND|OR|AS|LEFT|JOIN|CROSS|ON|UNION|ALL|ORDER BY|CASE|WHEN|THEN|ELSE|END|IS|NULL|NOT|IN|DUAL|DECODE|COALESCE|TRIM|CAST)\b/g,
+      '<span class="kw">$1</span>');
+    return out;
+  }
+
+  function collect(){
+    var cmps = splitCodes($("cmps").value);
+    var base = $("base").value.trim();
+    var posno = $("posno").value.trim();
+    var cols = Array.prototype.slice.call($("cols").querySelectorAll("input:checked"))
+                 .map(function(i){ return i.value; });
+    var prefix = $("prefix").value.trim();
+    if(prefix && !/[.]$/.test(prefix)) prefix += ".";
+    return {
+      base: base,
+      cmps: cmps.filter(function(c){ return c !== base; }),
+      posno: posno,
+      dialect: $("dialect").value,
+      onlyBase: $("onlyBase").checked,
+      withNm: $("withNm").checked,
+      cols: cols,
+      prefix: prefix
+    };
+  }
+
+  function render(){
+    var cfg = collect();
+    var body = $("body");
+
+    if(!cfg.base || cfg.cmps.length === 0){
+      queries = ["","",""];
+      body.innerHTML = '<div class="empty">기준 매장코드와 비교 매장코드를 1개 이상 입력하면 쿼리가 만들어집니다.</div>';
+      $("meta").textContent = "";
+      $("chips").innerHTML = "";
+      return;
+    }
+
+    queries[0] = buildEnvst(cfg, {
+      table:"TB_MS_STORE_ENVST", title:"매장 환경설정",
+      keyDesc:"STORE_CD, ENVST_CD", pos:null, posAll:false
+    });
+    queries[1] = buildEnvst(cfg, {
+      table:"TB_MS_POS_ENVST",
+      title: cfg.posno ? "POS 환경설정 (POS " + cfg.posno + ")" : "POS 환경설정 (POS 전체)",
+      keyDesc:"STORE_CD, POS_NO, ENVST_CD",
+      pos: cfg.posno ? cfg.posno : null,
+      posAll: !cfg.posno
+    });
+    queries[2] = cfg.cols.length
+      ? buildNmcode(cfg)
+      : "-- 명칭코드에서 비교할 항목을 최소 1개 선택하세요.";
+
+    body.innerHTML = '<pre class="sql">' + highlight(queries[active]) + '</pre>';
+
+    var chips = '<span class="chip base">' + esc(cfg.base) + ' · 기준</span>' +
+      cfg.cmps.map(function(c){ return '<span class="chip">' + esc(c) + '</span>'; }).join("");
+    $("chips").innerHTML = chips;
+
+    var names = ["매장 환경설정", "POS 환경설정", "명칭코드"];
+    $("meta").textContent = names[active] + " · 비교 매장 " + cfg.cmps.length + "개 · " +
+      queries[active].split("\n").length + "줄";
+  }
+
+  function copy(text, btn, okLabel){
+    var done = function(){
+      var old = btn.textContent;
+      btn.textContent = okLabel;
+      btn.classList.add("done");
+      setTimeout(function(){ btn.textContent = old; btn.classList.remove("done"); }, 1400);
+    };
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(done, function(){ fallback(text, done); });
+    } else {
+      fallback(text, done);
+    }
+  }
+  function fallback(text, done){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); done(); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  /* ---------- 이벤트 ---------- */
+
+  $("tabs").addEventListener("click", function(e){
+    var t = e.target.closest(".tab");
+    if(!t) return;
+    active = Number(t.dataset.i);
+    Array.prototype.forEach.call(this.querySelectorAll(".tab"), function(b){
+      b.setAttribute("aria-selected", String(Number(b.dataset.i) === active));
+    });
+    render();
+  });
+
+  $("copyOne").addEventListener("click", function(){
+    if(!queries[active]) return;
+    copy(queries[active], this, "복사했습니다");
+  });
+
+  $("copyAll").addEventListener("click", function(){
+    if(!queries[0]) return;
+    copy(queries.join("\n\n\n"), this, "3개 복사했습니다");
+  });
+
+  ["base","cmps","posno","dialect","onlyBase","withNm","prefix"].forEach(function(id){
+    $(id).addEventListener("input", render);
+    $(id).addEventListener("change", render);
+  });
+  $("cols").addEventListener("change", render);
+
+  render();
+})();
+</script>
+</body>
+</html>

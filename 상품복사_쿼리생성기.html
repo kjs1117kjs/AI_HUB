@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>상품 복사 SQL 생성기</title>
+<style>
+:root{
+  --paper:#f2f0ec;
+  --panel:#ffffff;
+  --ink:#16202b;
+  --ink-2:#4a5866;
+  --line:#d6d2c9;
+  --line-2:#e8e5df;
+  --sea:#1f5c6e;
+  --sea-soft:#e3eef1;
+  --rust:#a53a20;
+  --rust-soft:#f7e7e1;
+  --moss:#2f6f3e;
+  --moss-soft:#e4efe6;
+  --code-bg:#141c24;
+  --code-fg:#dfe6ec;
+  --code-key:#7fb3c4;
+  --code-str:#d8a657;
+  --code-cmt:#6b7a86;
+  --mono: ui-monospace, "D2Coding", "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.55;
+}
+header{border-bottom:1px solid var(--line);background:var(--panel);padding:22px 28px 18px}
+header h1{margin:0;font-size:23px;font-weight:650;letter-spacing:-.02em}
+header p{margin:6px 0 0;color:var(--ink-2);font-size:14px;max-width:72ch}
+.flow{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.flow b{font-weight:600;color:var(--sea);background:var(--sea-soft);padding:3px 9px;border-radius:3px}
+.flow b.mode{color:var(--rust);background:var(--rust-soft)}
+.wrap{display:grid;grid-template-columns:320px minmax(0,1fr);align-items:start}
+aside{
+  position:sticky;top:0;max-height:100vh;overflow-y:auto;
+  border-right:1px solid var(--line);background:var(--panel);padding:20px 20px 60px;
+}
+aside h2{font-size:13px;font-weight:650;margin:0 0 4px}
+aside .hint{font-size:12.5px;color:var(--ink-2);margin:0 0 16px}
+fieldset{border:0;border-top:1px solid var(--line-2);padding:16px 0 4px;margin:0}
+fieldset:first-of-type{border-top:0;padding-top:4px}
+legend{font-size:12px;font-weight:650;color:var(--sea);padding:0;margin-bottom:8px}
+label.f{display:block;margin-bottom:11px}
+label.f span{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:4px}
+input[type=text],input[type=number]{
+  width:100%;border:1px solid var(--line);background:#fbfaf8;border-radius:3px;
+  padding:7px 9px;font-family:var(--mono);font-size:13px;color:var(--ink);
+}
+input:focus{outline:2px solid var(--sea);outline-offset:-1px;background:#fff}
+input:disabled{background:#f0eeeb;color:#98a2ac}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:10px}
+.check input{margin-top:3px;accent-color:var(--sea)}
+.check em{display:block;font-style:normal;font-size:12px;color:var(--ink-2)}
+.check.hero{background:var(--rust-soft);border:1px solid #e8cec3;border-radius:3px;padding:9px 10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+main{padding:24px 28px 90px;min-width:0}
+section{margin-bottom:34px}
+.sec-head{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:7px;margin-bottom:6px}
+.sec-head h2{margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em}
+.sec-head .n{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:2px 7px;border-radius:2px}
+.sec-desc{color:var(--ink-2);font-size:13.5px;margin:0 0 14px;max-width:78ch}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:4px;margin-bottom:10px;overflow:hidden}
+.card.warn{border-left:4px solid var(--rust)}
+.card.safe{border-left:4px solid var(--moss)}
+.card-top{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;user-select:none}
+.card-top:hover{background:#faf9f7}
+.card-top .tt{flex:1;min-width:0}
+.card-top .tt strong{display:block;font-family:var(--mono);font-size:13.5px;font-weight:600}
+.card-top .tt small{display:block;color:var(--ink-2);font-size:12.5px}
+.tag{font-size:11.5px;padding:2px 7px;border-radius:2px;background:var(--sea-soft);color:var(--sea);white-space:nowrap}
+.tag.d{background:var(--rust-soft);color:var(--rust)}
+.tag.g{background:var(--moss-soft);color:var(--moss)}
+button{font-family:inherit;font-size:13px;border:1px solid var(--sea);background:var(--sea);color:#fff;padding:6px 13px;border-radius:3px;cursor:pointer}
+button:hover{background:#17495a}
+button.ghost{background:transparent;color:var(--sea)}
+button.ghost:hover{background:var(--sea-soft)}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button.done{background:var(--moss);border-color:var(--moss)}
+.chev{width:18px;color:var(--ink-2);font-size:12px;transition:transform .15s ease}
+.card.open .chev{transform:rotate(90deg)}
+pre{
+  margin:0;border-top:1px solid var(--line-2);background:var(--code-bg);color:var(--code-fg);
+  font-family:var(--mono);font-size:12.5px;line-height:1.5;padding:14px 16px;
+  overflow-x:auto;max-height:460px;overflow-y:auto;white-space:pre;tab-size:4;
+}
+.card:not(.open) pre{display:none}
+pre .k{color:var(--code-key)}
+pre .s{color:var(--code-str)}
+pre .c{color:var(--code-cmt);font-style:italic}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.note{border:1px solid var(--line);border-left:4px solid var(--rust);background:#fdf8f6;padding:11px 14px;border-radius:3px;font-size:13px;margin-bottom:16px}
+.note b{color:var(--rust)}
+.note code{font-family:var(--mono);font-size:12.5px}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;padding:10px 18px;border-radius:4px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;z-index:50;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  main{padding:20px 16px 70px}
+  header{padding:18px 16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>상품 복사 SQL 생성기</h1>
+  <p>백업과 건수 확인을 먼저 하고, 본사에서 본사로, 다시 매장으로 내려보냅니다. 값을 바꾸면 모든 쿼리가 바로 다시 만들어집니다.</p>
+  <div class="flow">
+    <b id="f1">H0393</b> <span>원본 본사</span> → <b id="f2">H0514</b> <span>대상 본사</span> → <b>TB_MS_*</b> <span id="f3">소속 매장 전체</span>
+    <b class="mode" id="f4" style="display:none">대량 처리 모드</b>
+  </div>
+</header>
+
+<div class="wrap">
+<aside>
+  <h2>설정</h2>
+  <p class="hint">값을 바꾸면 아래 모든 쿼리가 바로 다시 만들어집니다.</p>
+
+  <fieldset>
+    <legend>본사 / 매장</legend>
+    <div class="grid2">
+      <label class="f"><span>원본 본사</span><input type="text" id="srcHq" value="H0393"></label>
+      <label class="f"><span>대상 본사</span><input type="text" id="tgtHq" value="H0514"></label>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="useStore">
+      <label for="useStore">특정 매장만<em>체크를 풀면 대상 본사 소속 매장 전체</em></label>
+    </div>
+    <label class="f"><span>매장코드</span><input type="text" id="storeCd" value="S611428" disabled></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>등록자 정보</legend>
+    <div class="grid2">
+      <label class="f"><span>본사 REG/MOD_ID</span><input type="text" id="hqId" value="SYSTEM"></label>
+      <label class="f"><span>매장 REG/MOD_ID</span><input type="text" id="msId" value="sysAdmin"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>실행 방식</legend>
+    <div class="check hero">
+      <input type="checkbox" id="batchAll">
+      <label for="batchAll">대량 처리 모드<em>1·2단계의 모든 MERGE를 끊어서 커밋하는 프로시저로 감쌉니다</em></label>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="incUpd">
+      <label for="incUpd">WHEN MATCHED 절 살리기<em>끄면 주석 처리되어 신규 건만 INSERT 됩니다</em></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>대량 처리 값</legend>
+    <label class="f"><span>반복 횟수</span><input type="number" id="loopCnt" value="220" min="1"></label>
+    <label class="f"><span>1회 처리 건수 (ROWNUM)</span><input type="number" id="rowLimit" value="110" min="1"></label>
+    <label class="f"><span>대기 시간 (초)</span><input type="number" id="sleepSec" value="1" min="0"></label>
+    <label class="f"><span>진행 로그 테이블</span><input type="text" id="logTable" value="CHK_UPDATE_20251103_003"></label>
+    <label class="f"><span>REG_DT 조건 (앞자리)</span><input type="text" id="regDtLike" value="20260318"></label>
+    <label class="f"><span>정리 대상 사이드분류</span><input type="text" id="sdselClass" value="005220"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>백업</legend>
+    <div class="grid2">
+      <label class="f"><span>백업 일자</span><input type="text" id="bkSuffix" value="20260901" maxlength="8"></label>
+      <label class="f"><span>일련번호</span><input type="text" id="bkSeq" value="001" maxlength="4"></label>
+    </div>
+    <p class="hint" style="margin:-4px 0 0">이름 규칙 : 원래 테이블명 + <span style="font-family:var(--mono)">_YYYYMMDD_001</span></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>MERGE 자동 생성기</legend>
+    <label class="f"><span>대상 테이블</span><input type="text" id="genTable" value="TB_HQ_PRODUCT_INFO"></label>
+    <label class="f"><span>UNIQUE 컬럼 (쉼표 구분)</span><input type="text" id="genKeys" value="HQ_OFFICE_CD,PROD_CD"></label>
+  </fieldset>
+</aside>
+
+<main>
+  <div class="note">
+    <b>순서</b> — 0단계 백업과 건수 확인을 먼저 돌리고, 1단계 → 2단계로 갑니다.
+    각 단계의 <span style="font-family:var(--mono)">전체 복사</span> 버튼에는 백업과 건수 확인 쿼리가 앞에 함께 붙습니다.
+    건수가 많으면 왼쪽에서 <b>대량 처리 모드</b>를 켜세요. 한 번에 밀면 UNDO와 락이 버티지 못합니다.
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="n">0</span><h2>백업 · 건수 확인</h2></div>
+    <p class="sec-desc">되돌릴 자리를 먼저 만들어 둡니다. 백업 테이블을 만든 뒤 건수를 적어 두고, 작업이 끝나면 같은 쿼리를 다시 돌려 비교하세요.</p>
+    <div class="bar">
+      <button class="ghost" data-copyall="pre">0단계 전체 복사</button>
+      <button class="ghost" data-toggle="pre">전부 펼치기</button>
+    </div>
+    <div id="pre"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">1</span><h2>본사 → 본사 복사</h2></div>
+    <p class="sec-desc">원본 본사의 상품 마스터를 대상 본사로 옮깁니다. 분류 → 상품 → 상세정보 → 판매가 → 사이드메뉴 순서대로 실행해야 참조가 깨지지 않습니다.</p>
+    <div class="bar">
+      <button class="ghost" data-copyall="hq">백업 + 1단계 전체 복사</button>
+      <button class="ghost" data-toggle="hq">전부 펼치기</button>
+    </div>
+    <div id="hq"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">2</span><h2>본사 → 매장 복사</h2></div>
+    <p class="sec-desc">대상 본사에 들어간 정보를 소속 매장으로 내려보냅니다. 1단계를 먼저 끝내야 복사할 원본이 존재합니다.</p>
+    <div class="bar">
+      <button class="ghost" data-copyall="ms">백업 + 2단계 전체 복사</button>
+      <button class="ghost" data-toggle="ms">전부 펼치기</button>
+    </div>
+    <div id="ms"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">3</span><h2>정리 작업</h2></div>
+    <p class="sec-desc">복사 이후에 따로 돌리는 것들입니다. 이 항목은 대량 처리 모드와 관계없이 항상 프로시저로 만들어집니다.</p>
+    <div id="batch"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">4</span><h2>MERGE 문 자동 생성기</h2></div>
+    <p class="sec-desc">여기 없는 테이블이 필요할 때 씁니다. 테이블명과 UNIQUE 컬럼만 넣고 실행하면 전체 컬럼을 읽어 MERGE 문을 만들어 출력합니다.</p>
+    <div id="gen"></div>
+  </section>
+</main>
+</div>
+
+<div class="toast" id="toast">복사했습니다</div>
+
+<script>
+/* ===================== 테이블 정의 ===================== */
+const HQ_TABLES = [
+  {t:'TB_HQ_PRODUCT_CLASS', label:'상품분류',
+   keys:['HQ_OFFICE_CD','PROD_CLASS_CD'],
+   cols:['HQ_OFFICE_CD','PROD_CLASS_CD','PROD_CLASS_NM','P_PROD_CLASS_CD','REG_DT','REG_ID','MOD_DT','MOD_ID','CLS_LEVEL_CD']},
+  {t:'TB_HQ_PRODUCT', label:'상품 마스터',
+   keys:['HQ_OFFICE_CD','PROD_CD'],
+   cols:['HQ_OFFICE_CD','PROD_CD','PROD_NM','HQ_BRAND_CD','PROD_CLASS_CD','CORNR_CD','ORGPLCE_CD','SDATTR_CLASS_CD','SDSEL_GRP_CD','POINT_SAVE_YN','PROD_DC_FG','VAT_FG','PROD_TIP_YN','PROD_PACK_AMT','PROD_DLVR_AMT','PROD_TYPE_FG','SALE_PROD_YN','STOCK_PROD_YN','SIDE_PROD_YN','SET_PROD_FG','COST_UPRC','LAST_COST_UPRC','SPLY_UPRC','SPLY_UPRC_USE_YN','PO_PROD_FG','PO_UNIT_FG','PO_UNIT_QTY','PO_UNIT_ALLOW_FG','PO_MIN_QTY','SAFE_STOCK_QTY','STOCK_UNIT_FG','USE_YN','REMARK','REG_DT','REG_ID','MOD_DT','MOD_ID','PRC_CTRL_FG','MAP_PROD_CD','DEPOSIT_CUP_FG','POINT_USE_YN','DC_YN','SALE_TIME_FG','OPTION_GRP_CD','RELEASE_DATE','DISCON_DATE','DISCON_YN','GROUP_PROD_CD','DEPOSIT_PROD_CD','ADD_GRP_CD','PROD_EN_NM','PROD_CN_NM','PROD_JP_NM','VAT_INCLD_YN']},
+  {t:'TB_HQ_PRODUCT_INFO', label:'상품 상세정보 / 영양성분',
+   keys:['HQ_OFFICE_CD','PROD_CD'],
+   cols:['HQ_OFFICE_CD','PROD_CD','PROD_INFO','REG_DT','REG_ID','MOD_DT','MOD_ID','NU_TOT_WT','NU_KCAL','NU_PROTEIN','NU_SODIUM','NU_SUGARS','NU_SAT_FAT','NU_CAFFEINE','MOMS_KIOSK_EDGE','SALE_TYPE_YN_SIN','SALE_TYPE_YN_DLV','SALE_TYPE_YN_PKG','SALE_CHN_YN_POS','SALE_CHN_YN_KSK','SALE_CHN_YN_CMP','SALE_CHN_YN_BAE','SALE_CHN_YN_BAO','SALE_CHN_YN_YGY','SALE_CHN_YN_YGE','SALE_CHN_YN_CPN','SALE_CHN_YN_TNG','SALE_CHN_YN_DDN','PROD_EN_INFO','PROD_CN_INFO','PROD_JP_INFO','ORD_QTY_DISP_FG','SH_P_ALIAS','SH_P_TICKET_FG','SH_P_MAKER_NM','SH_P_ACQUIRE_VAT','SH_P_POINT_SAVE_RATE','SH_P_SPEC','SH_P_SPC_MANAGE','SH_P_SINGLE_PROD_CD','SH_B_ALIAS','SH_B_PUBLISH_NM','SH_B_AUTHOR1','SH_B_AUTHOR2','SH_B_TRANSLATOR1','SH_B_TRANSLATOR2','SH_B_PUB_DATE','SH_B_DISC_RATE','SH_B_ACQUIRE_VAT','SH_B_POINT_SAVE_RATE','SH_B_SPEC','SH_B_SPC_MANAGE','SH_B_ISBN_FG','SH_B_ISBN_CODE','ORG_PROD_FG','BUNDLE_FG']},
+  {t:'TB_HQ_PRODUCT_SALE_PRICE', label:'판매가',
+   keys:['HQ_OFFICE_CD','PROD_CD','SALE_PRC_FG','START_DATE'],
+   cols:['HQ_OFFICE_CD','PROD_CD','SALE_PRC_FG','START_DATE','END_DATE','SALE_UPRC','REG_DT','REG_ID','MOD_DT','MOD_ID','STIN_SALE_UPRC','DLVR_SALE_UPRC','PACK_SALE_UPRC','SALE_RESVE_FG']},
+  {t:'TB_HQ_PRODUCT_SDSEL_GROUP', label:'사이드메뉴 그룹',
+   keys:['HQ_OFFICE_CD','SDSEL_GRP_CD'],
+   cols:['HQ_OFFICE_CD','HQ_BRAND_CD','SDSEL_GRP_CD','SDSEL_GRP_NM','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','RCVKIND','PROD_CD','FIX_PROD_FG','SDSEL_TYPE_FG','SDSEL_GRP_EN_NM','SDSEL_GRP_CN_NM','SDSEL_GRP_JP_NM','BASIC_INFO','HALF_AND_HALF_YN']},
+  {t:'TB_HQ_PRODUCT_SDSEL_CLASS', label:'사이드메뉴 분류',
+   keys:['HQ_OFFICE_CD','SDSEL_CLASS_CD'],
+   cols:['HQ_OFFICE_CD','SDSEL_CLASS_CD','SDSEL_CLASS_NM','SDSEL_GRP_CD','SDSEL_QTY','DISP_SEQ','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','MAP_CLASS_CD','RCVKIND','REQUIRE_YN','REG_STORE_FG','SDSEL_CLASS_EN_NM','SDSEL_CLASS_CN_NM','SDSEL_CLASS_JP_NM','BASIC_INFO','TOP_YN','EXPAND_YN','MAPPING_YN','POP_UP_CLASS_YN']},
+  {t:'TB_HQ_PRODUCT_SDSEL_PROD', label:'사이드메뉴 상품',
+   keys:['HQ_OFFICE_CD','SDSEL_CLASS_CD','PROD_CD'],
+   cols:['HQ_OFFICE_CD','SDSEL_CLASS_CD','PROD_CD','ADD_PROD_UPRC','ADD_PROD_QTY','DISP_SEQ','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','RCVKIND','FIX_PROD_FG','REG_STORE_FG','PRINT_YN','BASIC_INFO']}
+];
+
+const MS_TABLES = [
+  {t:'TB_MS_PRODUCT_CLASS', src:'TB_HQ_PRODUCT_CLASS', label:'매장 상품분류',
+   keys:['STORE_CD','PROD_CLASS_CD'],
+   cols:['STORE_CD','PROD_CLASS_CD','PROD_CLASS_NM','P_PROD_CLASS_CD','REG_DT','REG_ID','MOD_DT','MOD_ID','CLS_LEVEL_CD'], ov:{}},
+  {t:'TB_MS_PRODUCT', src:'TB_HQ_PRODUCT', label:'매장 상품 마스터',
+   keys:['STORE_CD','PROD_CD'],
+   cols:['STORE_CD','PROD_CD','PROD_NM','HQ_BRAND_CD','PROD_CLASS_CD','CORNR_CD','ORGPLCE_CD','SDATTR_CLASS_CD','SDSEL_GRP_CD','POINT_SAVE_YN','PROD_DC_FG','VAT_FG','PROD_TIP_YN','PROD_PACK_AMT','PROD_DLVR_AMT','PROD_TYPE_FG','SALE_PROD_YN','STOCK_PROD_YN','SIDE_PROD_YN','SET_PROD_FG','PRC_CTRL_FG','COST_UPRC','LAST_COST_UPRC','SPLY_UPRC','SPLY_UPRC_USE_YN','PO_PROD_FG','PO_UNIT_FG','PO_UNIT_QTY','PO_UNIT_ALLOW_FG','PO_MIN_QTY','SAFE_STOCK_QTY','STOCK_UNIT_FG','USE_YN','REMARK','REG_DT','REG_ID','MOD_DT','MOD_ID','REG_FG','MAP_PROD_CD','DEPOSIT_CUP_FG','POINT_USE_YN','DC_YN','SALE_TIME_FG','OPTION_GRP_CD','RELEASE_DATE','DISCON_DATE','DISCON_YN','GROUP_PROD_CD','DEPOSIT_PROD_CD','ADD_GRP_CD','PROD_EN_NM','PROD_CN_NM','PROD_JP_NM','VAT_INCLD_YN'],
+   ov:{REG_FG:"'H'"}},
+  {t:'TB_MS_PRODUCT_SALE_PRICE', src:'TB_HQ_PRODUCT_SALE_PRICE', label:'매장 판매가',
+   keys:['STORE_CD','PROD_CD','SALE_PRC_FG','START_DATE'],
+   cols:['STORE_CD','PROD_CD','SALE_PRC_FG','START_DATE','END_DATE','SALE_UPRC','REG_DT','REG_ID','MOD_DT','MOD_ID','STIN_SALE_UPRC','DLVR_SALE_UPRC','PACK_SALE_UPRC','SALE_RESVE_FG'], ov:{}},
+  {t:'TB_MS_PRODUCT_SDSEL_GROUP', src:'TB_HQ_PRODUCT_SDSEL_GROUP', label:'매장 사이드메뉴 그룹',
+   keys:['STORE_CD','SDSEL_GRP_CD'],
+   cols:['STORE_CD','MS_BRAND_CD','SDSEL_GRP_CD','SDSEL_GRP_NM','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','RCVKIND','FIX_PROD_FG','SDSEL_TYPE_FG','SDSEL_GRP_EN_NM','SDSEL_GRP_CN_NM','SDSEL_GRP_JP_NM','HALF_AND_HALF_YN'],
+   ov:{MS_BRAND_CD:'A.HQ_BRAND_CD'}},
+  {t:'TB_MS_PRODUCT_SDSEL_CLASS', src:'TB_HQ_PRODUCT_SDSEL_CLASS', label:'매장 사이드메뉴 분류',
+   keys:['STORE_CD','SDSEL_CLASS_CD'],
+   cols:['STORE_CD','SDSEL_CLASS_CD','SDSEL_CLASS_NM','SDSEL_GRP_CD','DISP_SEQ','SDSEL_QTY','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','MAP_CLASS_CD','RCVKIND','REQUIRE_YN','SDSEL_CLASS_EN_NM','SDSEL_CLASS_CN_NM','SDSEL_CLASS_JP_NM','TOP_YN','EXPAND_YN','MAPPING_YN','POP_UP_CLASS_YN'], ov:{}},
+  {t:'TB_MS_PRODUCT_SDSEL_PROD', src:'TB_HQ_PRODUCT_SDSEL_PROD', label:'매장 사이드메뉴 상품',
+   keys:['STORE_CD','SDSEL_CLASS_CD','PROD_CD'],
+   cols:['STORE_CD','SDSEL_CLASS_CD','PROD_CD','ADD_PROD_UPRC','ADD_PROD_QTY','DISP_SEQ','USE_YN','REG_DT','REG_ID','MOD_DT','MOD_ID','RCVKIND','FIX_PROD_FG','PRINT_YN'], ov:{}}
+];
+
+/* ===================== 유틸 ===================== */
+const $ = s => document.querySelector(s);
+const pad = (s,n) => { s=String(s); return s.length>=n ? s+' ' : s+' '.repeat(n-s.length); };
+const SYSDT = "TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')";
+const indent = (t,n) => t.split('\n').map(l => l ? ' '.repeat(n)+l : l).join('\n');
+
+function cfg(){
+  return {
+    srcHq: $('#srcHq').value.trim(),
+    tgtHq: $('#tgtHq').value.trim(),
+    useStore: $('#useStore').checked,
+    storeCd: $('#storeCd').value.trim(),
+    hqId: $('#hqId').value.trim(),
+    msId: $('#msId').value.trim(),
+    incUpd: $('#incUpd').checked,
+    batchAll: $('#batchAll').checked,
+    loopCnt: $('#loopCnt').value.trim() || '1',
+    rowLimit: $('#rowLimit').value.trim() || '100',
+    sleepSec: $('#sleepSec').value.trim() || '1',
+    logTable: $('#logTable').value.trim(),
+    regDtLike: $('#regDtLike').value.trim(),
+    sdselClass: $('#sdselClass').value.trim(),
+    bkSuffix: $('#bkSuffix').value.trim() || '00000000',
+    bkSeq: $('#bkSeq').value.trim() || '001',
+    genTable: $('#genTable').value.trim(),
+    genKeys: $('#genKeys').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+}
+
+function srcExpr(col, def, c, mode){
+  const ov = def.ov || {};
+  if (ov[col]) return ov[col];
+  if (mode === 'hq' && col === 'HQ_OFFICE_CD') return "'" + c.tgtHq + "'";
+  if (mode === 'ms' && col === 'STORE_CD')     return "S.STORE_CD";
+  if (col === 'REG_DT' || col === 'MOD_DT')    return SYSDT;
+  if (col === 'REG_ID' || col === 'MOD_ID')    return "'" + (mode==='ms' ? c.msId : c.hqId) + "'";
+  return 'A.' + col;
+}
+
+/* 백업 테이블명 : 원래 테이블명 + _YYYYMMDD_001 */
+let BK = {};
+function buildBkNames(c){
+  const tail = '_' + c.bkSuffix + '_' + c.bkSeq;
+  BK = {};
+  HQ_TABLES.forEach(d => BK[d.t] = d.t + tail);
+  MS_TABLES.forEach(d => BK[d.t] = d.t + tail);
+  const seq2 = String(Number(c.bkSeq) + 1).padStart(c.bkSeq.length, '0');
+  BK['SRC_SDSEL_PROD'] = 'TB_MS_PRODUCT_SDSEL_PROD_' + c.bkSuffix + '_' + (isNaN(Number(c.bkSeq)) ? c.bkSeq + 'S' : seq2);
+}
+const bk = key => BK[key] || key;
+function bkMap(){ return []; }
+
+/* ===================== MERGE 빌더 ===================== */
+function buildMerge(def, c, mode, batch){
+  const src = def.src || def.t;
+  const useUpd = batch ? false : c.incUpd;
+  const L = [];
+  L.push('MERGE INTO ' + def.t + ' A');
+  L.push('USING   (');
+
+  def.cols.forEach((col,i)=>{
+    const head = i===0 ? '            SELECT  ' : '            ,       ';
+    L.push(head + pad(srcExpr(col,def,c,mode),36) + 'AS  ' + col);
+  });
+
+  L.push('            FROM    ' + src + ' A');
+  if (mode === 'hq'){
+    L.push("            WHERE   A.HQ_OFFICE_CD  =   '" + c.srcHq + "'");
+  } else {
+    L.push('            ,       TB_MS_STORE S');
+    L.push("            WHERE   A.HQ_OFFICE_CD  =   '" + c.tgtHq + "'");
+    L.push('            AND     S.HQ_OFFICE_CD  =   A.HQ_OFFICE_CD');
+    if (c.useStore) L.push("            AND     S.STORE_CD      =   '" + c.storeCd + "'");
+  }
+
+  if (batch){
+    L.push('            AND     NOT EXISTS  (');
+    L.push('                                    SELECT  1');
+    L.push('                                    FROM    ' + def.t + ' C');
+    def.keys.forEach((k,i)=>{
+      const head = i===0 ? '                                    WHERE   ' : '                                    AND     ';
+      L.push(head + pad('C.'+k,20) + '=   ' + srcExpr(k,def,c,mode));
+    });
+    L.push('                                )');
+    L.push('            AND     ROWNUM  <   ' + c.rowLimit);
+  }
+  L.push('        ) B');
+
+  def.keys.forEach((k,i)=>{
+    L.push(i===0
+      ? 'ON      (           B.' + pad(k,26) + '=   A.' + k
+      : '        AND         B.' + pad(k,26) + '=   A.' + k);
+  });
+  L.push('        )');
+
+  const upd = def.cols.filter(x=>!def.keys.includes(x));
+  const u = ['WHEN MATCHED THEN','UPDATE'];
+  upd.forEach((col,i)=>{
+    u.push(i===0
+      ? 'SET     A.' + pad(col,38) + '=   B.' + col
+      : ',       A.' + pad(col,38) + '=   B.' + col);
+  });
+  if (useUpd) L.push(...u);
+  else { L.push('/*'); L.push(...u); L.push('*/'); }
+
+  L.push('WHEN NOT MATCHED THEN');
+  L.push('INSERT');
+  L.push('(');
+  def.cols.forEach((col,i)=> L.push((i===0?'        A.':',       A.') + col));
+  L.push(')');
+  L.push('VALUES');
+  L.push('(');
+  def.cols.forEach((col,i)=> L.push((i===0?'        B.':',       B.') + col));
+  L.push(')');
+  L.push(';');
+  return L.join('\n');
+}
+
+/* ===================== 프로시저 래퍼 ===================== */
+function logInsert(c, obj, ind){
+  const p = ' '.repeat(ind);
+  return [
+    p+'INSERT INTO ' + c.logTable,
+    p+'(',
+    p+'    SALE_DATE',
+    p+',   PROC_DT',
+    p+',   PROC_OBJECT',
+    p+')',
+    p+'SELECT  CHK_CUR_C1.NUM',
+    p+',       ' + SYSDT,
+    p+",       '" + obj + "'",
+    p+'FROM    DUAL;'
+  ].join('\n');
+}
+
+function wrapLoop(c, bodySql, obj){
+  return [
+    '-- ' + obj + ' : ' + c.rowLimit + '건씩 x ' + c.loopCnt + '회, 매 회 COMMIT 후 ' + c.sleepSec + '초 대기',
+    'DECLARE',
+    '',
+    '    CURSOR CHK_CUR IS',
+    '    SELECT  LEVEL AS NUM',
+    '    FROM    DUAL',
+    '    CONNECT',
+    '    BY      LEVEL <= ' + c.loopCnt,
+    '    ;',
+    '',
+    'BEGIN',
+    '',
+    '    FOR CHK_CUR_C1 IN CHK_CUR LOOP',
+    '',
+    indent(bodySql, 8),
+    '',
+    logInsert(c, obj, 8),
+    '',
+    '        COMMIT;',
+    '',
+    '        DBMS_LOCK.SLEEP(' + c.sleepSec + ');',
+    '',
+    '    END LOOP;',
+    '',
+    'END;',
+    '/'
+  ].join('\n');
+}
+
+/* ===================== 0단계 : 백업 / 건수 ===================== */
+function backupHq(c){
+  const L = ['-- 1단계 대상 백업 : ' + c.tgtHq + ' 본사 데이터',
+             '-- 이미 같은 이름의 테이블이 있으면 일련번호를 올리세요.',''];
+  HQ_TABLES.forEach(d=>{
+    L.push('CREATE TABLE ' + bk(d.t) + ' AS');
+    L.push('SELECT  *');
+    L.push('FROM    ' + d.t);
+    L.push("WHERE   HQ_OFFICE_CD = '" + c.tgtHq + "';");
+    L.push('');
+  });
+  return L.join('\n').trim();
+}
+
+function backupMs(c){
+  const filter = c.useStore
+    ? "WHERE   STORE_CD = '" + c.storeCd + "';"
+    : "WHERE   STORE_CD IN (SELECT S.STORE_CD FROM TB_MS_STORE S WHERE S.HQ_OFFICE_CD = '" + c.tgtHq + "');";
+  const L = ['-- 2단계 대상 백업 : ' + (c.useStore ? c.storeCd + ' 매장' : c.tgtHq + ' 소속 매장 전체'),''];
+  MS_TABLES.forEach(d=>{
+    L.push('CREATE TABLE ' + bk(d.t) + ' AS');
+    L.push('SELECT  *');
+    L.push('FROM    ' + d.t);
+    L.push(filter);
+    L.push('');
+  });
+  L.push('-- 3단계 정리 작업 대상 백업 : ' + c.srcHq + ' 매장의 사이드메뉴 상품');
+  L.push('-- 같은 테이블을 다른 범위로 한 번 더 뜨는 것이라 일련번호를 하나 올려서 만듭니다.');
+  L.push('');
+  L.push('CREATE TABLE ' + bk('SRC_SDSEL_PROD') + ' AS');
+  L.push('SELECT  *');
+  L.push('FROM    TB_MS_PRODUCT_SDSEL_PROD');
+  L.push("WHERE   STORE_CD IN (SELECT S.STORE_CD FROM TB_MS_STORE S WHERE S.HQ_OFFICE_CD = '" + c.srcHq + "')");
+  L.push("AND     SDSEL_CLASS_CD = '" + c.sdselClass + "';");
+  return L.join('\n').trim();
+}
+
+function countHq(c){
+  const L = ['-- 본사 건수 : 실행 전후로 각각 돌려서 비교',''];
+  HQ_TABLES.forEach((d,i)=>{
+    L.push("SELECT  '" + pad(d.t,28) + "' AS TB_NM");
+    L.push(',       (SELECT COUNT(*) FROM ' + d.t + " WHERE HQ_OFFICE_CD = '" + c.srcHq + "') AS SRC_CNT");
+    L.push(',       (SELECT COUNT(*) FROM ' + d.t + " WHERE HQ_OFFICE_CD = '" + c.tgtHq + "') AS TGT_CNT");
+    L.push('FROM    DUAL');
+    if (i < HQ_TABLES.length-1) L.push('UNION ALL');
+  });
+  L.push(';');
+  return L.join('\n');
+}
+
+function countMs(c){
+  const scope = c.useStore
+    ? "STORE_CD = '" + c.storeCd + "'"
+    : "STORE_CD IN (SELECT S.STORE_CD FROM TB_MS_STORE S WHERE S.HQ_OFFICE_CD = '" + c.tgtHq + "')";
+  const L = ['-- 매장 건수 : ' + (c.useStore ? c.storeCd : c.tgtHq + ' 소속 매장 전체'),''];
+  MS_TABLES.forEach((d,i)=>{
+    L.push("SELECT  '" + pad(d.t,28) + "' AS TB_NM");
+    L.push(',       (SELECT COUNT(*) FROM ' + d.t + ' WHERE ' + scope + ') AS TGT_CNT');
+    L.push('FROM    DUAL');
+    if (i < MS_TABLES.length-1) L.push('UNION ALL');
+  });
+  L.push(';');
+  L.push('');
+  L.push('-- 대상 매장 수');
+  L.push('SELECT  COUNT(*) AS STORE_CNT');
+  L.push('FROM    TB_MS_STORE');
+  L.push("WHERE   HQ_OFFICE_CD = '" + c.tgtHq + "';");
+  return L.join('\n');
+}
+
+function restoreSql(c){
+  const L = ['-- 복구 : 백업 시점으로 되돌립니다. 반드시 필요한 테이블만 골라서 실행하세요.',
+             '-- 자식 데이터부터 지우고 부모 순서로 되돌립니다.',''];
+  [...HQ_TABLES].reverse().forEach(d=>{
+    const b = bk(d.t);
+    L.push('DELETE FROM ' + d.t + " WHERE HQ_OFFICE_CD = '" + c.tgtHq + "';");
+    L.push('INSERT INTO ' + d.t + ' SELECT * FROM ' + b + ';');
+    L.push('');
+  });
+  const filter = c.useStore
+    ? "WHERE STORE_CD = '" + c.storeCd + "'"
+    : "WHERE STORE_CD IN (SELECT S.STORE_CD FROM TB_MS_STORE S WHERE S.HQ_OFFICE_CD = '" + c.tgtHq + "')";
+  [...MS_TABLES].reverse().forEach(d=>{
+    const b = bk(d.t);
+    L.push('DELETE FROM ' + d.t + ' ' + filter + ';');
+    L.push('INSERT INTO ' + d.t + ' SELECT * FROM ' + b + ';');
+    L.push('');
+  });
+  L.push('COMMIT;');
+  return L.join('\n');
+}
+
+function logTableDdl(c){
+  return [
+    '-- 진행 로그 테이블 (없을 때만 만드세요)',
+    'CREATE TABLE ' + c.logTable,
+    '(',
+    '    SALE_DATE       NUMBER',
+    ',   PROC_DT         VARCHAR2(14)',
+    ',   PROC_OBJECT     VARCHAR2(100)',
+    ');',
+    '',
+    '-- 진행 상황 보기',
+    'SELECT  PROC_OBJECT',
+    ',       COUNT(*)        AS LOOP_CNT',
+    ',       MIN(PROC_DT)    AS START_DT',
+    ',       MAX(PROC_DT)    AS LAST_DT',
+    'FROM    ' + c.logTable,
+    'GROUP   BY PROC_OBJECT',
+    'ORDER   BY 4 DESC;'
+  ].join('\n');
+}
+
+/* ===================== 3단계 정리 작업 ===================== */
+function batchSdselProd(c){
+  const storeLine = c.useStore ? "\n            AND     S.STORE_CD      =   '" + c.storeCd + "'" : '';
+  const body = [
+    "MERGE INTO TB_MS_PRODUCT_SDSEL_PROD A",
+    "USING   (",
+    "            SELECT  S.STORE_CD" + ' '.repeat(27) + 'AS  STORE_CD',
+    "            ,       A.SDSEL_CLASS_CD" + ' '.repeat(20) + 'AS  SDSEL_CLASS_CD',
+    "            ,       A.PROD_CD" + ' '.repeat(27) + 'AS  PROD_CD',
+    "            ,       A.ADD_PROD_UPRC" + ' '.repeat(21) + 'AS  ADD_PROD_UPRC',
+    "            ,       A.ADD_PROD_QTY" + ' '.repeat(22) + 'AS  ADD_PROD_QTY',
+    "            ,       A.DISP_SEQ" + ' '.repeat(26) + 'AS  DISP_SEQ',
+    "            ,       A.USE_YN" + ' '.repeat(28) + 'AS  USE_YN',
+    "            ,       " + pad(SYSDT,36) + 'AS  REG_DT',
+    "            ,       " + pad("'"+c.msId+"'",36) + 'AS  REG_ID',
+    "            ,       " + pad(SYSDT,36) + 'AS  MOD_DT',
+    "            ,       " + pad("'"+c.msId+"'",36) + 'AS  MOD_ID',
+    "            ,       A.RCVKIND" + ' '.repeat(27) + 'AS  RCVKIND',
+    "            ,       A.FIX_PROD_FG" + ' '.repeat(23) + 'AS  FIX_PROD_FG',
+    "            ,       A.PRINT_YN" + ' '.repeat(26) + 'AS  PRINT_YN',
+    "            FROM    TB_HQ_PRODUCT_SDSEL_PROD A",
+    "            ,       TB_MS_STORE S",
+    "            WHERE   A.HQ_OFFICE_CD  =   '" + c.tgtHq + "'",
+    "            AND     A.REG_DT        LIKE '" + c.regDtLike + "%'",
+    "            AND     S.HQ_OFFICE_CD  =   A.HQ_OFFICE_CD" + storeLine,
+    "            AND     NOT EXISTS  (",
+    "                                    SELECT  1",
+    "                                    FROM    TB_MS_PRODUCT_SDSEL_PROD C",
+    "                                    WHERE   C.STORE_CD          =   S.STORE_CD",
+    "                                    AND     C.SDSEL_CLASS_CD    =   A.SDSEL_CLASS_CD",
+    "                                    AND     C.PROD_CD           =   A.PROD_CD",
+    "                                )",
+    "            AND     ROWNUM  <   " + c.rowLimit,
+    "        ) B",
+    "ON      (           B.STORE_CD                  =   A.STORE_CD",
+    "        AND         B.SDSEL_CLASS_CD            =   A.SDSEL_CLASS_CD",
+    "        AND         B.PROD_CD                   =   A.PROD_CD",
+    "        )",
+    "WHEN NOT MATCHED THEN",
+    "INSERT",
+    "(       A.STORE_CD",
+    ",       A.SDSEL_CLASS_CD",
+    ",       A.PROD_CD",
+    ",       A.ADD_PROD_UPRC",
+    ",       A.ADD_PROD_QTY",
+    ",       A.DISP_SEQ",
+    ",       A.USE_YN",
+    ",       A.REG_DT",
+    ",       A.REG_ID",
+    ",       A.MOD_DT",
+    ",       A.MOD_ID",
+    ",       A.RCVKIND",
+    ",       A.FIX_PROD_FG",
+    ",       A.PRINT_YN",
+    ")",
+    "VALUES",
+    "(       B.STORE_CD",
+    ",       B.SDSEL_CLASS_CD",
+    ",       B.PROD_CD",
+    ",       B.ADD_PROD_UPRC",
+    ",       B.ADD_PROD_QTY",
+    ",       B.DISP_SEQ",
+    ",       B.USE_YN",
+    ",       B.REG_DT",
+    ",       B.REG_ID",
+    ",       B.MOD_DT",
+    ",       B.MOD_ID",
+    ",       B.RCVKIND",
+    ",       B.FIX_PROD_FG",
+    ",       B.PRINT_YN",
+    ");"
+  ].join('\n');
+  return wrapLoop(c, body, 'TB_MS_PRODUCT_SDSEL_PROD');
+}
+
+function batchUseNoff(c){
+  const body = [
+    "UPDATE  TB_MS_PRODUCT_SDSEL_PROD A",
+    "SET     A.USE_YN        =   'N'",
+    ",       A.MOD_DT        =   " + SYSDT,
+    ",       A.MOD_ID        =   '" + c.hqId + "'",
+    "WHERE   A.STORE_CD  IN  (",
+    "                            SELECT  B.STORE_CD",
+    "                            FROM    TB_MS_STORE B",
+    "                            WHERE   B.HQ_OFFICE_CD = '" + c.srcHq + "'",
+    "                        )",
+    "AND     A.SDSEL_CLASS_CD    =   '" + c.sdselClass + "'",
+    "AND     A.USE_YN            =   'Y'",
+    "AND     ROWNUM  <   " + c.rowLimit,
+    ";"
+  ].join('\n');
+  return wrapLoop(c, body, 'TB_MS_PRODUCT_SDSEL_PROD');
+}
+
+/* ===================== 4단계 생성기 ===================== */
+function generatorBlock(c){
+  const keys = c.genKeys.map(k=>"'"+k+"'").join(',');
+  return [
+    'SET SERVEROUTPUT ON SIZE UNLIMITED;',
+    'DECLARE',
+    "    v_table_name   VARCHAR2(30) := '" + c.genTable + "';   -- 대상 테이블명",
+    '    v_sql          CLOB;',
+    '    v_col_line     CLOB;',
+    '    v_unique_cols  SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(' + keys + ');  -- UNIQUE 컬럼',
+    'BEGIN',
+    '    DBMS_LOB.CREATETEMPORARY(v_sql, TRUE);',
+    '',
+    "    DBMS_LOB.APPEND(v_sql, 'MERGE INTO ' || v_table_name || ' A' || CHR(10));",
+    "    DBMS_LOB.APPEND(v_sql, 'USING   (' || CHR(10));",
+    '',
+    '    -- SELECT 컬럼 목록',
+    '    FOR rec IN (',
+    '        SELECT  column_name, column_id',
+    '        FROM    user_tab_columns',
+    '        WHERE   table_name = UPPER(v_table_name)',
+    '        ORDER   BY column_id',
+    '    ) LOOP',
+    '        IF rec.column_id = 1 THEN',
+    "            v_col_line := '            SELECT  A.' || RPAD(rec.column_name, 34) || 'AS  ' || rec.column_name;",
+    '        ELSE',
+    "            v_col_line := '            ,       A.' || RPAD(rec.column_name, 34) || 'AS  ' || rec.column_name;",
+    '        END IF;',
+    '        DBMS_LOB.APPEND(v_sql, v_col_line || CHR(10));',
+    '    END LOOP;',
+    '',
+    "    DBMS_LOB.APPEND(v_sql, '            FROM    ' || v_table_name || ' A' || CHR(10));",
+    "    DBMS_LOB.APPEND(v_sql, '        ) B' || CHR(10));",
+    '',
+    '    -- ON 절',
+    "    DBMS_LOB.APPEND(v_sql, 'ON      (');",
+    '    FOR i IN 1 .. v_unique_cols.COUNT LOOP',
+    '        IF i = 1 THEN',
+    "            v_col_line := '           B.' || RPAD(v_unique_cols(i), 26) || '=   A.' || v_unique_cols(i);",
+    '        ELSE',
+    "            v_col_line := '        AND         B.' || RPAD(v_unique_cols(i), 26) || '=   A.' || v_unique_cols(i);",
+    '        END IF;',
+    '        DBMS_LOB.APPEND(v_sql, v_col_line || CHR(10));',
+    '    END LOOP;',
+    "    DBMS_LOB.APPEND(v_sql, '        )' || CHR(10));",
+    '',
+    '    -- UPDATE 절 (ON 절 컬럼 제외)',
+    "    DBMS_LOB.APPEND(v_sql, 'WHEN MATCHED THEN' || CHR(10) || 'UPDATE' || CHR(10) || 'SET');",
+    '    FOR rec IN (',
+    '        SELECT  column_name, column_id, ROWNUM AS row_int',
+    '        FROM    (',
+    '                    SELECT  column_name, column_id',
+    '                    FROM    user_tab_columns',
+    '                    WHERE   table_name = UPPER(v_table_name)',
+    '                    AND     column_name NOT IN (SELECT COLUMN_VALUE FROM TABLE(v_unique_cols))',
+    '                    ORDER   BY column_id',
+    '                )',
+    '    ) LOOP',
+    '        IF rec.row_int = 1 THEN',
+    "            v_col_line := '     A.' || RPAD(rec.column_name, 38) || '=   B.' || rec.column_name;",
+    '        ELSE',
+    "            v_col_line := ',       A.' || RPAD(rec.column_name, 38) || '=   B.' || rec.column_name;",
+    '        END IF;',
+    '        DBMS_LOB.APPEND(v_sql, v_col_line || CHR(10));',
+    '    END LOOP;',
+    '',
+    '    -- INSERT 절',
+    "    DBMS_LOB.APPEND(v_sql, 'WHEN NOT MATCHED THEN' || CHR(10) || 'INSERT' || CHR(10) || '(' || CHR(10));",
+    '    FOR rec IN (',
+    '        SELECT  column_name, column_id',
+    '        FROM    user_tab_columns',
+    '        WHERE   table_name = UPPER(v_table_name)',
+    '        ORDER   BY column_id',
+    '    ) LOOP',
+    "        v_col_line := CASE WHEN rec.column_id = 1 THEN '        A.' ELSE ',       A.' END || rec.column_name;",
+    '        DBMS_LOB.APPEND(v_sql, v_col_line || CHR(10));',
+    '    END LOOP;',
+    '',
+    "    DBMS_LOB.APPEND(v_sql, ')' || CHR(10) || 'VALUES' || CHR(10) || '(' || CHR(10));",
+    '    FOR rec IN (',
+    '        SELECT  column_name, column_id',
+    '        FROM    user_tab_columns',
+    '        WHERE   table_name = UPPER(v_table_name)',
+    '        ORDER   BY column_id',
+    '    ) LOOP',
+    "        v_col_line := CASE WHEN rec.column_id = 1 THEN '        B.' ELSE ',       B.' END || rec.column_name;",
+    '        DBMS_LOB.APPEND(v_sql, v_col_line || CHR(10));',
+    '    END LOOP;',
+    "    DBMS_LOB.APPEND(v_sql, ')' || CHR(10) || ';' || CHR(10));",
+    '',
+    '    DBMS_OUTPUT.PUT_LINE(v_sql);',
+    '    DBMS_LOB.FREETEMPORARY(v_sql);',
+    'END;',
+    '/',
+    '',
+    '-- 출력된 문장에서 손볼 것',
+    '--   1) SELECT 절 : 이관 대상 코드 값을 리터럴로 교체',
+    "--   2) REG/MOD 컬럼 : TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') / 'SYSTEM' 으로 교체",
+    '--   3) FROM 절 : 원본 조건(WHERE) 추가',
+    '--   4) 대량 처리 : 이 페이지 3단계 프로시저 틀에 MERGE 문만 갈아 끼우면 됩니다'
+  ].join('\n');
+}
+
+/* ===================== 렌더링 ===================== */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hl(s){
+  return esc(s)
+    .replace(/(--[^\n]*)/g,'<span class="c">$1</span>')
+    .replace(/'([^'\n]*)'/g,'<span class="s">\'$1\'</span>')
+    .replace(/\b(MERGE|INTO|USING|SELECT|FROM|WHERE|AND|OR|ON|WHEN|MATCHED|NOT|EXISTS|THEN|UPDATE|SET|INSERT|VALUES|DELETE|CREATE|TABLE|DECLARE|BEGIN|END|LOOP|FOR|IN|CURSOR|IS|COMMIT|LEVEL|DUAL|CONNECT|BY|ROWNUM|LIKE|UNION|ALL|AS|IF|ELSE|CASE|ORDER|GROUP|COUNT|MIN|MAX)\b/g,'<span class="k">$1</span>');
+}
+
+function card(title, sub, sql, tag, cls){
+  const d = document.createElement('div');
+  d.className = 'card' + (cls ? ' '+cls : '');
+  d.innerHTML =
+    '<div class="card-top"><span class="chev">&#9654;</span>' +
+    '<span class="tt"><strong>'+title+'</strong><small>'+sub+'</small></span>' +
+    (tag ? '<span class="tag '+(cls==='warn'?'d':cls==='safe'?'g':'')+'">'+tag+'</span>' : '') +
+    '<button data-copy>복사</button></div>' +
+    '<pre>'+hl(sql)+'</pre>';
+  d.querySelector('.card-top').addEventListener('click', e=>{
+    if(e.target.hasAttribute('data-copy')) return;
+    d.classList.toggle('open');
+  });
+  d.querySelector('[data-copy]').addEventListener('click', e=>{
+    e.stopPropagation();
+    copy(sql, e.target);
+  });
+  return d;
+}
+
+function copy(text, btn){
+  const done = ()=>{
+    toast('복사했습니다');
+    if(btn){ const o=btn.textContent; btn.textContent='복사됨'; btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=o;btn.classList.remove('done');},1200); }
+  };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallback(text,done));
+  } else fallback(text,done);
+}
+function fallback(text, done){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{document.execCommand('copy');done();}catch(e){toast('복사에 실패했습니다. 내용을 직접 선택해 주세요');}
+  document.body.removeChild(ta);
+}
+let toastTimer;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+const store = {pre:[], hq:[], ms:[], preHq:'', preMs:''};
+const RULE = '\n\n' + '-'.repeat(78) + '\n\n';
+
+function render(){
+  const c = cfg();
+  buildBkNames(c);
+  $('#f1').textContent = c.srcHq || '—';
+  $('#f2').textContent = c.tgtHq || '—';
+  $('#f3').textContent = c.useStore ? c.storeCd + ' 매장' : '소속 매장 전체';
+  $('#f4').style.display = c.batchAll ? '' : 'none';
+  $('#storeCd').disabled = !c.useStore;
+  $('#incUpd').disabled = c.batchAll;
+
+  const pre=$('#pre'), hq=$('#hq'), ms=$('#ms'), bt=$('#batch'), gn=$('#gen');
+  pre.innerHTML = hq.innerHTML = ms.innerHTML = bt.innerHTML = gn.innerHTML = '';
+  store.hq = []; store.ms = []; store.pre = [];
+
+  /* --- 0단계 --- */
+  const bkHq = backupHq(c), bkMs = backupMs(c), cnHq = countHq(c), cnMs = countMs(c);
+  store.preHq = '-- [사전] 백업\n' + bkHq + RULE + '-- [사전] 건수 확인\n' + cnHq;
+  store.preMs = '-- [사전] 백업\n' + bkMs + RULE + '-- [사전] 건수 확인\n' + cnMs;
+  store.pre = [bkHq, bkMs, cnHq, cnMs, logTableDdl(c)];
+
+  pre.appendChild(card('본사 테이블 백업', '1단계에서 바뀌는 ' + c.tgtHq + ' 데이터 7개 테이블', bkHq, '먼저 실행', 'safe'));
+  pre.appendChild(card('매장 테이블 백업', '2·3단계에서 바뀌는 매장 데이터', bkMs, '먼저 실행', 'safe'));
+  pre.appendChild(card('본사 건수 확인', c.srcHq + ' 원본과 ' + c.tgtHq + ' 대상 건수 비교', cnHq, '', ''));
+  pre.appendChild(card('매장 건수 확인', '매장 테이블별 건수와 대상 매장 수', cnMs, '', ''));
+  pre.appendChild(card('진행 로그 테이블', c.logTable + ' 생성 및 진행 상황 조회', logTableDdl(c), '', ''));
+  pre.appendChild(card('복구', '백업 테이블로 되돌리기. 문제가 생겼을 때만 사용', restoreSql(c), '데이터 삭제', 'warn'));
+
+  /* --- 1단계 --- */
+  HQ_TABLES.forEach((d,i)=>{
+    const core = buildMerge(d, c, 'hq', c.batchAll);
+    const sql = c.batchAll ? wrapLoop(c, core, d.t) : core;
+    store.hq.push('-- ' + (i+1) + '. ' + d.t + ' (' + d.label + ')\n' + sql);
+    const sub = c.batchAll
+      ? d.label + ' · ' + c.rowLimit + '건씩 x ' + c.loopCnt + '회'
+      : d.label + ' · ' + c.srcHq + ' → ' + c.tgtHq;
+    hq.appendChild(card(d.t, sub, sql, c.batchAll ? '프로시저' : '', ''));
+  });
+
+  /* --- 2단계 --- */
+  MS_TABLES.forEach((d,i)=>{
+    const core = buildMerge(d, c, 'ms', c.batchAll);
+    const sql = c.batchAll ? wrapLoop(c, core, d.t) : core;
+    const scope = c.useStore ? c.storeCd + ' 매장만' : c.tgtHq + ' 소속 매장 전체';
+    store.ms.push('-- ' + (i+1) + '. ' + d.t + ' (' + d.label + ')\n' + sql);
+    const sub = c.batchAll
+      ? d.label + ' · ' + c.rowLimit + '건씩 x ' + c.loopCnt + '회 · ' + scope
+      : d.label + ' · ' + scope;
+    ms.appendChild(card(d.t, sub, sql, c.batchAll ? '프로시저' : (c.useStore ? '' : '전 매장'), ''));
+  });
+
+  /* --- 3단계 --- */
+  bt.appendChild(card('사이드메뉴 상품 나눠 넣기',
+    'REG_DT ' + c.regDtLike + ' 건만 대상 · 이미 있는 건 제외', batchSdselProd(c), '프로시저', ''));
+  bt.appendChild(card('기존 사이드메뉴 사용중지',
+    c.srcHq + ' 매장의 ' + c.sdselClass + ' 분류를 USE_YN = N 으로', batchUseNoff(c), '데이터 변경', 'warn'));
+
+  /* --- 4단계 --- */
+  gn.appendChild(card(c.genTable || '테이블명을 입력하세요',
+    'UNIQUE: ' + (c.genKeys.join(', ') || '지정 안 됨'), generatorBlock(c), '', ''));
+}
+
+/* ===================== 이벤트 ===================== */
+document.querySelectorAll('aside input').forEach(el=>{
+  el.addEventListener('input', render);
+  el.addEventListener('change', render);
+});
+
+document.querySelectorAll('[data-copyall]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const k = b.dataset.copyall;
+    let out;
+    if (k === 'pre'){
+      out = '-- ===== 0단계 : 백업 · 건수 확인 =====\n\n' + store.pre.join(RULE);
+    } else if (k === 'hq'){
+      out = '-- ===== 1단계 : 본사 → 본사 =====\n-- 백업과 건수 확인을 먼저 실행하고, 아래를 위에서부터 순서대로 실행\n\n'
+          + store.preHq + RULE + store.hq.join(RULE);
+    } else {
+      out = '-- ===== 2단계 : 본사 → 매장 =====\n-- 1단계 완료 후 실행\n\n'
+          + store.preMs + RULE + store.ms.join(RULE);
+    }
+    copy(out, b);
+  });
+});
+
+document.querySelectorAll('[data-toggle]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const box = document.getElementById(b.dataset.toggle);
+    const open = box.querySelectorAll('.card.open').length === 0;
+    box.querySelectorAll('.card').forEach(c=>c.classList.toggle('open', open));
+    b.textContent = open ? '전부 접기' : '전부 펼치기';
+  });
+});
+
+/* 백업 일자 기본값 = 오늘 YYYYMMDD */
+(function(){
+  const d = new Date();
+  $('#bkSuffix').value = d.getFullYear()
+    + String(d.getMonth()+1).padStart(2,'0')
+    + String(d.getDate()).padStart(2,'0');
+  $('#bkSeq').value = '001';
+})();
+
+render();
+</script>
+</body>
+</html>

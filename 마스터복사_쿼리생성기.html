@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마스터 복사 쿼리 생성기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --bg:#141414; --surface-1:#1c1c1c; --surface-2:#232323;
+  --ink:#f2f2f2; --ink-2:#d4d4d4; --ink-3:#a8a8a8; --ink-4:#828282; --ink-5:#5f5f5f;
+  --line:#2e2e2e; --line-2:#3a3a3a;
+  --accent:#3d9bff; --accent-dim:rgba(61,155,255,0.14);
+  --warn:#ff7a59; --warn-dim:rgba(255,122,89,0.13);
+  --ok:#2bd682; --ok-dim:rgba(43,214,130,0.13);
+  --code-bg:#101010; --code-fg:#cfd6dd;
+  --code-key:#6fb0d8; --code-str:#d3a15c; --code-cmt:#5f6b74;
+  --mono:ui-monospace,"D2Coding","Cascadia Mono",Consolas,"Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Pretendard",system-ui,sans-serif;font-weight:500;background:var(--bg);
+  color:var(--ink-2);line-height:1.6;word-break:keep-all;-webkit-font-smoothing:antialiased;
+  font-feature-settings:"tnum"}
+a{color:var(--accent)}
+header{border-bottom:1px solid var(--line);padding:26px 28px 0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+h1{font-size:29px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-top:8px}
+header p{margin-top:10px;font-size:14px;color:var(--ink-3);max-width:76ch}
+.tabs{display:flex;gap:2px;margin-top:20px;flex-wrap:wrap}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-4);
+  font-family:inherit;font-size:14px;font-weight:600;padding:10px 15px;cursor:pointer}
+.tabs button:hover{color:var(--ink-2)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button .cnt{font-size:11px;color:var(--ink-5);margin-left:6px}
+.wrap{display:grid;grid-template-columns:308px minmax(0,1fr);align-items:start}
+aside{position:sticky;top:0;max-height:100vh;overflow-y:auto;border-right:1px solid var(--line);
+  padding:22px 20px 60px;background:var(--surface-1)}
+aside h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);font-weight:600;margin-bottom:14px}
+fieldset{border:0;border-top:1px solid var(--line);padding:16px 0 2px;margin:0}
+fieldset:first-of-type{border-top:0;padding-top:0}
+legend{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:9px}
+label.f{display:block;margin-bottom:11px}
+label.f span{display:block;font-size:12.5px;color:var(--ink-4);margin-bottom:4px}
+input[type=text],select{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:6px;
+  padding:8px 10px;font-family:var(--mono);font-size:13px;color:var(--ink)}
+select{font-family:inherit;cursor:pointer}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+input:disabled{background:#191919;color:var(--ink-5)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.chk{display:flex;gap:9px;align-items:flex-start;font-size:13px;margin-bottom:10px;color:var(--ink-2)}
+.chk input{margin-top:3px;accent-color:var(--accent);cursor:pointer}
+.chk em{display:block;font-style:normal;font-size:11.5px;color:var(--ink-5);line-height:1.45}
+.chk label{cursor:pointer}
+.chk.danger{background:var(--warn-dim);border:1px solid rgba(255,122,89,.3);border-radius:8px;padding:9px 11px}
+.hintline{font-size:11.5px;color:var(--ink-5);margin:-4px 0 10px}
+main{padding:26px 28px 100px;min-width:0}
+.pane{display:none}
+.pane.on{display:block}
+.lead{font-size:14px;color:var(--ink-3);margin-bottom:16px;max-width:82ch}
+.lead b{color:var(--ink-2);font-weight:600}
+h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);font-weight:600;margin:26px 0 10px}
+.picker{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);padding:6px 4px;margin-bottom:6px}
+.pgrp{border-bottom:1px solid var(--line);padding:8px 12px}
+.pgrp:last-child{border-bottom:0}
+.pgrp-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pgrp-h strong{font-size:12.5px;color:var(--ink-3);font-weight:600}
+.pgrp-h button{margin-left:auto;background:none;border:1px solid var(--line-2);color:var(--ink-4);
+  border-radius:5px;font-size:11px;padding:2px 8px;cursor:pointer;font-family:inherit}
+.pgrp-h button:hover{color:var(--ink);border-color:var(--ink-4)}
+.pitems{display:flex;flex-wrap:wrap;gap:4px}
+.pit{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);border-radius:6px;
+  padding:4px 9px;font-family:var(--mono);font-size:11.5px;color:var(--ink-4);cursor:pointer;user-select:none}
+.pit:hover{border-color:var(--ink-4)}
+.pit input{accent-color:var(--accent);cursor:pointer}
+.pit.on{color:var(--ink);border-color:rgba(61,155,255,.5);background:var(--accent-dim)}
+.pit .w{color:var(--warn);font-size:11px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 12px}
+.bar .spacer{flex:1}
+.bar .stat{font-size:12.5px;color:var(--ink-4)}
+button.act{background:var(--accent-dim);border:1px solid rgba(61,155,255,.45);color:var(--accent);
+  font-family:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:7px;cursor:pointer}
+button.act:hover{background:rgba(61,155,255,.22)}
+button.act.plain{background:none;border-color:var(--line-2);color:var(--ink-4)}
+button.act.plain:hover{color:var(--ink);border-color:var(--ink-4)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);margin-bottom:9px;overflow:hidden}
+.card.warn{border-color:rgba(255,122,89,.35)}
+.card-h{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+.card-h:hover{background:var(--surface-2)}
+.card-h .chev{color:var(--ink-5);font-size:11px;transition:transform .18s cubic-bezier(.32,.72,0,1)}
+.card.open .chev{transform:rotate(90deg)}
+.card-h .tt{flex:1;min-width:0}
+.card-h .tt strong{display:block;font-size:14px;font-weight:700;color:var(--ink)}
+.card-h .tt small{display:block;font-size:12.5px;color:var(--ink-4)}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--surface-2);
+  color:var(--ink-3);border:1px solid var(--line-2);white-space:nowrap}
+.badge.b1{background:var(--ok-dim);color:var(--ok);border-color:transparent}
+.badge.b2{background:var(--warn-dim);color:var(--warn);border-color:transparent}
+.badge.b3{background:var(--accent-dim);color:var(--accent);border-color:transparent}
+.copy{background:none;border:1px solid var(--line-2);color:var(--ink-3);font-family:inherit;
+  font-size:12.5px;padding:5px 12px;border-radius:6px;cursor:pointer}
+.copy:hover{color:var(--ink);border-color:var(--ink-4)}
+.copy.done{color:var(--ok);border-color:var(--ok)}
+pre{margin:0;border-top:1px solid var(--line);background:var(--code-bg);color:var(--code-fg);
+  font-family:var(--mono);font-size:12.5px;line-height:1.55;padding:15px 16px;overflow:auto;
+  max-height:520px;white-space:pre;tab-size:4}
+.card:not(.open) pre{display:none}
+pre .k{color:var(--code-key)}
+pre .s{color:var(--code-str)}
+pre .c{color:var(--code-cmt);font-style:italic}
+.note{border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:8px;
+  background:var(--surface-1);padding:12px 15px;font-size:13px;color:var(--ink-3);margin-bottom:16px}
+.note.info{border-left-color:var(--accent)}
+.note.ok{border-left-color:var(--ok)}
+.note b{color:var(--warn);font-weight:600}
+.note.info b{color:var(--accent)}
+.note.ok b{color:var(--ok)}
+.note code,.mono{font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+.note ul{margin:6px 0 0 18px}
+.note li{margin-top:3px}
+table.inv{width:100%;border-collapse:collapse;font-size:12.5px}
+table.inv th{text-align:left;font-weight:600;color:var(--ink-4);font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line-2);position:sticky;top:0;background:var(--bg)}
+table.inv td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-3)}
+table.inv td.t{font-family:var(--mono);color:var(--ink-2);white-space:nowrap}
+table.inv td.k{font-family:var(--mono);font-size:11.5px;color:var(--ink-4)}
+table.inv tr.ex td{color:var(--ink-5)}
+table.inv tr.ex td.t{color:var(--ink-4);text-decoration:line-through}
+table.inv tr:hover td{background:var(--surface-1)}
+.gtitle{font-size:12px;font-weight:700;color:var(--accent);padding:16px 10px 6px}
+#invSearch{max-width:280px;margin-bottom:12px}
+.fixlist{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);overflow:hidden;margin-bottom:16px}
+.fixlist .row{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line);font-size:13px}
+.fixlist .row:last-child{border-bottom:0}
+.fixlist .n{font-family:var(--mono);font-size:12px;color:var(--ink-5);font-weight:700}
+.fixlist strong{display:block;color:var(--ink);font-size:13.5px;font-weight:700;margin-bottom:2px}
+.fixlist p{color:var(--ink-4);font-size:12.5px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);
+  background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink);padding:10px 18px;
+  border-radius:8px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:960px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  main{padding:20px 16px 80px}
+  header{padding:20px 16px 0}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Master Copy</div>
+  <h1>마스터 복사 쿼리 생성기</h1>
+  <p>본사에서 본사로, 본사에서 매장으로, 매장에서 매장으로. 복사 블록은 통합 엔진 <span class="mono">PKG_CM_COPY_V2</span> 를 호출합니다. 엔진을 먼저 설치하세요.</p>
+  <div class="tabs" id="tabs">
+    <button data-tab="eng" class="on">엔진 설치</button>
+    <button data-tab="h2h">본사 → 본사<span class="cnt" id="c-h2h"></span></button>
+    <button data-tab="h2m">본사 → 매장<span class="cnt" id="c-h2m"></span></button>
+    <button data-tab="m2m">매장 → 매장<span class="cnt" id="c-m2m"></span></button>
+    <button data-tab="inv">테이블 목록</button>
+  </div>
+</header>
+
+<div class="wrap">
+<aside>
+  <h2>설정</h2>
+
+  <fieldset>
+    <legend>공통</legend>
+    <label class="f"><span>스키마</span><input type="text" id="schema" value="SBPORA"></label>
+    <label class="f"><span>작업자 ID (REG/MOD)</span><input type="text" id="userId" value="HQCOPY"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>실행 방식</legend>
+    <label class="f"><span>모드</span>
+      <select id="mode">
+        <option value="S">S · 신규만 넣기</option>
+        <option value="M">M · 있으면 갱신</option>
+        <option value="R">R · 지우고 다시 넣기</option>
+      </select>
+    </label>
+    <p class="hintline" id="modeHint"></p>
+    <div class="chk danger">
+      <input type="checkbox" id="execYn">
+      <label for="execYn">실제 실행 (G_EXEC_YN = Y)<em>끄면 SQL 출력만 하고 데이터는 건드리지 않습니다</em></label>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="autoCommit">
+      <label for="autoCommit">블록 끝에서 COMMIT<em>끄면 ROLLBACK</em></label>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="stopErr" checked>
+      <label for="stopErr">오류 나면 즉시 중단<em>끄면 다음 테이블로 넘어갑니다</em></label>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="useBatch">
+      <label for="useBatch">나눠담기<em>묶음마다 COMMIT 합니다. 되돌릴 수 없습니다. S 모드 전용</em></label>
+    </div>
+    <div class="grid2">
+      <label class="f"><span>묶음 건수</span><input type="text" id="batchSize" value="1000" disabled></label>
+      <label class="f"><span>대기 초</span><input type="text" id="sleepSec" value="1" disabled></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>본사</legend>
+    <div class="grid2">
+      <label class="f"><span>원본 본사</span><input type="text" id="srcHq" value="H0393"></label>
+      <label class="f"><span>대상 본사</span><input type="text" id="tgtHq" value="H0514"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>매장</legend>
+    <div class="grid2">
+      <label class="f"><span>원본 매장</span><input type="text" id="srcStore" value="S611428"></label>
+      <label class="f"><span>대상 매장</span><input type="text" id="tgtStore" value="S611429"></label>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="prodFilter" checked>
+      <label for="prodFilter">매장 지정 상품만 내리기<em>TB_HQ_PRODUCT_STORE 에 매핑된 상품만 복사</em></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>백업</legend>
+    <div class="grid2">
+      <label class="f"><span>백업 일자</span><input type="text" id="bkDate" value="20260901" maxlength="8"></label>
+      <label class="f"><span>일련번호</span><input type="text" id="bkSeq" value="001" maxlength="4"></label>
+    </div>
+    <p class="hintline">원래 테이블명 + <span class="mono">_YYYYMMDD_001</span></p>
+  </fieldset>
+</aside>
+
+<main>
+  <!-- ============ 엔진 ============ -->
+  <section class="pane on" id="pane-eng">
+    <p class="lead">복사 블록이 부르는 엔진입니다. <b>세 방향 모두 이 하나를 씁니다.</b> 기존 <span class="mono">PKG_CM_COPY_GEN</span> 과 <span class="mono">PKG_MS_STORE_COPY</span> 를 합치고 아래를 고쳤습니다.</p>
+
+    <div class="fixlist">
+      <div class="row"><span class="n">01</span><div>
+        <strong>감사컬럼 타입 자동 판별</strong>
+        <p>REG_DT / MOD_DT 가 VARCHAR2 면 TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), DATE 면 SYSDATE 를 씁니다. 이전 엔진은 무조건 SYSDATE 라 VARCHAR2(14) 컬럼에 '26/09/01' 같은 값이 조용히 들어갔습니다.</p>
+      </div></div>
+      <div class="row"><span class="n">02</span><div>
+        <strong>PK 없는 테이블 안전장치</strong>
+        <p>PK가 없으면 중복차단 조건이 키 하나로만 만들어져, 대상에 행이 하나라도 있으면 전체가 걸러져 0건으로 끝납니다. 이제는 사유를 남기고 건너뜁니다.</p>
+      </div></div>
+      <div class="row"><span class="n">03</span><div>
+        <strong>교차복사 사전 검사</strong>
+        <p>대상 PK 컬럼을 원본에서 못 끌어오면 실행 중 ORA-00904로 죽던 것을, 조립 전에 검사해 건너뜁니다.</p>
+      </div></div>
+      <div class="row"><span class="n">04</span><div>
+        <strong>오류를 삼키지 않음</strong>
+        <p>백트레이스를 남기고 기본값으로 즉시 중단합니다. 기존 두 패키지 모두 WHEN OTHERS로 오류를 뭉갰고, PKG_MS_STORE_COPY 는 RAISE_APPLICATION_ERROR 다음 줄에 ROLLBACK 을 둬서 그 줄이 실행되지 않았습니다.</p>
+      </div></div>
+      <div class="row"><span class="n">05</span><div>
+        <strong>트랜잭션은 호출자가 결정</strong>
+        <p>프로시저 안에서 COMMIT / ROLLBACK 하지 않습니다. 나눠담기 모드만 예외입니다.</p>
+      </div></div>
+      <div class="row"><span class="n">06</span><div>
+        <strong>세 가지 모드</strong>
+        <p>S 신규만 · M 있으면 갱신(MERGE) · R 지우고 다시 넣기. 기존 매장복사 패키지의 DELETE 후 INSERT 방식이 R에 해당합니다.</p>
+      </div></div>
+      <div class="row"><span class="n">07</span><div>
+        <strong>컬럼 별칭과 값 지정</strong>
+        <p>MS_BRAND_CD 는 HQ_BRAND_CD 에서 자동으로 끌어옵니다. SP_MAP_ADD 로 특정 컬럼 값을 직접 지정할 수 있습니다.</p>
+      </div></div>
+      <div class="row"><span class="n">08</span><div>
+        <strong>나눠담기</strong>
+        <p>묶음 단위로 넣고 커밋해 UNDO와 락을 오래 잡지 않습니다. 0건이 될 때까지 스스로 반복합니다.</p>
+      </div></div>
+    </div>
+
+    <div class="note">
+      <b>권한</b> EXECUTE IMMEDIATE 로 DML 을 하므로 소유자 계정으로 돌리거나, 롤이 아닌 직접 권한을 받은 계정으로 돌려야 합니다. 다른 계정으로 돌리면 딕셔너리가 안 보여 전부 "테이블 없음"으로 건너뜁니다.
+    </div>
+
+    <div id="out-eng"></div>
+  </section>
+
+  <!-- ============ 본사 → 본사 ============ -->
+  <section class="pane" id="pane-h2h">
+    <p class="lead">원본 본사의 기준정보를 <b>대상 본사</b>로 복사합니다. 순서는 부모에서 자식으로 잡혀 있습니다.</p>
+    <div class="note">
+      <b>복사하지 않는 것</b>
+      <ul>
+        <li><span class="mono">TB_HQ_OFFICE</span> — 본사 마스터 원본행. 먼저 만들어 두세요.</li>
+        <li><span class="mono">TB_HQ_EMPLOYEE</span> / <span class="mono">_USER</span> / <span class="mono">_STORE_V08</span> — 사람이 다릅니다.</li>
+        <li><span class="mono">TB_HQ_*_STORE</span> 계열 — 신규 본사에는 매장이 없습니다.</li>
+        <li><span class="mono">TB_HQ_VACCNT_DEPOSIT</span> — 거래 데이터.</li>
+      </ul>
+    </div>
+    <div class="note info">
+      <b>브랜드 코드 확인</b> <span class="mono">TB_HQ_PRODUCT</span> 의 <span class="mono">HQ_BRAND_CD</span> 는 원본 값 그대로 넘어갑니다. 대상 본사에 그 브랜드가 없으면 상품이 붕 뜹니다. 아래 확인 쿼리를 먼저 돌리세요.
+    </div>
+    <h3>복사할 테이블</h3>
+    <div class="picker" id="pick-h2h"></div>
+    <div class="bar">
+      <button class="act" data-all="h2h">전체 스크립트 복사</button>
+      <button class="act plain" data-toggle="h2h">전부 펼치기</button>
+      <span class="spacer"></span><span class="stat" id="stat-h2h"></span>
+    </div>
+    <div id="out-h2h"></div>
+  </section>
+
+  <!-- ============ 본사 → 매장 ============ -->
+  <section class="pane" id="pane-h2m">
+    <p class="lead">본사 기준정보를 <b>대상 매장</b>으로 내립니다. 신규 매장 개설 세팅이나 기존 매장 재적용에 씁니다.</p>
+    <div class="note">
+      <b>세 방향 중 가장 위험합니다</b>
+      원본 <span class="mono">TB_HQ_*</span> 와 대상 <span class="mono">TB_MS_*</span> 는 컬럼 구성이 다릅니다. 엔진은 대상 컬럼 기준으로 조립하고 원본에 없는 컬럼은 NULL로 둡니다.
+      <ul>
+        <li>실행 전에 <b>컬럼 비교</b> 카드를 먼저 돌려 <span class="mono">NOT NULL, 기본값 없음</span> 이 찍히는 컬럼을 확인하세요.</li>
+        <li><span class="mono">TB_MS_STORE_NMCODE</span> 는 <span class="mono">USE_TARGET_FG</span> 규칙이 본사와 달라 개별 매핑을 씁니다.</li>
+        <li>터치키 화면 구성은 테이블이 아니라 XML에 있습니다.</li>
+      </ul>
+    </div>
+    <h3>복사할 테이블</h3>
+    <div class="picker" id="pick-h2m"></div>
+    <div class="bar">
+      <button class="act" data-all="h2m">전체 스크립트 복사</button>
+      <button class="act plain" data-toggle="h2m">전부 펼치기</button>
+      <span class="spacer"></span><span class="stat" id="stat-h2m"></span>
+    </div>
+    <div id="out-h2m"></div>
+  </section>
+
+  <!-- ============ 매장 → 매장 ============ -->
+  <section class="pane" id="pane-m2m">
+    <p class="lead">원본 매장의 기준정보와 환경을 <b>대상 매장</b>으로 복사합니다. 두 매장은 같은 본사 소속이어야 합니다.</p>
+    <div class="note">
+      <b>기존 PKG_MS_STORE_COPY 에서 확인된 문제</b>
+      같은 일을 하는 기존 패키지가 있습니다. 그대로 쓰려면 아래를 먼저 고치세요.
+      <ul>
+        <li>원본 매장에 POS가 없으면 <span class="mono">SP_MS_POS_ENVST</span> / <span class="mono">SP_MS_POS_FNKEY</span> 가 대상 설정을 지우고 아무것도 넣지 않습니다. DELETE가 IF 밖에 있습니다.</li>
+        <li>환경값 4021을 원본 POS 번호로 판단합니다. 원본 1대 · 대상 3대면 세 대 모두 메인으로 잡힙니다.</li>
+        <li><span class="mono">SP_MS_STORE_NNCODE</span> 가 <span class="mono">PARENT_CD</span> 자리에 <span class="mono">NMCODE_GRP_CD</span> 를 넣습니다.</li>
+        <li>다중사업자 분기의 VAN 정보가 <span class="mono">'KCP' / '1234567890'</span> 으로 하드코딩돼 있습니다.</li>
+        <li>매장 복사인데 본사 테이블 <span class="mono">TB_HQ_PRODUCT_STORE</span> / <span class="mono">TB_HQ_COUPON_STORE</span> 를 건드립니다.</li>
+      </ul>
+    </div>
+    <h3>복사할 테이블</h3>
+    <div class="picker" id="pick-m2m"></div>
+    <div class="bar">
+      <button class="act" data-all="m2m">전체 스크립트 복사</button>
+      <button class="act plain" data-toggle="m2m">전부 펼치기</button>
+      <span class="spacer"></span><span class="stat" id="stat-m2m"></span>
+    </div>
+    <div id="out-m2m"></div>
+  </section>
+
+  <!-- ============ 테이블 목록 ============ -->
+  <section class="pane" id="pane-inv">
+    <p class="lead">복사 대상 후보와 추정 키입니다. 회색으로 지워진 줄은 의도적으로 복사하지 않는 테이블입니다.</p>
+    <input type="text" id="invSearch" placeholder="테이블명 · 키워드 검색">
+    <div id="invBox"></div>
+  </section>
+</main>
+</div>
+
+<div class="toast" id="toast">복사했습니다</div>
+
+<script type="text/plain" id="pkgSrc">/* ****************************************************************************
+   PKG_CM_COPY_V2 : 기준정보 복사 통합 엔진
+                    본사->본사 / 본사->매장 / 매장->매장 공용
+
+   기존 두 구현을 합치고 아래를 고쳤습니다.
+
+   [PKG_CM_COPY_GEN 에서 고친 것]
+   1. 감사컬럼 타입 자동 판별
+      REG_DT / MOD_DT 가 VARCHAR2 면 TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+      DATE / TIMESTAMP 면 SYSDATE 를 씁니다.
+      이전 버전은 무조건 SYSDATE 라 VARCHAR2(14) 컬럼에 '26/09/01' 이
+      암묵변환되어 조용히 들어갔습니다.
+   2. PK 없는 테이블 안전장치
+      PK 가 없으면 NOT EXISTS 조건이 키 하나로만 만들어져 대상에 행이
+      하나라도 있으면 전체가 걸러집니다. 이제는 건너뛰고 사유를 남깁니다.
+   3. 교차복사(HQ->MS) 시 대상 PK 컬럼이 원본에 없으면 ORA-00904 로 죽던 것을
+      실행 전에 검사해 사유와 함께 건너뜁니다.
+   4. WHEN OTHERS 로 오류를 삼키지 않습니다. 백트레이스를 남기고,
+      G_STOP_ON_ERR='Y' 면 즉시 중단합니다.
+   5. 프로시저 안에서 COMMIT / ROLLBACK 하지 않습니다. 호출자가 결정합니다.
+      (G_BATCH_SIZE > 0 인 나눠담기 모드만 예외. 아래 주의 참고)
+
+   [PKG_MS_STORE_COPY 에서 가져온 것]
+   6. 갱신 모드(M) : 기존 행이 있으면 MERGE 로 갱신합니다.
+   7. 재적재 모드(R) : 대상 키 범위를 지우고 새로 넣습니다.
+      기존 패키지의 DELETE + INSERT 방식과 같습니다. 운영 매장에 쓰면
+      기존 설정이 사라지므로 신규 세팅에만 쓰십시오.
+   8. 컬럼 별칭 : 원본에 없는 대상 컬럼을 다른 이름에서 끌어옵니다.
+      기본으로 MS_BRAND_CD <-> HQ_BRAND_CD 가 등록돼 있습니다.
+
+   [새로 넣은 것]
+   9. 나눠담기 : G_BATCH_SIZE 만큼 끊어서 넣고 커밋합니다. 건수가 많을 때
+      UNDO 와 락을 오래 잡지 않습니다. 신규(S) 모드에서만 동작합니다.
+   10. SP_DIFF : 원본과 대상의 컬럼 차이를 미리 봅니다.
+   11. 값 지정 : SP_MAP_ADD 로 특정 컬럼에 원하는 식을 넣습니다.
+
+   ★★ 실행 주의 ★★
+   - G_EXEC_YN 기본 'N' : SQL 을 출력만 하고 실행하지 않습니다.
+   - G_BATCH_SIZE > 0 이면 매 묶음마다 COMMIT 합니다. 되돌릴 수 없습니다.
+   - EXECUTE IMMEDIATE 로 DML 을 하므로 소유자(SBPORA) 계정으로 돌리거나,
+     롤이 아닌 직접 권한을 받은 계정으로 돌려야 합니다.
+   **************************************************************************** */
+
+SET SERVEROUTPUT ON SIZE UNLIMITED
+SET LINESIZE 32767
+SET TRIMSPOOL ON
+
+
+CREATE OR REPLACE PACKAGE PKG_CM_COPY_V2 AS
+
+    /* ---- 설정 ---------------------------------------------------------- */
+    G_OWNER       VARCHAR2(128) := 'SBPORA';   /* 대상 스키마              */
+    G_EXEC_YN     CHAR(1)       := 'N';        /* N=출력만, Y=실행         */
+    G_USER_ID     VARCHAR2(30)  := 'COPYJOB';  /* REG_ID / MOD_ID 기록값   */
+    G_MODE        CHAR(1)       := 'S';        /* S=신규만 M=갱신 R=재적재 */
+    G_BATCH_SIZE  PLS_INTEGER   := 0;          /* >0 이면 나눠담기(S 전용) */
+    G_SLEEP_SEC   NUMBER        := 0;          /* 묶음 사이 대기 초        */
+    G_STOP_ON_ERR CHAR(1)       := 'Y';        /* 오류 시 즉시 중단        */
+    G_PRINT_SQL   CHAR(1)       := 'Y';        /* 조립한 SQL 출력          */
+    G_DT_FMT      VARCHAR2(30)  := 'YYYYMMDDHH24MISS';
+
+    /* ---- 집계 ---------------------------------------------------------- */
+    G_TOT_TAB   PLS_INTEGER := 0;
+    G_TOT_ROW   PLS_INTEGER := 0;
+    G_TOT_SKIP  PLS_INTEGER := 0;
+    G_TOT_ERR   PLS_INTEGER := 0;
+
+    /* ---- 제어 ---------------------------------------------------------- */
+    PROCEDURE SP_RESET;
+    PROCEDURE SP_SUMMARY;
+
+    /* 다음 복사 1건에만 적용되는 컬럼 값 지정. 호출 뒤 자동으로 비워집니다.
+       예) SP_MAP_ADD('REG_FG', '''H'''); */
+    PROCEDURE SP_MAP_ADD   ( PI_COL IN VARCHAR2, PI_EXPR IN VARCHAR2 );
+    PROCEDURE SP_MAP_CLEAR;
+
+    /* 원본에 없는 대상 컬럼을 다른 이름에서 끌어옵니다. 세션 내내 유지됩니다. */
+    PROCEDURE SP_ALIAS_ADD ( PI_TGT_COL IN VARCHAR2, PI_SRC_COL IN VARCHAR2 );
+
+    /* 원본 / 대상 컬럼 차이 확인 (SELECT 만) */
+    PROCEDURE SP_DIFF      ( PI_SRC_TABLE IN VARCHAR2
+                           , PI_TGT_TABLE IN VARCHAR2 );
+
+    /* 교차 복사 : 원본 테이블 -> 대상 테이블 (HQ->MS) */
+    PROCEDURE SP_COPY      ( PI_SRC_TABLE   IN VARCHAR2
+                           , PI_TGT_TABLE   IN VARCHAR2
+                           , PI_SRC_KEY_COL IN VARCHAR2
+                           , PI_TGT_KEY_COL IN VARCHAR2
+                           , PI_SRC_KEY     IN VARCHAR2
+                           , PI_TGT_KEY     IN VARCHAR2
+                           , PI_EXTRA_WH    IN VARCHAR2 DEFAULT NULL );
+
+    /* 동일 테이블 복사 : 키값만 교체 (HQ->HQ, MS->MS) */
+    PROCEDURE SP_COPY_SAME ( PI_TABLE    IN VARCHAR2
+                           , PI_KEY_COL  IN VARCHAR2
+                           , PI_SRC_KEY  IN VARCHAR2
+                           , PI_TGT_KEY  IN VARCHAR2
+                           , PI_EXTRA_WH IN VARCHAR2 DEFAULT NULL );
+
+END PKG_CM_COPY_V2;
+/
+
+
+CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
+
+    TYPE T_STR_MAP IS TABLE OF VARCHAR2(4000) INDEX BY VARCHAR2(128);
+
+    G_MAP    T_STR_MAP;    /* 1회용 컬럼 값 지정 */
+    G_ALIAS  T_STR_MAP;    /* 대상컬럼 -> 원본컬럼 별칭 */
+
+
+    /* ==================================================================
+       출력
+       ================================================================== */
+    PROCEDURE P( PI_TEXT IN VARCHAR2 ) IS
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE( NVL(PI_TEXT, ' ') );
+    END P;
+
+
+    PROCEDURE P_CLOB( PI_TEXT IN CLOB ) IS
+        V_LEN  PLS_INTEGER := NVL(DBMS_LOB.GETLENGTH(PI_TEXT), 0);
+        V_POS  PLS_INTEGER := 1;
+        V_NL   PLS_INTEGER;
+    BEGIN
+        WHILE V_POS <= V_LEN LOOP
+            V_NL := DBMS_LOB.INSTR(PI_TEXT, CHR(10), V_POS);
+            IF V_NL = 0 OR V_NL - V_POS > 3000 THEN
+                P( DBMS_LOB.SUBSTR(PI_TEXT, LEAST(3000, V_LEN - V_POS + 1), V_POS) );
+                V_POS := V_POS + LEAST(3000, V_LEN - V_POS + 1);
+            ELSE
+                P( DBMS_LOB.SUBSTR(PI_TEXT, V_NL - V_POS, V_POS) );
+                V_POS := V_NL + 1;
+            END IF;
+        END LOOP;
+    END P_CLOB;
+
+
+    /* ==================================================================
+       문자열 리터럴 (작은따옴표 이스케이프)
+       ================================================================== */
+    FUNCTION FN_Q( PI_S IN VARCHAR2 ) RETURN VARCHAR2 IS
+    BEGIN
+        RETURN '''' || REPLACE(PI_S, '''', '''''') || '''';
+    END FN_Q;
+
+
+    /* ==================================================================
+       컬럼 타입 조회 (없으면 NULL)
+       ================================================================== */
+    FUNCTION FN_COL_TYPE( PI_TABLE IN VARCHAR2, PI_COL IN VARCHAR2 )
+    RETURN VARCHAR2 IS
+        V_TYPE VARCHAR2(128);
+    BEGIN
+        SELECT MAX(DATA_TYPE) INTO V_TYPE
+          FROM ALL_TAB_COLUMNS
+         WHERE OWNER       = G_OWNER
+           AND TABLE_NAME  = PI_TABLE
+           AND COLUMN_NAME = PI_COL;
+        RETURN V_TYPE;
+    END FN_COL_TYPE;
+
+
+    FUNCTION FN_HAS_COL( PI_TABLE IN VARCHAR2, PI_COL IN VARCHAR2 )
+    RETURN BOOLEAN IS
+    BEGIN
+        RETURN FN_COL_TYPE(PI_TABLE, PI_COL) IS NOT NULL;
+    END FN_HAS_COL;
+
+
+    FUNCTION FN_TAB_EXISTS( PI_TABLE IN VARCHAR2 ) RETURN BOOLEAN IS
+        V_CNT PLS_INTEGER;
+    BEGIN
+        SELECT COUNT(*) INTO V_CNT
+          FROM ALL_TABLES
+         WHERE OWNER = G_OWNER AND TABLE_NAME = PI_TABLE;
+        RETURN V_CNT > 0;
+    END FN_TAB_EXISTS;
+
+
+    /* ==================================================================
+       감사일자 컬럼 표현식 : 타입에 맞춰 결정
+       ================================================================== */
+    FUNCTION FN_DT_EXPR( PI_TABLE IN VARCHAR2, PI_COL IN VARCHAR2 )
+    RETURN VARCHAR2 IS
+        V_TYPE VARCHAR2(128) := FN_COL_TYPE(PI_TABLE, PI_COL);
+    BEGIN
+        IF V_TYPE = 'DATE' OR V_TYPE LIKE 'TIMESTAMP%' THEN
+            RETURN 'SYSDATE';
+        ELSE
+            RETURN 'TO_CHAR(SYSDATE,' || FN_Q(G_DT_FMT) || ')';
+        END IF;
+    END FN_DT_EXPR;
+
+
+    /* ==================================================================
+       대상 PK 컬럼 목록
+       ================================================================== */
+    FUNCTION FN_PK_COLS( PI_TABLE IN VARCHAR2 )
+    RETURN SYS.ODCIVARCHAR2LIST IS
+        V_LIST SYS.ODCIVARCHAR2LIST;
+    BEGIN
+        SELECT CC.COLUMN_NAME
+          BULK COLLECT INTO V_LIST
+          FROM ALL_CONSTRAINTS  C
+          JOIN ALL_CONS_COLUMNS CC
+            ON  CC.OWNER           = C.OWNER
+            AND CC.CONSTRAINT_NAME = C.CONSTRAINT_NAME
+         WHERE C.OWNER           = G_OWNER
+           AND C.TABLE_NAME      = PI_TABLE
+           AND C.CONSTRAINT_TYPE = 'P'
+         ORDER BY CC.POSITION;
+        RETURN V_LIST;
+    END FN_PK_COLS;
+
+
+    FUNCTION FN_IN_LIST( PI_LIST IN SYS.ODCIVARCHAR2LIST
+                       , PI_COL  IN VARCHAR2 ) RETURN BOOLEAN IS
+    BEGIN
+        IF PI_LIST IS NULL THEN RETURN FALSE; END IF;
+        FOR I IN 1 .. PI_LIST.COUNT LOOP
+            IF PI_LIST(I) = PI_COL THEN RETURN TRUE; END IF;
+        END LOOP;
+        RETURN FALSE;
+    END FN_IN_LIST;
+
+
+    /* ==================================================================
+       대상 컬럼 하나의 원본 표현식.
+       끌어올 곳이 없으면 NULL 을 돌려줍니다.
+       ================================================================== */
+    FUNCTION FN_EXPR( PI_SRC_TABLE   IN VARCHAR2
+                    , PI_TGT_TABLE   IN VARCHAR2
+                    , PI_COL         IN VARCHAR2
+                    , PI_TGT_KEY_COL IN VARCHAR2
+                    , PI_TGT_KEY     IN VARCHAR2 )
+    RETURN VARCHAR2 IS
+        V_SRC_COL VARCHAR2(128);
+    BEGIN
+        /* 1) 이번 건에 직접 지정한 값 */
+        IF G_MAP.EXISTS(PI_COL) THEN
+            RETURN G_MAP(PI_COL);
+        END IF;
+
+        /* 2) 키 컬럼 */
+        IF PI_COL = PI_TGT_KEY_COL THEN
+            RETURN FN_Q(PI_TGT_KEY);
+        END IF;
+
+        /* 3) 감사 컬럼 */
+        IF PI_COL IN ('REG_DT', 'MOD_DT') THEN
+            RETURN FN_DT_EXPR(PI_TGT_TABLE, PI_COL);
+        END IF;
+        IF PI_COL IN ('REG_ID', 'MOD_ID') THEN
+            RETURN FN_Q(G_USER_ID);
+        END IF;
+
+        /* 4) 원본에 같은 이름이 있으면 그대로 */
+        IF FN_HAS_COL(PI_SRC_TABLE, PI_COL) THEN
+            RETURN 's."' || PI_COL || '"';
+        END IF;
+
+        /* 5) 별칭으로 끌어오기 */
+        IF G_ALIAS.EXISTS(PI_COL) THEN
+            V_SRC_COL := G_ALIAS(PI_COL);
+            IF FN_HAS_COL(PI_SRC_TABLE, V_SRC_COL) THEN
+                RETURN 's."' || V_SRC_COL || '"';
+            END IF;
+        END IF;
+
+        RETURN NULL;
+    END FN_EXPR;
+
+
+    /* ==================================================================
+       실행 / 출력
+       ================================================================== */
+    FUNCTION FN_RUN( PI_SQL IN CLOB ) RETURN PLS_INTEGER IS
+        V_CNT PLS_INTEGER := 0;
+    BEGIN
+        IF G_PRINT_SQL = 'Y' THEN
+            P_CLOB(PI_SQL);
+            P(';');
+        END IF;
+
+        IF G_EXEC_YN = 'Y' THEN
+            EXECUTE IMMEDIATE PI_SQL;
+            V_CNT := SQL%ROWCOUNT;
+        END IF;
+
+        RETURN V_CNT;
+    END FN_RUN;
+
+
+    PROCEDURE SP_SLEEP IS
+    BEGIN
+        IF G_SLEEP_SEC > 0 THEN
+            EXECUTE IMMEDIATE 'BEGIN DBMS_LOCK.SLEEP(:1); END;' USING G_SLEEP_SEC;
+        END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            NULL;   /* DBMS_LOCK 권한이 없으면 그냥 넘어갑니다 */
+    END SP_SLEEP;
+
+
+    /* ==================================================================
+       제어
+       ================================================================== */
+    PROCEDURE SP_RESET IS
+    BEGIN
+        G_TOT_TAB  := 0;
+        G_TOT_ROW  := 0;
+        G_TOT_SKIP := 0;
+        G_TOT_ERR  := 0;
+        G_MAP.DELETE;
+    END SP_RESET;
+
+
+    PROCEDURE SP_MAP_ADD( PI_COL IN VARCHAR2, PI_EXPR IN VARCHAR2 ) IS
+    BEGIN
+        G_MAP(UPPER(PI_COL)) := PI_EXPR;
+    END SP_MAP_ADD;
+
+
+    PROCEDURE SP_MAP_CLEAR IS
+    BEGIN
+        G_MAP.DELETE;
+    END SP_MAP_CLEAR;
+
+
+    PROCEDURE SP_ALIAS_ADD( PI_TGT_COL IN VARCHAR2, PI_SRC_COL IN VARCHAR2 ) IS
+    BEGIN
+        G_ALIAS(UPPER(PI_TGT_COL)) := UPPER(PI_SRC_COL);
+    END SP_ALIAS_ADD;
+
+
+    PROCEDURE SP_SUMMARY IS
+    BEGIN
+        P('/* ======================================================== */');
+        P('/*  모드         : ' || CASE G_MODE
+                                     WHEN 'S' THEN 'S 신규만'
+                                     WHEN 'M' THEN 'M 갱신'
+                                     WHEN 'R' THEN 'R 재적재'
+                                     ELSE G_MODE END
+                              || CASE WHEN G_BATCH_SIZE > 0
+                                      THEN '   나눠담기 ' || G_BATCH_SIZE || '건'
+                                      ELSE '' END);
+        P('/*  처리 테이블  : ' || G_TOT_TAB);
+        P('/*  건너뛴 테이블: ' || G_TOT_SKIP);
+        P('/*  처리 건수    : ' || G_TOT_ROW
+                              || CASE WHEN G_EXEC_YN = 'N' THEN '   (미실행)' ELSE '' END);
+        P('/*  오류         : ' || G_TOT_ERR);
+        P('/* ======================================================== */');
+
+        IF G_TOT_ERR > 0 THEN
+            P('-- !! 오류가 있습니다. 위 로그를 확인하고 COMMIT 하지 마십시오.');
+        END IF;
+    END SP_SUMMARY;
+
+
+    /* ==================================================================
+       컬럼 차이 확인
+       ================================================================== */
+    PROCEDURE SP_DIFF( PI_SRC_TABLE IN VARCHAR2, PI_TGT_TABLE IN VARCHAR2 ) IS
+        V_CNT PLS_INTEGER := 0;
+    BEGIN
+        P('/* ---- 컬럼 비교 : ' || PI_SRC_TABLE || ' -> ' || PI_TGT_TABLE || ' ---- */');
+
+        IF NOT FN_TAB_EXISTS(PI_SRC_TABLE) OR NOT FN_TAB_EXISTS(PI_TGT_TABLE) THEN
+            P('-- !! 테이블이 없습니다.');
+            RETURN;
+        END IF;
+
+        P('-- 대상에만 있는 컬럼 (원본에서 못 끌어옴)');
+        FOR C IN ( SELECT COLUMN_NAME, NULLABLE, DATA_TYPE, DEFAULT_LENGTH
+                     FROM ALL_TAB_COLUMNS
+                    WHERE OWNER = G_OWNER AND TABLE_NAME = PI_TGT_TABLE
+                    ORDER BY COLUMN_ID )
+        LOOP
+            IF NOT FN_HAS_COL(PI_SRC_TABLE, C.COLUMN_NAME)
+               AND C.COLUMN_NAME NOT IN ('REG_DT','REG_ID','MOD_DT','MOD_ID')
+               AND NOT (G_ALIAS.EXISTS(C.COLUMN_NAME)
+                        AND FN_HAS_COL(PI_SRC_TABLE, G_ALIAS(C.COLUMN_NAME)))
+            THEN
+                V_CNT := V_CNT + 1;
+                P('--   ' || RPAD(C.COLUMN_NAME, 34) || RPAD(C.DATA_TYPE, 14)
+                  || CASE WHEN C.NULLABLE = 'N' AND C.DEFAULT_LENGTH IS NULL
+                          THEN '<< NOT NULL, 기본값 없음. 값 지정 필요'
+                          WHEN C.NULLABLE = 'N' THEN '   NOT NULL (기본값 있음)'
+                          ELSE '' END);
+            END IF;
+        END LOOP;
+        IF V_CNT = 0 THEN P('--   없음'); END IF;
+
+        V_CNT := 0;
+        P('-- 원본에만 있는 컬럼 (버려짐)');
+        FOR C IN ( SELECT COLUMN_NAME, DATA_TYPE
+                     FROM ALL_TAB_COLUMNS
+                    WHERE OWNER = G_OWNER AND TABLE_NAME = PI_SRC_TABLE
+                    ORDER BY COLUMN_ID )
+        LOOP
+            IF NOT FN_HAS_COL(PI_TGT_TABLE, C.COLUMN_NAME) THEN
+                V_CNT := V_CNT + 1;
+                P('--   ' || RPAD(C.COLUMN_NAME, 34) || C.DATA_TYPE);
+            END IF;
+        END LOOP;
+        IF V_CNT = 0 THEN P('--   없음'); END IF;
+
+        P('-- 대상 감사컬럼 타입');
+        P('--   REG_DT ' || NVL(FN_COL_TYPE(PI_TGT_TABLE,'REG_DT'),'없음')
+          || '   -> ' || FN_DT_EXPR(PI_TGT_TABLE,'REG_DT'));
+        P(' ');
+    END SP_DIFF;
+
+
+    /* ==================================================================
+       본체 : 교차 복사
+       ================================================================== */
+    PROCEDURE SP_COPY( PI_SRC_TABLE   IN VARCHAR2
+                     , PI_TGT_TABLE   IN VARCHAR2
+                     , PI_SRC_KEY_COL IN VARCHAR2
+                     , PI_TGT_KEY_COL IN VARCHAR2
+                     , PI_SRC_KEY     IN VARCHAR2
+                     , PI_TGT_KEY     IN VARCHAR2
+                     , PI_EXTRA_WH    IN VARCHAR2 DEFAULT NULL )
+    IS
+        V_LABEL   VARCHAR2(300) := PI_SRC_TABLE
+                                || CASE WHEN PI_SRC_TABLE = PI_TGT_TABLE
+                                        THEN '' ELSE ' -> ' || PI_TGT_TABLE END;
+        V_COLS    CLOB;      /* "A", "B" ...                */
+        V_SELS    CLOB;      /* expr, expr ...              */
+        V_SELS_AS CLOB;      /* expr AS "A", ...  (MERGE용) */
+        V_VALS    CLOB;      /* B."A", B."B" ...  (MERGE용) */
+        V_SETS    CLOB;      /* MERGE UPDATE SET            */
+        V_SQL     CLOB;
+        V_SQL2    CLOB;
+        V_WH      VARCHAR2(4000);
+        V_PKCOND  VARCHAR2(4000);
+        V_EXPR    VARCHAR2(4000);
+        V_MISS_NN VARCHAR2(4000);
+        V_PK      SYS.ODCIVARCHAR2LIST;
+        V_FIRST   BOOLEAN := TRUE;
+        V_SETFST  BOOLEAN := TRUE;
+        V_CNT     PLS_INTEGER := 0;
+        V_SUM     PLS_INTEGER := 0;
+        V_SKIP    VARCHAR2(1000);
+    BEGIN
+        P('/* ---- ' || V_LABEL || '  [' || G_MODE || '] ---- */');
+
+        /* ---- 1. 존재 확인 ---------------------------------------------- */
+        IF NOT FN_TAB_EXISTS(PI_SRC_TABLE) THEN
+            V_SKIP := '원본 테이블 ' || PI_SRC_TABLE || ' 없음';
+        ELSIF NOT FN_TAB_EXISTS(PI_TGT_TABLE) THEN
+            V_SKIP := '대상 테이블 ' || PI_TGT_TABLE || ' 없음';
+        ELSIF NOT FN_HAS_COL(PI_SRC_TABLE, PI_SRC_KEY_COL) THEN
+            V_SKIP := PI_SRC_TABLE || ' 에 ' || PI_SRC_KEY_COL || ' 컬럼 없음';
+        ELSIF NOT FN_HAS_COL(PI_TGT_TABLE, PI_TGT_KEY_COL) THEN
+            V_SKIP := PI_TGT_TABLE || ' 에 ' || PI_TGT_KEY_COL || ' 컬럼 없음';
+        END IF;
+
+        IF V_SKIP IS NOT NULL THEN
+            P('-- >> SKIP : ' || V_SKIP);
+            P(' ');
+            G_TOT_SKIP := G_TOT_SKIP + 1;
+            G_MAP.DELETE;
+            RETURN;
+        END IF;
+
+        /* ---- 2. PK 확인 ------------------------------------------------- */
+        V_PK := FN_PK_COLS(PI_TGT_TABLE);
+
+        IF (V_PK IS NULL OR V_PK.COUNT = 0) AND G_MODE IN ('S','M') THEN
+            P('-- >> SKIP : ' || PI_TGT_TABLE || ' PK 없음.');
+            P('--           중복차단을 만들 수 없어 건너뜁니다.');
+            P('--           재적재(G_MODE=''R'')로 하거나 개별 SQL 을 쓰십시오.');
+            P(' ');
+            G_TOT_SKIP := G_TOT_SKIP + 1;
+            G_MAP.DELETE;
+            RETURN;
+        END IF;
+
+        /* PK 컬럼을 원본에서 못 끌어오면 조건을 만들 수 없음 */
+        IF V_PK IS NOT NULL THEN
+            FOR I IN 1 .. V_PK.COUNT LOOP
+                IF FN_EXPR(PI_SRC_TABLE, PI_TGT_TABLE, V_PK(I),
+                           PI_TGT_KEY_COL, PI_TGT_KEY) IS NULL THEN
+                    P('-- >> SKIP : 대상 PK 컬럼 ' || V_PK(I)
+                      || ' 을(를) 원본에서 끌어올 수 없습니다.');
+                    P('--           SP_MAP_ADD 로 값을 지정하거나 개별 SQL 을 쓰십시오.');
+                    P(' ');
+                    G_TOT_SKIP := G_TOT_SKIP + 1;
+                    G_MAP.DELETE;
+                    RETURN;
+                END IF;
+            END LOOP;
+        END IF;
+
+        /* ---- 3. 컬럼 조립 ----------------------------------------------- */
+        FOR C IN ( SELECT COLUMN_NAME, NULLABLE, DEFAULT_LENGTH
+                     FROM ALL_TAB_COLUMNS
+                    WHERE OWNER = G_OWNER AND TABLE_NAME = PI_TGT_TABLE
+                    ORDER BY COLUMN_ID )
+        LOOP
+            V_EXPR := FN_EXPR(PI_SRC_TABLE, PI_TGT_TABLE, C.COLUMN_NAME,
+                              PI_TGT_KEY_COL, PI_TGT_KEY);
+
+            IF V_EXPR IS NULL THEN
+                V_EXPR := 'NULL';
+                IF C.NULLABLE = 'N' AND C.DEFAULT_LENGTH IS NULL THEN
+                    V_MISS_NN := V_MISS_NN || C.COLUMN_NAME || ' ';
+                END IF;
+            END IF;
+
+            IF NOT V_FIRST THEN
+                V_COLS    := V_COLS    || ', ';
+                V_SELS    := V_SELS    || ', ';
+                V_SELS_AS := V_SELS_AS || ', ';
+                V_VALS    := V_VALS    || ', ';
+            END IF;
+            V_FIRST := FALSE;
+
+            V_COLS    := V_COLS    || '"' || C.COLUMN_NAME || '"';
+            V_SELS    := V_SELS    || V_EXPR;
+            V_SELS_AS := V_SELS_AS || V_EXPR || ' AS "' || C.COLUMN_NAME || '"';
+            V_VALS    := V_VALS    || 'B."' || C.COLUMN_NAME || '"';
+
+            /* MERGE 갱신 대상 : PK 와 등록정보 제외 */
+            IF NOT FN_IN_LIST(V_PK, C.COLUMN_NAME)
+               AND C.COLUMN_NAME NOT IN ('REG_DT', 'REG_ID')
+            THEN
+                IF NOT V_SETFST THEN V_SETS := V_SETS || ', '; END IF;
+                V_SETFST := FALSE;
+                V_SETS := V_SETS || 'A."' || C.COLUMN_NAME || '" = B."' || C.COLUMN_NAME || '"';
+            END IF;
+        END LOOP;
+
+        IF V_MISS_NN IS NOT NULL THEN
+            P('-- !! WARN : NOT NULL 인데 값을 못 채운 컬럼 -> ' || V_MISS_NN);
+            P('--           SP_MAP_ADD 로 값을 지정하지 않으면 INSERT 가 실패합니다.');
+        END IF;
+
+        /* ---- 4. 원본 조건 ----------------------------------------------- */
+        V_WH := ' WHERE s."' || PI_SRC_KEY_COL || '" = ' || FN_Q(PI_SRC_KEY)
+             || CASE WHEN PI_EXTRA_WH IS NOT NULL
+                     THEN CHR(10) || '   AND ' || PI_EXTRA_WH
+                     ELSE '' END;
+
+        /* ---- 5. 모드별 SQL ---------------------------------------------- */
+        IF G_MODE = 'M' THEN
+
+            V_PKCOND := NULL;
+            FOR I IN 1 .. V_PK.COUNT LOOP
+                V_PKCOND := V_PKCOND
+                         || CASE WHEN I = 1 THEN '' ELSE CHR(10) || '   AND ' END
+                         || 'A."' || V_PK(I) || '" = B."' || V_PK(I) || '"';
+            END LOOP;
+
+            V_SQL := 'MERGE INTO ' || G_OWNER || '.' || PI_TGT_TABLE || ' A' || CHR(10)
+                  || 'USING ( SELECT ' || V_SELS_AS                            || CHR(10)
+                  || '          FROM ' || G_OWNER || '.' || PI_SRC_TABLE || ' s' || CHR(10)
+                  || '        ' || V_WH                                        || CHR(10)
+                  || '      ) B'                                               || CHR(10)
+                  || '   ON ( ' || V_PKCOND || ' )'                            || CHR(10);
+
+            IF V_SETS IS NOT NULL THEN
+                V_SQL := V_SQL || ' WHEN MATCHED THEN UPDATE SET ' || V_SETS || CHR(10);
+            END IF;
+
+            V_SQL := V_SQL
+                  || ' WHEN NOT MATCHED THEN INSERT ( ' || V_COLS || ' )' || CHR(10)
+                  || '      VALUES ( ' || V_VALS || ' )';
+
+            V_SUM := FN_RUN(V_SQL);
+
+        ELSIF G_MODE = 'R' THEN
+
+            V_SQL2 := 'DELETE FROM ' || G_OWNER || '.' || PI_TGT_TABLE
+                   || ' WHERE "' || PI_TGT_KEY_COL || '" = ' || FN_Q(PI_TGT_KEY);
+            V_CNT := FN_RUN(V_SQL2);
+            P('-- >> DELETED ' || V_CNT || ' rows');
+
+            V_SQL := 'INSERT INTO ' || G_OWNER || '.' || PI_TGT_TABLE       || CHR(10)
+                  || '       ( ' || V_COLS || ' )'                          || CHR(10)
+                  || 'SELECT ' || V_SELS                                    || CHR(10)
+                  || '  FROM ' || G_OWNER || '.' || PI_SRC_TABLE || ' s'    || CHR(10)
+                  || V_WH;
+
+            V_SUM := FN_RUN(V_SQL);
+
+        ELSE  /* S : 신규만 */
+
+            V_PKCOND := NULL;
+            FOR I IN 1 .. V_PK.COUNT LOOP
+                V_PKCOND := V_PKCOND || CHR(10)
+                         || '                       AND x."' || V_PK(I) || '" = '
+                         || FN_EXPR(PI_SRC_TABLE, PI_TGT_TABLE, V_PK(I),
+                                    PI_TGT_KEY_COL, PI_TGT_KEY);
+            END LOOP;
+
+            V_SQL := 'INSERT INTO ' || G_OWNER || '.' || PI_TGT_TABLE       || CHR(10)
+                  || '       ( ' || V_COLS || ' )'                          || CHR(10)
+                  || 'SELECT ' || V_SELS                                    || CHR(10)
+                  || '  FROM ' || G_OWNER || '.' || PI_SRC_TABLE || ' s'    || CHR(10)
+                  || V_WH                                                   || CHR(10)
+                  || '   AND NOT EXISTS ( SELECT 1'                         || CHR(10)
+                  || '                      FROM ' || G_OWNER || '.' || PI_TGT_TABLE || ' x'
+                  || '                     WHERE 1 = 1' || V_PKCOND         || CHR(10)
+                  || '                   )';
+
+            IF G_BATCH_SIZE > 0 THEN
+                V_SQL := V_SQL || CHR(10) || '   AND ROWNUM <= ' || G_BATCH_SIZE;
+
+                IF G_EXEC_YN = 'Y' THEN
+                    LOOP
+                        EXECUTE IMMEDIATE V_SQL;
+                        V_CNT := SQL%ROWCOUNT;
+                        V_SUM := V_SUM + V_CNT;
+                        EXIT WHEN V_CNT = 0;
+                        COMMIT;
+                        P('-- >> ' || V_CNT || ' rows / 누적 ' || V_SUM || '  (COMMIT)');
+                        SP_SLEEP;
+                    END LOOP;
+                    IF G_PRINT_SQL = 'Y' THEN P_CLOB(V_SQL); P(';'); END IF;
+                ELSE
+                    V_SUM := FN_RUN(V_SQL);
+                    P('-- >> 나눠담기 : 0 건이 될 때까지 반복하며 묶음마다 COMMIT 합니다.');
+                END IF;
+            ELSE
+                V_SUM := FN_RUN(V_SQL);
+            END IF;
+
+        END IF;
+
+        /* ---- 6. 마무리 -------------------------------------------------- */
+        IF G_EXEC_YN = 'Y' THEN
+            P('-- >> ' || V_SUM || ' rows');
+        ELSE
+            P('-- >> 미실행 (G_EXEC_YN = N)');
+        END IF;
+        P(' ');
+
+        G_TOT_TAB := G_TOT_TAB + 1;
+        G_TOT_ROW := G_TOT_ROW + V_SUM;
+        G_MAP.DELETE;
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            G_TOT_ERR := G_TOT_ERR + 1;
+            G_MAP.DELETE;
+            P('-- !! ERROR ' || V_LABEL || ' : ' || SQLERRM);
+            P('-- !! ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+            P(' ');
+            IF G_STOP_ON_ERR = 'Y' THEN
+                RAISE;
+            END IF;
+    END SP_COPY;
+
+
+    /* ==================================================================
+       동일 테이블 복사
+       ================================================================== */
+    PROCEDURE SP_COPY_SAME( PI_TABLE    IN VARCHAR2
+                          , PI_KEY_COL  IN VARCHAR2
+                          , PI_SRC_KEY  IN VARCHAR2
+                          , PI_TGT_KEY  IN VARCHAR2
+                          , PI_EXTRA_WH IN VARCHAR2 DEFAULT NULL )
+    IS
+    BEGIN
+        SP_COPY( PI_TABLE, PI_TABLE
+               , PI_KEY_COL, PI_KEY_COL
+               , PI_SRC_KEY, PI_TGT_KEY
+               , PI_EXTRA_WH );
+    END SP_COPY_SAME;
+
+
+/* 세션 시작 시 기본 별칭 등록 */
+BEGIN
+    G_ALIAS('MS_BRAND_CD') := 'HQ_BRAND_CD';
+    G_ALIAS('HQ_BRAND_CD') := 'MS_BRAND_CD';
+END PKG_CM_COPY_V2;
+/
+
+SHOW ERRORS PACKAGE BODY PKG_CM_COPY_V2
+
+
+/* ============================================================================
+   설치 확인
+   ============================================================================ */
+SELECT OBJECT_NAME, OBJECT_TYPE, STATUS, LAST_DDL_TIME
+  FROM ALL_OBJECTS
+ WHERE OBJECT_NAME = 'PKG_CM_COPY_V2'
+ ORDER BY OBJECT_TYPE;
+</script>
+
+<script>
+/* ==================== 복사 대상 정의 ==================== */
+const H2H = [
+  ['환경 / 코드', [['TB_HQ_ENVST'],['TB_HQ_NMCODE']]],
+  ['상품 마스터', [['TB_HQ_PRODUCT'],['TB_HQ_PRODUCT_INFO'],['TB_HQ_PRODUCT_SPEC'],['TB_HQ_PRODUCT_IMAGE'],['TB_HQ_PRODUCT_WEIGHT'],['TB_HQ_PRODUCT_SALE_PRICE']]],
+  ['상품 옵션', [['TB_HQ_PRODUCT_OPTION_GROUP'],['TB_HQ_PRODUCT_OPTION_VAL']]],
+  ['사이드 / 추가선택', [['TB_HQ_PRODUCT_SDSEL_CLASS'],['TB_HQ_PRODUCT_SDSEL_CLASS_CD'],['TB_HQ_PRODUCT_SDSEL_GROUP'],['TB_HQ_PRODUCT_SDSEL_PROD']]],
+  ['터치키 / 키오스크', [['TB_HQ_TOUCH_KEY_GROUP'],['TB_HQ_KIOSK_GROUP'],['TB_HQ_KIOSK_M_CLS'],['TB_HQ_KIOSK_CLS']]],
+  ['프로모션', [['TB_HQ_PROMO_H'],['TB_HQ_PROMO_CONDI'],['TB_HQ_NEOE_PROMO'],['TB_HQ_NEOE_PROMO_BENE_PROD']]],
+  ['매장타입 / 상품그룹', [['TB_HQ_STORE_TYPE_APP'],['TB_HQ_STORE_TYPE_PROD_GROUP'],['TB_HQ_STORE_TYPE_APP_PROD1'],['TB_HQ_STORE_TYPE_APP_PROD2'],['TB_HQ_STORE_PROD_GROUP_DTL']]],
+  ['POS 광고 / ERP 매핑', [['TB_HQ_POS_ADVER_FILE'],['TB_HQ_ERP_PROD_MAPPING']]]
+];
+
+const H2M = [
+  ['환경 / 코드', [
+    ['TB_HQ_ENVST','TB_MS_STORE_ENVST',false],
+    ['TB_HQ_NMCODE','TB_MS_STORE_NMCODE',false,'USE_TARGET_FG 규칙 다름']
+  ]],
+  ['상품', [
+    ['TB_HQ_PRODUCT','TB_MS_PRODUCT',true,'REG_FG 를 H 로 지정'],
+    ['TB_HQ_PRODUCT_INFO','TB_MS_PRODUCT_INFO',true],
+    ['TB_HQ_PRODUCT_WEIGHT','TB_MS_PRODUCT_WEIGHT',true],
+    ['TB_HQ_PRODUCT_SALE_PRICE','TB_MS_PRODUCT_SALE_PRICE',true]
+  ]],
+  ['사이드 / 추가선택', [
+    ['TB_HQ_PRODUCT_SDSEL_CLASS','TB_MS_PRODUCT_SDSEL_CLASS',false],
+    ['TB_HQ_PRODUCT_SDSEL_GROUP','TB_MS_PRODUCT_SDSEL_GROUP',false,'MS_BRAND_CD 는 별칭으로'],
+    ['TB_HQ_PRODUCT_SDSEL_PROD','TB_MS_PRODUCT_SDSEL_PROD',false]
+  ]],
+  ['터치키 / 키오스크', [
+    ['TB_HQ_TOUCH_KEY_GROUP','TB_MS_TOUCH_KEY_GROUP',false,'본사통제 분류 제외 확인'],
+    ['TB_HQ_KIOSK_GROUP','TB_MS_KIOSK_GROUP',false],
+    ['TB_HQ_KIOSK_M_CLS','TB_MS_KIOSK_M_CLS',false],
+    ['TB_HQ_KIOSK_CLS','TB_MS_KIOSK_CLS',false]
+  ]],
+  ['프로모션', [
+    ['TB_HQ_PROMO_H','TB_MS_PROMO_H',false],
+    ['TB_HQ_PROMO_CONDI','TB_MS_PROMO_CONDI',false],
+    ['TB_HQ_NEOE_PROMO','TB_MS_NEOE_PROMO',false],
+    ['TB_HQ_NEOE_PROMO_BENE_PROD','TB_MS_NEOE_PROMO_BENE_PROD',false]
+  ]],
+  ['POS 광고', [['TB_HQ_POS_ADVER_FILE','TB_MS_POS_ADVER_FILE',false]]]
+];
+
+const M2M = [
+  ['매장 환경 / 코드', [['TB_MS_STORE_INFO'],['TB_MS_STORE_ENVST'],['TB_MS_STORE_NMCODE'],['TB_MS_BRAND']]],
+  ['코너 / POS / 터미널', [['TB_MS_CORNER'],['TB_MS_CORNER_TERMNL'],['TB_MS_POS'],['TB_MS_POS_ENVST'],['TB_MS_POS_TERMNL']]],
+  ['기능키', [['TB_MS_STORE_FNKEY',null,false,'PK 변경 이력'],['TB_MS_POS_FNKEY',null,false,'PK 변경 이력']]],
+  ['프린터 / 창고', [['TB_MS_PRINTER'],['TB_MS_PRINT'],['TB_MS_PRINT_TEMPL'],['TB_MS_STORAGE']]],
+  ['상품', [['TB_MS_PRODUCT_CLASS'],['TB_MS_PRODUCT'],['TB_MS_PRODUCT_INFO'],['TB_MS_PRODUCT_SALE_PRICE'],['TB_MS_PRODUCT_SALE_TIME'],['TB_MS_PRODUCT_BARCD'],['TB_MS_PRODUCT_WEIGHT'],['TB_MS_PRODUCT_UNITST_PROD'],['TB_MS_VENDOR_PROD']]],
+  ['사이드 / 추가선택', [['TB_MS_PRODUCT_SDATTR_CLASS'],['TB_MS_PRODUCT_SDATTR'],['TB_MS_PRODUCT_SDSEL_CLASS'],['TB_MS_PRODUCT_SDSEL_GROUP'],['TB_MS_PRODUCT_SDSEL_PROD']]],
+  ['원산지 / 알레르기 / 배달명칭', [['TB_MS_PRODUCT_RECP_ORIGIN'],['TB_MS_PRODUCT_RECP_PROD'],['TB_MS_PRODUCT_ALGI_INFO'],['TB_MS_PRODUCT_ALGI_PROD'],['TB_MS_PRODUCT_DLVR_PROD_NM'],['TB_MS_PRODUCT_DLVR_PROD_NM_MULTI']]],
+  ['터치키 / 키오스크', [['TB_MS_TOUCH_KEY_GROUP'],['TB_MS_TOUCH_KEY_CLASS'],['TB_MS_TOUCH_KEY'],['TB_MS_KIOSK_GROUP'],['TB_MS_KIOSK_M_CLS'],['TB_MS_KIOSK_CLS'],['TB_MS_KIOSK_KEY']]],
+  ['테이블(좌석)', [['TB_MS_TABLE_GROUP'],['TB_MS_TABLE'],['TB_MS_TABLE_ATTR']]],
+  ['결제 / 쿠폰 / 상품권 / 계정', [['TB_MS_PAY_METHOD_CLASS'],['TB_MS_COUPON'],['TB_MS_COUPON_PROD'],['TB_MS_GIFT'],['TB_MS_ACCOUNT'],['TB_MS_CAPTION_MESSAGE']]],
+  ['프로모션', [['TB_MS_PROMO_H'],['TB_MS_PROMO_CONDI'],['TB_MS_PROMO_CONDI_PROD'],['TB_MS_PROMO_BENE'],['TB_MS_NEOE_PROMO'],['TB_MS_NEOE_PROMO_BENE_PROD']]],
+  ['POS 광고', [['TB_MS_POS_ADVER_FILE']]]
+];
+
+/* 컬럼 값 지정 : 테이블별 SP_MAP_ADD */
+const MAPS = { 'TB_MS_PRODUCT': [['REG_FG', "'''H'''"]] };
+
+/* ==================== 테이블 목록 ==================== */
+const INV = [
+['본사 — 마스터 / 환경', [
+  ['TB_HQ_OFFICE','HQ_OFFICE_CD','본사 마스터. 원본행이라 복사 제외',1],
+  ['TB_HQ_ENVST','HQ_OFFICE_CD + ENVST_CD','본사 환경설정'],
+  ['TB_HQ_NMCODE','HQ_OFFICE_CD + NMCODE_GRP_CD + NMCODE_CD','본사 공통코드'],
+  ['TB_HQ_EMPLOYEE','HQ_OFFICE_CD + EMP_CD','인사정보. 복사 제외',1],
+  ['TB_HQ_EMPLOYEE_USER','HQ_OFFICE_CD + EMP_CD + USER_ID','계정. 복사 제외',1],
+  ['TB_HQ_EMPLOYEE_STORE_V08','HQ_OFFICE_CD + EMP_CD + STORE_CD','사원-매장 매핑. V08 확인 필요',1]
+]],
+['본사 — 상품', [
+  ['TB_HQ_PRODUCT','HQ_OFFICE_CD + HQ_BRAND_CD + PROD_CD','본사 상품'],
+  ['TB_HQ_PRODUCT_INFO','〃','상품 부가정보'],
+  ['TB_HQ_PRODUCT_SPEC','〃','상품 규격'],
+  ['TB_HQ_PRODUCT_IMAGE','〃 + SEQ','상품 이미지'],
+  ['TB_HQ_PRODUCT_WEIGHT','〃','상품 중량'],
+  ['TB_HQ_PRODUCT_SALE_PRICE','〃 + 적용일 / 구분','본사 판매가'],
+  ['TB_HQ_PRODUCT_BARCD','〃 + BARCD','존재 여부 미확인',1],
+  ['TB_HQ_PRODUCT_STORE','HQ_OFFICE_CD + PROD_CD + STORE_CD','상품-매장 적용. 복사가 아니라 필터로 사용',1],
+  ['TB_HQ_PRODUCT_OPTION_GROUP','HQ_OFFICE_CD + OPT_GRP_CD','옵션 그룹'],
+  ['TB_HQ_PRODUCT_OPTION_VAL','〃 + OPT_VAL_CD','옵션 값'],
+  ['TB_HQ_PRODUCT_SDSEL_CLASS','HQ_OFFICE_CD + SDSEL_CLASS_CD','사이드 분류'],
+  ['TB_HQ_PRODUCT_SDSEL_CLASS_CD','〃','사이드 분류코드'],
+  ['TB_HQ_PRODUCT_SDSEL_GROUP','HQ_OFFICE_CD + SDSEL_GRP_CD','사이드 그룹'],
+  ['TB_HQ_PRODUCT_SDSEL_PROD','〃 + PROD_CD','사이드 상품'],
+  ['TB_HQ_ERP_PROD_MAPPING','HQ_OFFICE_CD + PROD_CD','ERP 상품매핑']
+]],
+['본사 — 터치키 / 키오스크 / 광고', [
+  ['TB_HQ_TOUCH_KEY_GROUP','HQ_OFFICE_CD + TOUCH_KEY_GRP_CD','터치키 그룹'],
+  ['TB_HQ_KIOSK_GROUP','HQ_OFFICE_CD + KIOSK_GRP_CD','키오스크 그룹'],
+  ['TB_HQ_KIOSK_M_CLS','〃 + M_CLS_CD','키오스크 대분류'],
+  ['TB_HQ_KIOSK_CLS','〃 + CLS_CD','키오스크 분류'],
+  ['TB_HQ_POS_ADVER_FILE','HQ_OFFICE_CD + FILE_SEQ','POS 광고파일'],
+  ['TB_HQ_POS_ADVER_STORE','〃 + STORE_CD','광고 매장적용. 매장 등록 후 별도',1]
+]],
+['본사 — 프로모션 / 매장타입', [
+  ['TB_HQ_PROMO_H','HQ_OFFICE_CD + PROMO_NO','프로모션 헤더'],
+  ['TB_HQ_PROMO_CONDI','〃 + SEQ','프로모션 조건'],
+  ['TB_HQ_PROMO_STORE','〃 + STORE_CD','매장적용. 별도',1],
+  ['TB_HQ_NEOE_PROMO','HQ_OFFICE_CD + PROMO_NO','신규 프로모션'],
+  ['TB_HQ_NEOE_PROMO_BENE_PROD','〃 + PROD_CD','혜택 상품'],
+  ['TB_HQ_NEOE_PROMO_STORE','〃 + STORE_CD','매장적용. 별도',1],
+  ['TB_HQ_COUPON_STORE','HQ_OFFICE_CD + PAY_CLASS_CD + COUPN_CD + STORE_CD','쿠폰 매장적용. 별도',1],
+  ['TB_HQ_STORE_TYPE_APP','HQ_OFFICE_CD + STORE_TYPE_CD','매장타입 적용'],
+  ['TB_HQ_STORE_TYPE_APP_PROD1','〃 + PROD_CD','타입-상품 1'],
+  ['TB_HQ_STORE_TYPE_APP_PROD2','〃 + PROD_CD','타입-상품 2'],
+  ['TB_HQ_STORE_TYPE_PROD_GROUP','〃 + PROD_GRP_CD','타입 상품그룹'],
+  ['TB_HQ_STORE_TYPE_STORE','〃 + STORE_CD','타입-매장. 별도',1],
+  ['TB_HQ_STORE_PROD_GROUP_DTL','HQ_OFFICE_CD + PROD_GRP_CD + PROD_CD','상품그룹 상세'],
+  ['TB_HQ_VACCNT_DEPOSIT','HQ_OFFICE_CD + …','가상계좌 입금. 거래데이터',1]
+]],
+['매장 — 기본 / 환경', [
+  ['TB_MS_STORE','STORE_CD','매장 마스터. 원본행이라 복사 제외',1],
+  ['TB_MS_STORE_INFO','STORE_CD',''],
+  ['TB_MS_STORE_ENVST','STORE_CD + ENVST_CD','매장환경 = 외식환경'],
+  ['TB_MS_STORE_NMCODE','STORE_CD + NMCODE_GRP_CD + NMCODE_CD','PARENT_CD 채움 규칙 확인 필요'],
+  ['TB_MS_BRAND','STORE_CD + BRAND_CD','생성 트리거가 자동 생성'],
+  ['TB_MS_CORNER','STORE_CD + CORNR_CD','생성 트리거가 자동 생성'],
+  ['TB_MS_CORNER_TERMNL','STORE_CD + CORNR_CD + VENDOR_FG',''],
+  ['TB_MS_STORAGE','STORE_CD + STORAGE_CD',''],
+  ['TB_MS_ACCOUNT','STORE_CD + ACCNT_CD','금전 입출금계정'],
+  ['TB_MS_BBQ_STORE','STORE_CD / BBQ_STORE_CD','외부 연동 코드. 매장 고유',1],
+  ['TB_MS_ACCESS_MANAGMENT','STORE_CD + …','철자 2종 공존. 실사용 확인 필요',1],
+  ['TB_MS_ACCESS_MANAGEMENT','STORE_CD + …','철자 2종 공존. 실사용 확인 필요',1]
+]],
+['매장 — POS / 터미널 / 기능키 / 프린터', [
+  ['TB_MS_POS','STORE_CD + POS_NO',''],
+  ['TB_MS_POS_ENVST','STORE_CD + POS_NO + ENVST_CD',''],
+  ['TB_MS_POS_TERMNL','STORE_CD + POS_NO + VENDOR_FG',''],
+  ['TB_MS_POS_FNKEY','STORE_CD + POS_NO + FNKEY_FG + FNKEY_NO','FNKEY_FG 후속 추가. PK 확인 필수'],
+  ['TB_MS_STORE_FNKEY','STORE_CD + FNKEY_FG + FNKEY_NO','FNKEY_FG 후속 추가. PK 확인 필수'],
+  ['TB_CM_POS_FNKEY_STORE','FNKEY_NO + FNKEY_FG + STORE_CD','기능키 적용매장'],
+  ['TB_MS_POS_ADVER_FILE','STORE_CD + FILE_SEQ',''],
+  ['TB_MS_POS_LOGIN_LOG','—','로그',1],
+  ['TB_MS_PRINTER','STORE_CD + PRINTER_NO',''],
+  ['TB_MS_PRINT','STORE_CD + PRINT_CD',''],
+  ['TB_MS_PRINT_TEMPL','STORE_CD + TEMPL_CD','']
+]],
+['매장 — 상품', [
+  ['TB_MS_PRODUCT','STORE_CD + PROD_CD','KIOSK_DISPLAY_YN · ADD_INFO_1 있음'],
+  ['TB_MS_PRODUCT_INFO','STORE_CD + PROD_CD','PROD_KO_NM_DISP 계열 8개 있음'],
+  ['TB_MS_PRODUCT_CLASS','STORE_CD + PROD_CLASS_CD',''],
+  ['TB_MS_PRODUCT_SALE_PRICE','STORE_CD + PROD_CD + SALE_PRC_FG + START_DATE',''],
+  ['TB_MS_PRODUCT_SALE_TIME','STORE_CD + PROD_CD + TIME_SEQ',''],
+  ['TB_MS_PRODUCT_BARCD','STORE_CD + PROD_CD + BARCD_CD',''],
+  ['TB_MS_PRODUCT_WEIGHT','STORE_CD + PROD_CD',''],
+  ['TB_MS_PRODUCT_UNITST_PROD','STORE_CD + PROD_CD + 단품 PROD_CD',''],
+  ['TB_MS_VENDOR_PROD','STORE_CD + VENDOR_CD + PROD_CD',''],
+  ['TB_MS_PRODUCT_SDSEL_PROD_SOLD_OUT','—','품절 = 운영데이터',1]
+]],
+['매장 — 사이드 / 원산지 / 알레르기 / 배달', [
+  ['TB_MS_PRODUCT_SDATTR','STORE_CD + SDATTR_CD',''],
+  ['TB_MS_PRODUCT_SDATTR_CLASS','STORE_CD + SDATTR_CLASS_CD','MS_BRAND_CD 포함'],
+  ['TB_MS_PRODUCT_SDSEL_CLASS','STORE_CD + SDSEL_CLASS_CD','RECEIPT_APPLY_YN 있음'],
+  ['TB_MS_PRODUCT_SDSEL_GROUP','STORE_CD + SDSEL_GRP_CD','MS_BRAND_CD 포함'],
+  ['TB_MS_PRODUCT_SDSEL_PROD','STORE_CD + SDSEL_CLASS_CD + PROD_CD','SOLD_OUT_YN 있음'],
+  ['TB_MS_PRODUCT_SDSEL_CLAA','—','오타 테이블 추정. 존재 확인 필요',1],
+  ['TB_MS_PRODUCT_RECP_ORIGIN','STORE_CD + RECIPES_CD',''],
+  ['TB_MS_PRODUCT_RECP_PROD','STORE_CD + RECIPES_CD + PROD_CD',''],
+  ['TB_MS_PRODUCT_ALGI_INFO','STORE_CD + RECIPES_CD',''],
+  ['TB_MS_PRODUCT_ALGI_PROD','STORE_CD + RECIPES_CD + PROD_CD',''],
+  ['TB_MS_PRODUCT_DLVR_PROD_NM','STORE_CD + PROD_CD + DLVR_NAME_CD',''],
+  ['TB_MS_PRODUCT_DLVR_PROD_NM_MULTI','STORE_CD + SEQ + PROD_CD','']
+]],
+['매장 — 터치키 / 키오스크 / 좌석', [
+  ['TB_MS_TOUCH_KEY_GROUP','STORE_CD + TUKEY_GRP_CD','XML 동반 이관 필요'],
+  ['TB_MS_TOUCH_KEY_CLASS','〃 + TUKEY_CLASS_CD',''],
+  ['TB_MS_TOUCH_KEY','〃 + TUKEY_CLASS_CD + TUKEY_CD + TUKEY_FG',''],
+  ['TB_MS_KIOSK_GROUP','STORE_CD + KIOSK_GRP_CD',''],
+  ['TB_MS_KIOSK_M_CLS','〃 + M_CLS_CD',''],
+  ['TB_MS_KIOSK_CLS','〃 + CLS_CD',''],
+  ['TB_MS_KIOSK_KEY','〃 + CLS_CD + KEY_NO',''],
+  ['TB_WB_STORE_CONFG_XML','STORE_CD + CONFG_FG + GRP_CD','판매터치키 XML. 별도 이관',1],
+  ['TB_WB_POS_CONFG_XML','STORE_CD + POS_NO + CONFG_FG','포스기능키 XML. 별도 이관',1],
+  ['TB_MS_TABLE','STORE_CD + TABLE_NO',''],
+  ['TB_MS_TABLE_GROUP','STORE_CD + TABLE_GRP_CD',''],
+  ['TB_MS_TABLE_ATTR','STORE_CD + TABLE_NO','']
+]],
+['매장 — 결제 / 프로모션 / 사원', [
+  ['TB_MS_PAY_METHOD_CLASS','STORE_CD + PAY_TYPE_FG + PAY_CLASS_CD','1=상품권 3=쿠폰'],
+  ['TB_MS_COUPON','STORE_CD + COUPN_REG_FG + PAY_CLASS_CD + COUPN_CD',''],
+  ['TB_MS_COUPON_PROD','〃 + PROD_CD',''],
+  ['TB_MS_GIFT','STORE_CD + GIFT_CD',''],
+  ['TB_MS_CAPTION_MESSAGE','STORE_CD + MSG_SEQ',''],
+  ['TB_MS_PROMO_H','STORE_CD + PROMO_NO',''],
+  ['TB_MS_PROMO_CONDI','〃 + SEQ',''],
+  ['TB_MS_PROMO_CONDI_PROD','〃 + PROD_CD',''],
+  ['TB_MS_PROMO_BENE','〃 + SEQ',''],
+  ['TB_MS_NEOE_PROMO','STORE_CD + PROMO_NO',''],
+  ['TB_MS_NEOE_PROMO_BENE_PROD','〃 + PROD_CD',''],
+  ['TB_MS_EMPLOYEE','STORE_CD + EMP_CD','인사정보',1],
+  ['TB_MS_EMPLOYEE_USER','STORE_CD + EMP_CD + USER_ID','TB_WB_USER_INFO 동반',1],
+  ['TB_MS_MY_DLVR_ADDR','—','고객 개인정보',1]
+]]
+];
+
+/* ==================== 유틸 ==================== */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const pad = (s,n) => { s=String(s); return s.length>=n ? s : s+' '.repeat(n-s.length); };
+const RULE = '\n\n' + '/* ' + '-'.repeat(74) + ' */\n\n';
+const sel = {h2h:new Set(), h2m:new Set(), m2m:new Set()};
+const MODE_TXT = {S:'신규만 넣기', M:'있으면 갱신', R:'지우고 다시 넣기'};
+
+function cfg(){
+  const q = id => $('#'+id).value.trim();
+  return {
+    schema: q('schema') ? q('schema') + '.' : '',
+    schemaRaw: q('schema') || 'SBPORA',
+    userId: q('userId'),
+    mode: q('mode'),
+    exec: $('#execYn').checked ? 'Y' : 'N',
+    commit: $('#autoCommit').checked,
+    stopErr: $('#stopErr').checked ? 'Y' : 'N',
+    batch: $('#useBatch').checked && q('mode') === 'S',
+    batchSize: q('batchSize') || '1000',
+    sleepSec: q('sleepSec') || '0',
+    srcHq: q('srcHq'), tgtHq: q('tgtHq'),
+    srcStore: q('srcStore'), tgtStore: q('tgtStore'),
+    prodFilter: $('#prodFilter').checked,
+    bkTail: '_' + (q('bkDate')||'00000000') + '_' + (q('bkSeq')||'001')
+  };
+}
+
+function picked(dir, data){
+  return data.map(([g, items]) => [g, items.filter(it => sel[dir].has(it[0] + (it[1]?'>'+it[1]:'')))])
+             .filter(([,items]) => items.length);
+}
+function flat(dir, data){
+  const out = [];
+  picked(dir, data).forEach(([,items]) => items.forEach(it => out.push(it)));
+  return out;
+}
+const bk = (c,t) => c.schema + t + c.bkTail;
+
+/* ==================== 공통 조각 ==================== */
+function header(title, lines){
+  const L = ['/* ' + '*'.repeat(74), '   ' + title];
+  lines.forEach(x => L.push('   ' + x));
+  L.push('   ' + '*'.repeat(74) + ' */','',
+         'SET SERVEROUTPUT ON SIZE UNLIMITED','SET LINESIZE 32767','SET TIMING ON');
+  return L.join('\n');
+}
+
+function engineSetup(c, indent){
+  const p = ' '.repeat(indent);
+  const L = [];
+  L.push(p + "PKG_CM_COPY_V2.G_OWNER       := '" + c.schemaRaw + "';");
+  L.push(p + "PKG_CM_COPY_V2.G_USER_ID     := '" + c.userId + "';");
+  L.push(p + "PKG_CM_COPY_V2.G_MODE        := '" + c.mode + "';   /* " + MODE_TXT[c.mode] + " */");
+  L.push(p + "PKG_CM_COPY_V2.G_EXEC_YN     := '" + c.exec + "';"
+           + (c.exec === 'N' ? '   /* 출력만 */' : '   /* ★ 실제로 반영됩니다 */'));
+  L.push(p + "PKG_CM_COPY_V2.G_STOP_ON_ERR := '" + c.stopErr + "';");
+  if (c.batch){
+    L.push(p + 'PKG_CM_COPY_V2.G_BATCH_SIZE  := ' + c.batchSize + ';   /* 묶음마다 COMMIT */');
+    L.push(p + 'PKG_CM_COPY_V2.G_SLEEP_SEC   := ' + c.sleepSec + ';');
+  }
+  L.push(p + 'PKG_CM_COPY_V2.SP_RESET;');
+  return L.join('\n');
+}
+
+function tailBlock(c, indent){
+  const p = ' '.repeat(indent);
+  const L = ['', p + 'PKG_CM_COPY_V2.SP_SUMMARY;', ''];
+  if (c.batch){
+    L.push(p + '/* 나눠담기 모드는 묶음마다 이미 COMMIT 되었습니다. */');
+    L.push(p + 'COMMIT;');
+  } else if (c.commit){
+    L.push(p + 'COMMIT;');
+    L.push(p + "DBMS_OUTPUT.PUT_LINE('-- COMMIT 되었습니다.');");
+  } else {
+    L.push(p + 'ROLLBACK;');
+    L.push(p + "DBMS_OUTPUT.PUT_LINE('-- ROLLBACK 되었습니다. 확정하려면 설정에서 COMMIT 을 켜세요.');");
+  }
+  return L.join('\n');
+}
+
+function bkBlock(c, tables, keyCol, keyVal, title){
+  const L = ['/* 백업 : ' + title, '   같은 이름이 있으면 일련번호를 올리세요. */',''];
+  tables.forEach(t=>{
+    L.push('CREATE TABLE ' + bk(c,t) + ' AS');
+    L.push('SELECT * FROM ' + c.schema + t + " WHERE " + keyCol + " = '" + keyVal + "';");
+    L.push('');
+  });
+  return L.join('\n').trim();
+}
+
+function cntBlock(rows, title){
+  const L = ['/* ' + title + ' */',''];
+  rows.forEach((r,i)=>{
+    L.push("SELECT '" + pad(r.t,34) + "' AS TAB");
+    r.cols.forEach(cd => L.push('     , (SELECT COUNT(*) FROM ' + cd.from + ' WHERE ' + cd.wh + ') AS ' + cd.as));
+    L.push('  FROM DUAL');
+    L.push(i === rows.length-1 ? ';' : 'UNION ALL');
+  });
+  return L.join('\n');
+}
+
+function delBlock(c, tables, keyCol, keyVal, title){
+  const L = ['/* ' + title, '   자식에서 부모 역순. 극히 위험하니 백업 먼저. */','/*'];
+  [...tables].reverse().forEach(t=>{
+    L.push('DELETE FROM ' + c.schema + pad(t,36) + " WHERE " + keyCol + " = '" + keyVal + "';");
+  });
+  L.push('-- COMMIT;','*/');
+  return L.join('\n');
+}
+
+function mapLines(t, indent){
+  if (!MAPS[t]) return [];
+  return MAPS[t].map(([col,expr]) =>
+    ' '.repeat(indent) + 'PKG_CM_COPY_V2.SP_MAP_ADD(' + "'" + col + "', " + expr + ');');
+}
+
+/* ==================== 엔진 탭 ==================== */
+function genEng(c){
+  const out = [];
+  const src = $('#pkgSrc').textContent.trim();
+
+  out.push({t:'설치 확인', s:'엔진과 기존 패키지가 올라와 있는지', b:'b3', sql:
+    ['/* 어떤 패키지가 있는지 먼저 봅니다 */',
+     'SELECT OWNER, OBJECT_NAME, OBJECT_TYPE, STATUS, LAST_DDL_TIME',
+     '  FROM ALL_OBJECTS',
+     " WHERE OBJECT_NAME IN ('PKG_CM_COPY_V2','PKG_CM_COPY_GEN','PKG_MS_STORE_COPY')",
+     ' ORDER BY OBJECT_NAME, OBJECT_TYPE;',
+     '',
+     '',
+     '/* 감사컬럼 타입 확인 — 엔진이 이 타입을 보고 값을 정합니다 */',
+     'SELECT DATA_TYPE, COUNT(DISTINCT TABLE_NAME) AS TAB_CNT',
+     '  FROM ALL_TAB_COLUMNS',
+     " WHERE OWNER = '" + c.schemaRaw + "'",
+     "   AND COLUMN_NAME IN ('REG_DT','MOD_DT')",
+     ' GROUP BY DATA_TYPE',
+     ' ORDER BY 2 DESC;',
+     '',
+     '',
+     '/* PK 없는 테이블 — 신규(S) · 갱신(M) 모드에서 건너뜁니다 */',
+     'SELECT T.TABLE_NAME',
+     '  FROM ALL_TABLES T',
+     " WHERE T.OWNER = '" + c.schemaRaw + "'",
+     "   AND (T.TABLE_NAME LIKE 'TB_HQ%' OR T.TABLE_NAME LIKE 'TB_MS%')",
+     '   AND NOT EXISTS ( SELECT 1',
+     '                      FROM ALL_CONSTRAINTS C',
+     '                     WHERE C.OWNER           = T.OWNER',
+     '                       AND C.TABLE_NAME      = T.TABLE_NAME',
+     "                       AND C.CONSTRAINT_TYPE = 'P' )",
+     ' ORDER BY 1;'].join('\n')});
+
+  out.push({t:'PKG_CM_COPY_V2 — 통합 엔진', s:'패키지 명세와 본문. 한 번만 올리면 됩니다', b:'b1', sql:src});
+
+  out.push({t:'동작 확인', s:'실제 데이터를 건드리지 않고 출력만 시켜 봅니다', sql:
+    ['/* 출력만 하는 시험 실행. 조립된 SQL 과 경고를 눈으로 확인하세요. */',
+     'SET SERVEROUTPUT ON SIZE UNLIMITED',
+     'BEGIN',
+     "    PKG_CM_COPY_V2.G_OWNER   := '" + c.schemaRaw + "';",
+     "    PKG_CM_COPY_V2.G_EXEC_YN := 'N';",
+     "    PKG_CM_COPY_V2.G_MODE    := 'S';",
+     '    PKG_CM_COPY_V2.SP_RESET;',
+     '',
+     '    /* 컬럼 차이부터 */',
+     "    PKG_CM_COPY_V2.SP_DIFF('TB_HQ_PRODUCT', 'TB_MS_PRODUCT');",
+     '',
+     '    /* 조립 결과 */',
+     "    PKG_CM_COPY_V2.SP_COPY_SAME('TB_HQ_PRODUCT', 'HQ_OFFICE_CD', '"
+        + c.srcHq + "', '" + c.tgtHq + "');",
+     '',
+     '    PKG_CM_COPY_V2.SP_SUMMARY;',
+     'END;',
+     '/'].join('\n')});
+
+  return out;
+}
+
+/* ==================== 본사 → 본사 ==================== */
+function genH2H(c){
+  const groups = picked('h2h', H2H);
+  const tabs = flat('h2h', H2H).map(x=>x[0]);
+  const out = [];
+
+  out.push({t:'사전확인', s:'원본과 대상 본사의 상태를 먼저 봅니다', b:'b3', sql:
+    header('본사 -> 본사 복사   ' + c.srcHq + ' -> ' + c.tgtHq,
+      ['[0] 사전확인 — SELECT 만 합니다. 이것부터 실행하세요.',
+       '대상 본사행(TB_HQ_OFFICE)은 이 스크립트가 만들지 않습니다.'])
+    + '\n\n/* 원본 / 대상 본사 존재 확인 */\n'
+    + 'SELECT HQ_OFFICE_CD, HQ_OFFICE_NM, REG_DT\n'
+    + '  FROM ' + c.schema + 'TB_HQ_OFFICE\n'
+    + " WHERE HQ_OFFICE_CD IN ( '" + c.srcHq + "', '" + c.tgtHq + "' )\n"
+    + ' ORDER BY HQ_OFFICE_CD;\n\n'
+    + '/* 브랜드 코드 — 원본 상품이 쓰는 브랜드가 대상 본사에 있는지 */\n'
+    + 'SELECT P.HQ_BRAND_CD, COUNT(*) AS PROD_CNT\n'
+    + '  FROM ' + c.schema + 'TB_HQ_PRODUCT P\n'
+    + " WHERE P.HQ_OFFICE_CD = '" + c.srcHq + "'\n"
+    + ' GROUP BY P.HQ_BRAND_CD\n'
+    + ' ORDER BY 1;\n\n'
+    + cntBlock(tabs.map(t=>({t, cols:[
+        {from:c.schema+t, wh:"HQ_OFFICE_CD = '"+c.srcHq+"'", as:'SRC_CNT'},
+        {from:c.schema+t, wh:"HQ_OFFICE_CD = '"+c.tgtHq+"'", as:'TGT_CNT'}
+      ]})), '복사 전 건수')});
+
+  out.push({t:'백업', s:'대상 본사 ' + c.tgtHq + ' 의 현재 상태', b:'b1',
+    sql: bkBlock(c, tabs, 'HQ_OFFICE_CD', c.tgtHq, '대상 본사 ' + c.tgtHq)});
+
+  const L = [];
+  L.push('/* [1] 복사 실행 — 부모에서 자식 순서 */');
+  L.push('DECLARE');
+  L.push("    V_SRC VARCHAR2(30) := '" + c.srcHq + "';   /* 원본 본사 */");
+  L.push("    V_TGT VARCHAR2(30) := '" + c.tgtHq + "';   /* 대상 본사 */");
+  L.push('');
+  L.push('    PROCEDURE CP( PI_TABLE IN VARCHAR2, PI_WH IN VARCHAR2 DEFAULT NULL ) IS');
+  L.push('    BEGIN');
+  L.push("        PKG_CM_COPY_V2.SP_COPY_SAME( PI_TABLE, 'HQ_OFFICE_CD', V_SRC, V_TGT, PI_WH );");
+  L.push('    END CP;');
+  L.push('BEGIN');
+  L.push(engineSetup(c, 4));
+  L.push('');
+  L.push('    IF V_SRC = V_TGT THEN');
+  L.push("        RAISE_APPLICATION_ERROR(-20001, '원본과 대상 본사코드가 같습니다.');");
+  L.push('    END IF;');
+  L.push('');
+  L.push("    DBMS_OUTPUT.PUT_LINE('/* ==== 본사->본사  ' || V_SRC || ' -> ' || V_TGT || ' ==== */');");
+  groups.forEach(([g, items], i)=>{
+    L.push('');
+    L.push('    /* ---- ' + (i+1) + '. ' + g + ' ' + '-'.repeat(Math.max(2, 54 - g.length)) + ' */');
+    items.forEach(it=>{
+      mapLines(it[0], 4).forEach(x => L.push(x));
+      L.push("    CP('" + it[0] + "');");
+    });
+  });
+  L.push(tailBlock(c, 4));
+  L.push('END;');
+  L.push('/');
+  out.push({t:'복사 실행 블록', s:tabs.length + '개 · ' + MODE_TXT[c.mode] + ' · G_EXEC_YN = ' + c.exec
+      + (c.batch ? ' · 나눠담기 ' + c.batchSize : ''),
+    b: c.exec==='Y' ? 'b2' : '', warn: c.exec==='Y', sql:L.join('\n')});
+
+  out.push({t:'사후검증', s:'복사 후 원본과 대상 건수 비교', sql:
+    cntBlock(tabs.map(t=>({t, cols:[
+      {from:c.schema+t, wh:"HQ_OFFICE_CD = '"+c.srcHq+"'", as:'SRC_CNT'},
+      {from:c.schema+t, wh:"HQ_OFFICE_CD = '"+c.tgtHq+"'", as:'TGT_CNT'}
+    ]})), '[2] 사후검증')});
+
+  out.push({t:'되돌리기', s:'대상 본사 ' + c.tgtHq + ' 데이터 전삭제', b:'b2', warn:true,
+    sql: delBlock(c, tabs, 'HQ_OFFICE_CD', c.tgtHq, '[3] 되돌리기')});
+
+  return out;
+}
+
+/* ==================== 본사 → 매장 ==================== */
+function genH2M(c){
+  const groups = picked('h2m', H2M);
+  const pairs = flat('h2m', H2M);
+  const msTabs = pairs.map(p=>p[1]);
+  const out = [];
+
+  out.push({t:'사전확인', s:'매장이 그 본사 소속인지부터 확인합니다', b:'b3', sql:
+    header('본사 -> 매장 복사   ' + c.srcHq + ' -> ' + c.tgtStore,
+      ['[0] 사전확인 — SELECT 만 합니다.',
+       '대상 매장행(TB_MS_STORE)이 이미 있어야 합니다.',
+       '매장 생성 트리거가 만든 기본행은 중복차단으로 걸러집니다.'])
+    + '\n\n/* 매장 소속 확인 */\n'
+    + 'SELECT s.STORE_CD, s.STORE_NM, s.HQ_OFFICE_CD, o.HQ_OFFICE_NM,\n'
+    + "       CASE WHEN s.HQ_OFFICE_CD = '" + c.srcHq + "' THEN 'O 일치'\n"
+    + "            ELSE 'X 불일치 - 진행 금지' END AS CHK\n"
+    + '  FROM ' + c.schema + 'TB_MS_STORE s\n'
+    + '  LEFT JOIN ' + c.schema + 'TB_HQ_OFFICE o ON o.HQ_OFFICE_CD = s.HQ_OFFICE_CD\n'
+    + " WHERE s.STORE_CD = '" + c.tgtStore + "';\n\n"
+    + '/* 이 매장에 적용하도록 지정된 상품 수 */\n'
+    + 'SELECT COUNT(*) AS MAPPED_PROD_CNT\n'
+    + '  FROM ' + c.schema + 'TB_HQ_PRODUCT_STORE\n'
+    + " WHERE HQ_OFFICE_CD = '" + c.srcHq + "'\n"
+    + "   AND STORE_CD     = '" + c.tgtStore + "';\n\n"
+    + cntBlock(msTabs.map(t=>({t, cols:[
+        {from:c.schema+t, wh:"STORE_CD = '"+c.tgtStore+"'", as:'TGT_CNT'}
+      ]})), '대상 매장 현재 건수')});
+
+  out.push({t:'컬럼 비교', s:'NOT NULL 인데 못 채우는 컬럼을 미리 찾습니다', b:'b3', sql:
+    ['/* [0-2] 원본과 대상의 컬럼 차이. 데이터는 건드리지 않습니다.',
+     '   << NOT NULL, 기본값 없음 이 찍히면 그 테이블은 값 지정이 필요합니다. */',
+     'SET SERVEROUTPUT ON SIZE UNLIMITED',
+     'BEGIN',
+     "    PKG_CM_COPY_V2.G_OWNER := '" + c.schemaRaw + "';",
+     ''].concat(
+      pairs.map(p => "    PKG_CM_COPY_V2.SP_DIFF('" + pad(p[0]+"'", 32) + ", '" + p[1] + "');")
+     ).concat(['','END;','/']).join('\n')});
+
+  out.push({t:'백업', s:'대상 매장 ' + c.tgtStore + ' 의 현재 상태', b:'b1',
+    sql: bkBlock(c, msTabs, 'STORE_CD', c.tgtStore, '대상 매장 ' + c.tgtStore)});
+
+  const L = [];
+  L.push('/* [1] 복사 실행 */');
+  L.push('DECLARE');
+  L.push("    V_HQ    VARCHAR2(30) := '" + c.srcHq + "';      /* 원본 본사 */");
+  L.push("    V_STORE VARCHAR2(30) := '" + c.tgtStore + "';   /* 대상 매장 */");
+  L.push('    V_CNT   PLS_INTEGER;');
+  L.push('');
+  L.push('    /* 이 매장에 적용 지정된 본사 상품만 내리는 필터 */');
+  L.push('    V_PROD_WH VARCHAR2(1000) :=');
+  if (c.prodFilter){
+    L.push("        'EXISTS ( SELECT 1 FROM " + c.schema + "TB_HQ_PRODUCT_STORE m '");
+    L.push("     || '          WHERE m.HQ_OFFICE_CD = s.HQ_OFFICE_CD '");
+    L.push("     || '            AND m.PROD_CD      = s.PROD_CD '");
+    L.push("     || '            AND m.STORE_CD     = ''" + c.tgtStore + "'' )';");
+  } else {
+    L.push('        NULL;   /* 본사 상품 전체를 내립니다 */');
+  }
+  L.push('');
+  L.push('    PROCEDURE CP( PI_SRC IN VARCHAR2, PI_TGT IN VARCHAR2, PI_WH IN VARCHAR2 DEFAULT NULL ) IS');
+  L.push('    BEGIN');
+  L.push("        PKG_CM_COPY_V2.SP_COPY( PI_SRC, PI_TGT, 'HQ_OFFICE_CD', 'STORE_CD', V_HQ, V_STORE, PI_WH );");
+  L.push('    END CP;');
+  L.push('BEGIN');
+  L.push(engineSetup(c, 4));
+  L.push('');
+  L.push('    /* 매장-본사 소속 검증 */');
+  L.push('    SELECT COUNT(*) INTO V_CNT');
+  L.push('      FROM ' + c.schema + 'TB_MS_STORE');
+  L.push('     WHERE STORE_CD = V_STORE AND HQ_OFFICE_CD = V_HQ;');
+  L.push('');
+  L.push('    IF V_CNT = 0 THEN');
+  L.push('        RAISE_APPLICATION_ERROR(-20002,');
+  L.push("            '매장 ' || V_STORE || ' 이(가) 본사 ' || V_HQ || ' 소속이 아니거나 없습니다.');");
+  L.push('    END IF;');
+  L.push('');
+  L.push("    DBMS_OUTPUT.PUT_LINE('/* ==== 본사->매장  ' || V_HQ || ' -> ' || V_STORE || ' ==== */');");
+  const w = Math.max(...pairs.map(p=>p[0].length)) + 2;
+  groups.forEach(([g, items], i)=>{
+    L.push('');
+    L.push('    /* ---- ' + (i+1) + '. ' + g + ' ' + '-'.repeat(Math.max(2, 54 - g.length)) + ' */');
+    items.forEach(it=>{
+      mapLines(it[1], 4).forEach(x => L.push(x));
+      const useWh = it[2] && c.prodFilter;
+      L.push("    CP('" + pad(it[0]+"'", w) + ", '" + it[1] + "'" + (useWh ? ', V_PROD_WH' : '') + ');'
+             + (it[3] ? '   /* ' + it[3] + ' */' : ''));
+    });
+  });
+  L.push(tailBlock(c, 4));
+  L.push('END;');
+  L.push('/');
+  out.push({t:'복사 실행 블록', s:pairs.length + '개 · ' + MODE_TXT[c.mode] + ' · 상품필터 '
+      + (c.prodFilter?'적용':'없음') + ' · G_EXEC_YN = ' + c.exec,
+    b: c.exec==='Y' ? 'b2' : '', warn: c.exec==='Y', sql:L.join('\n')});
+
+  out.push({t:'개별 매핑 — 매장 공통코드 · 터치키', s:'엔진으로 내리면 안 되는 케이스', b:'b2', warn:true, sql:
+    ['/* [2-1] 매장 공통코드는 USE_TARGET_FG 규칙이 본사와 다릅니다.',
+     "          본사 = ('C','H')   매장 = ('C','S')",
+     '   본사 코드를 그대로 내리지 말고 TB_CM_NMCODE 기준으로 매장용만 만드세요.',
+     '   기존 SP_STORE_NMCODE_I 프로시저가 있으면 그쪽이 우선입니다. */',
+     '',
+     'INSERT INTO ' + c.schema + 'TB_MS_STORE_NMCODE',
+     '       ( STORE_CD, NMCODE_GRP_CD, NMCODE_CD, PARENT_CD, NMCODE_NM',
+     '       , NMCODE_ITEM_1, USE_YN, SORT_SEQ',
+     '       , REG_ID, REG_DT, MOD_ID, MOD_DT )',
+     "SELECT '" + c.tgtStore + "', c.NMCODE_GRP_CD, c.NMCODE_CD, c.PARENT_CD, c.NMCODE_NM",
+     "     , c.NMCODE_ITEM_1, NVL(c.USE_YN,'Y'), c.SORT_SEQ",
+     "     , '" + c.userId + "', TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')",
+     "     , '" + c.userId + "', TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')",
+     '  FROM ' + c.schema + 'TB_CM_NMCODE c',
+     " WHERE c.USE_TARGET_FG IN ( 'C', 'S' )",
+     '   AND NOT EXISTS ( SELECT 1',
+     '                      FROM ' + c.schema + 'TB_MS_STORE_NMCODE x',
+     "                     WHERE x.STORE_CD      = '" + c.tgtStore + "'",
+     '                       AND x.NMCODE_GRP_CD = c.NMCODE_GRP_CD',
+     '                       AND x.NMCODE_CD     = c.NMCODE_CD );',
+     '',
+     '-- 감사컬럼이 DATE 면 위 TO_CHAR 를 SYSDATE 로 바꾸세요.',
+     '-- 기존 PKG_MS_STORE_COPY 는 PARENT_CD 자리에 NMCODE_GRP_CD 를 넣습니다.',
+     '-- 어느 쪽이 맞는지 확인하고 위 c.PARENT_CD 를 조정하세요.',
+     '',
+     '',
+     '/* [2-2] 본사 통제 터치키 : NMCODE 그룹 228 은 매장 수정 허용분류입니다.',
+     '         본사가 덮어쓰면 안 되니 복사 시 빼야 합니다. */',
+     'SELECT NMCODE_CD              AS TOUCH_KEY_GRP_CD',
+     '     , NMCODE_NM              AS TOUCH_KEY_CLASS_CD',
+     "     , NVL(NMCODE_ITEM_1,'N') AS STORE_EDIT_YN",
+     '  FROM ' + c.schema + 'TB_HQ_NMCODE',
+     " WHERE HQ_OFFICE_CD  = '" + c.srcHq + "'",
+     "   AND NMCODE_GRP_CD = '228';",
+     '',
+     '',
+     '/* [2-3] 터치키 화면 구성은 XML 로 보관됩니다. 테이블 복사로는 안 넘어갑니다.',
+     '         TB_WB_STORE_CONFG_XML  구분 10                      판매터치키',
+     '         TB_WB_POS_CONFG_XML    6020 / 6021 / 6022 / 6023    포스기능키 */',
+     'SELECT * FROM ' + c.schema + "TB_WB_STORE_CONFG_XML WHERE STORE_CD = '" + c.tgtStore + "';",
+     'SELECT * FROM ' + c.schema + "TB_WB_POS_CONFG_XML   WHERE STORE_CD = '" + c.tgtStore + "';"
+    ].join('\n')});
+
+  out.push({t:'사후검증', s:'대상 매장 건수 확인', sql:
+    cntBlock(msTabs.map(t=>({t, cols:[
+      {from:c.schema+t, wh:"STORE_CD = '"+c.tgtStore+"'", as:'CNT'}
+    ]})), '[3] 사후검증')});
+
+  out.push({t:'되돌리기', s:'대상 매장 ' + c.tgtStore + ' 데이터 전삭제', b:'b2', warn:true,
+    sql: delBlock(c, msTabs, 'STORE_CD', c.tgtStore, '[4] 되돌리기')});
+
+  return out;
+}
+
+/* ==================== 매장 → 매장 ==================== */
+function genM2M(c){
+  const groups = picked('m2m', M2M);
+  const tabs = flat('m2m', M2M).map(x=>x[0]);
+  const out = [];
+
+  out.push({t:'사전확인', s:'두 매장이 같은 본사인지부터 봅니다', b:'b3', sql:
+    header('매장 -> 매장 복사   ' + c.srcStore + ' -> ' + c.tgtStore,
+      ['[0] 사전확인 — SELECT 만 합니다.',
+       '대상 매장행(TB_MS_STORE)이 이미 있어야 합니다.',
+       '기존 구현 PKG_MS_STORE_COPY 도 함께 확인하세요.'])
+    + '\n\n/* 원본 / 대상 매장과 소속 본사 */\n'
+    + 'SELECT STORE_CD, STORE_NM, HQ_OFFICE_CD, REG_DT,\n'
+    + "       CASE WHEN STORE_CD = '" + c.srcStore + "' THEN '원본' ELSE '대상' END AS ROLE\n"
+    + '  FROM ' + c.schema + 'TB_MS_STORE\n'
+    + " WHERE STORE_CD IN ( '" + c.srcStore + "', '" + c.tgtStore + "' )\n"
+    + ' ORDER BY ROLE DESC;\n\n'
+    + '/* POS 대수 — 원본에 POS 가 없으면 POS 관련 복사는 의미가 없습니다 */\n'
+    + 'SELECT STORE_CD, COUNT(*) AS POS_CNT, MIN(POS_NO) AS MIN_NO, MAX(POS_NO) AS MAX_NO\n'
+    + '  FROM ' + c.schema + 'TB_MS_POS\n'
+    + " WHERE STORE_CD IN ( '" + c.srcStore + "', '" + c.tgtStore + "' )\n"
+    + ' GROUP BY STORE_CD;\n\n'
+    + cntBlock(tabs.map(t=>({t, cols:[
+        {from:c.schema+t, wh:"STORE_CD = '"+c.srcStore+"'", as:'SRC_CNT'},
+        {from:c.schema+t, wh:"STORE_CD = '"+c.tgtStore+"'", as:'TGT_CNT'}
+      ]})), '복사 전 건수')});
+
+  out.push({t:'백업', s:'대상 매장 ' + c.tgtStore + ' 의 현재 상태', b:'b1',
+    sql: bkBlock(c, tabs, 'STORE_CD', c.tgtStore, '대상 매장 ' + c.tgtStore)});
+
+  const L = [];
+  L.push('/* [1] 복사 실행 — 부모에서 자식 순서 */');
+  L.push('DECLARE');
+  L.push("    V_SRC    VARCHAR2(30) := '" + c.srcStore + "';   /* 원본 매장 */");
+  L.push("    V_TGT    VARCHAR2(30) := '" + c.tgtStore + "';   /* 대상 매장 */");
+  L.push('    V_SRC_HQ VARCHAR2(30);');
+  L.push('    V_TGT_HQ VARCHAR2(30);');
+  L.push('');
+  L.push('    PROCEDURE CP( PI_TABLE IN VARCHAR2, PI_WH IN VARCHAR2 DEFAULT NULL ) IS');
+  L.push('    BEGIN');
+  L.push("        PKG_CM_COPY_V2.SP_COPY_SAME( PI_TABLE, 'STORE_CD', V_SRC, V_TGT, PI_WH );");
+  L.push('    END CP;');
+  L.push('BEGIN');
+  L.push(engineSetup(c, 4));
+  L.push('');
+  L.push('    IF V_SRC = V_TGT THEN');
+  L.push("        RAISE_APPLICATION_ERROR(-20003, '원본과 대상 매장코드가 같습니다.');");
+  L.push('    END IF;');
+  L.push('');
+  L.push('    BEGIN');
+  L.push('        SELECT HQ_OFFICE_CD INTO V_SRC_HQ FROM ' + c.schema + 'TB_MS_STORE WHERE STORE_CD = V_SRC;');
+  L.push('        SELECT HQ_OFFICE_CD INTO V_TGT_HQ FROM ' + c.schema + 'TB_MS_STORE WHERE STORE_CD = V_TGT;');
+  L.push('    EXCEPTION');
+  L.push('        WHEN NO_DATA_FOUND THEN');
+  L.push("            RAISE_APPLICATION_ERROR(-20004, '원본 또는 대상 매장이 없습니다.');");
+  L.push('    END;');
+  L.push('');
+  L.push('    IF V_SRC_HQ <> V_TGT_HQ THEN');
+  L.push('        RAISE_APPLICATION_ERROR(-20005,');
+  L.push("            '본사가 다릅니다. ' || V_SRC || '=' || V_SRC_HQ ||");
+  L.push("            ' / ' || V_TGT || '=' || V_TGT_HQ || ' -> 복사 금지.');");
+  L.push('    END IF;');
+  L.push('');
+  L.push("    DBMS_OUTPUT.PUT_LINE('/* ==== 매장->매장  ' || V_SRC || ' -> ' || V_TGT || ' ==== */');");
+  groups.forEach(([g, items], i)=>{
+    L.push('');
+    L.push('    /* ---- ' + (i+1) + '. ' + g + ' ' + '-'.repeat(Math.max(2, 54 - g.length)) + ' */');
+    items.forEach(it => L.push("    CP('" + it[0] + "');" + (it[3] ? '   /* ' + it[3] + ' */' : '')));
+  });
+  L.push(tailBlock(c, 4));
+  L.push('END;');
+  L.push('/');
+  out.push({t:'복사 실행 블록', s:tabs.length + '개 · ' + MODE_TXT[c.mode] + ' · G_EXEC_YN = ' + c.exec,
+    b: c.exec==='Y' ? 'b2' : '', warn: c.exec==='Y', sql:L.join('\n')});
+
+  out.push({t:'XML 설정 이관', s:'테이블 복사로는 넘어가지 않는 부분', b:'b2', sql:
+    ['/* [2] 판매터치키 · 포스기능키 화면 구성은 XML 로 보관됩니다.',
+     '       TB_WB_STORE_CONFG_XML  구분 10                      판매터치키',
+     '       TB_WB_POS_CONFG_XML    6020 결제메뉴(상) / 6021 결제메뉴(하)',
+     '                              6022 기타메뉴   / 6023 보조결제메뉴',
+     '   POS 번호가 매장마다 다르므로 단순 복사가 안 됩니다.',
+     '   기존 PKG_MS_STORE_COPY.SP_MS_POS_FNKEY_XML 의 매핑 방식을 참고하세요. */',
+     '',
+     'SELECT * FROM ' + c.schema + 'TB_WB_STORE_CONFG_XML',
+     " WHERE STORE_CD IN ( '" + c.srcStore + "', '" + c.tgtStore + "' );",
+     '',
+     'SELECT * FROM ' + c.schema + 'TB_WB_POS_CONFG_XML',
+     " WHERE STORE_CD IN ( '" + c.srcStore + "', '" + c.tgtStore + "' );"
+    ].join('\n')});
+
+  out.push({t:'사후검증', s:'원본과 대상 건수 비교', sql:
+    cntBlock(tabs.map(t=>({t, cols:[
+      {from:c.schema+t, wh:"STORE_CD = '"+c.srcStore+"'", as:'SRC_CNT'},
+      {from:c.schema+t, wh:"STORE_CD = '"+c.tgtStore+"'", as:'TGT_CNT'}
+    ]})), '[3] 사후검증')});
+
+  out.push({t:'되돌리기', s:'대상 매장 ' + c.tgtStore + ' 데이터 전삭제', b:'b2', warn:true,
+    sql: delBlock(c, tabs, 'STORE_CD', c.tgtStore, '[4] 되돌리기')});
+
+  return out;
+}
+
+/* ==================== 화면 ==================== */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hl(s){
+  return esc(s)
+    .replace(/(\/\*[\s\S]*?\*\/)/g,'<span class="c">$1</span>')
+    .replace(/(--[^\n]*)/g,'<span class="c">$1</span>')
+    .replace(/'([^'\n]*)'/g,'<span class="s">&#39;$1&#39;</span>')
+    .replace(/\b(SELECT|FROM|WHERE|AND|OR|IN|NOT|EXISTS|INSERT|INTO|VALUES|DELETE|UPDATE|SET|MERGE|USING|MATCHED|THEN|WHEN|CREATE|REPLACE|PACKAGE|BODY|TABLE|AS|IS|CASE|ELSE|END|DECLARE|BEGIN|PROCEDURE|FUNCTION|RETURN|IF|ELSIF|LOOP|FOR|EXIT|COMMIT|ROLLBACK|UNION|ALL|COUNT|ORDER|BY|GROUP|LEFT|JOIN|ON|DUAL|NULL|SYSDATE|NVL|DEFAULT|EXCEPTION|RAISE|RAISE_APPLICATION_ERROR|EXECUTE|IMMEDIATE|TYPE|OUT|VARCHAR2|CHAR|NUMBER|CLOB|BOOLEAN|PLS_INTEGER|TRUE|FALSE)\b/g,
+      '<span class="k">$1</span>');
+}
+
+function makeCard(o){
+  const d = document.createElement('div');
+  d.className = 'card' + (o.warn ? ' warn' : '');
+  d.innerHTML =
+    '<div class="card-h"><span class="chev">&#9654;</span>' +
+    '<span class="tt"><strong>'+o.t+'</strong><small>'+o.s+'</small></span>' +
+    (o.b ? '<span class="badge '+o.b+'">'+(o.b==='b2'?'주의':o.b==='b1'?'먼저 실행':'확인')+'</span>' : '') +
+    '<button class="copy">복사</button></div><pre>'+hl(o.sql)+'</pre>';
+  d.querySelector('.card-h').addEventListener('click', e=>{
+    if (e.target.classList.contains('copy')) return;
+    d.classList.toggle('open');
+  });
+  d.querySelector('.copy').addEventListener('click', e=>{ e.stopPropagation(); copy(o.sql, e.target); });
+  return d;
+}
+
+function buildPicker(dir, data, box){
+  box.innerHTML = '';
+  data.forEach(([g, items])=>{
+    const w = document.createElement('div');
+    w.className = 'pgrp';
+    const h = document.createElement('div');
+    h.className = 'pgrp-h';
+    h.innerHTML = '<strong>'+g+'</strong>';
+    const btn = document.createElement('button');
+    btn.textContent = '전체 해제';
+    h.appendChild(btn);
+    w.appendChild(h);
+    const wrap = document.createElement('div');
+    wrap.className = 'pitems';
+    items.forEach(it=>{
+      const id = it[0] + (it[1] ? '>'+it[1] : '');
+      sel[dir].add(id);
+      const lab = document.createElement('label');
+      lab.className = 'pit on';
+      lab.innerHTML = '<input type="checkbox" checked><span>' +
+        (it[1] ? it[0].replace('TB_HQ_','HQ.') + ' &#8594; ' + it[1].replace('TB_MS_','MS.') : it[0]) +
+        '</span>' + (it[3] ? '<span class="w" title="'+it[3]+'">&#9888;</span>' : '');
+      const cb = lab.querySelector('input');
+      cb.addEventListener('change', ()=>{
+        cb.checked ? sel[dir].add(id) : sel[dir].delete(id);
+        lab.classList.toggle('on', cb.checked);
+        render();
+      });
+      wrap.appendChild(lab);
+    });
+    btn.addEventListener('click', ()=>{
+      const anyOn = items.some(it => sel[dir].has(it[0] + (it[1]?'>'+it[1]:'')));
+      items.forEach((it,i)=>{
+        const id = it[0] + (it[1] ? '>'+it[1] : '');
+        anyOn ? sel[dir].delete(id) : sel[dir].add(id);
+        const cb = wrap.children[i].querySelector('input');
+        cb.checked = !anyOn;
+        wrap.children[i].classList.toggle('on', !anyOn);
+      });
+      btn.textContent = anyOn ? '전체 선택' : '전체 해제';
+      render();
+    });
+    w.appendChild(wrap);
+    box.appendChild(w);
+  });
+}
+
+const OUT = {};
+function render(){
+  const c = cfg();
+  $('#batchSize').disabled = !$('#useBatch').checked || c.mode !== 'S';
+  $('#sleepSec').disabled  = $('#batchSize').disabled;
+  $('#useBatch').disabled  = c.mode !== 'S';
+  $('#modeHint').textContent = {
+    S:'대상에 없는 행만 넣습니다. 기존 값은 건드리지 않습니다.',
+    M:'키가 같으면 갱신하고 없으면 넣습니다. REG_DT / REG_ID 는 보존합니다.',
+    R:'대상 키 범위를 지우고 새로 넣습니다. 운영 매장에는 쓰지 마세요.'
+  }[c.mode];
+
+  OUT.eng = genEng(c);
+  OUT.h2h = genH2H(c);
+  OUT.h2m = genH2M(c);
+  OUT.m2m = genM2M(c);
+
+  const eb = $('#out-eng');
+  eb.innerHTML = '';
+  OUT.eng.forEach(o => eb.appendChild(makeCard(o)));
+
+  [['h2h',H2H],['h2m',H2M],['m2m',M2M]].forEach(([dir,data])=>{
+    const box = $('#out-'+dir);
+    box.innerHTML = '';
+    OUT[dir].forEach(o => box.appendChild(makeCard(o)));
+    const n = flat(dir, data).length;
+    const tot = data.reduce((a,[,it])=>a+it.length,0);
+    $('#c-'+dir).textContent = n + '/' + tot;
+    $('#stat-'+dir).textContent = '선택 ' + n + ' / ' + tot + '개 · 백업 접미어 ' + c.bkTail;
+  });
+}
+
+function copy(text, btn){
+  const done = ()=>{
+    toast('복사했습니다');
+    if(btn){ const o=btn.textContent; btn.textContent='복사됨'; btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=o; btn.classList.remove('done');},1200); }
+  };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fb(text,done));
+  } else fb(text,done);
+}
+function fb(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ toast('복사에 실패했습니다'); }
+  document.body.removeChild(ta);
+}
+let tm;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(tm); tm=setTimeout(()=>t.classList.remove('show'),1500); }
+
+function buildInv(){
+  const box = $('#invBox');
+  box.innerHTML = '';
+  INV.forEach(([g, rows])=>{
+    const h = document.createElement('div');
+    h.className = 'gtitle'; h.textContent = g;
+    box.appendChild(h);
+    const tb = document.createElement('table');
+    tb.className = 'inv';
+    tb.innerHTML = '<thead><tr><th style="width:30%">테이블</th><th style="width:36%">추정 키</th><th>비고</th></tr></thead>';
+    const body = document.createElement('tbody');
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      if (r[3]) tr.className = 'ex';
+      tr.innerHTML = '<td class="t">'+r[0]+'</td><td class="k">'+r[1]+'</td><td>'+(r[2]||'')+'</td>';
+      tr.dataset.q = (r[0]+' '+r[1]+' '+(r[2]||'')).toLowerCase();
+      body.appendChild(tr);
+    });
+    tb.appendChild(body);
+    box.appendChild(tb);
+  });
+}
+$('#invSearch').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  $$('#invBox tbody tr').forEach(tr=>{
+    tr.style.display = !q || tr.dataset.q.includes(q) ? '' : 'none';
+  });
+  $$('#invBox table').forEach(tb=>{
+    const any = Array.from(tb.querySelectorAll('tbody tr')).some(tr=>tr.style.display !== 'none');
+    tb.style.display = any ? '' : 'none';
+    tb.previousElementSibling.style.display = any ? '' : 'none';
+  });
+});
+
+$$('#tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    $$('#tabs button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    $$('.pane').forEach(p=>p.classList.remove('on'));
+    $('#pane-'+b.dataset.tab).classList.add('on');
+    if (b.dataset.tab === 'h2h') $('#userId').value = 'HQCOPY';
+    if (b.dataset.tab === 'h2m') $('#userId').value = 'HQ2MS';
+    if (b.dataset.tab === 'm2m') $('#userId').value = 'MSCOPY';
+    render();
+  });
+});
+
+$$('[data-all]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const dir = b.dataset.all;
+    const title = {h2h:'본사 -> 본사', h2m:'본사 -> 매장', m2m:'매장 -> 매장'}[dir];
+    const txt = '/* ===== ' + title + ' 복사 — 위에서부터 순서대로 ===== */\n'
+      + '/*      엔진 PKG_CM_COPY_V2 가 설치돼 있어야 합니다.      */\n\n'
+      + OUT[dir].map(o => '/* [' + o.t + '] */\n' + o.sql).join(RULE);
+    copy(txt, b);
+  });
+});
+$$('[data-toggle]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const box = $('#out-'+b.dataset.toggle);
+    const open = box.querySelectorAll('.card.open').length === 0;
+    box.querySelectorAll('.card').forEach(c=>c.classList.toggle('open', open));
+    b.textContent = open ? '전부 접기' : '전부 펼치기';
+  });
+});
+
+$$('aside input, aside select').forEach(el=>{
+  el.addEventListener('input', render);
+  el.addEventListener('change', render);
+});
+
+(function(){
+  const d = new Date();
+  $('#bkDate').value = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  buildPicker('h2h', H2H, $('#pick-h2h'));
+  buildPicker('h2m', H2M, $('#pick-h2m'));
+  buildPicker('m2m', M2M, $('#pick-m2m'));
+  buildInv();
+  render();
+})();
+</script>
+</body>
+</html>

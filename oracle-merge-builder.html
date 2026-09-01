@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oracle MERGE 만들기</title>
+<style>
+:root{
+  --paper:#E7EAE6; --panel:#FFFFFF; --ink:#16262F; --ink-2:#4A5C64; --ink-3:#8496A0;
+  --rule:#C9D1CC; --teal:#2F6F62; --teal-dk:#1F4E45; --brass:#A8801E; --rust:#9C4221; --gutter:#F1F3EF;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Noto Sans KR",sans-serif;
+  font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+code,pre,textarea,input,.mono{font-family:"D2Coding","Menlo","Consolas","SFMono-Regular",ui-monospace,monospace}
+
+header{border-bottom:1px solid var(--rule);background:var(--panel)}
+.head-in{max-width:1360px;margin:0 auto;padding:22px 24px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+h1{margin:0;font-size:22px;font-weight:750;letter-spacing:-.02em}
+h1 span{color:var(--teal)}
+.head-in p{margin:0;color:var(--ink-2);font-size:13px}
+
+.wrap{max-width:1360px;margin:0 auto;padding:22px 24px 60px;display:grid;grid-template-columns:390px minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:1000px){.wrap{grid-template-columns:1fr;padding:16px}}
+
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px}
+.panel-hd{padding:11px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-hd h2{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em}
+.panel-bd{padding:16px}
+
+fieldset{border:0;margin:0 0 18px;padding:0}
+fieldset:last-of-type{margin-bottom:0}
+legend{padding:0 0 8px;font-size:12px;font-weight:700;color:var(--teal-dk);width:100%;border-bottom:1px solid var(--rule);margin-bottom:12px}
+
+label{display:block;font-size:12px;color:var(--ink-2);margin:0 0 4px}
+input[type=text],textarea{width:100%;padding:7px 9px;font-size:13px;color:var(--ink);
+  background:var(--gutter);border:1px solid var(--rule);border-radius:2px;outline:none}
+input[type=text]:focus,textarea:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 2px rgba(47,111,98,.15)}
+textarea{resize:vertical;line-height:1.5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.field{margin-bottom:10px}
+.hint{font-size:11px;color:var(--ink-3);margin-top:4px}
+.arrow{text-align:center;color:var(--ink-3);font-size:12px}
+
+.checks{display:flex;flex-direction:column;gap:7px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{margin:2px 0 0;accent-color:var(--teal);flex:none}
+
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+button{font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:2px;cursor:pointer;
+  border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
+button:hover{border-color:var(--teal);color:var(--teal-dk)}
+button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+button.primary:hover{background:var(--teal-dk);color:#fff}
+button.ghost{background:transparent;color:var(--ink-2);padding:6px 10px;font-size:12px}
+
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{padding:6px 11px;font-size:12px;font-weight:600;color:var(--ink-3);background:transparent;border:1px solid transparent;border-radius:2px;cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{color:var(--teal-dk);background:var(--gutter);border-color:var(--rule)}
+
+.listing{overflow:auto;max-height:calc(100vh - 200px);min-height:380px}
+table.code{border-collapse:collapse;width:100%;font-size:12.5px;line-height:1.7}
+table.code td{padding:0;vertical-align:top;white-space:pre}
+td.ln{width:1%;padding:0 12px 0 14px;text-align:right;color:var(--ink-3);background:var(--gutter);
+  border-right:1px solid var(--rule);user-select:none;font-size:11.5px}
+td.src{padding:0 18px 0 14px;width:100%}
+.k{color:var(--teal-dk);font-weight:700}
+.s{color:var(--rust)}
+.c{color:var(--ink-3);font-style:italic}
+
+.notes{margin:0;padding:12px 16px;border-top:1px solid var(--rule);font-size:12px;color:var(--ink-2);background:var(--gutter)}
+.notes ul{margin:0;padding-left:16px}
+.notes li{margin:3px 0}
+.stat{font-size:12px;color:var(--ink-3)}
+.copied{color:var(--teal);font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-in">
+    <h1>Oracle <span>MERGE</span> 만들기</h1>
+    <p>키 값 하나만 바꿔 행을 복제하거나, 다른 테이블로 옮기는 MERGE 문을 만듭니다.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>입력</h2>
+      <button class="ghost" id="btnSample" type="button">예제 채우기</button>
+    </div>
+    <div class="panel-bd">
+
+      <fieldset>
+        <legend>테이블</legend>
+        <div class="row">
+          <div><label for="owner">스키마</label><input type="text" id="owner" placeholder="생략 가능"></div>
+          <div><label for="table">테이블명</label><input type="text" id="table" placeholder="TB_MS_STORE_ENVST"></div>
+        </div>
+        <div class="field">
+          <label for="srcTable">읽어올 테이블</label>
+          <input type="text" id="srcTable" placeholder="비우면 위와 같은 테이블">
+          <p class="hint">같은 테이블 안에서 복제할 때는 비워두세요.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>복사 기준</legend>
+        <div class="row3">
+          <div><label for="copyCol">바꿀 컬럼</label><input type="text" id="copyCol" placeholder="STORE_CD"></div>
+          <div><label for="fromVal">기준 값</label><input type="text" id="fromVal" placeholder="00001"></div>
+          <div><label for="toVal">대상 값</label><input type="text" id="toVal" placeholder="00002"></div>
+        </div>
+        <div class="field">
+          <label for="addWhere">읽어올 조건 더하기</label>
+          <input type="text" id="addWhere" placeholder="예: USE_YN = 'Y'">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>키와 컬럼</legend>
+        <div class="field">
+          <label for="keyCols">키 컬럼</label>
+          <input type="text" id="keyCols" placeholder="비우면 PK를 찾아서 씁니다">
+          <div style="margin-top:6px"><button class="ghost" id="btnGuessKey" type="button">붙여넣은 컬럼에서 키 추정</button></div>
+          <p class="hint" id="keyHint">ON 절에 들어갑니다. 바꿀 컬럼도 여기 포함되어야 합니다.</p>
+        </div>
+        <div class="field">
+          <label for="allCols">컬럼 목록</label>
+          <textarea id="allCols" rows="7" placeholder="STORE_CD&#10;ENVST_CD&#10;ENVST_VAL&#10;DIRCT_IN_YN&#10;USE_YN"></textarea>
+          <p class="hint">알면 붙여넣으세요. 모르면 비워두고 오른쪽 &lsquo;생성 쿼리&rsquo; 탭을 그대로 실행하면 됩니다.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>값을 직접 넣을 컬럼</legend>
+        <div class="field">
+          <textarea id="fixedVals" rows="4"></textarea>
+          <p class="hint">등록·수정 정보처럼 원본 값 대신 넣을 식을 적습니다. 쉼표로 구분합니다.</p>
+        </div>
+        <div class="field">
+          <label for="exclUpd">UPDATE에서 뺄 컬럼</label>
+          <input type="text" id="exclUpd" placeholder="REG_DT, REG_ID">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>모양</legend>
+        <div class="row">
+          <div><label for="aliasT">대상 별칭</label><input type="text" id="aliasT" value="A"></div>
+          <div><label for="aliasS">기준 별칭</label><input type="text" id="aliasS" value="B"></div>
+        </div>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="optClob" checked> 컬럼이 많아도 안전하게 만들기 (XMLAGG)</label>
+          <label class="check"><input type="checkbox" id="optQuote" checked> 기준·대상 값에 따옴표 붙이기</label>
+          <label class="check"><input type="checkbox" id="optInsAlias" checked> INSERT 컬럼 목록에 별칭 붙이기</label>
+          <label class="check"><input type="checkbox" id="optUpper" checked> 대문자로 통일</label>
+          <label class="check"><input type="checkbox" id="optCommit"> 끝에 COMMIT; 붙이기</label>
+        </div>
+      </fieldset>
+
+      <div class="btns">
+        <button class="primary" id="btnGen" type="button">다시 만들기</button>
+        <button id="btnClear" type="button">비우기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hd">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="merge">MERGE 문</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="auto">생성 쿼리</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="run">바로 실행</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="helper">확인용</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="stat" id="stat"></span>
+        <button id="btnCopy" type="button">복사</button>
+        <button id="btnSave" type="button">저장</button>
+      </div>
+    </div>
+    <div class="listing" id="listing"></div>
+    <div class="notes" id="notes"></div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+var $ = function(id){ return document.getElementById(id); };
+var out   = { merge:"", auto:"", run:"", helper:"" };
+var notes = { merge:[], auto:[], run:[], helper:[] };
+var tab = "merge";
+
+/* ── 들여쓰기 규격 ─────────────────────────────────
+   SELECT 식은 21칸에서 시작해 40칸 폭, 그 뒤에 AS 컬럼명.
+   ON·WHERE 는 21칸에서 시작해 12칸 폭 뒤에 = 와 3칸.
+   SET 은 9칸에서 시작해 20칸 폭.
+   ------------------------------------------------ */
+var W_SEL = 40, W_ON = 12, W_SET = 20;
+
+function pad(s, n){ while(s.length < n) s += " "; return s; }
+function width(items, base){
+  var m = 0;
+  items.forEach(function(i){ if(i.length > m) m = i.length; });
+  return Math.max(base, Math.ceil((m + 2) / 4) * 4);
+}
+
+/* ── 파싱 ─────────────────────────────────────────── */
+
+function splitTop(str){
+  var res=[], buf="", depth=0, q=null, i, ch;
+  for(i=0;i<str.length;i++){
+    ch = str[i];
+    if(q){ buf+=ch; if(ch===q) q=null; continue; }
+    if(ch==="'" || ch==='"'){ q=ch; buf+=ch; continue; }
+    if(ch==="(") depth++;
+    else if(ch===")") depth--;
+    if(depth<=0 && (ch==="," || ch==="\n" || ch===";")){ res.push(buf); buf=""; continue; }
+    buf+=ch;
+  }
+  res.push(buf);
+  return res;
+}
+
+function parseCols(text){
+  var up = $("optUpper").checked, seen = {}, res = [];
+  splitTop(text||"").forEach(function(piece){
+    var t = piece.trim();
+    if(!t) return;
+    t = t.split(/\s+/)[0].replace(/[,;]+$/,"");
+    if(!t || /^[-=|+]+$/.test(t)) return;
+    if(!/^[A-Za-z_$#"][\w$#"]*$/.test(t)) return;
+    if(/^(COLUMN_NAME|DATA_TYPE|NULLABLE|TYPE|NAME|NULL)$/i.test(t)) return;
+    if(up) t = t.toUpperCase();
+    if(seen[t.toUpperCase()]) return;
+    seen[t.toUpperCase()] = 1;
+    res.push(t);
+  });
+  return res;
+}
+
+function parseFixed(text){
+  var up = $("optUpper").checked, map = {}, order = [];
+  splitTop(text||"").forEach(function(piece){
+    var t = piece.trim(); if(!t) return;
+    var p = t.indexOf("=");
+    if(p < 1) return;
+    var col = t.slice(0,p).trim().replace(/[,;]+$/,"");
+    var val = t.slice(p+1).trim().replace(/[,;]+$/,"");
+    if(!col || !val) return;
+    if(up) col = col.toUpperCase();
+    if(!map[col]) order.push(col);
+    map[col] = val;
+  });
+  return { map:map, order:order };
+}
+
+function clean(v){
+  var t = (v||"").trim().replace(/[.;,]+$/,"");
+  return $("optUpper").checked ? t.toUpperCase() : t;
+}
+function qualify(o,t){ return o ? o + "." + t : t; }
+function has(arr,v){ return arr.some(function(x){ return x.toUpperCase() === v.toUpperCase(); }); }
+function lit(v){ return $("optQuote").checked ? "'" + String(v).replace(/'/g,"''") + "'" : String(v); }
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function sq(s){ return "'" + String(s).replace(/'/g,"''") + "'"; }   // 오라클 문자열 리터럴로 감싸기
+
+/* ── 공통 입력 읽기 ────────────────────────────────── */
+
+function readInput(){
+  var owner    = clean($("owner").value);
+  var table    = clean($("table").value);
+  var srcTable = clean($("srcTable").value) || table;
+  var A = clean($("aliasT").value) || "A";
+  var B = clean($("aliasS").value) || "B";
+  return {
+    owner: owner,
+    table: table,
+    srcTable: srcTable,
+    TGT: qualify(owner, table),
+    SRC: qualify(owner, srcTable),
+    copyCol: clean($("copyCol").value),
+    fromVal: $("fromVal").value.trim(),
+    toVal:   $("toVal").value.trim(),
+    addWhere:$("addWhere").value.trim(),
+    keys:    parseCols($("keyCols").value),
+    cols:    parseCols($("allCols").value),
+    exclUpd: parseCols($("exclUpd").value),
+    fixed:   parseFixed($("fixedVals").value),
+    A: A, B: B
+  };
+}
+
+/* ── 1. MERGE 문 ──────────────────────────────────── */
+
+function buildMerge(){
+  var p = readInput(), n = [];
+
+  if(!p.table) return { sql:"-- 테이블명을 넣으면 여기에 MERGE 문이 나옵니다.", notes:[] };
+  if(!p.cols.length){
+    return {
+      sql: [
+        "-- 컬럼 목록을 붙여넣으면 완성된 MERGE 문이 나옵니다.",
+        "--",
+        "-- 컬럼을 모르시면 '생성 쿼리' 탭을 그대로 실행하세요.",
+        "-- 컬럼과 키를 데이터 딕셔너리에서 읽어 같은 모양의 MERGE 문을 만들어 줍니다."
+      ].join("\n"),
+      notes:["'확인용' 탭 1번 쿼리 결과를 컬럼 목록 칸에 그대로 붙여넣어도 됩니다."]
+    };
+  }
+
+  var keys = p.keys.slice();
+  if(!keys.length && p.copyCol) keys = [p.copyCol];
+  if(!keys.length) return { sql:"-- 키 컬럼을 넣어 주세요. 두 행을 무엇으로 맞출지 정해야 ON 절이 나옵니다.", notes:[] };
+  keys.forEach(function(k){ if(!has(p.cols,k)) p.cols.unshift(k); });
+
+  // 컬럼별 기준쪽 식
+  function srcExpr(c){
+    if(p.copyCol && c.toUpperCase() === p.copyCol.toUpperCase() && p.toVal !== "") return lit(p.toVal);
+    var f = p.fixed.map[c] || p.fixed.map[c.toUpperCase()];
+    return f ? f : c;
+  }
+
+  var L = [];
+  L.push("MERGE INTO " + p.TGT + " " + p.A);
+  L.push("USING   (");
+
+  var exprs = p.cols.map(srcExpr);
+  var ws = width(exprs, W_SEL);
+  p.cols.forEach(function(c, i){
+    L.push("            " + (i===0 ? "SELECT  " : ",       ") + pad(srcExpr(c), ws) + "AS " + c);
+  });
+  L.push("            FROM    " + p.SRC);
+
+  var conds = [];
+  if(p.copyCol && p.fromVal !== "") conds.push([p.copyCol, lit(p.fromVal)]);
+  if(p.addWhere) conds.push([null, p.addWhere]);
+  if(conds.length){
+    var wc = width(conds.filter(function(x){ return x[0]; }).map(function(x){ return x[0]; }), W_ON);
+    conds.forEach(function(cd, i){
+      var head = "            " + (i===0 ? "WHERE   " : "AND     ");
+      L.push(cd[0] ? head + pad(cd[0], wc) + "=   " + cd[1] : head + cd[1]);
+    });
+  }else{
+    L.push("            WHERE   1 = 1");
+  }
+  L.push("        ) " + p.B);
+
+  var wo = width(keys.map(function(k){ return p.A + "." + k; }), W_ON);
+  keys.forEach(function(k, i){
+    var head = i===0 ? "ON      (           " : "        AND         ";
+    L.push(head + pad(p.A + "." + k, wo) + "=   " + p.B + "." + k);
+  });
+  L.push("        )");
+
+  var updCols = p.cols.filter(function(c){ return !has(keys,c) && !has(p.exclUpd,c); });
+  if(updCols.length){
+    L.push("WHEN MATCHED THEN");
+    L.push("UPDATE");
+    var wu = width(updCols.map(function(c){ return p.A + "." + c; }), W_SET);
+    updCols.forEach(function(c, i){
+      L.push((i===0 ? "SET     " : ",       ") + pad(p.A + "." + c, wu) + "=   " + p.B + "." + c);
+    });
+  }else{
+    n.push("키와 제외 컬럼을 빼면 갱신할 컬럼이 없어 UPDATE 절은 만들지 않았습니다.");
+  }
+
+  var ia = $("optInsAlias").checked ? p.A + "." : "";
+  L.push("WHEN NOT MATCHED THEN");
+  L.push("INSERT");
+  L.push("(");
+  p.cols.forEach(function(c, i){ L.push((i===0 ? "        " : ",       ") + ia + c); });
+  L.push(")");
+  L.push("VALUES");
+  L.push("(");
+  p.cols.forEach(function(c, i){ L.push((i===0 ? "        " : ",       ") + p.B + "." + c); });
+  L.push(")");
+  L.push(";");
+  if($("optCommit").checked) L.push("COMMIT;");
+
+  n.unshift("키(" + keys.join(", ") + ")는 UPDATE SET에서 빠집니다. ON 절에 쓴 컬럼을 갱신하면 ORA-38104가 납니다.");
+  if(p.copyCol && p.toVal !== ""){
+    n.push(p.copyCol + " 만 " + lit(p.toVal) + " 로 바꿔서 읽어옵니다. 나머지 컬럼은 원본 값 그대로입니다.");
+  }
+  if(p.exclUpd.length) n.push("UPDATE에서 뺀 컬럼: " + p.exclUpd.join(", ") + " · INSERT에는 들어갑니다.");
+  return { sql:L.join("\n"), notes:n };
+}
+
+/* ── 2. 생성 쿼리 ─────────────────────────────────── */
+
+function buildAuto(){
+  var p = readInput();
+  var table    = (p.table || "TABLE_NAME").toUpperCase();
+  var srcTable = (p.srcTable || table).toUpperCase();
+  var owner    = (p.owner || "").toUpperCase();
+  var copyCol  = (p.copyCol || "").toUpperCase();
+  var useClob  = $("optClob").checked;
+  var ia = $("optInsAlias").checked ? "'" + p.A + ".'||" : "";
+  var ownerCond = owner ? "'" + owner + "'" : "USER";
+  var pre    = p.owner ? owner + "." : "";
+  var tabRef = sq(pre + table);
+  var srcRef = sq(pre + srcTable);
+
+  // 컬럼을 한 덩어리 문자열로 모으는 CTE.
+  // XMLAGG 방식은 CLOB로 모으므로 LISTAGG의 4000바이트 제한(ORA-01489)이 없습니다.
+  function aggCte(name, expr, sep, from){
+    if(useClob) return [
+", " + pad(name, 6) + "AS (",
+"    SELECT SUBSTR(V, 1, INSTR(V, CHR(10), -1) - 1) AS T",
+"      FROM ( SELECT DBMS_XMLGEN.CONVERT(",
+"                        XMLAGG(XMLELEMENT(E, " + expr,
+"                                          || " + sep + ")",
+"                               ORDER BY COLUMN_ID",
+"                              ).EXTRACT('//text()').GETCLOBVAL(), 1) AS V",
+"               FROM " + from + " )",
+")"];
+    return [
+", " + pad(name, 6) + "AS (",
+"    SELECT LISTAGG(" + expr + ",",
+"                   " + sep + ")",
+"             WITHIN GROUP (ORDER BY COLUMN_ID) AS T",
+"      FROM " + from,
+")"];
+  }
+
+  var caseLines = [];
+  if(copyCol && p.toVal !== ""){
+    caseLines.push("               WHEN C.COLUMN_NAME = " + sq(copyCol) + " THEN " + sq(lit(p.toVal)));
+  }
+  p.fixed.order.forEach(function(c){
+    caseLines.push("               WHEN C.COLUMN_NAME = " + sq(c.toUpperCase()) + " THEN " + sq(p.fixed.map[c]));
+  });
+
+  var q = [];
+  q.push("-- 이 쿼리를 실행하면 MERGE 문이 결과로 나옵니다.");
+  q.push("-- 컬럼과 키는 데이터 딕셔너리에서 읽으므로 따로 적을 것이 없습니다.");
+  if(useClob) q.push("-- 컬럼 수와 상관없이 CLOB로 모으므로 ORA-01489가 나지 않습니다.");
+  q.push("");
+  q.push("WITH COLS AS (");
+  q.push("    SELECT C.COLUMN_NAME");
+  q.push("         , C.COLUMN_ID");
+  if(caseLines.length){
+    q.push("         , CASE");
+    caseLines.forEach(function(l){ q.push(l); });
+    q.push("               ELSE C.COLUMN_NAME");
+    q.push("           END AS SRC_EXPR");
+  }else{
+    q.push("         , C.COLUMN_NAME AS SRC_EXPR");
+  }
+  q.push("      FROM ALL_TAB_COLUMNS C");
+  q.push("     WHERE C.OWNER      = " + ownerCond);
+  q.push("       AND C.TABLE_NAME = " + sq(srcTable));
+  if(srcTable !== table){
+    q.push("       AND EXISTS ( SELECT 1");
+    q.push("                      FROM ALL_TAB_COLUMNS T");
+    q.push("                     WHERE T.OWNER       = " + ownerCond);
+    q.push("                       AND T.TABLE_NAME  = " + sq(table));
+    q.push("                       AND T.COLUMN_NAME = C.COLUMN_NAME )");
+  }
+  q.push(")");
+
+  q.push(", KEYS   AS (");
+  if(p.keys.length){
+    q.push("    -- 직접 넣으신 키를 씁니다.");
+    q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM COLS");
+    q.push("     WHERE COLUMN_NAME IN (" + p.keys.map(function(k){ return sq(k.toUpperCase()); }).join(", ") + ")");
+  }else{
+    q.push("    -- 대상 테이블의 기본키를 찾아 씁니다.");
+    q.push("    SELECT CC.COLUMN_NAME, CC.POSITION AS COLUMN_ID");
+    q.push("      FROM ALL_CONSTRAINTS AC");
+    q.push("         , ALL_CONS_COLUMNS CC");
+    q.push("     WHERE AC.OWNER           = CC.OWNER");
+    q.push("       AND AC.CONSTRAINT_NAME = CC.CONSTRAINT_NAME");
+    q.push("       AND AC.CONSTRAINT_TYPE = 'P'");
+    q.push("       AND AC.OWNER           = " + ownerCond);
+    q.push("       AND AC.TABLE_NAME      = " + sq(table));
+    q.push("       AND CC.COLUMN_NAME IN (SELECT COLUMN_NAME FROM COLS)");
+  }
+  q.push(")");
+
+  q.push(", UPDS   AS (");
+  q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM COLS");
+  q.push("     WHERE COLUMN_NAME NOT IN (SELECT COLUMN_NAME FROM KEYS)");
+  if(p.exclUpd.length){
+    q.push("       AND COLUMN_NAME NOT IN (" + p.exclUpd.map(function(c){ return sq(c.toUpperCase()); }).join(", ") + ")");
+  }
+  q.push(")");
+
+  aggCte("T_SEL", "RPAD(SRC_EXPR, " + W_SEL + ") || 'AS ' || COLUMN_NAME",
+         "CHR(10) || '            ,       '", "COLS").forEach(function(l){ q.push(l); });
+  aggCte("T_ON",  "RPAD('" + p.A + ".'||COLUMN_NAME, " + W_ON + ") || '=   " + p.B + ".' || COLUMN_NAME",
+         "CHR(10) || '        AND         '", "KEYS").forEach(function(l){ q.push(l); });
+  aggCte("T_SET", "RPAD('" + p.A + ".'||COLUMN_NAME, " + W_SET + ") || '=   " + p.B + ".' || COLUMN_NAME",
+         "CHR(10) || ',       '", "UPDS").forEach(function(l){ q.push(l); });
+  aggCte("T_INS", ia + "COLUMN_NAME", "CHR(10) || ',       '", "COLS").forEach(function(l){ q.push(l); });
+  aggCte("T_VAL", "'" + p.B + ".'||COLUMN_NAME", "CHR(10) || ',       '", "COLS").forEach(function(l){ q.push(l); });
+
+  q.push("SELECT TO_CLOB('MERGE INTO ') || " + tabRef + " || ' " + p.A + "'   || CHR(10) ||");
+  q.push("       'USING   ('                                            || CHR(10) ||");
+  q.push("       '            SELECT  ' || (SELECT T FROM T_SEL)        || CHR(10) ||");
+  q.push("       '            FROM    ' || " + srcRef + "               || CHR(10) ||");
+  if(copyCol && p.fromVal !== ""){
+    q.push("       '            WHERE   ' || RPAD(" + sq(copyCol) + ", " + W_ON + ") || '=   ' || " + sq(lit(p.fromVal)) + " || CHR(10) ||");
+    if(p.addWhere) q.push("       '            AND     " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
+  }else if(p.addWhere){
+    q.push("       '            WHERE   " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
+  }else{
+    q.push("       '            WHERE   1 = 1'                          || CHR(10) ||");
+  }
+  q.push("       '        ) " + p.B + "'                                          || CHR(10) ||");
+  q.push("       'ON      (           ' || (SELECT T FROM T_ON)         || CHR(10) ||");
+  q.push("       '        )'                                            || CHR(10) ||");
+  q.push("       'WHEN MATCHED THEN'                                    || CHR(10) ||");
+  q.push("       'UPDATE'                                               || CHR(10) ||");
+  q.push("       'SET     ' || (SELECT T FROM T_SET)                    || CHR(10) ||");
+  q.push("       'WHEN NOT MATCHED THEN'                                || CHR(10) ||");
+  q.push("       'INSERT'                                               || CHR(10) ||");
+  q.push("       '('                                                    || CHR(10) ||");
+  q.push("       '        ' || (SELECT T FROM T_INS)                    || CHR(10) ||");
+  q.push("       ')'                                                    || CHR(10) ||");
+  q.push("       'VALUES'                                               || CHR(10) ||");
+  q.push("       '('                                                    || CHR(10) ||");
+  q.push("       '        ' || (SELECT T FROM T_VAL)                    || CHR(10) ||");
+  q.push("       ')'                                                    || CHR(10) ||");
+  q.push("       ';'   AS MERGE_SQL");
+  q.push("  FROM DUAL;");
+
+  var n = [];
+  n.push(p.keys.length
+    ? "직접 넣으신 키(" + p.keys.join(", ") + ")를 씁니다. 키 칸을 비우면 PK를 찾는 형태로 바뀝니다."
+    : "키를 비워두셔서 " + table + " 의 기본키를 찾아 ON 절에 넣도록 만들었습니다.");
+  if(useClob){
+    n.push("XMLAGG로 모으고 DBMS_XMLGEN.CONVERT로 되돌리므로 결과가 CLOB입니다. 컬럼이 몇 개든 ORA-01489가 나지 않습니다.");
+    n.push("DBeaver에서는 결과 칸을 누르고 Shift+Enter를 누르면 값 편집기가 열려 전체가 보입니다. 칸 안에서는 한 줄로만 보입니다.");
+  }else{
+    n.push("LISTAGG는 결과가 4000바이트를 넘으면 ORA-01489가 납니다. 컬럼이 많으면 위 XMLAGG 옵션을 켜세요.");
+  }
+  n.push("컬럼이 아주 많거나 이 쿼리가 번거로우면 '바로 실행' 탭을 쓰세요. 만드는 것부터 실행까지 한 번에 합니다.");
+  if(!owner) n.push("스키마를 비우셔서 OWNER 조건에 USER를 썼습니다. 다른 계정 소유 테이블이면 스키마를 넣어 주세요.");
+  return { sql:q.join("\n"), notes:n };
+}
+
+/* ── 3. 바로 실행하는 PL/SQL ──────────────────────── */
+
+function buildRun(){
+  var p = readInput();
+  var table    = (p.table || "TABLE_NAME").toUpperCase();
+  var srcTable = (p.srcTable || table).toUpperCase();
+  var owner    = (p.owner || "").toUpperCase();
+  var copyCol  = (p.copyCol || "").toUpperCase();
+  var ia = $("optInsAlias").checked ? "'" + p.A + ".' || " : "";
+
+  var q = [];
+  q.push("-- 컬럼과 키를 읽어 MERGE 문을 만들고, 확인한 뒤 실행하는 블록입니다.");
+  q.push("SET SERVEROUTPUT ON SIZE UNLIMITED");
+  q.push("");
+  q.push("DECLARE");
+  q.push("    c_owner    CONSTANT VARCHAR2(128)  := " + (owner ? sq(owner) : "USER") + ";");
+  q.push("    c_table    CONSTANT VARCHAR2(128)  := " + sq(table) + ";        -- 넣을 테이블");
+  q.push("    c_src      CONSTANT VARCHAR2(128)  := " + sq(srcTable) + ";        -- 읽을 테이블");
+  q.push("    c_copy_col CONSTANT VARCHAR2(128)  := " + (copyCol ? sq(copyCol) : "NULL") + ";        -- 값을 바꿀 컬럼");
+  q.push("    c_from     CONSTANT VARCHAR2(400)  := " + sq(lit(p.fromVal)) + ";        -- 기준 값");
+  q.push("    c_to       CONSTANT VARCHAR2(400)  := " + sq(lit(p.toVal)) + ";        -- 대상 값");
+  q.push("    c_execute  CONSTANT BOOLEAN        := FALSE;   -- TRUE 로 바꾸면 실제로 반영합니다");
+  q.push("    c_commit   CONSTANT BOOLEAN        := FALSE;   -- TRUE 면 성공 후 COMMIT");
+  q.push("");
+  q.push("    v_keys  SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(" +
+         (p.keys.length ? p.keys.map(function(k){ return sq(k.toUpperCase()); }).join(", ") : "") + ");");
+  q.push("    v_skip  SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(" +
+         (p.exclUpd.length ? p.exclUpd.map(function(c){ return sq(c.toUpperCase()); }).join(", ") : "") + ");  -- UPDATE 제외");
+  q.push("    v_sql   CLOB;  v_sel CLOB;  v_on CLOB;  v_set CLOB;  v_ins CLOB;  v_val CLOB;");
+  q.push("    v_expr  VARCHAR2(4000);");
+  q.push("    v_iskey BOOLEAN;  v_isskip BOOLEAN;");
+  q.push("    v_pos   PLS_INTEGER;  v_nl PLS_INTEGER;  v_rows PLS_INTEGER;");
+  q.push("BEGIN");
+  q.push("");
+  q.push("    -- 1. 키가 비어 있으면 기본키를 찾습니다.");
+  q.push("    IF v_keys.COUNT = 0 THEN");
+  q.push("        FOR k IN ( SELECT CC.COLUMN_NAME");
+  q.push("                     FROM ALL_CONSTRAINTS AC");
+  q.push("                        , ALL_CONS_COLUMNS CC");
+  q.push("                    WHERE AC.OWNER           = CC.OWNER");
+  q.push("                      AND AC.CONSTRAINT_NAME = CC.CONSTRAINT_NAME");
+  q.push("                      AND AC.CONSTRAINT_TYPE = 'P'");
+  q.push("                      AND AC.OWNER           = c_owner");
+  q.push("                      AND AC.TABLE_NAME      = c_table");
+  q.push("                    ORDER BY CC.POSITION )");
+  q.push("        LOOP");
+  q.push("            v_keys.EXTEND;  v_keys(v_keys.COUNT) := k.COLUMN_NAME;");
+  q.push("        END LOOP;");
+  q.push("    END IF;");
+  q.push("");
+  q.push("    IF v_keys.COUNT = 0 THEN");
+  q.push("        RAISE_APPLICATION_ERROR(-20001, c_table || ' 에서 키를 찾지 못했습니다. v_keys 에 직접 넣어 주세요.');");
+  q.push("    END IF;");
+  q.push("");
+  q.push("    -- 2. 컬럼을 돌면서 각 절을 만듭니다.");
+  q.push("    FOR c IN ( SELECT COLUMN_NAME");
+  q.push("                 FROM ALL_TAB_COLUMNS");
+  q.push("                WHERE OWNER      = c_owner");
+  q.push("                  AND TABLE_NAME = c_src");
+  q.push("                ORDER BY COLUMN_ID )");
+  q.push("    LOOP");
+  q.push("        v_iskey  := FALSE;");
+  q.push("        v_isskip := FALSE;");
+  q.push("        FOR i IN 1 .. v_keys.COUNT LOOP");
+  q.push("            IF v_keys(i) = c.COLUMN_NAME THEN v_iskey := TRUE; END IF;");
+  q.push("        END LOOP;");
+  q.push("        FOR i IN 1 .. v_skip.COUNT LOOP");
+  q.push("            IF v_skip(i) = c.COLUMN_NAME THEN v_isskip := TRUE; END IF;");
+  q.push("        END LOOP;");
+  q.push("");
+  q.push("        -- 바꿀 컬럼은 대상 값으로, 나머지는 원본 컬럼 그대로");
+  q.push("        v_expr := CASE WHEN c_copy_col IS NOT NULL AND c.COLUMN_NAME = c_copy_col");
+  q.push("                        THEN c_to ELSE c.COLUMN_NAME END;");
+  var fixLines = p.fixed.order;
+  if(fixLines.length){
+    fixLines.forEach(function(c){
+      q.push("        IF c.COLUMN_NAME = " + sq(c.toUpperCase()) + " THEN v_expr := " + sq(p.fixed.map[c]) + "; END IF;");
+    });
+  }
+  q.push("");
+  q.push("        v_sel := v_sel || CASE WHEN v_sel IS NULL THEN '            SELECT  '");
+  q.push("                               ELSE CHR(10) || '            ,       ' END");
+  q.push("                       || RPAD(v_expr, " + W_SEL + ") || 'AS ' || c.COLUMN_NAME;");
+  q.push("");
+  q.push("        v_ins := v_ins || CASE WHEN v_ins IS NULL THEN '        ' ELSE CHR(10) || ',       ' END");
+  q.push("                       || " + ia + "c.COLUMN_NAME;");
+  q.push("        v_val := v_val || CASE WHEN v_val IS NULL THEN '        ' ELSE CHR(10) || ',       ' END");
+  q.push("                       || '" + p.B + ".' || c.COLUMN_NAME;");
+  q.push("");
+  q.push("        IF v_iskey THEN");
+  q.push("            v_on  := v_on  || CASE WHEN v_on IS NULL THEN 'ON      (           '");
+  q.push("                                   ELSE CHR(10) || '        AND         ' END");
+  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, " + W_ON + ") || '=   " + p.B + ".' || c.COLUMN_NAME;");
+  q.push("        ELSIF NOT v_isskip THEN");
+  q.push("            v_set := v_set || CASE WHEN v_set IS NULL THEN 'SET     ' ELSE CHR(10) || ',       ' END");
+  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, " + W_SET + ") || '=   " + p.B + ".' || c.COLUMN_NAME;");
+  q.push("        END IF;");
+  q.push("    END LOOP;");
+  q.push("");
+  q.push("    IF v_on IS NULL THEN");
+  q.push("        RAISE_APPLICATION_ERROR(-20002, '키 컬럼이 읽을 테이블에 없습니다.');");
+  q.push("    END IF;");
+  q.push("");
+  q.push("    -- 3. 조립");
+  q.push("    v_sql := 'MERGE INTO ' || c_owner || '.' || c_table || ' " + p.A + "'   || CHR(10)");
+  q.push("          || 'USING   ('                                          || CHR(10)");
+  q.push("          || v_sel                                                || CHR(10)");
+  q.push("          || '            FROM    ' || c_owner || '.' || c_src    || CHR(10)");
+  if(copyCol && p.fromVal !== ""){
+    q.push("          || '            WHERE   ' || RPAD(c_copy_col, " + W_ON + ") || '=   ' || c_from || CHR(10)");
+  }else{
+    q.push("          || '            WHERE   1 = 1'                              || CHR(10)");
+  }
+  if(p.addWhere) q.push("          || '            AND     " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10)");
+  q.push("          || '        ) " + p.B + "'                                          || CHR(10)");
+  q.push("          || v_on                                                 || CHR(10)");
+  q.push("          || '        )'                                          || CHR(10)");
+  q.push("          || 'WHEN MATCHED THEN'                                  || CHR(10)");
+  q.push("          || 'UPDATE'                                             || CHR(10)");
+  q.push("          || v_set                                                || CHR(10)");
+  q.push("          || 'WHEN NOT MATCHED THEN'                              || CHR(10)");
+  q.push("          || 'INSERT'                                             || CHR(10)");
+  q.push("          || '('                                                  || CHR(10)");
+  q.push("          || v_ins                                                || CHR(10)");
+  q.push("          || ')'                                                  || CHR(10)");
+  q.push("          || 'VALUES'                                             || CHR(10)");
+  q.push("          || '('                                                  || CHR(10)");
+  q.push("          || v_val                                                || CHR(10)");
+  q.push("          || ')';");
+  q.push("");
+  q.push("    -- 4. 만들어진 문장 출력");
+  q.push("    v_pos := 1;");
+  q.push("    LOOP");
+  q.push("        v_nl := DBMS_LOB.INSTR(v_sql, CHR(10), v_pos);");
+  q.push("        EXIT WHEN v_nl = 0;");
+  q.push("        DBMS_OUTPUT.PUT_LINE(DBMS_LOB.SUBSTR(v_sql, GREATEST(v_nl - v_pos, 1), v_pos));");
+  q.push("        v_pos := v_nl + 1;");
+  q.push("    END LOOP;");
+  q.push("    DBMS_OUTPUT.PUT_LINE(DBMS_LOB.SUBSTR(v_sql, DBMS_LOB.GETLENGTH(v_sql) - v_pos + 1, v_pos) || ';');");
+  q.push("");
+  q.push("    -- 5. 실행");
+  q.push("    IF c_execute THEN");
+  q.push("        EXECUTE IMMEDIATE v_sql;");
+  q.push("        v_rows := SQL%ROWCOUNT;");
+  q.push("        DBMS_OUTPUT.PUT_LINE('-- 반영된 행: ' || v_rows);");
+  q.push("        IF c_commit THEN");
+  q.push("            COMMIT;");
+  q.push("            DBMS_OUTPUT.PUT_LINE('-- COMMIT 했습니다.');");
+  q.push("        ELSE");
+  q.push("            DBMS_OUTPUT.PUT_LINE('-- 아직 COMMIT 전입니다. 확인 후 직접 COMMIT 하세요.');");
+  q.push("        END IF;");
+  q.push("    ELSE");
+  q.push("        DBMS_OUTPUT.PUT_LINE('-- 문장만 만들었습니다. c_execute 를 TRUE 로 바꾸면 반영합니다.');");
+  q.push("    END IF;");
+  q.push("END;");
+  q.push("/");
+
+  return {
+    sql: q.join("\n"),
+    notes: [
+      "처음 실행하면 c_execute 가 FALSE라 만들어진 문장만 화면에 찍히고 아무것도 바뀌지 않습니다.",
+      "CLOB로 붙이므로 컬럼이 수백 개여도 LISTAGG의 4000바이트 제한에 걸리지 않습니다.",
+      "EXECUTE IMMEDIATE로 도는 동적 SQL이라 실행 계정이 테이블 권한을 롤이 아닌 직접 부여로 가지고 있어야 합니다."
+    ]
+  };
+}
+
+/* ── 4. 확인용 ────────────────────────────────────── */
+
+function buildHelper(){
+  var p = readInput();
+  var t = (p.table || "TABLE_NAME").toUpperCase();
+  var ownerLine = p.owner ? "   AND OWNER = '" + p.owner.toUpperCase() + "'" : "   -- AND OWNER = 'SCHEMA'";
+  var TGT = p.TGT || "TABLE_NAME";
+  var cc = p.copyCol || "COPY_COL";
+  var q = [
+"-- 1. 컬럼 목록. 결과를 왼쪽 '컬럼 목록' 칸에 그대로 붙여넣으세요.",
+"SELECT COLUMN_NAME, DATA_TYPE, NULLABLE",
+"  FROM ALL_TAB_COLUMNS",
+" WHERE TABLE_NAME = '" + t + "'",
+ownerLine,
+" ORDER BY COLUMN_ID;",
+"",
+"",
+"-- 2. 기본키 컬럼. 결과를 '키 컬럼' 칸에 붙여넣으세요.",
+"SELECT CC.COLUMN_NAME, CC.POSITION",
+"  FROM ALL_CONSTRAINTS C",
+"     , ALL_CONS_COLUMNS CC",
+" WHERE C.OWNER           = CC.OWNER",
+"   AND C.CONSTRAINT_NAME = CC.CONSTRAINT_NAME",
+"   AND C.CONSTRAINT_TYPE = 'P'",
+"   AND C.TABLE_NAME      = '" + t + "'",
+" ORDER BY CC.POSITION;",
+"",
+"",
+"-- 3. 복사 전 확인. 기준에 몇 건이 있고 대상에 이미 몇 건이 있는지 봅니다.",
+"SELECT " + cc,
+"     , COUNT(*) AS CNT",
+"  FROM " + TGT,
+" WHERE " + cc + " IN (" + lit(p.fromVal || "기준값") + ", " + lit(p.toVal || "대상값") + ")",
+" GROUP BY " + cc + ";",
+"",
+"",
+"-- 4. 반영 후 비교. 두 값의 행 수가 같아야 정상입니다.",
+"SELECT '기준' AS GB, COUNT(*) FROM " + TGT + " WHERE " + cc + " = " + lit(p.fromVal || "기준값"),
+"UNION ALL",
+"SELECT '대상', COUNT(*) FROM " + TGT + " WHERE " + cc + " = " + lit(p.toVal || "대상값") + ";"
+  ];
+  return { sql:q.join("\n"), notes:["복제 전후 건수를 비교하면 빠진 행이 있는지 바로 보입니다."] };
+}
+
+/* ── 키 추정 ──────────────────────────────────────── */
+
+function guessKeys(){
+  var raw = $("allCols").value || "";
+  if(!raw.trim()) return { keys:[], why:"컬럼 목록이 비어 있습니다. 먼저 컬럼을 붙여넣어 주세요." };
+  var lines = raw.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+  var picked = [], why = "";
+
+  var hasNN = lines.some(function(l){ return /\bNOT\s+NULL\b/i.test(l); });
+  if(hasNN){
+    for(var i=0;i<lines.length && picked.length<4;i++){
+      var name = lines[i].split(/\s+/)[0].replace(/[,;]+$/,"");
+      if(!/^[A-Za-z_$#"][\w$#"]*$/.test(name)) continue;
+      if(!/\bNOT\s+NULL\b/i.test(lines[i])) break;
+      picked.push(name);
+    }
+    if(picked.length) why = "앞쪽 NOT NULL 컬럼 " + picked.length + "개를 키로 봤습니다.";
+  }
+  if(!picked.length){
+    var cols = parseCols(raw), pat = /(_NO|_CD|_ID|_KEY|_SEQ|NO|CD|ID|SEQ)$/i;
+    for(var j=0;j<cols.length && j<6 && picked.length<3;j++){
+      if(pat.test(cols[j])) picked.push(cols[j]); else if(picked.length) break;
+    }
+    if(picked.length) why = "앞쪽에서 식별자처럼 보이는 이름을 골랐습니다.";
+  }
+  if(!picked.length){
+    var c0 = parseCols(raw);
+    if(c0.length){ picked = [c0[0]]; why = "단서가 없어 첫 컬럼만 넣었습니다."; }
+  }
+  return { keys:picked, why:why };
+}
+
+/* ── 렌더 ─────────────────────────────────────────── */
+
+var KW = /(--[^\n]*)|('(?:''|[^'])*')|\b(MERGE|INTO|USING|ON|WHEN|MATCHED|NOT|THEN|UPDATE|SET|INSERT|VALUES|SELECT|FROM|WHERE|AND|OR|DELETE|COMMIT|WITH|AS|ORDER|GROUP|BY|UNION|ALL|COUNT|EXISTS|DUAL|DECODE|LISTAGG|WITHIN|CHR|RPAD|SYSDATE|TO_CHAR|USER|NULL|IN|IS|DECLARE|BEGIN|END|LOOP|IF|ELSE|ELSIF|FOR|EXIT|CASE|EXECUTE|IMMEDIATE|CONSTANT|BOOLEAN|TRUE|FALSE|VARCHAR2|CLOB|PLS_INTEGER|GREATEST|RAISE_APPLICATION_ERROR|SERVEROUTPUT|SIZE|UNLIMITED)\b/gi;
+
+function highlight(line){
+  return esc(line).replace(KW, function(m, c, s, k){
+    if(c) return '<span class="c">' + c + '</span>';
+    if(s) return '<span class="s">' + s + '</span>';
+    return '<span class="k">' + k + '</span>';
+  });
+}
+
+function render(){
+  var lines = (out[tab] || "").split("\n");
+  var html = '<table class="code"><tbody>';
+  lines.forEach(function(ln, i){
+    html += '<tr><td class="ln">' + (i+1) + '</td><td class="src">' + (highlight(ln) || "&nbsp;") + '</td></tr>';
+  });
+  $("listing").innerHTML = html + '</tbody></table>';
+  var ns = notes[tab] || [];
+  $("notes").innerHTML = ns.length ? "<ul>" + ns.map(function(x){ return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "";
+  $("stat").textContent = lines.length + "줄";
+}
+
+function generate(){
+  var m = buildMerge();  out.merge = m.sql;  notes.merge = m.notes;
+  var a = buildAuto();   out.auto = a.sql;   notes.auto = a.notes;
+  var r = buildRun();    out.run = r.sql;    notes.run = r.notes;
+  var h = buildHelper(); out.helper = h.sql; notes.helper = h.notes;
+  render();
+}
+
+/* ── 동작 연결 ────────────────────────────────────── */
+
+var FIELDS = ["owner","table","srcTable","copyCol","fromVal","toVal","addWhere","keyCols","allCols","fixedVals","exclUpd","aliasT","aliasS"];
+var OPTS   = ["optClob","optQuote","optInsAlias","optUpper","optCommit"];
+
+document.querySelectorAll(".tab").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected","false"); });
+    b.setAttribute("aria-selected","true");
+    tab = b.dataset.tab;
+    render();
+  });
+});
+
+$("btnGen").addEventListener("click", generate);
+FIELDS.forEach(function(id){ $(id).addEventListener("input", generate); });
+OPTS.forEach(function(id){ $(id).addEventListener("change", generate); });
+
+$("btnGuessKey").addEventListener("click", function(){
+  var g = guessKeys();
+  if(g.keys.length){
+    $("keyCols").value = g.keys.join(", ");
+    $("keyHint").textContent = g.why + " '확인용' 탭 2번 쿼리로 실제 PK와 맞는지 확인하세요.";
+  }else{
+    $("keyHint").textContent = g.why;
+  }
+  generate();
+});
+
+$("btnClear").addEventListener("click", function(){
+  FIELDS.forEach(function(id){ if(id!=="aliasT" && id!=="aliasS") $(id).value = ""; });
+  generate();
+});
+
+$("btnSample").addEventListener("click", function(){
+  $("owner").value    = "";
+  $("table").value    = "TB_MS_STORE_ENVST";
+  $("srcTable").value = "";
+  $("copyCol").value  = "STORE_CD";
+  $("fromVal").value  = "00001";
+  $("toVal").value    = "00002";
+  $("addWhere").value = "";
+  $("keyCols").value  = "STORE_CD, ENVST_CD";
+  $("allCols").value  = "STORE_CD\nENVST_CD\nENVST_VAL\nDIRCT_IN_YN\nUSE_YN\nREG_DT\nREG_ID\nMOD_DT\nMOD_ID";
+  $("fixedVals").value = "REG_DT=TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), REG_ID='SYSTEM', MOD_DT=TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), MOD_ID='SYSTEM'";
+  $("exclUpd").value  = "REG_DT, REG_ID";
+  generate();
+});
+
+$("btnCopy").addEventListener("click", function(){
+  var b = this, txt = out[tab] || "";
+  navigator.clipboard.writeText(txt).then(function(){
+    b.textContent = "복사함"; b.classList.add("copied");
+    setTimeout(function(){ b.textContent = "복사"; b.classList.remove("copied"); }, 1400);
+  }, function(){
+    var ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
+    b.textContent = "복사함";
+    setTimeout(function(){ b.textContent = "복사"; }, 1400);
+  });
+});
+
+$("btnSave").addEventListener("click", function(){
+  var name = (clean($("table").value) || "merge") + "_" + tab + ".sql";
+  var blob = new Blob([out[tab] || ""], { type:"text/plain;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+});
+
+$("btnSample").click();
+</script>
+</body>
+</html>

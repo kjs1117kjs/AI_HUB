@@ -251,17 +251,41 @@
 
     <fieldset>
       <legend>기준값 반영 쿼리</legend>
+      <div class="field">
+        <label for="syncScope">반영 범위</label>
+        <select id="syncScope">
+          <option value="diff">차이 항목만 반영</option>
+          <option value="all">전체 항목 반영</option>
+        </select>
+        <div class="hint">차이 항목만: 비교 결과에서 값이 다르거나 없는 행만 MERGE 대상이 됩니다</div>
+      </div>
       <div class="checks">
         <label><input type="checkbox" id="doBackup" checked> 백업 테이블 생성</label>
         <label><input type="checkbox" id="doInsert" checked> 없는 항목 INSERT</label>
+        <label><input type="checkbox" id="perStore" checked> 매장별 문장 분리</label>
         <label><input type="checkbox" id="doDelete"> 기준에 없는 항목 DELETE</label>
       </div>
       <div class="hint">DELETE는 비교 매장에만 있는 항목을 지웁니다. 꼭 필요할 때만 사용하세요.</div>
-      <div class="field" style="margin-top:10px">
-        <label for="auditId">작업자 ID</label>
-        <input type="text" id="auditId" placeholder="예: SYNC01" spellcheck="false">
-        <div class="hint">입력하면 REG_ID · MOD_ID · REG_DT · MOD_DT 를 함께 씁니다. 컬럼명이 다르면 생성된 쿼리에서 바꿔 주세요.</div>
+      <div class="field row2" style="margin-top:10px">
+        <div>
+          <label for="auditId">REG_ID · MOD_ID</label>
+          <input type="text" id="auditId" value="SYSTEM" spellcheck="false">
+          <div class="hint">비우면 감사 컬럼 제외</div>
+        </div>
+        <div>
+          <label for="dtFmt">REG_DT · MOD_DT</label>
+          <select id="dtFmt">
+            <option value="char">TO_CHAR(...,'YYYYMMDDHH24MISS')</option>
+            <option value="date">SYSDATE 그대로</option>
+          </select>
+          <div class="hint">컬럼 타입에 맞춰 선택</div>
+        </div>
       </div>
+      <div class="checks" style="margin-top:8px">
+        <label><input type="checkbox" id="parentKey" checked> 명칭코드 키에 PARENT_CD 포함</label>
+        <label><input type="checkbox" id="regOnUpd"> UPDATE 시 REG_DT · REG_ID 도 갱신</label>
+      </div>
+      <div class="hint">UPDATE 에는 항상 MOD_DT · MOD_ID 가 들어갑니다. PARENT_CD 를 키로 쓰면 ON 절과 INSERT 에만 들어가고 UPDATE 대상에서는 빠집니다.</div>
     </fieldset>
 
     <fieldset>
@@ -339,6 +363,13 @@
     if(d === "pg")       return a + " IS DISTINCT FROM " + b;
     if(d === "coalesce") return "COALESCE(" + a + ", '@@NULL@@') <> COALESCE(" + b + ", '@@NULL@@')";
     return "DECODE(" + a + ", " + b + ", 1, 0) = 0";
+  }
+
+  // "두 값이 같다" 조건 (NULL = NULL 은 같은 것으로 처리)
+  function eq(a, b, d){
+    if(d === "pg")       return a + " IS NOT DISTINCT FROM " + b;
+    if(d === "coalesce") return "COALESCE(" + a + ", '@@NULL@@') = COALESCE(" + b + ", '@@NULL@@')";
+    return "DECODE(" + a + ", " + b + ", 1, 0) = 1";
   }
 
   // SELECT 절 정렬 조립
@@ -525,8 +556,12 @@
 
   /* ---------- 4~6. 기준값 반영 ---------- */
 
-  function nowFn(d){
-    return d === "oracle" ? "SYSDATE" : (d === "pg" ? "NOW()" : "CURRENT_TIMESTAMP");
+  // 4칸 탭 기준 정렬 폭
+  function tabW(list, min){
+    var m = 0;
+    list.forEach(function(s){ if(dw(s) > m) m = dw(s); });
+    var w = (Math.floor(m / 4) + 2) * 4;
+    return Math.max(w, min || 0);
   }
 
   function todayTag(){
@@ -534,48 +569,283 @@
     return "" + t.getFullYear() + p(t.getMonth() + 1) + p(t.getDate());
   }
 
-  // 기준 매장 1행을 비교 매장 수만큼 늘려 주는 원본 블록
-  function srcBlock(cfg, tbl, cols, ind, posFilter){
-    var L = [];
-    L.push(ind + "SELECT      C.STORE_CD,");
-    cols.forEach(function(c,i){
-      L.push(ind + "            B." + c + (i < cols.length - 1 ? "," : ""));
+  // 감사 컬럼 일시 표현식
+  function dtExpr(cfg){
+    var fn = cfg.dialect === "oracle" ? "SYSDATE"
+           : cfg.dialect === "pg"     ? "NOW()"
+           : "CURRENT_TIMESTAMP";
+    return cfg.dtFmt === "char" ? "TO_CHAR(" + fn + ",'YYYYMMDDHH24MISS')" : fn;
+  }
+
+  // 감사 컬럼 목록 : [컬럼명, 값표현식]
+  function auditCols(cfg){
+    if(!cfg.auditId) return [];
+    var d = dtExpr(cfg), id = lit(cfg.auditId);
+    return [["REG_DT", d], ["REG_ID", id], ["MOD_DT", d], ["MOD_ID", id]];
+  }
+
+  // UPDATE 대상 감사 컬럼
+  function auditUpd(cfg){
+    if(!cfg.auditId) return [];
+    return cfg.regOnUpd ? ["REG_DT", "REG_ID", "MOD_DT", "MOD_ID"] : ["MOD_DT", "MOD_ID"];
+  }
+
+  /* ----- 오라클 MERGE (사내 서식) ----- */
+
+  function mergeStmt(cfg, opt, store){
+    var tbl  = cfg.prefix + opt.table;
+    var K    = opt.keyCols;
+    var V    = opt.valCols;
+    var allK = ["STORE_CD"].concat(K);
+    var au   = auditCols(cfg);
+    var pf   = opt.posFilter;
+    var one  = store !== null;                       // 매장별 개별 문장 여부
+    var L    = [];
+
+    L.push("MERGE INTO " + tbl + " A");
+    L.push("USING   (");
+
+    var sel = [];
+    sel.push([one ? lit(store) : "C.STORE_CD", "STORE_CD"]);
+    K.forEach(function(c){ sel.push(["A." + c, c]); });
+    V.forEach(function(c){ sel.push(["A." + c, c]); });
+    au.forEach(function(a){ sel.push([a[1], a[0]]); });
+
+    var w = tabW(sel.map(function(s){ return s[0]; }), 40);
+    sel.forEach(function(s,i){
+      L.push("            " + (i === 0 ? "SELECT  " : ",       ") + pad(s[0], w) + "AS  " + s[1]);
     });
-    L.push(ind + "FROM        " + tbl + " B");
-    if(cfg.dialect === "pg"){
-      L.push(ind + "CROSS JOIN  (VALUES " +
-        cfg.cmps.map(function(c){ return "(" + lit(c) + ")"; }).join(", ") + ") AS C(STORE_CD)");
-    } else {
-      var dual = cfg.dialect === "oracle" ? " FROM DUAL" : "";
-      L.push(ind + "CROSS JOIN  (");
+
+    var kw = tabW(allK.map(function(c){ return "A." + c; }));
+
+    L.push("            FROM    " + tbl + " A");
+    if(!one){
+      var dual = " FROM DUAL";
+      L.push("            CROSS JOIN  (");
       cfg.cmps.forEach(function(c,i){
-        L.push(ind + "                " + (i === 0
+        L.push("                            " + (i === 0
           ? "SELECT " + lit(c) + " AS STORE_CD" + dual
           : "UNION ALL SELECT " + lit(c) + dual));
       });
-      L.push(ind + "            ) C");
+      L.push("                        ) C");
     }
-    L.push(ind + "WHERE       B.STORE_CD = " + lit(cfg.base));
-    if(posFilter) L.push(ind + "AND         B.POS_NO   = " + lit(cfg.posno));
+    L.push("            WHERE   " + pad("A.STORE_CD", kw) + "=   " + lit(cfg.base));
+    if(pf) L.push("            AND     " + pad("A.POS_NO", kw) + "=   " + lit(cfg.posno));
+    if(cfg.scope === "diff"){
+      var t = one ? lit(store) : "C.STORE_CD";
+      L.push("            -- 비교 매장에 이미 같은 값이 있는 행은 제외");
+      L.push("            AND     NOT EXISTS  (");
+      L.push("                        SELECT  1");
+      L.push("                        FROM    " + tbl + " T");
+      L.push("                        WHERE   " + pad("T.STORE_CD", kw) + "=   " + t);
+      K.forEach(function(c){
+        L.push("                        AND     " + pad("T." + c, kw) + "=   A." + c);
+      });
+      V.forEach(function(c){
+        L.push("                        AND     " + eq("T." + c, "A." + c, cfg.dialect));
+      });
+      L.push("                    )");
+    }
+    L.push("        ) B");
+
+    allK.forEach(function(c,i){
+      L.push((i === 0 ? "ON      (           " : "        AND         ") +
+             pad("A." + c, kw) + "=   B." + c);
+    });
+    L.push("        )");
+
+    /* --- UPDATE --- */
+    var uc = V.concat(auditUpd(cfg));
+    var uw = tabW(uc.map(function(c){ return "A." + c; }));
+    L.push("WHEN MATCHED THEN");
+    L.push("UPDATE");
+    uc.forEach(function(c,i){
+      L.push((i === 0 ? "SET     " : ",       ") + pad("A." + c, uw) + "=   B." + c);
+    });
+    var diffs = cfg.scope === "diff"
+      ? V.map(function(c){ return neq("A." + c, "B." + c, cfg.dialect); })
+      : [];
+    if(diffs.length === 1){
+      L.push("WHERE   " + diffs[0]);
+    } else if(diffs.length > 1){
+      diffs.forEach(function(c,i){
+        L.push(i === 0 ? "WHERE   ( " + c
+                       : "OR        " + c + (i === diffs.length - 1 ? " )" : ""));
+      });
+    }
+
+    /* --- INSERT --- */
+    if(cfg.doInsert){
+      var ic = allK.concat(V, au.map(function(a){ return a[0]; }));
+      L.push("WHEN NOT MATCHED THEN");
+      L.push("INSERT");
+      L.push("(");
+      ic.forEach(function(c,i){ L.push((i === 0 ? "        " : ",       ") + "A." + c); });
+      L.push(")");
+      L.push("VALUES");
+      L.push("(");
+      ic.forEach(function(c,i){ L.push((i === 0 ? "        " : ",       ") + "B." + c); });
+      L.push(")");
+    }
+    L.push(";");
     return L;
   }
 
+  /* ----- PostgreSQL / 범용 ----- */
+
+  function upsertPg(cfg, opt){
+    var tbl  = cfg.prefix + opt.table;
+    var K    = opt.keyCols;
+    var V    = opt.valCols;
+    var allK = ["STORE_CD"].concat(K);
+    var au   = auditCols(cfg);
+    var L    = [];
+    var cols = allK.concat(V, au.map(function(a){ return a[0]; }));
+    var vals = ["C.STORE_CD"].concat(K.concat(V).map(function(c){ return "B." + c; }),
+                                     au.map(function(a){ return a[1]; }));
+
+    L.push("-- " + allK.join(", ") + " 에 UNIQUE 제약이 있어야 동작합니다.");
+    L.push("INSERT INTO " + tbl + " AS A (" + cols.join(", ") + ")");
+    L.push("SELECT      " + vals.join(", "));
+    L.push("FROM        " + tbl + " B");
+    L.push("CROSS JOIN  (VALUES " +
+      cfg.cmps.map(function(c){ return "(" + lit(c) + ")"; }).join(", ") + ") AS C(STORE_CD)");
+    L.push("WHERE       B.STORE_CD = " + lit(cfg.base));
+    if(opt.posFilter) L.push("AND         B.POS_NO   = " + lit(cfg.posno));
+    if(cfg.scope === "diff"){
+      L.push("-- 비교 매장에 이미 같은 값이 있는 행은 제외");
+      L.push("AND         NOT EXISTS (");
+      L.push("                SELECT  1");
+      L.push("                FROM    " + tbl + " T");
+      L.push("                WHERE   T.STORE_CD = C.STORE_CD");
+      K.forEach(function(c){ L.push("                AND     T." + c + " = B." + c); });
+      V.forEach(function(c){ L.push("                AND     " + eq("T." + c, "B." + c, cfg.dialect)); });
+      L.push("            )");
+    }
+    L.push("ON CONFLICT (" + allK.join(", ") + ") DO UPDATE");
+
+    var sets = V.map(function(c){ return [c, "EXCLUDED." + c]; });
+    if(cfg.auditId){
+      if(cfg.regOnUpd){
+        sets.push(["REG_DT", dtExpr(cfg)]);
+        sets.push(["REG_ID", lit(cfg.auditId)]);
+      }
+      sets.push(["MOD_DT", dtExpr(cfg)]);
+      sets.push(["MOD_ID", lit(cfg.auditId)]);
+    }
+    var w = 0;
+    sets.forEach(function(s){ if(s[0].length > w) w = s[0].length; });
+    sets.forEach(function(s,i){
+      L.push((i === 0 ? "SET         " : "            ") + pad(s[0], w + 1) + "= " + s[1] +
+             (i < sets.length - 1 ? "," : ""));
+    });
+
+    var diffs = cfg.scope === "diff"
+      ? V.map(function(c){ return neq("A." + c, "EXCLUDED." + c, cfg.dialect); })
+      : [];
+    if(diffs.length === 1){
+      L.push("WHERE       " + diffs[0]);
+    } else if(diffs.length > 1){
+      diffs.forEach(function(c,i){
+        L.push(i === 0 ? "WHERE     ( " + c
+                       : "OR          " + c + (i === diffs.length - 1 ? " )" : ""));
+      });
+    }
+    L.push(";");
+    return L;
+  }
+
+  function updateGeneric(cfg, opt){
+    var tbl = cfg.prefix + opt.table;
+    var K   = opt.keyCols;
+    var V   = opt.valCols;
+    var L   = [];
+    var corr = function(c){
+      return "( SELECT B." + c + " FROM " + tbl + " B WHERE B.STORE_CD = " + lit(cfg.base) +
+             K.map(function(k){ return " AND B." + k + " = A." + k; }).join("") + " )";
+    };
+    var sets = V.map(function(c){ return [c, corr(c)]; });
+    if(cfg.auditId){
+      if(cfg.regOnUpd){
+        sets.push(["REG_DT", dtExpr(cfg)]);
+        sets.push(["REG_ID", lit(cfg.auditId)]);
+      }
+      sets.push(["MOD_DT", dtExpr(cfg)]);
+      sets.push(["MOD_ID", lit(cfg.auditId)]);
+    }
+    var w = 0;
+    sets.forEach(function(s){ if(s[0].length > w) w = s[0].length; });
+
+    L.push("UPDATE  " + tbl + " A");
+    sets.forEach(function(s,i){
+      L.push((i === 0 ? "SET     " : "        ") + pad(s[0], w + 1) + "= " + s[1] +
+             (i < sets.length - 1 ? "," : ""));
+    });
+    L.push("WHERE   A.STORE_CD IN (" + inList(cfg.cmps) + ")");
+    if(opt.posFilter) L.push("AND     A.POS_NO   = " + lit(cfg.posno));
+    L.push("AND     EXISTS (");
+    L.push("            SELECT  1");
+    L.push("            FROM    " + tbl + " B");
+    L.push("            WHERE   B.STORE_CD = " + lit(cfg.base));
+    K.forEach(function(c){ L.push("            AND     B." + c + " = A." + c); });
+    var diffs = cfg.scope === "diff"
+      ? V.map(function(c){ return neq("B." + c, "A." + c, cfg.dialect); })
+      : [];
+    if(diffs.length === 1){
+      L.push("            AND     " + diffs[0]);
+    } else if(diffs.length > 1){
+      diffs.forEach(function(c,i){
+        L.push(i === 0 ? "            AND   ( " + c
+                       : "            OR      " + c + (i === diffs.length - 1 ? " )" : ""));
+      });
+    }
+    L.push("        )");
+    L.push(";");
+    return L;
+  }
+
+  function insertGeneric(cfg, opt){
+    var tbl  = cfg.prefix + opt.table;
+    var K    = opt.keyCols;
+    var V    = opt.valCols;
+    var allK = ["STORE_CD"].concat(K);
+    var au   = auditCols(cfg);
+    var L    = [];
+    var cols = allK.concat(V, au.map(function(a){ return a[0]; }));
+    var vals = ["C.STORE_CD"].concat(K.concat(V).map(function(c){ return "B." + c; }),
+                                     au.map(function(a){ return a[1]; }));
+
+    L.push("INSERT INTO " + tbl + " (" + cols.join(", ") + ")");
+    L.push("SELECT      " + vals.join(", "));
+    L.push("FROM        " + tbl + " B");
+    L.push("CROSS JOIN  (");
+    cfg.cmps.forEach(function(c,i){
+      L.push("                " + (i === 0
+        ? "SELECT " + lit(c) + " AS STORE_CD"
+        : "UNION ALL SELECT " + lit(c)));
+    });
+    L.push("            ) C");
+    L.push("WHERE       B.STORE_CD = " + lit(cfg.base));
+    if(opt.posFilter) L.push("AND         B.POS_NO   = " + lit(cfg.posno));
+    L.push("AND         NOT EXISTS (");
+    L.push("                SELECT  1");
+    L.push("                FROM    " + tbl + " X");
+    L.push("                WHERE   X.STORE_CD = C.STORE_CD");
+    K.forEach(function(c){ L.push("                AND     X." + c + " = B." + c); });
+    L.push("            )");
+    L.push(";");
+    return L;
+  }
+
+  /* ----- 반영 쿼리 조립 ----- */
+
   function buildSync(cfg, opt){
     var tbl  = cfg.prefix + opt.table;
-    var d    = cfg.dialect;
-    var K    = opt.keyCols;                  // STORE_CD 를 제외한 키
-    var V    = opt.valCols;                  // 덮어쓸 컬럼
+    var K    = opt.keyCols;
+    var V    = opt.valCols;
     var allK = ["STORE_CD"].concat(K);
-    var cols = K.concat(V);
-    var au   = cfg.auditId;
-    var now  = nowFn(d);
-    var pf   = opt.posFilter;
     var L    = [];
     var step = 0;
-
-    var wk = 0, wv = 0;
-    allK.forEach(function(c){ if(c.length > wk) wk = c.length; });
-    V.forEach(function(c){ if(c.length > wv) wv = c.length; });
 
     function head(t){
       step++;
@@ -585,181 +855,54 @@
 
     L.push("-- " + opt.title + " : 기준값을 비교 매장에 반영");
     L.push("-- " + cfg.base + "  ==>  " + cfg.cmps.join(", "));
-    L.push("-- 키 " + allK.join(", ") + "   /   반영 컬럼 " + V.join(", "));
+    L.push("-- 키 " + allK.join(", ") + "   /   반영 컬럼 " + V.join(", ") +
+           (cfg.auditId ? "  +  " + auditUpd(cfg).join(", ") : ""));
     L.push("-- 비교 탭 결과로 대상을 확인한 뒤 트랜잭션 안에서 실행하세요.");
+    L.push("-- 반영 범위 : " + (cfg.scope === "diff" ? "값이 다르거나 없는 항목만" : "기준 매장의 전체 항목"));
     L.push("");
 
-    /* --- 백업 --- */
     if(cfg.backup){
       head("백업");
       L.push("CREATE TABLE " + cfg.prefix + opt.table + "_BAK_" + todayTag() + " AS");
       L.push("SELECT  *");
       L.push("FROM    " + tbl);
       L.push("WHERE   STORE_CD IN (" + inList(cfg.cmps) + ")");
-      if(pf) L.push("AND     POS_NO   = " + lit(cfg.posno));
+      if(opt.posFilter) L.push("AND     POS_NO   = " + lit(cfg.posno));
       L.push(";");
     }
 
-    /* --- 반영 --- */
-    if(d === "oracle"){
-      head("변경 · 신규 반영 (MERGE)");
-      L.push("MERGE INTO  " + tbl + " T");
-      L.push("USING (");
-      L = L.concat(srcBlock(cfg, tbl, cols, "    ", pf));
-      L.push(") S");
-      allK.forEach(function(c,i){
-        L.push(i === 0
-          ? "ON  (   " + pad("T." + c, wk + 3) + "= " + "S." + c
-          : "    AND " + pad("T." + c, wk + 3) + "= " + "S." + c + (i === allK.length - 1 ? " )" : ""));
-      });
-      if(allK.length === 1) L[L.length - 1] += " )";
-      L.push("WHEN MATCHED THEN");
-      var sets = V.map(function(c){ return pad("T." + c, wv + 3) + "= S." + c; });
-      if(au){
-        sets.push(pad("T.MOD_DT", wv + 3) + "= " + now);
-        sets.push(pad("T.MOD_ID", wv + 3) + "= " + lit(au));
-      }
-      sets.forEach(function(s,i){
-        L.push((i === 0 ? "    UPDATE SET  " : "                ") + s + (i < sets.length - 1 ? "," : ""));
-      });
-      var diffs = V.map(function(c){ return neq("T." + c, "S." + c, d); });
-      if(diffs.length === 1){
-        L.push("    WHERE       " + diffs[0]);
-      } else {
-        diffs.forEach(function(c,i){
-          L.push(i === 0 ? "    WHERE     ( " + c
-                         : "    OR          " + c + (i === diffs.length - 1 ? " )" : ""));
+    if(cfg.dialect === "oracle"){
+      if(cfg.perStore){
+        cfg.cmps.forEach(function(s){
+          head("반영 : " + s);
+          L = L.concat(mergeStmt(cfg, opt, s));
         });
+      } else {
+        head("변경 · 신규 반영 (MERGE)");
+        L = L.concat(mergeStmt(cfg, opt, null));
       }
-      if(cfg.doInsert){
-        var icol = allK.concat(V);
-        var ival = icol.map(function(c){ return "S." + c; });
-        if(au){
-          icol = icol.concat(["REG_DT", "REG_ID", "MOD_DT", "MOD_ID"]);
-          ival = ival.concat([now, lit(au), now, lit(au)]);
-        }
-        L.push("WHEN NOT MATCHED THEN");
-        L.push("    INSERT (" + icol.join(", ") + ")");
-        L.push("    VALUES (" + ival.join(", ") + ")");
-      }
-      L.push(";");
-
-    } else if(d === "pg"){
+    } else if(cfg.dialect === "pg"){
       head("변경 · 신규 반영 (INSERT ON CONFLICT)");
-      L.push("-- " + allK.join(", ") + " 에 UNIQUE 제약이 있어야 동작합니다.");
-      var pcol = allK.concat(V);
-      var pval = ["C.STORE_CD"].concat(cols.map(function(c){ return "B." + c; }));
-      if(au){
-        pcol = pcol.concat(["REG_DT", "REG_ID", "MOD_DT", "MOD_ID"]);
-        pval = pval.concat([now, lit(au), now, lit(au)]);
-      }
-      L.push("INSERT INTO " + tbl + " AS T (" + pcol.join(", ") + ")");
-      L.push("SELECT      " + pval.join(", "));
-      L.push("FROM        " + tbl + " B");
-      L.push("CROSS JOIN  (VALUES " +
-        cfg.cmps.map(function(c){ return "(" + lit(c) + ")"; }).join(", ") + ") AS C(STORE_CD)");
-      L.push("WHERE       B.STORE_CD = " + lit(cfg.base));
-      if(pf) L.push("AND         B.POS_NO   = " + lit(cfg.posno));
-      L.push("ON CONFLICT (" + allK.join(", ") + ") DO UPDATE");
-      var psets = V.map(function(c){ return pad(c, wv + 1) + "= EXCLUDED." + c; });
-      if(au){
-        psets.push(pad("MOD_DT", wv + 1) + "= " + now);
-        psets.push(pad("MOD_ID", wv + 1) + "= " + lit(au));
-      }
-      psets.forEach(function(s,i){
-        L.push((i === 0 ? "SET         " : "            ") + s + (i < psets.length - 1 ? "," : ""));
-      });
-      var pdiff = V.map(function(c){ return neq("T." + c, "EXCLUDED." + c, d); });
-      pdiff.forEach(function(c,i){
-        if(pdiff.length === 1){ L.push("WHERE       " + c); return; }
-        L.push(i === 0 ? "WHERE     ( " + c
-                       : "OR          " + c + (i === pdiff.length - 1 ? " )" : ""));
-      });
-      L.push(";");
-
+      L = L.concat(upsertPg(cfg, opt));
     } else {
       head("값이 다른 항목 UPDATE");
-      function corr(ind2, extra){
-        var S = [];
-        S.push(ind2 + "FROM    " + tbl + " B");
-        S.push(ind2 + "WHERE   B.STORE_CD = " + lit(cfg.base));
-        K.forEach(function(c){ S.push(ind2 + "AND     B." + c + " = T." + c); });
-        if(extra) S = S.concat(extra);
-        return S;
+      L = L.concat(updateGeneric(cfg, opt));
+      if(cfg.doInsert){
+        head("비교 매장에 없는 항목 INSERT");
+        L = L.concat(insertGeneric(cfg, opt));
       }
-      var usets = V.map(function(c){
-        return pad(c, wv + 1) + "= ( SELECT B." + c + " FROM " + tbl + " B" +
-               " WHERE B.STORE_CD = " + lit(cfg.base) +
-               K.map(function(k){ return " AND B." + k + " = T." + k; }).join("") + " )";
-      });
-      if(au){
-        usets.push(pad("MOD_DT", wv + 1) + "= " + now);
-        usets.push(pad("MOD_ID", wv + 1) + "= " + lit(au));
-      }
-      L.push("UPDATE  " + tbl + " T");
-      usets.forEach(function(s,i){
-        L.push((i === 0 ? "SET     " : "        ") + s + (i < usets.length - 1 ? "," : ""));
-      });
-      L.push("WHERE   T.STORE_CD IN (" + inList(cfg.cmps) + ")");
-      if(pf) L.push("AND     T.POS_NO   = " + lit(cfg.posno));
-      L.push("AND     EXISTS (");
-      L.push("            SELECT  1");
-      L = L.concat(corr("            "));
-      var udiff = V.map(function(c){ return neq("B." + c, "T." + c, d); });
-      if(udiff.length === 1){
-        L.push("            AND     " + udiff[0]);
-      } else {
-        udiff.forEach(function(c,i){
-          L.push(i === 0 ? "            AND   ( " + c
-                         : "            OR      " + c + (i === udiff.length - 1 ? " )" : ""));
-        });
-      }
-      L.push("        )");
-      L.push(";");
     }
 
-    /* --- 신규 INSERT (MERGE 를 쓰지 않는 방식) --- */
-    if(cfg.doInsert && d === "coalesce"){
-      head("비교 매장에 없는 항목 INSERT");
-      var ncol = allK.concat(V);
-      var nval = ["C.STORE_CD"].concat(cols.map(function(c){ return "B." + c; }));
-      if(au){
-        ncol = ncol.concat(["REG_DT", "REG_ID", "MOD_DT", "MOD_ID"]);
-        nval = nval.concat([now, lit(au), now, lit(au)]);
-      }
-      L.push("INSERT INTO " + tbl + " (" + ncol.join(", ") + ")");
-      L.push("SELECT      " + nval.join(", "));
-      L.push("FROM        " + tbl + " B");
-      var dual2 = "";
-      L.push("CROSS JOIN  (");
-      cfg.cmps.forEach(function(c,i){
-        L.push("                " + (i === 0
-          ? "SELECT " + lit(c) + " AS STORE_CD" + dual2
-          : "UNION ALL SELECT " + lit(c) + dual2));
-      });
-      L.push("            ) C");
-      L.push("WHERE       B.STORE_CD = " + lit(cfg.base));
-      if(pf) L.push("AND         B.POS_NO   = " + lit(cfg.posno));
-      L.push("AND         NOT EXISTS (");
-      L.push("                SELECT  1");
-      L.push("                FROM    " + tbl + " X");
-      L.push("                WHERE   X.STORE_CD = C.STORE_CD");
-      K.forEach(function(c){ L.push("                AND     X." + c + " = B." + c); });
-      L.push("            )");
-      L.push(";");
-    }
-
-    /* --- DELETE --- */
     if(cfg.doDelete){
       head("기준 매장에 없는 항목 DELETE");
-      L.push("DELETE FROM " + tbl + " T");
-      L.push("WHERE       T.STORE_CD IN (" + inList(cfg.cmps) + ")");
-      if(pf) L.push("AND         T.POS_NO   = " + lit(cfg.posno));
+      L.push("DELETE FROM " + tbl + " A");
+      L.push("WHERE       A.STORE_CD IN (" + inList(cfg.cmps) + ")");
+      if(opt.posFilter) L.push("AND         A.POS_NO   = " + lit(cfg.posno));
       L.push("AND         NOT EXISTS (");
       L.push("                SELECT  1");
       L.push("                FROM    " + tbl + " B");
       L.push("                WHERE   B.STORE_CD = " + lit(cfg.base));
-      K.forEach(function(c){ L.push("                AND     B." + c + " = T." + c); });
+      K.forEach(function(c){ L.push("                AND     B." + c + " = A." + c); });
       L.push("            )");
       L.push(";");
     }
@@ -777,7 +920,7 @@
     var out = esc(sql);
     out = out.replace(/(--[^\n]*)/g, '<span class="cmt">$1</span>');
     out = out.replace(/('(?:[^']|'')*')/g, '<span class="str">$1</span>');
-    out = out.replace(/\b(WITH|SELECT|DISTINCT|FROM|WHERE|AND|OR|AS|LEFT|JOIN|CROSS|ON|UNION|ALL|ORDER BY|CASE|WHEN|THEN|ELSE|END|IS|NULL|NOT|IN|DUAL|DECODE|COALESCE|TRIM|CAST|MERGE|INTO|USING|MATCHED|UPDATE|SET|INSERT|VALUES|DELETE|EXISTS|CREATE|TABLE|CONFLICT|DO|EXCLUDED|SYSDATE|NOW|CURRENT_TIMESTAMP|COMMIT|ROLLBACK|DISTINCT FROM)\b/g,
+    out = out.replace(/\b(WITH|SELECT|DISTINCT|FROM|WHERE|AND|OR|AS|LEFT|JOIN|CROSS|ON|UNION|ALL|ORDER BY|CASE|WHEN|THEN|ELSE|END|IS|NULL|NOT|IN|DUAL|DECODE|COALESCE|TRIM|CAST|MERGE|INTO|USING|MATCHED|UPDATE|SET|INSERT|VALUES|DELETE|EXISTS|CREATE|TABLE|CONFLICT|DO|EXCLUDED|SYSDATE|NOW|CURRENT_TIMESTAMP|TO_CHAR|COMMIT|ROLLBACK|DISTINCT FROM)\b/g,
       '<span class="kw">$1</span>');
     return out;
   }
@@ -802,6 +945,11 @@
       backup: $("doBackup").checked,
       doInsert: $("doInsert").checked,
       doDelete: $("doDelete").checked,
+      perStore: $("perStore").checked,
+      regOnUpd: $("regOnUpd").checked,
+      parentKey: $("parentKey").checked,
+      dtFmt: $("dtFmt").value,
+      scope: $("syncScope").value,
       auditId: $("auditId").value.trim()
     };
   }
@@ -843,12 +991,18 @@
       keyCols:["POS_NO", "ENVST_CD"], valCols:["ENVST_VAL"],
       posFilter: !!cfg.posno
     });
-    queries[5] = cfg.cols.length
+    var nmKey = ["NMCODE_GRP_CD", "NMCODE_CD"];
+    var nmVal = cfg.cols.slice();
+    if(cfg.parentKey){
+      nmKey.push("PARENT_CD");
+      nmVal = nmVal.filter(function(c){ return c !== "PARENT_CD"; });
+    }
+    queries[5] = nmVal.length
       ? buildSync(cfg, {
           table:"TB_MS_STORE_NMCODE", title:"명칭코드",
-          keyCols:["NMCODE_GRP_CD", "NMCODE_CD"], valCols:cfg.cols, posFilter:false
+          keyCols:nmKey, valCols:nmVal, posFilter:false
         })
-      : "-- 명칭코드에서 반영할 항목을 최소 1개 선택하세요.";
+      : "-- 명칭코드에서 반영할 항목을 최소 1개 선택하세요. (PARENT_CD 는 키로 사용 중)";
 
     body.innerHTML = '<pre class="sql">' + highlight(queries[active]) + '</pre>';
 
@@ -909,7 +1063,7 @@
   });
 
   ["base","cmps","posno","dialect","onlyBase","withNm","prefix",
-   "doBackup","doInsert","doDelete","auditId"].forEach(function(id){
+   "doBackup","doInsert","doDelete","perStore","regOnUpd","dtFmt","auditId","syncScope","parentKey"].forEach(function(id){
     $(id).addEventListener("input", render);
     $(id).addEventListener("change", render);
   });

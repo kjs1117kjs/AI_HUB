@@ -4,15 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oracle MERGE 만들기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
-  --paper:#E7EAE6; --panel:#FFFFFF; --ink:#16262F; --ink-2:#4A5C64; --ink-3:#8496A0;
-  --rule:#C9D1CC; --teal:#2F6F62; --teal-dk:#1F4E45; --brass:#A8801E; --rust:#9C4221; --gutter:#F1F3EF;
+  color-scheme:dark;
+  --paper:#141414; --panel:#1c1c1c; --ink:#f2f2f2; --ink-2:#c2c2c2; --ink-3:#8a8a8a;
+  --rule:#2e2e2e; --teal:#3d9bff; --teal-dk:#7cbcff; --brass:#d6ab55; --rust:#e0906a; --gutter:#181818;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Noto Sans KR",sans-serif;
+  font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
 code,pre,textarea,input,.mono{font-family:"D2Coding","Menlo","Consolas","SFMono-Regular",ui-monospace,monospace}
 
@@ -25,7 +27,7 @@ h1 span{color:var(--teal)}
 .wrap{max-width:1360px;margin:0 auto;padding:22px 24px 60px;display:grid;grid-template-columns:390px minmax(0,1fr);gap:22px;align-items:start}
 @media (max-width:1000px){.wrap{grid-template-columns:1fr;padding:16px}}
 
-.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:4px}
 .panel-hd{padding:11px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .panel-hd h2{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em}
 .panel-bd{padding:16px}
@@ -37,7 +39,7 @@ legend{padding:0 0 8px;font-size:12px;font-weight:700;color:var(--teal-dk);width
 label{display:block;font-size:12px;color:var(--ink-2);margin:0 0 4px}
 input[type=text],textarea{width:100%;padding:7px 9px;font-size:13px;color:var(--ink);
   background:var(--gutter);border:1px solid var(--rule);border-radius:2px;outline:none}
-input[type=text]:focus,textarea:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 2px rgba(47,111,98,.15)}
+input[type=text]:focus,textarea:focus{border-color:var(--teal);background:#202020;box-shadow:0 0 0 2px rgba(61,155,255,.22)}
 textarea{resize:vertical;line-height:1.5}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-bottom:10px}
@@ -54,8 +56,8 @@ button{font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radiu
   border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
 button:hover{border-color:var(--teal);color:var(--teal-dk)}
 button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
-button.primary:hover{background:var(--teal-dk);color:#fff}
+button.primary{background:var(--teal);border-color:var(--teal);color:#0d1b2a}
+button.primary:hover{background:var(--teal-dk);color:#0d1b2a}
 button.ghost{background:transparent;color:var(--ink-2);padding:6px 10px;font-size:12px}
 
 .tabs{display:flex;gap:2px;flex-wrap:wrap}
@@ -66,7 +68,7 @@ button.ghost{background:transparent;color:var(--ink-2);padding:6px 10px;font-siz
 .listing{overflow:auto;max-height:calc(100vh - 200px);min-height:380px}
 table.code{border-collapse:collapse;width:100%;font-size:12.5px;line-height:1.7}
 table.code td{padding:0;vertical-align:top;white-space:pre}
-td.ln{width:1%;padding:0 12px 0 14px;text-align:right;color:var(--ink-3);background:var(--gutter);
+td.ln{width:1%;padding:0 12px 0 14px;text-align:right;color:#5f5f5f;background:var(--gutter);
   border-right:1px solid var(--rule);user-select:none;font-size:11.5px}
 td.src{padding:0 18px 0 14px;width:100%}
 .k{color:var(--teal-dk);font-weight:700}
@@ -149,6 +151,11 @@ td.src{padding:0 18px 0 14px;width:100%}
           <label for="exclUpd">UPDATE에서 뺄 컬럼</label>
           <input type="text" id="exclUpd" placeholder="REG_DT, REG_ID">
         </div>
+        <div class="field">
+          <label for="exclCmp">비교에서 뺄 컬럼</label>
+          <input type="text" id="exclCmp" placeholder="REG_DT, REG_ID, MOD_DT, MOD_ID">
+          <p class="hint">등록·수정 정보처럼 달라도 상관없는 컬럼은 여기 넣으세요.</p>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -158,6 +165,7 @@ td.src{padding:0 18px 0 14px;width:100%}
           <div><label for="aliasS">기준 별칭</label><input type="text" id="aliasS" value="B"></div>
         </div>
         <div class="checks">
+          <label class="check"><input type="checkbox" id="optBoth" checked> 전체 MERGE와 변경분 MERGE 둘 다 만들기</label>
           <label class="check"><input type="checkbox" id="optClob" checked> 컬럼이 많아도 안전하게 만들기 (XMLAGG)</label>
           <label class="check"><input type="checkbox" id="optQuote" checked> 기준·대상 값에 따옴표 붙이기</label>
           <label class="check"><input type="checkbox" id="optInsAlias" checked> INSERT 컬럼 목록에 별칭 붙이기</label>
@@ -177,7 +185,10 @@ td.src{padding:0 18px 0 14px;width:100%}
     <div class="panel-hd">
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" aria-selected="true" data-tab="merge">MERGE 문</button>
-        <button class="tab" role="tab" aria-selected="false" data-tab="auto">생성 쿼리</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="auto">MERGE 생성 쿼리</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="diff">비교 쿼리</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="diffgen">비교 생성 쿼리</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="autodiff">변경분 생성 쿼리</button>
         <button class="tab" role="tab" aria-selected="false" data-tab="run">바로 실행</button>
         <button class="tab" role="tab" aria-selected="false" data-tab="helper">확인용</button>
       </div>
@@ -197,8 +208,8 @@ td.src{padding:0 18px 0 14px;width:100%}
 "use strict";
 
 var $ = function(id){ return document.getElementById(id); };
-var out   = { merge:"", auto:"", run:"", helper:"" };
-var notes = { merge:[], auto:[], run:[], helper:[] };
+var out   = { merge:"", auto:"", autodiff:"", diff:"", diffgen:"", run:"", helper:"" };
+var notes = { merge:[], auto:[], autodiff:[], diff:[], diffgen:[], run:[], helper:[] };
 var tab = "merge";
 
 /* ── 들여쓰기 규격 ─────────────────────────────────
@@ -331,6 +342,12 @@ function buildMerge(){
     return f ? f : c;
   }
 
+  var exclCmp = parseCols($("exclCmp").value);
+  var difCols = p.cols.filter(function(c){ return !has(keys,c) && !has(exclCmp,c); });
+  var both    = $("optBoth").checked;
+
+  // difOnly 가 true 면 UPDATE 절에 변경 여부 조건이 붙습니다.
+  function body(difOnly){
   var L = [];
   L.push("MERGE INTO " + p.TGT + " " + p.A);
   L.push("USING   (");
@@ -371,8 +388,17 @@ function buildMerge(){
     updCols.forEach(function(c, i){
       L.push((i===0 ? "SET     " : ",       ") + pad(p.A + "." + c, wu) + "=   " + p.B + "." + c);
     });
-  }else{
-    n.push("키와 제외 컬럼을 빼면 갱신할 컬럼이 없어 UPDATE 절은 만들지 않았습니다.");
+
+    // 값이 실제로 바뀐 행만 건드리기
+    if(difOnly && difCols.length){
+      var w1 = width(difCols.map(function(c){ return "DECODE(" + p.A + "." + c + ","; }), 0);
+      var w2 = width(difCols.map(function(c){ return p.B + "." + c + ","; }), 0);
+      difCols.forEach(function(c, i){
+        L.push((i===0 ? "WHERE   " : "OR      ")
+               + pad("DECODE(" + p.A + "." + c + ",", w1)
+               + pad(p.B + "." + c + ",", w2) + "1, 0) = 0");
+      });
+    }
   }
 
   var ia = $("optInsAlias").checked ? p.A + "." : "";
@@ -387,6 +413,24 @@ function buildMerge(){
   L.push(")");
   L.push(";");
   if($("optCommit").checked) L.push("COMMIT;");
+  return L;
+  }
+
+  var L;
+  if(both){
+    L = ["-- ════════════════════════════════════════════════════════════",
+         "-- 1. 전체 MERGE — 짝이 맞으면 값이 같아도 갱신합니다.",
+         "-- ════════════════════════════════════════════════════════════"]
+        .concat(body(false), ["", "",
+         "-- ════════════════════════════════════════════════════════════",
+         "-- 2. 변경분 MERGE — 값이 다른 행만 갱신, 없는 행은 INSERT.",
+         "-- ════════════════════════════════════════════════════════════"], body(true));
+    n.push("두 벌이 나옵니다. 필요한 쪽 하나만 골라 실행하세요. 둘 다 돌리면 같은 작업을 두 번 하게 됩니다.");
+    n.push("2번은 값이 실제로 바뀐 행만 갱신합니다. 같은 행은 건드리지 않으니 수정일시도 그대로 남습니다.");
+    if(exclCmp.length) n.push("2번에서 변경 여부를 볼 때 뺀 컬럼: " + exclCmp.join(", ") + " · 이 컬럼만 달라진 행은 그냥 둡니다.");
+  }else{
+    L = body(false);
+  }
 
   n.unshift("키(" + keys.join(", ") + ")는 UPDATE SET에서 빠집니다. ON 절에 쓴 컬럼을 갱신하면 ORA-38104가 납니다.");
   if(p.copyCol && p.toVal !== ""){
@@ -398,7 +442,7 @@ function buildMerge(){
 
 /* ── 2. 생성 쿼리 ─────────────────────────────────── */
 
-function buildAuto(){
+function buildAuto(wantDiff){
   var p = readInput();
   var table    = (p.table || "TABLE_NAME").toUpperCase();
   var srcTable = (p.srcTable || table).toUpperCase();
@@ -414,9 +458,12 @@ function buildAuto(){
   // 컬럼을 한 덩어리 문자열로 모으는 CTE.
   // XMLAGG 방식은 CLOB로 모으므로 LISTAGG의 4000바이트 제한(ORA-01489)이 없습니다.
   function aggCte(name, expr, sep, from){
+    var trim = /CHR\(10\)/.test(sep)
+             ? "SUBSTR(V, 1, INSTR(V, CHR(10), -1) - 1)"
+             : "RTRIM(V, ', ')";
     if(useClob) return [
 ", " + pad(name, 6) + "AS (",
-"    SELECT SUBSTR(V, 1, INSTR(V, CHR(10), -1) - 1) AS T",
+"    SELECT " + trim + " AS T",
 "      FROM ( SELECT DBMS_XMLGEN.CONVERT(",
 "                        XMLAGG(XMLELEMENT(E, " + expr,
 "                                          || " + sep + ")",
@@ -441,8 +488,15 @@ function buildAuto(){
     caseLines.push("               WHEN C.COLUMN_NAME = " + sq(c.toUpperCase()) + " THEN " + sq(p.fixed.map[c]));
   });
 
+  var exclCmp = parseCols($("exclCmp").value);
+  var difOnly = !!wantDiff;
+
+  // difOnly 가 true 면 UPDATE 절에 변경 여부 조건이 붙은 쿼리를 만듭니다.
+  function one(difOnly){
   var q = [];
-  q.push("-- 이 쿼리를 실행하면 MERGE 문이 결과로 나옵니다.");
+  q.push(difOnly
+    ? "-- 값이 다른 행만 갱신하는 MERGE 문을 만듭니다."
+    : "-- 짝이 맞으면 모두 갱신하는 MERGE 문을 만듭니다.");
   q.push("-- 컬럼과 키는 데이터 딕셔너리에서 읽으므로 따로 적을 것이 없습니다.");
   if(useClob) q.push("-- 컬럼 수와 상관없이 CLOB로 모으므로 ORA-01489가 나지 않습니다.");
   q.push("");
@@ -496,21 +550,45 @@ function buildAuto(){
   }
   q.push(")");
 
-  aggCte("T_SEL", "RPAD(SRC_EXPR, " + W_SEL + ") || 'AS ' || COLUMN_NAME",
+  if(difOnly){
+    q.push(", DIFC   AS (");
+    q.push("    -- 값이 바뀌었는지 볼 컬럼");
+    q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM COLS");
+    q.push("     WHERE COLUMN_NAME NOT IN (SELECT COLUMN_NAME FROM KEYS)");
+    if(exclCmp.length){
+      q.push("       AND COLUMN_NAME NOT IN (" + exclCmp.map(function(c){ return sq(c.toUpperCase()); }).join(", ") + ")");
+    }
+    q.push(")");
+  }
+
+  // 컬럼명이 길면 RPAD 가 잘라내므로 실제 길이에서 폭을 구합니다.
+  var alias = p.A.length + 1;
+  var wSel = "GREATEST(" + W_SEL + ", (SELECT MAX(LENGTH(SRC_EXPR)) + 1 FROM COLS))";
+  var wOn  = "GREATEST(" + W_ON  + ", (SELECT MAX(LENGTH(COLUMN_NAME)) + " + (alias + 1) + " FROM KEYS))";
+  var wSet = "GREATEST(" + W_SET + ", (SELECT MAX(LENGTH(COLUMN_NAME)) + " + (alias + 1) + " FROM UPDS))";
+
+  aggCte("T_SEL", "RPAD(SRC_EXPR, " + wSel + ") || 'AS ' || COLUMN_NAME",
          "CHR(10) || '            ,       '", "COLS").forEach(function(l){ q.push(l); });
-  aggCte("T_ON",  "RPAD('" + p.A + ".'||COLUMN_NAME, " + W_ON + ") || '=   " + p.B + ".' || COLUMN_NAME",
+  aggCte("T_ON",  "RPAD('" + p.A + ".'||COLUMN_NAME, " + wOn + ") || '=   " + p.B + ".' || COLUMN_NAME",
          "CHR(10) || '        AND         '", "KEYS").forEach(function(l){ q.push(l); });
-  aggCte("T_SET", "RPAD('" + p.A + ".'||COLUMN_NAME, " + W_SET + ") || '=   " + p.B + ".' || COLUMN_NAME",
+  aggCte("T_SET", "RPAD('" + p.A + ".'||COLUMN_NAME, " + wSet + ") || '=   " + p.B + ".' || COLUMN_NAME",
          "CHR(10) || ',       '", "UPDS").forEach(function(l){ q.push(l); });
   aggCte("T_INS", ia + "COLUMN_NAME", "CHR(10) || ',       '", "COLS").forEach(function(l){ q.push(l); });
   aggCte("T_VAL", "'" + p.B + ".'||COLUMN_NAME", "CHR(10) || ',       '", "COLS").forEach(function(l){ q.push(l); });
+  if(difOnly){
+    aggCte("T_DIF",
+           "RPAD('DECODE(" + p.A + ".'||COLUMN_NAME||',', (SELECT MAX(LENGTH(COLUMN_NAME)) + 11 FROM DIFC))\n" +
+           "                             || RPAD('" + p.B + ".'||COLUMN_NAME||',', (SELECT MAX(LENGTH(COLUMN_NAME)) + 4 FROM DIFC))\n" +
+           "                             || '1, 0) = 0'",
+           "CHR(10) || 'OR      '", "DIFC").forEach(function(l){ q.push(l); });
+  }
 
   q.push("SELECT TO_CLOB('MERGE INTO ') || " + tabRef + " || ' " + p.A + "'   || CHR(10) ||");
   q.push("       'USING   ('                                            || CHR(10) ||");
   q.push("       '            SELECT  ' || (SELECT T FROM T_SEL)        || CHR(10) ||");
   q.push("       '            FROM    ' || " + srcRef + "               || CHR(10) ||");
   if(copyCol && p.fromVal !== ""){
-    q.push("       '            WHERE   ' || RPAD(" + sq(copyCol) + ", " + W_ON + ") || '=   ' || " + sq(lit(p.fromVal)) + " || CHR(10) ||");
+    q.push("       '            WHERE   ' || RPAD(" + sq(copyCol) + ", " + Math.max(W_ON, copyCol.length + 1) + ") || '=   ' || " + sq(lit(p.fromVal)) + " || CHR(10) ||");
     if(p.addWhere) q.push("       '            AND     " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
   }else if(p.addWhere){
     q.push("       '            WHERE   " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
@@ -523,6 +601,12 @@ function buildAuto(){
   q.push("       'WHEN MATCHED THEN'                                    || CHR(10) ||");
   q.push("       'UPDATE'                                               || CHR(10) ||");
   q.push("       'SET     ' || (SELECT T FROM T_SET)                    || CHR(10) ||");
+  if(difOnly){
+    // CASE 의 가지는 자료형이 같아야 한다. 한쪽만 CLOB 이면 ORA-00932.
+    q.push("       CASE WHEN (SELECT T FROM T_DIF) IS NULL THEN TO_CLOB('')");
+    q.push("            ELSE TO_CLOB('WHERE   ') || (SELECT T FROM T_DIF) || CHR(10)");
+    q.push("       END                                                  ||");
+  }
   q.push("       'WHEN NOT MATCHED THEN'                                || CHR(10) ||");
   q.push("       'INSERT'                                               || CHR(10) ||");
   q.push("       '('                                                    || CHR(10) ||");
@@ -534,6 +618,10 @@ function buildAuto(){
   q.push("       ')'                                                    || CHR(10) ||");
   q.push("       ';'   AS MERGE_SQL");
   q.push("  FROM DUAL;");
+  return q;
+  }
+
+  var q = one(difOnly);
 
   var n = [];
   n.push(p.keys.length
@@ -544,6 +632,12 @@ function buildAuto(){
     n.push("DBeaver에서는 결과 칸을 누르고 Shift+Enter를 누르면 값 편집기가 열려 전체가 보입니다. 칸 안에서는 한 줄로만 보입니다.");
   }else{
     n.push("LISTAGG는 결과가 4000바이트를 넘으면 ORA-01489가 납니다. 컬럼이 많으면 위 XMLAGG 옵션을 켜세요.");
+  }
+  if(difOnly){
+    n.push("UPDATE 절에 DECODE 비교 조건이 붙습니다. 값이 실제로 다른 행만 갱신하고, 없는 행은 그대로 INSERT 합니다.");
+    if(exclCmp.length) n.push("변경 여부를 볼 때 뺀 컬럼: " + exclCmp.join(", ") + " · 이 컬럼만 달라진 행은 그냥 둡니다.");
+  }else{
+    n.push("짝이 맞으면 값이 같아도 갱신하는 형태입니다. 변경분만 갱신하려면 '변경분 생성 쿼리' 탭을 쓰세요.");
   }
   n.push("컬럼이 아주 많거나 이 쿼리가 번거로우면 '바로 실행' 탭을 쓰세요. 만드는 것부터 실행까지 한 번에 합니다.");
   if(!owner) n.push("스키마를 비우셔서 OWNER 조건에 USER를 썼습니다. 다른 계정 소유 테이블이면 스키마를 넣어 주세요.");
@@ -571,6 +665,7 @@ function buildRun(){
   q.push("    c_copy_col CONSTANT VARCHAR2(128)  := " + (copyCol ? sq(copyCol) : "NULL") + ";        -- 값을 바꿀 컬럼");
   q.push("    c_from     CONSTANT VARCHAR2(400)  := " + sq(lit(p.fromVal)) + ";        -- 기준 값");
   q.push("    c_to       CONSTANT VARCHAR2(400)  := " + sq(lit(p.toVal)) + ";        -- 대상 값");
+  q.push("    c_diff_only CONSTANT BOOLEAN       := TRUE;    -- TRUE 면 값이 다른 행만 갱신, FALSE 면 전체 갱신");
   q.push("    c_execute  CONSTANT BOOLEAN        := FALSE;   -- TRUE 로 바꾸면 실제로 반영합니다");
   q.push("    c_commit   CONSTANT BOOLEAN        := FALSE;   -- TRUE 면 성공 후 COMMIT");
   q.push("");
@@ -578,9 +673,17 @@ function buildRun(){
          (p.keys.length ? p.keys.map(function(k){ return sq(k.toUpperCase()); }).join(", ") : "") + ");");
   q.push("    v_skip  SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(" +
          (p.exclUpd.length ? p.exclUpd.map(function(c){ return sq(c.toUpperCase()); }).join(", ") : "") + ");  -- UPDATE 제외");
-  q.push("    v_sql   CLOB;  v_sel CLOB;  v_on CLOB;  v_set CLOB;  v_ins CLOB;  v_val CLOB;");
+  var difOnly = true;
+  var exclCmp = parseCols($("exclCmp").value);
+  if(difOnly){
+    q.push("    v_nodif SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(" +
+           (exclCmp.length ? exclCmp.map(function(c){ return sq(c.toUpperCase()); }).join(", ") : "") + ");  -- 변경 비교 제외");
+  }
+  q.push("    v_sql   CLOB;  v_sel CLOB;  v_on CLOB;  v_set CLOB;  v_ins CLOB;  v_val CLOB;" + (difOnly ? "  v_dif CLOB;" : ""));
   q.push("    v_expr  VARCHAR2(4000);");
-  q.push("    v_iskey BOOLEAN;  v_isskip BOOLEAN;");
+  q.push("    v_iskey BOOLEAN;  v_isskip BOOLEAN;" + (difOnly ? "  v_isnodif BOOLEAN;" : ""));
+  q.push("    v_ws    PLS_INTEGER;  v_wo PLS_INTEGER;  v_wu PLS_INTEGER;");
+  if(difOnly) q.push("    v_w1    PLS_INTEGER;  v_w2 PLS_INTEGER;");
   q.push("    v_pos   PLS_INTEGER;  v_nl PLS_INTEGER;  v_rows PLS_INTEGER;");
   q.push("BEGIN");
   q.push("");
@@ -604,6 +707,19 @@ function buildRun(){
   q.push("        RAISE_APPLICATION_ERROR(-20001, c_table || ' 에서 키를 찾지 못했습니다. v_keys 에 직접 넣어 주세요.');");
   q.push("    END IF;");
   q.push("");
+  q.push("    -- 컬럼명이 길면 RPAD 가 잘라내므로 정렬 폭을 먼저 구합니다.");
+  q.push("    SELECT GREATEST(" + W_SEL + ", MAX(LENGTH(COLUMN_NAME)) + 1)");
+  q.push("         , GREATEST(" + W_ON  + ", MAX(LENGTH(COLUMN_NAME)) + " + (p.A.length + 2) + ")");
+  q.push("         , GREATEST(" + W_SET + ", MAX(LENGTH(COLUMN_NAME)) + " + (p.A.length + 2) + ")");
+  if(difOnly){
+    q.push("         , MAX(LENGTH(COLUMN_NAME)) + " + (p.A.length + 10));
+    q.push("         , MAX(LENGTH(COLUMN_NAME)) + " + (p.B.length + 3));
+  }
+  q.push("      INTO v_ws, v_wo, v_wu" + (difOnly ? ", v_w1, v_w2" : ""));
+  q.push("      FROM ALL_TAB_COLUMNS");
+  q.push("     WHERE OWNER      = c_owner");
+  q.push("       AND TABLE_NAME = c_src;");
+  q.push("");
   q.push("    -- 2. 컬럼을 돌면서 각 절을 만듭니다.");
   q.push("    FOR c IN ( SELECT COLUMN_NAME");
   q.push("                 FROM ALL_TAB_COLUMNS");
@@ -619,6 +735,12 @@ function buildRun(){
   q.push("        FOR i IN 1 .. v_skip.COUNT LOOP");
   q.push("            IF v_skip(i) = c.COLUMN_NAME THEN v_isskip := TRUE; END IF;");
   q.push("        END LOOP;");
+  if(difOnly){
+    q.push("        v_isnodif := FALSE;");
+    q.push("        FOR i IN 1 .. v_nodif.COUNT LOOP");
+    q.push("            IF v_nodif(i) = c.COLUMN_NAME THEN v_isnodif := TRUE; END IF;");
+    q.push("        END LOOP;");
+  }
   q.push("");
   q.push("        -- 바꿀 컬럼은 대상 값으로, 나머지는 원본 컬럼 그대로");
   q.push("        v_expr := CASE WHEN c_copy_col IS NOT NULL AND c.COLUMN_NAME = c_copy_col");
@@ -632,7 +754,7 @@ function buildRun(){
   q.push("");
   q.push("        v_sel := v_sel || CASE WHEN v_sel IS NULL THEN '            SELECT  '");
   q.push("                               ELSE CHR(10) || '            ,       ' END");
-  q.push("                       || RPAD(v_expr, " + W_SEL + ") || 'AS ' || c.COLUMN_NAME;");
+  q.push("                       || RPAD(v_expr, GREATEST(v_ws, LENGTH(v_expr) + 1)) || 'AS ' || c.COLUMN_NAME;");
   q.push("");
   q.push("        v_ins := v_ins || CASE WHEN v_ins IS NULL THEN '        ' ELSE CHR(10) || ',       ' END");
   q.push("                       || " + ia + "c.COLUMN_NAME;");
@@ -642,11 +764,21 @@ function buildRun(){
   q.push("        IF v_iskey THEN");
   q.push("            v_on  := v_on  || CASE WHEN v_on IS NULL THEN 'ON      (           '");
   q.push("                                   ELSE CHR(10) || '        AND         ' END");
-  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, " + W_ON + ") || '=   " + p.B + ".' || c.COLUMN_NAME;");
+  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, v_wo) || '=   " + p.B + ".' || c.COLUMN_NAME;");
   q.push("        ELSIF NOT v_isskip THEN");
   q.push("            v_set := v_set || CASE WHEN v_set IS NULL THEN 'SET     ' ELSE CHR(10) || ',       ' END");
-  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, " + W_SET + ") || '=   " + p.B + ".' || c.COLUMN_NAME;");
+  q.push("                           || RPAD('" + p.A + ".' || c.COLUMN_NAME, v_wu) || '=   " + p.B + ".' || c.COLUMN_NAME;");
   q.push("        END IF;");
+  if(difOnly){
+    q.push("");
+    q.push("        -- 값이 바뀌었는지 볼 컬럼");
+    q.push("        IF NOT v_iskey AND NOT v_isnodif THEN");
+    q.push("            v_dif := v_dif || CASE WHEN v_dif IS NULL THEN 'WHERE   ' ELSE CHR(10) || 'OR      ' END");
+    q.push("                           || RPAD('DECODE(" + p.A + ".' || c.COLUMN_NAME || ',', v_w1)");
+    q.push("                           || RPAD('" + p.B + ".' || c.COLUMN_NAME || ',', v_w2)");
+    q.push("                           || '1, 0) = 0';");
+    q.push("        END IF;");
+  }
   q.push("    END LOOP;");
   q.push("");
   q.push("    IF v_on IS NULL THEN");
@@ -659,7 +791,7 @@ function buildRun(){
   q.push("          || v_sel                                                || CHR(10)");
   q.push("          || '            FROM    ' || c_owner || '.' || c_src    || CHR(10)");
   if(copyCol && p.fromVal !== ""){
-    q.push("          || '            WHERE   ' || RPAD(c_copy_col, " + W_ON + ") || '=   ' || c_from || CHR(10)");
+    q.push("          || '            WHERE   ' || RPAD(c_copy_col, GREATEST(" + W_ON + ", LENGTH(c_copy_col) + 1)) || '=   ' || c_from || CHR(10)");
   }else{
     q.push("          || '            WHERE   1 = 1'                              || CHR(10)");
   }
@@ -670,6 +802,7 @@ function buildRun(){
   q.push("          || 'WHEN MATCHED THEN'                                  || CHR(10)");
   q.push("          || 'UPDATE'                                             || CHR(10)");
   q.push("          || v_set                                                || CHR(10)");
+  if(difOnly) q.push("          || CASE WHEN c_diff_only AND v_dif IS NOT NULL THEN v_dif || CHR(10) ELSE NULL END");
   q.push("          || 'WHEN NOT MATCHED THEN'                              || CHR(10)");
   q.push("          || 'INSERT'                                             || CHR(10)");
   q.push("          || '('                                                  || CHR(10)");
@@ -710,6 +843,7 @@ function buildRun(){
   return {
     sql: q.join("\n"),
     notes: [
+      "c_diff_only 로 두 방식을 오갑니다. TRUE 면 값이 다른 행만 갱신하고, FALSE 면 짝이 맞는 행을 모두 갱신합니다. 없는 행 INSERT는 양쪽 다 같습니다.",
       "처음 실행하면 c_execute 가 FALSE라 만들어진 문장만 화면에 찍히고 아무것도 바뀌지 않습니다.",
       "CLOB로 붙이므로 컬럼이 수백 개여도 LISTAGG의 4000바이트 제한에 걸리지 않습니다.",
       "EXECUTE IMMEDIATE로 도는 동적 SQL이라 실행 계정이 테이블 권한을 롤이 아닌 직접 부여로 가지고 있어야 합니다."
@@ -761,6 +895,264 @@ ownerLine,
   return { sql:q.join("\n"), notes:["복제 전후 건수를 비교하면 빠진 행이 있는지 바로 보입니다."] };
 }
 
+/* ── 비교 쿼리 ────────────────────────────────────── */
+
+// 기준 값 쪽과 대상 값 쪽을 나머지 키로 짝지은 뒤,
+// 값이 다른 컬럼만 세로로 펼쳐 보여줍니다.
+function diffParts(){
+  var p = readInput();
+  var keys = p.keys.slice();
+  if(!keys.length && p.copyCol) keys = [p.copyCol];
+  var exclCmp = parseCols($("exclCmp").value);
+  var jkeys = keys.filter(function(k){
+    return !p.copyCol || k.toUpperCase() !== p.copyCol.toUpperCase();
+  });
+  var cmpCols = p.cols.filter(function(c){ return !has(keys,c) && !has(exclCmp,c); });
+  return { p:p, keys:keys, jkeys:jkeys, exclCmp:exclCmp, cmpCols:cmpCols };
+}
+
+function buildDiff(){
+  var d = diffParts(), p = d.p, n = [];
+  if(!p.table) return { sql:"-- 테이블명을 넣으면 여기에 비교 쿼리가 나옵니다.", notes:[] };
+  if(!p.copyCol || p.fromVal === "" || p.toVal === ""){
+    return { sql:"-- 바꿀 컬럼과 기준 값, 대상 값을 넣어 주세요. 무엇과 무엇을 비교할지 정해야 합니다.", notes:[] };
+  }
+  if(!p.cols.length){
+    return {
+      sql: [
+        "-- 컬럼 목록을 붙여넣으면 완성된 비교 쿼리가 나옵니다.",
+        "--",
+        "-- 컬럼을 모르시면 '비교 생성 쿼리' 탭을 그대로 실행하세요.",
+        "-- 컬럼과 키를 읽어 같은 모양의 비교 쿼리를 만들어 줍니다."
+      ].join("\n"), notes:[]
+    };
+  }
+  if(!d.jkeys.length){
+    return { sql:"-- " + p.copyCol + " 말고 다른 키 컬럼이 있어야 두 쪽의 행을 짝지을 수 있습니다.\n-- 키 컬럼 칸에 나머지 키를 넣어 주세요.", notes:[] };
+  }
+  if(!d.cmpCols.length){
+    return { sql:"-- 키와 제외 컬럼을 빼고 나면 비교할 컬럼이 없습니다.", notes:[] };
+  }
+
+  var FK = d.jkeys[0];
+  var L = [];
+  L.push("-- 기준 " + p.copyCol + " = " + lit(p.fromVal) + " 과 대상 " + p.copyCol + " = " + lit(p.toVal) + " 의 값 차이를 찾습니다.");
+  L.push("-- 키(" + d.keys.join(", ") + ")와 제외 컬럼을 뺀 나머지만 비교합니다.");
+  L.push("WITH CMP AS (");
+
+  var head = [];
+  d.jkeys.forEach(function(k){ head.push(["NVL(A." + k + ", B." + k + ")", k]); });
+  d.cmpCols.forEach(function(c){
+    head.push(["TO_CHAR(A." + c + ")", "S_" + c]);
+    head.push(["TO_CHAR(B." + c + ")", "T_" + c]);
+  });
+  var wh = width(head.map(function(x){ return x[0]; }), 44);
+
+  L.push("    SELECT  " + pad(head[0][0], wh) + "AS " + head[0][1]);
+  L.push("    ,       CASE WHEN A." + FK + " IS NULL THEN '대상에만'");
+  L.push("                 WHEN B." + FK + " IS NULL THEN '기준에만'");
+  L.push("                 ELSE '양쪽'");
+  L.push("            " + pad("END", wh) + "AS ROW_GB");
+  head.slice(1).forEach(function(x){
+    L.push("    ,       " + pad(x[0], wh) + "AS " + x[1]);
+  });
+
+  L.push("    FROM    (   SELECT  *");
+  L.push("                FROM    " + p.SRC);
+  L.push("                WHERE   " + pad(p.copyCol, Math.max(W_ON, p.copyCol.length + 1)) + "=   " + lit(p.fromVal));
+  if(p.addWhere) L.push("                AND     " + p.addWhere);
+  L.push("            ) A");
+  L.push("    FULL OUTER JOIN");
+  L.push("            (   SELECT  *");
+  L.push("                FROM    " + p.SRC);
+  L.push("                WHERE   " + pad(p.copyCol, Math.max(W_ON, p.copyCol.length + 1)) + "=   " + lit(p.toVal));
+  if(p.addWhere) L.push("                AND     " + p.addWhere);
+  L.push("            ) B");
+  var wj = width(d.jkeys.map(function(k){ return "A." + k; }), W_ON);
+  d.jkeys.forEach(function(k, i){
+    L.push("    " + (i===0 ? "ON      " : "AND     ") + pad("A." + k, wj) + "=   B." + k);
+  });
+  L.push(")");
+
+  d.jkeys.forEach(function(k, i){ L.push((i===0 ? "SELECT  " : ",       ") + k); });
+  L.push(",       ROW_GB");
+  L.push(",       COL_NM");
+  L.push(",       SRC_VAL          -- " + p.copyCol + " = " + lit(p.fromVal));
+  L.push(",       TGT_VAL          -- " + p.copyCol + " = " + lit(p.toVal));
+  L.push("FROM    CMP");
+  L.push("UNPIVOT INCLUDE NULLS");
+  L.push("    (   ( SRC_VAL, TGT_VAL )");
+  L.push("        FOR COL_NM IN");
+
+  var wc = width(d.cmpCols.map(function(c){ return "S_" + c + ","; }), 0);
+  var wt = width(d.cmpCols.map(function(c){ return "T_" + c; }), 0);
+  d.cmpCols.forEach(function(c, i){
+    L.push("        " + (i===0 ? "(   " : ",   ") + "( " + pad("S_" + c + ",", wc) + pad("T_" + c, wt) + ") AS '" + c + "'");
+  });
+  L.push("        )");
+  L.push("    )");
+  L.push("WHERE   DECODE(SRC_VAL, TGT_VAL, 1, 0) = 0");
+  L.push("OR      ROW_GB <> '양쪽'          -- 한쪽에만 있는 행은 값이 비어도 보이게");
+  L.push("ORDER BY " + d.jkeys.join(", ") + ", COL_NM");
+  L.push(";");
+
+  n.push("차이가 나는 컬럼만 한 줄씩 나옵니다. 아무 행도 안 나오면 두 쪽이 같다는 뜻입니다.");
+  n.push("ROW_GB 가 '기준에만' 또는 '대상에만' 이면 한쪽에 없는 행입니다. 그 행은 모든 컬럼이 차이로 잡힙니다.");
+  n.push("DECODE 비교라 양쪽 다 NULL이면 같은 값으로 봅니다.");
+  if(d.exclCmp.length) n.push("비교에서 뺀 컬럼: " + d.exclCmp.join(", "));
+  n.push("UNPIVOT은 자료형이 같아야 해서 모두 TO_CHAR로 맞췄습니다. 날짜는 기본 형식 문자열로 비교됩니다.");
+  return { sql:L.join("\n"), notes:n };
+}
+
+/* ── 비교 생성 쿼리 ───────────────────────────────── */
+
+function buildDiffGen(){
+  var d = diffParts(), p = d.p;
+  var table    = (p.table || "TABLE_NAME").toUpperCase();
+  var srcTable = (p.srcTable || table).toUpperCase();
+  var owner    = (p.owner || "").toUpperCase();
+  var copyCol  = (p.copyCol || "").toUpperCase();
+  var useClob  = $("optClob").checked;
+  var ownerCond = owner ? "'" + owner + "'" : "USER";
+  var pre    = p.owner ? owner + "." : "";
+  var srcRef = sq(pre + srcTable);
+  var Q = "''";
+
+  if(!copyCol || p.fromVal === "" || p.toVal === ""){
+    return { sql:"-- 바꿀 컬럼과 기준 값, 대상 값을 넣어 주세요.", notes:[] };
+  }
+
+  function aggCte(name, expr, sep, from){
+    var trim = /CHR\(10\)/.test(sep)
+             ? "SUBSTR(V, 1, INSTR(V, CHR(10), -1) - 1)"
+             : "RTRIM(V, ', ')";
+    if(useClob) return [
+", " + pad(name, 6) + "AS (",
+"    SELECT " + trim + " AS T",
+"      FROM ( SELECT DBMS_XMLGEN.CONVERT(",
+"                        XMLAGG(XMLELEMENT(E, " + expr,
+"                                          || " + sep + ")",
+"                               ORDER BY COLUMN_ID",
+"                              ).EXTRACT('//text()').GETCLOBVAL(), 1) AS V",
+"               FROM " + from + " )",
+")"];
+    return [
+", " + pad(name, 6) + "AS (",
+"    SELECT LISTAGG(" + expr + ",",
+"                   " + sep + ")",
+"             WITHIN GROUP (ORDER BY COLUMN_ID) AS T",
+"      FROM " + from,
+")"];
+  }
+
+  var q = [];
+  q.push("-- 이 쿼리를 실행하면 '비교 쿼리'가 결과로 나옵니다.");
+  q.push("-- 기준 " + copyCol + " = " + lit(p.fromVal) + " 과 대상 " + copyCol + " = " + lit(p.toVal) + " 을 컬럼별로 맞춰 봅니다.");
+  q.push("");
+  q.push("WITH COLS AS (");
+  q.push("    SELECT COLUMN_NAME, COLUMN_ID");
+  q.push("      FROM ALL_TAB_COLUMNS");
+  q.push("     WHERE OWNER      = " + ownerCond);
+  q.push("       AND TABLE_NAME = " + sq(srcTable));
+  q.push(")");
+  q.push(", KEYS   AS (");
+  if(p.keys.length){
+    q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM COLS");
+    q.push("     WHERE COLUMN_NAME IN (" + p.keys.map(function(k){ return sq(k.toUpperCase()); }).join(", ") + ")");
+  }else{
+    q.push("    -- 기본키를 찾아 씁니다.");
+    q.push("    SELECT CC.COLUMN_NAME, CC.POSITION AS COLUMN_ID");
+    q.push("      FROM ALL_CONSTRAINTS AC");
+    q.push("         , ALL_CONS_COLUMNS CC");
+    q.push("     WHERE AC.OWNER           = CC.OWNER");
+    q.push("       AND AC.CONSTRAINT_NAME = CC.CONSTRAINT_NAME");
+    q.push("       AND AC.CONSTRAINT_TYPE = 'P'");
+    q.push("       AND AC.OWNER           = " + ownerCond);
+    q.push("       AND AC.TABLE_NAME      = " + sq(table));
+  }
+  q.push(")");
+  q.push(", JKEYS  AS (");
+  q.push("    -- 값을 바꾸는 컬럼은 짝짓기에서 뺍니다.");
+  q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM KEYS WHERE COLUMN_NAME <> " + sq(copyCol));
+  q.push(")");
+  q.push(", CMPC   AS (");
+  q.push("    -- 실제로 값을 비교할 컬럼");
+  q.push("    SELECT COLUMN_NAME, COLUMN_ID FROM COLS");
+  q.push("     WHERE COLUMN_NAME NOT IN (SELECT COLUMN_NAME FROM KEYS)");
+  if(d.exclCmp.length){
+    q.push("       AND COLUMN_NAME NOT IN (" + d.exclCmp.map(function(c){ return sq(c.toUpperCase()); }).join(", ") + ")");
+  }
+  q.push(")");
+  q.push(", FK     AS (");
+  q.push("    SELECT MIN(COLUMN_NAME) KEEP (DENSE_RANK FIRST ORDER BY COLUMN_ID) AS C FROM JKEYS");
+  q.push(")");
+
+  var wNvl = "GREATEST(44, (SELECT MAX(LENGTH(COLUMN_NAME)) * 2 + 12 FROM JKEYS))";
+  var wSel = "GREATEST(44, (SELECT MAX(LENGTH(COLUMN_NAME)) + 12 FROM CMPC))";
+  var wOn  = "GREATEST(" + W_ON + ", (SELECT MAX(LENGTH(COLUMN_NAME)) + 3 FROM JKEYS))";
+  var wUs  = "GREATEST(26, (SELECT MAX(LENGTH(COLUMN_NAME)) + 4 FROM CMPC))";
+  var wUt  = "GREATEST(25, (SELECT MAX(LENGTH(COLUMN_NAME)) + 3 FROM CMPC))";
+
+  aggCte("D_NVL", "RPAD('NVL(A.'||COLUMN_NAME||', B.'||COLUMN_NAME||')', " + wNvl + ") || 'AS ' || COLUMN_NAME",
+         "CHR(10) || '    ,       '", "JKEYS").forEach(function(l){ q.push(l); });
+  aggCte("D_SEL",
+         "'    ,       ' || RPAD('TO_CHAR(A.'||COLUMN_NAME||')', " + wSel + ") || 'AS S_' || COLUMN_NAME",
+         "CHR(10) || '    ,       ' || RPAD('TO_CHAR(B.'||COLUMN_NAME||')', " + wSel + ") || 'AS T_' || COLUMN_NAME || CHR(10)",
+         "CMPC").forEach(function(l){ q.push(l); });
+  aggCte("D_ON", "RPAD('A.'||COLUMN_NAME, " + wOn + ") || '=   B.' || COLUMN_NAME",
+         "CHR(10) || '    AND     '", "JKEYS").forEach(function(l){ q.push(l); });
+  aggCte("D_KEY", "COLUMN_NAME", "CHR(10) || ',       '", "JKEYS").forEach(function(l){ q.push(l); });
+  aggCte("D_UNP", "'( ' || RPAD('S_'||COLUMN_NAME||',', " + wUs + ") || RPAD('T_'||COLUMN_NAME, " + wUt + ") || ') AS " + Q + "' || COLUMN_NAME || '" + Q + "'",
+         "CHR(10) || '        ,   '", "CMPC").forEach(function(l){ q.push(l); });
+  aggCte("D_ORD", "COLUMN_NAME", "', '", "JKEYS").forEach(function(l){ q.push(l); });
+
+  var FKC = "(SELECT C FROM FK)";
+  q.push("SELECT TO_CLOB('WITH CMP AS (')                             || CHR(10) ||");
+  q.push("       '    SELECT  ' || (SELECT T FROM D_NVL)              || CHR(10) ||");
+  q.push("       '    ,       CASE WHEN A.' || " + FKC + " || ' IS NULL THEN " + Q + "대상에만" + Q + "' || CHR(10) ||");
+  q.push("       '                 WHEN B.' || " + FKC + " || ' IS NULL THEN " + Q + "기준에만" + Q + "' || CHR(10) ||");
+  q.push("       '                 ELSE " + Q + "양쪽" + Q + "'                       || CHR(10) ||");
+  q.push("       '            END                                         AS ROW_GB' || CHR(10) ||");
+  q.push("       (SELECT T FROM D_SEL)                                || CHR(10) ||");
+  q.push("       '    FROM    (   SELECT  *'                          || CHR(10) ||");
+  q.push("       '                FROM    ' || " + srcRef + "         || CHR(10) ||");
+  q.push("       '                WHERE   ' || RPAD(" + sq(copyCol) + ", " + Math.max(W_ON, copyCol.length + 1) + ") || '=   ' || " + sq(lit(p.fromVal)) + " || CHR(10) ||");
+  if(p.addWhere) q.push("       '                AND     " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
+  q.push("       '            ) A'                                    || CHR(10) ||");
+  q.push("       '    FULL OUTER JOIN'                                || CHR(10) ||");
+  q.push("       '            (   SELECT  *'                          || CHR(10) ||");
+  q.push("       '                FROM    ' || " + srcRef + "         || CHR(10) ||");
+  q.push("       '                WHERE   ' || RPAD(" + sq(copyCol) + ", " + Math.max(W_ON, copyCol.length + 1) + ") || '=   ' || " + sq(lit(p.toVal)) + " || CHR(10) ||");
+  if(p.addWhere) q.push("       '                AND     " + p.addWhere.replace(/'/g,"''") + "'   || CHR(10) ||");
+  q.push("       '            ) B'                                    || CHR(10) ||");
+  q.push("       '    ON      ' || (SELECT T FROM D_ON)               || CHR(10) ||");
+  q.push("       ')'                                                  || CHR(10) ||");
+  q.push("       'SELECT  ' || (SELECT T FROM D_KEY)                  || CHR(10) ||");
+  q.push("       ',       ROW_GB'                                     || CHR(10) ||");
+  q.push("       ',       COL_NM'                                     || CHR(10) ||");
+  q.push("       ',       SRC_VAL'                                    || CHR(10) ||");
+  q.push("       ',       TGT_VAL'                                    || CHR(10) ||");
+  q.push("       'FROM    CMP'                                        || CHR(10) ||");
+  q.push("       'UNPIVOT INCLUDE NULLS'                              || CHR(10) ||");
+  q.push("       '    (   ( SRC_VAL, TGT_VAL )'                       || CHR(10) ||");
+  q.push("       '        FOR COL_NM IN'                              || CHR(10) ||");
+  q.push("       '        (   ' || (SELECT T FROM D_UNP)              || CHR(10) ||");
+  q.push("       '        )'                                          || CHR(10) ||");
+  q.push("       '    )'                                              || CHR(10) ||");
+  q.push("       'WHERE   DECODE(SRC_VAL, TGT_VAL, 1, 0) = 0'         || CHR(10) ||");
+  q.push("       'OR      ROW_GB <> " + Q + "양쪽" + Q + "'                            || CHR(10) ||");
+  q.push("       'ORDER BY ' || (SELECT T FROM D_ORD) || ', COL_NM'   || CHR(10) ||");
+  q.push("       ';'   AS DIFF_SQL");
+  q.push("  FROM DUAL;");
+
+  var n = [];
+  n.push("결과로 나온 비교 쿼리를 다시 실행하면 값이 다른 컬럼만 한 줄씩 나옵니다.");
+  n.push(copyCol + " 는 짝짓기에서 빠지고 나머지 키로 두 쪽 행을 맞춥니다. 나머지 키가 없으면 결과가 비어 나옵니다.");
+  if(d.exclCmp.length) n.push("비교에서 뺀 컬럼: " + d.exclCmp.join(", "));
+  n.push("컬럼명이 26자를 넘으면 S_ · T_ 를 붙인 별칭이 30자를 넘겨 구버전에서 ORA-00972가 날 수 있습니다.");
+  return { sql:q.join("\n"), notes:n };
+}
+
 /* ── 키 추정 ──────────────────────────────────────── */
 
 function guessKeys(){
@@ -795,7 +1187,7 @@ function guessKeys(){
 
 /* ── 렌더 ─────────────────────────────────────────── */
 
-var KW = /(--[^\n]*)|('(?:''|[^'])*')|\b(MERGE|INTO|USING|ON|WHEN|MATCHED|NOT|THEN|UPDATE|SET|INSERT|VALUES|SELECT|FROM|WHERE|AND|OR|DELETE|COMMIT|WITH|AS|ORDER|GROUP|BY|UNION|ALL|COUNT|EXISTS|DUAL|DECODE|LISTAGG|WITHIN|CHR|RPAD|SYSDATE|TO_CHAR|USER|NULL|IN|IS|DECLARE|BEGIN|END|LOOP|IF|ELSE|ELSIF|FOR|EXIT|CASE|EXECUTE|IMMEDIATE|CONSTANT|BOOLEAN|TRUE|FALSE|VARCHAR2|CLOB|PLS_INTEGER|GREATEST|RAISE_APPLICATION_ERROR|SERVEROUTPUT|SIZE|UNLIMITED)\b/gi;
+var KW = /(--[^\n]*)|('(?:''|[^'])*')|\b(MERGE|INTO|USING|ON|WHEN|MATCHED|NOT|THEN|UPDATE|SET|INSERT|VALUES|SELECT|FROM|WHERE|AND|OR|DELETE|COMMIT|WITH|AS|ORDER|GROUP|BY|UNION|ALL|COUNT|EXISTS|DUAL|DECODE|LISTAGG|WITHIN|CHR|RPAD|SYSDATE|TO_CHAR|USER|NULL|IN|IS|DECLARE|BEGIN|END|LOOP|IF|ELSE|ELSIF|FOR|EXIT|CASE|FULL|OUTER|JOIN|UNPIVOT|INCLUDE|NULLS|NVL|MIN|KEEP|DENSE_RANK|FIRST|ROWNUM|SUBSTR|INSTR|XMLAGG|XMLELEMENT|EXTRACT|GETCLOBVAL|TO_CLOB|EXECUTE|IMMEDIATE|CONSTANT|BOOLEAN|TRUE|FALSE|VARCHAR2|CLOB|PLS_INTEGER|GREATEST|RAISE_APPLICATION_ERROR|SERVEROUTPUT|SIZE|UNLIMITED)\b/gi;
 
 function highlight(line){
   return esc(line).replace(KW, function(m, c, s, k){
@@ -819,7 +1211,10 @@ function render(){
 
 function generate(){
   var m = buildMerge();  out.merge = m.sql;  notes.merge = m.notes;
-  var a = buildAuto();   out.auto = a.sql;   notes.auto = a.notes;
+  var a = buildAuto(false);  out.auto = a.sql;          notes.auto = a.notes;
+  var ad = buildAuto(true);  out.autodiff = ad.sql;    notes.autodiff = ad.notes;
+  var d = buildDiff();    out.diff = d.sql;       notes.diff = d.notes;
+  var dg = buildDiffGen(); out.diffgen = dg.sql;   notes.diffgen = dg.notes;
   var r = buildRun();    out.run = r.sql;    notes.run = r.notes;
   var h = buildHelper(); out.helper = h.sql; notes.helper = h.notes;
   render();
@@ -827,8 +1222,8 @@ function generate(){
 
 /* ── 동작 연결 ────────────────────────────────────── */
 
-var FIELDS = ["owner","table","srcTable","copyCol","fromVal","toVal","addWhere","keyCols","allCols","fixedVals","exclUpd","aliasT","aliasS"];
-var OPTS   = ["optClob","optQuote","optInsAlias","optUpper","optCommit"];
+var FIELDS = ["owner","table","srcTable","copyCol","fromVal","toVal","addWhere","keyCols","allCols","fixedVals","exclUpd","exclCmp","aliasT","aliasS"];
+var OPTS   = ["optBoth","optClob","optQuote","optInsAlias","optUpper","optCommit"];
 
 document.querySelectorAll(".tab").forEach(function(b){
   b.addEventListener("click", function(){
@@ -871,6 +1266,7 @@ $("btnSample").addEventListener("click", function(){
   $("allCols").value  = "STORE_CD\nENVST_CD\nENVST_VAL\nDIRCT_IN_YN\nUSE_YN\nREG_DT\nREG_ID\nMOD_DT\nMOD_ID";
   $("fixedVals").value = "REG_DT=TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), REG_ID='SYSTEM', MOD_DT=TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), MOD_ID='SYSTEM'";
   $("exclUpd").value  = "REG_DT, REG_ID";
+  $("exclCmp").value  = "REG_DT, REG_ID, MOD_DT, MOD_ID";
   generate();
 });
 

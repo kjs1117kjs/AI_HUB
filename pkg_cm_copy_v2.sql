@@ -81,6 +81,23 @@
    중복 차단이 새어나갑니다. 이 경우 경고를 찍습니다.
 
    ---------------------------------------------------------------------------
+   [ 실행 전에 보는 것 ]
+
+   전부 SELECT 만 합니다. 데이터를 건드리지 않습니다.
+
+     SP_CHECK_ENV   권한 · 감사컬럼 타입 · 뿌리 행 · 키 상태
+     SP_KEY_REPORT  테이블별로 어떤 키를 중복 판단에 쓸지
+     SP_DIFF        원본과 대상의 컬럼 차이, 타입 · 길이 불일치
+     SP_REF_CHECK   원본이 참조하는 값이 대상에 있는지 (FK 기준)
+
+     G_PREVIEW_YN='Y' 로 두고 SP_HQ2HQ 등을 부르면 실제로 넣지 않고
+     테이블별 예상 건수만 셉니다.
+
+         -- 예상 : 원본  3,412 / 대상 현재      0 / 신규  3,412 / 이미있음      0
+         --        S 모드 -> 3,412 건 INSERT
+         --        나눠담기 1000 건씩 -> 약 4 회 반복
+
+   ---------------------------------------------------------------------------
    [ 실행되는 쿼리 확인 ]
 
    G_EXEC_YN='N' 이면 조립한 SQL 을 출력만 합니다. 출력이 길어 화면에서 잘리면
@@ -127,6 +144,7 @@ CREATE OR REPLACE PACKAGE PKG_CM_COPY_V2 AS
     G_PRINT_SQL   CHAR(1)       := 'Y';        /* 조립한 SQL 출력           */
     G_PROD_FILTER CHAR(1)       := 'Y';        /* 본사->매장 상품 매핑 필터 */
     G_DT_FMT      VARCHAR2(30)  := 'YYYYMMDDHH24MISS';
+    G_PREVIEW_YN  CHAR(1)       := 'N';        /* Y = 건수만 세고 끝냄       */
     G_LOG_YN      CHAR(1)       := 'Y';        /* 출력을 메모리에도 보관     */
     G_LOG_MAX     PLS_INTEGER   := 50000;      /* 보관 줄 수 상한            */
 
@@ -160,6 +178,13 @@ CREATE OR REPLACE PACKAGE PKG_CM_COPY_V2 AS
     PROCEDURE SP_BACKUP    ( PI_KEY_COL IN VARCHAR2
                            , PI_KEY_VAL IN VARCHAR2
                            , PI_SUFFIX  IN VARCHAR2
+                           , PI_TABLES  IN SYS.ODCIVARCHAR2LIST );
+
+    /* 참조 점검 : 복사할 원본이 참조하는 값이 대상에 있는지 (FK 기준)
+       같은 테이블끼리 복사(HQ->HQ, MS->MS)에서만 뜻이 있습니다. */
+    PROCEDURE SP_REF_CHECK ( PI_KEY_COL IN VARCHAR2
+                           , PI_SRC_KEY IN VARCHAR2
+                           , PI_TGT_KEY IN VARCHAR2
                            , PI_TABLES  IN SYS.ODCIVARCHAR2LIST );
 
     /* 검증 : 원본 / 대상 건수 비교 */
@@ -342,6 +367,84 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         WHEN OTHERS THEN
             RETURN -1;
     END FN_CNT;
+
+
+    FUNCTION FN_CNT_SQL( PI_SQL IN CLOB ) RETURN PLS_INTEGER IS
+        V_CNT NUMBER := -1;
+    BEGIN
+        EXECUTE IMMEDIATE PI_SQL INTO V_CNT;
+        RETURN V_CNT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            P('-- !! 건수 조회 실패 : ' || SQLERRM);
+            RETURN -1;
+    END FN_CNT_SQL;
+
+
+    FUNCTION FN_N( PI_N IN PLS_INTEGER ) RETURN VARCHAR2 IS
+    BEGIN
+        IF PI_N IS NULL OR PI_N < 0 THEN RETURN '?'; END IF;
+        RETURN TRIM(TO_CHAR(PI_N, 'FM999,999,999,999'));
+    END FN_N;
+
+
+    /* 컬럼 타입 표기 : VARCHAR2(50) · NUMBER(10,2) 형태 */
+    FUNCTION FN_TYPE_TXT( PI_TYPE IN VARCHAR2
+                        , PI_LEN  IN NUMBER
+                        , PI_P    IN NUMBER
+                        , PI_S    IN NUMBER ) RETURN VARCHAR2 IS
+    BEGIN
+        IF PI_TYPE IN ('CHAR','VARCHAR2','NCHAR','NVARCHAR2') THEN
+            RETURN PI_TYPE || '(' || TO_CHAR(PI_LEN) || ')';
+        ELSIF PI_TYPE = 'NUMBER' AND PI_P IS NOT NULL THEN
+            RETURN PI_TYPE || '(' || TO_CHAR(PI_P)
+                 || CASE WHEN NVL(PI_S,0) > 0 THEN ',' || TO_CHAR(PI_S) ELSE '' END || ')';
+        END IF;
+        RETURN PI_TYPE;
+    END FN_TYPE_TXT;
+
+
+    /* 같은 이름인데 타입이 다르거나 대상이 더 좁은 컬럼을 찾습니다.
+       그대로 두면 실행 중 ORA-12899 / ORA-01438 로 죽습니다. */
+    FUNCTION FN_TYPE_WARN( PI_SRC_TABLE IN VARCHAR2
+                         , PI_TGT_TABLE IN VARCHAR2
+                         , PI_PRINT     IN BOOLEAN DEFAULT TRUE )
+    RETURN PLS_INTEGER IS
+        V_CNT PLS_INTEGER := 0;
+    BEGIN
+        IF PI_SRC_TABLE = PI_TGT_TABLE THEN RETURN 0; END IF;
+
+        FOR C IN ( SELECT S.COLUMN_NAME
+                        , S.DATA_TYPE AS S_TYPE, S.CHAR_LENGTH AS S_LEN
+                        , S.DATA_PRECISION AS S_P, S.DATA_SCALE AS S_S
+                        , T.DATA_TYPE AS T_TYPE, T.CHAR_LENGTH AS T_LEN
+                        , T.DATA_PRECISION AS T_P, T.DATA_SCALE AS T_S
+                     FROM ALL_TAB_COLUMNS S
+                        , ALL_TAB_COLUMNS T
+                    WHERE S.OWNER       = G_OWNER
+                      AND S.TABLE_NAME  = PI_SRC_TABLE
+                      AND T.OWNER       = G_OWNER
+                      AND T.TABLE_NAME  = PI_TGT_TABLE
+                      AND T.COLUMN_NAME = S.COLUMN_NAME
+                      AND ( S.DATA_TYPE <> T.DATA_TYPE
+                         OR ( S.DATA_TYPE IN ('CHAR','VARCHAR2','NCHAR','NVARCHAR2')
+                              AND NVL(T.CHAR_LENGTH,0) < NVL(S.CHAR_LENGTH,0) )
+                         OR ( S.DATA_TYPE = 'NUMBER'
+                              AND NVL(T.DATA_PRECISION,38) < NVL(S.DATA_PRECISION,38) ) )
+                    ORDER BY S.COLUMN_ID )
+        LOOP
+            V_CNT := V_CNT + 1;
+            IF PI_PRINT THEN
+                P('-- !! 타입 : ' || RPAD(C.COLUMN_NAME, 30)
+                  || RPAD(FN_TYPE_TXT(C.S_TYPE, C.S_LEN, C.S_P, C.S_S), 18)
+                  || ' -> ' || RPAD(FN_TYPE_TXT(C.T_TYPE, C.T_LEN, C.T_P, C.T_S), 18)
+                  || CASE WHEN C.S_TYPE = C.T_TYPE THEN '<< 대상이 좁음. 잘리면 실패'
+                          ELSE '<< 타입 다름. 변환 실패 가능' END);
+            END IF;
+        END LOOP;
+
+        RETURN V_CNT;
+    END FN_TYPE_WARN;
 
 
     FUNCTION FN_DT_EXPR( PI_TABLE IN VARCHAR2, PI_COL IN VARCHAR2 )
@@ -601,8 +704,11 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
                                        ELSE '' END);
         P('/*  처리 테이블   : ' || G_TOT_TAB);
         P('/*  건너뛴 테이블 : ' || G_TOT_SKIP);
-        P('/*  처리 건수     : ' || G_TOT_ROW
-                                || CASE WHEN G_EXEC_YN = 'N' THEN '   (미실행)' ELSE '' END);
+        P('/*  ' || CASE WHEN G_PREVIEW_YN = 'Y' THEN '예상 건수     : ' ELSE '처리 건수     : ' END
+                  || G_TOT_ROW
+                  || CASE WHEN G_PREVIEW_YN = 'Y' THEN '   (세어만 봤습니다)'
+                          WHEN G_EXEC_YN = 'N'    THEN '   (미실행)'
+                          ELSE '' END);
         P('/*  오류          : ' || G_TOT_ERR);
         P('/* ---------------------------------------------------------- */');
         IF G_TOT_ERR > 0 THEN
@@ -770,6 +876,10 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         V_CNT     PLS_INTEGER := 0;
         V_SUM     PLS_INTEGER := 0;
         V_SKIP    VARCHAR2(1000);
+        V_BASE    CLOB;
+        V_SRCCNT  PLS_INTEGER;
+        V_NEWCNT  PLS_INTEGER;
+        V_TGTCNT  PLS_INTEGER;
     BEGIN
         P('/* ---- ' || V_LABEL || '  [' || G_MODE || '] ---- */');
 
@@ -880,6 +990,13 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
             P('--           SP_MAP_ADD 로 지정하지 않으면 INSERT 가 실패합니다.');
         END IF;
 
+        /* 3-1. 타입 · 길이 검사 (이종 테이블일 때만) */
+        V_CNT := FN_TYPE_WARN(PI_SRC_TABLE, PI_TGT_TABLE);
+        IF V_CNT > 0 THEN
+            P('--           위 ' || V_CNT || ' 개 컬럼은 값이 길면 INSERT 가 실패합니다.');
+        END IF;
+        V_CNT := 0;
+
         /* 4. FROM / WHERE */
         V_FROM := G_OWNER || '.' || PI_SRC_TABLE || ' s' || G_EXTRA_FROM;
 
@@ -888,6 +1005,62 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
                      ELSE 's."' || PI_SRC_KEY_COL || '" = ' || FN_Q(PI_SRC_KEY) END
              || CASE WHEN PI_EXTRA_WH IS NOT NULL
                      THEN CHR(10) || '   AND ' || PI_EXTRA_WH ELSE '' END;
+
+        /* 4-1. 예상 건수만 보고 끝낸다 (SELECT 만 합니다) */
+        IF G_PREVIEW_YN = 'Y' THEN
+            V_BASE := 'FROM ' || V_FROM || CHR(10) || V_WH;
+
+            V_SRCCNT := FN_CNT_SQL('SELECT COUNT(*) ' || V_BASE);
+            V_TGTCNT := FN_CNT(PI_TGT_TABLE,
+                               '"' || PI_TGT_KEY_COL || '" = ' || FN_Q(PI_TGT_KEY));
+
+            V_NEWCNT := -1;
+            IF V_PK IS NOT NULL AND V_PK.COUNT > 0 THEN
+                V_PKCOND := NULL;
+                FOR I IN 1 .. V_PK.COUNT LOOP
+                    V_PKCOND := V_PKCOND || CHR(10)
+                             || '                       AND x."' || V_PK(I) || '" = '
+                             || FN_EXPR(PI_SRC_TABLE, PI_TGT_TABLE, V_PK(I),
+                                        PI_TGT_KEY_COL, PI_TGT_KEY);
+                END LOOP;
+
+                V_NEWCNT := FN_CNT_SQL('SELECT COUNT(*) ' || V_BASE || CHR(10)
+                         || '   AND NOT EXISTS ( SELECT 1' || CHR(10)
+                         || '                      FROM ' || G_OWNER || '.' || PI_TGT_TABLE || ' x' || CHR(10)
+                         || '                     WHERE 1 = 1' || V_PKCOND || CHR(10)
+                         || '                   )');
+            END IF;
+
+            P('-- 예상 : 원본 ' || LPAD(FN_N(V_SRCCNT), 10)
+              || ' / 대상 현재 ' || LPAD(FN_N(V_TGTCNT), 10)
+              || CASE WHEN V_NEWCNT >= 0
+                      THEN ' / 신규 ' || LPAD(FN_N(V_NEWCNT), 10)
+                        || ' / 이미있음 ' || LPAD(FN_N(V_SRCCNT - V_NEWCNT), 10)
+                      ELSE '' END);
+
+            IF G_MODE = 'S' THEN
+                V_SUM := GREATEST(NVL(V_NEWCNT, 0), 0);
+                P('--        S 모드 -> ' || FN_N(V_SUM) || ' 건 INSERT');
+                IF G_BATCH_SIZE > 0 AND V_SUM > 0 THEN
+                    P('--        나눠담기 ' || G_BATCH_SIZE || ' 건씩 -> 약 '
+                      || CEIL(V_SUM / G_BATCH_SIZE) || ' 회 반복');
+                END IF;
+            ELSIF G_MODE = 'M' THEN
+                P('--        M 모드 -> ' || FN_N(GREATEST(NVL(V_NEWCNT,0),0)) || ' 건 INSERT + '
+                  || FN_N(GREATEST(NVL(V_SRCCNT,0) - GREATEST(NVL(V_NEWCNT,0),0), 0)) || ' 건 UPDATE');
+                V_SUM := GREATEST(NVL(V_SRCCNT,0), 0);
+            ELSE
+                P('--        R 모드 -> ' || FN_N(V_TGTCNT) || ' 건 DELETE 후 '
+                  || FN_N(V_SRCCNT) || ' 건 INSERT');
+                V_SUM := GREATEST(NVL(V_SRCCNT,0), 0);
+            END IF;
+            P(' ');
+
+            G_TOT_TAB := G_TOT_TAB + 1;
+            G_TOT_ROW := G_TOT_ROW + V_SUM;
+            SP_MAP_CLEAR;
+            RETURN;
+        END IF;
 
         /* 5. 모드별 조립 */
         IF G_MODE = 'M' THEN
@@ -1115,6 +1288,119 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         END LOOP;
         P(' ');
     END SP_BACKUP;
+
+
+    /* ==================================================================
+       참조 점검
+
+       복사할 원본 행이 참조하는 값이 대상 쪽에 있는지 봅니다.
+       FK 제약을 읽어 자동으로 만듭니다. 예를 들어 TB_HQ_PRODUCT 의
+       HQ_BRAND_CD 가 가리키는 브랜드가 대상 본사에 없으면 여기서 잡힙니다.
+
+       같은 테이블끼리 복사(HQ->HQ, MS->MS)를 전제로 합니다.
+       부모의 키 컬럼은 대상 키값으로, 나머지는 자식의 값으로 맞춰 봅니다.
+       ================================================================== */
+    PROCEDURE SP_REF_CHECK( PI_KEY_COL IN VARCHAR2
+                          , PI_SRC_KEY IN VARCHAR2
+                          , PI_TGT_KEY IN VARCHAR2
+                          , PI_TABLES  IN SYS.ODCIVARCHAR2LIST )
+    IS
+        V_CCOLS  SYS.ODCIVARCHAR2LIST;
+        V_PCOLS  SYS.ODCIVARCHAR2LIST;
+        V_ON     VARCHAR2(4000);
+        V_NOTNUL VARCHAR2(4000);
+        V_SQL    CLOB;
+        V_CNT    PLS_INTEGER;
+        V_BAD    PLS_INTEGER := 0;
+        V_CHECKED PLS_INTEGER := 0;
+    BEGIN
+        P_HEAD('참조 점검   ' || PI_SRC_KEY || '  ->  ' || PI_TGT_KEY);
+        P('-- 원본이 참조하는 코드값이 대상에 있는지 FK 기준으로 봅니다.');
+        P('-- 없는 값이 있으면 복사 후 그 행은 붕 뜨거나 FK 위반이 납니다.');
+        P(' ');
+
+        FOR I IN 1 .. PI_TABLES.COUNT LOOP
+            IF FN_TAB_EXISTS(PI_TABLES(I)) THEN
+
+                FOR R IN ( SELECT C.CONSTRAINT_NAME AS CH_CONS
+                                , RC.CONSTRAINT_NAME AS PA_CONS
+                                , RC.TABLE_NAME      AS PARENT
+                             FROM ALL_CONSTRAINTS C
+                             JOIN ALL_CONSTRAINTS RC
+                               ON  RC.OWNER           = C.R_OWNER
+                               AND RC.CONSTRAINT_NAME = C.R_CONSTRAINT_NAME
+                            WHERE C.OWNER           = G_OWNER
+                              AND C.TABLE_NAME      = PI_TABLES(I)
+                              AND C.CONSTRAINT_TYPE = 'R'
+                              AND C.STATUS          = 'ENABLED'
+                            ORDER BY C.CONSTRAINT_NAME )
+                LOOP
+                    SELECT COLUMN_NAME BULK COLLECT INTO V_CCOLS
+                      FROM ALL_CONS_COLUMNS
+                     WHERE OWNER = G_OWNER AND CONSTRAINT_NAME = R.CH_CONS
+                     ORDER BY POSITION;
+
+                    SELECT COLUMN_NAME BULK COLLECT INTO V_PCOLS
+                      FROM ALL_CONS_COLUMNS
+                     WHERE OWNER = G_OWNER AND CONSTRAINT_NAME = R.PA_CONS
+                     ORDER BY POSITION;
+
+                    IF V_CCOLS.COUNT = V_PCOLS.COUNT AND V_CCOLS.COUNT > 0 THEN
+
+                        V_ON     := NULL;
+                        V_NOTNUL := NULL;
+
+                        FOR K IN 1 .. V_PCOLS.COUNT LOOP
+                            V_ON := V_ON || CHR(10) || '                       AND p."' || V_PCOLS(K) || '" = '
+                                 || CASE WHEN V_PCOLS(K) = PI_KEY_COL
+                                         THEN FN_Q(PI_TGT_KEY)
+                                         ELSE 's."' || V_CCOLS(K) || '"' END;
+
+                            IF V_CCOLS(K) <> PI_KEY_COL THEN
+                                V_NOTNUL := V_NOTNUL || CHR(10)
+                                         || '   AND s."' || V_CCOLS(K) || '" IS NOT NULL';
+                            END IF;
+                        END LOOP;
+
+                        V_SQL := 'SELECT COUNT(*)'                                     || CHR(10)
+                              || '  FROM ' || G_OWNER || '.' || PI_TABLES(I) || ' s'   || CHR(10)
+                              || ' WHERE s."' || PI_KEY_COL || '" = ' || FN_Q(PI_SRC_KEY)
+                              || V_NOTNUL                                              || CHR(10)
+                              || '   AND NOT EXISTS ( SELECT 1'                        || CHR(10)
+                              || '                      FROM ' || G_OWNER || '.' || R.PARENT || ' p' || CHR(10)
+                              || '                     WHERE 1 = 1' || V_ON            || CHR(10)
+                              || '                   )';
+
+                        V_CNT := FN_CNT_SQL(V_SQL);
+                        V_CHECKED := V_CHECKED + 1;
+
+                        IF V_CNT > 0 THEN
+                            V_BAD := V_BAD + 1;
+                            P('-- !! ' || RPAD(PI_TABLES(I), 34)
+                              || ' -> ' || RPAD(R.PARENT, 30)
+                              || FN_N(V_CNT) || ' 건이 대상에 없는 값을 참조합니다');
+                            P('--    참조 컬럼 : ' || FN_JOIN(V_CCOLS));
+                            IF G_PRINT_SQL = 'Y' THEN
+                                P('--    확인 : ');
+                                P_CLOB(V_SQL);
+                                P(';');
+                            END IF;
+                            P(' ');
+                        END IF;
+                    END IF;
+                END LOOP;
+            END IF;
+        END LOOP;
+
+        P(' ');
+        P('-- FK ' || V_CHECKED || ' 개 확인, 문제 ' || V_BAD || ' 건');
+        IF V_BAD = 0 THEN
+            P('-- 이상 없음. 참조하는 값이 모두 대상에 있습니다.');
+        ELSE
+            P('-- << 위 부모 테이블을 먼저 복사하거나 값을 만들어 두십시오.');
+        END IF;
+        P(' ');
+    END SP_REF_CHECK;
 
 
     PROCEDURE SP_VERIFY( PI_KEY_COL IN VARCHAR2
@@ -1425,7 +1711,9 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
     BEGIN
         SP_SUMMARY;
 
-        IF G_EXEC_YN = 'N' THEN
+        IF G_PREVIEW_YN = 'Y' THEN
+            P('-- 건수만 세었습니다. 실제로 하려면 G_PREVIEW_YN := ''N'' 으로 두세요.');
+        ELSIF G_EXEC_YN = 'N' THEN
             P('-- 미실행 모드였습니다. 반영하려면 G_EXEC_YN := ''Y'' 로 두고 다시 부르세요.');
         ELSIF G_TOT_ERR > 0 THEN
             ROLLBACK;

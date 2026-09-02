@@ -116,7 +116,29 @@
   .warn ul{margin:6px 0 0;padding-left:18px}
   .warn li{margin:2px 0}
 
-  .stage{font-size:12px;font-weight:650;color:var(--text-2);display:flex;align-items:center;gap:10px;margin:24px 0 10px}
+  /* ── 단계 이동 ─────────────────────────── */
+  .jump{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+    padding:9px 0 10px;margin-bottom:2px;
+    background:var(--bg);border-bottom:1px solid var(--rule-soft);
+  }
+  .jump .gl{
+    font-size:11.5px;font-weight:700;color:var(--text-3);
+    padding-left:10px;white-space:nowrap;
+  }
+  .jump .gl:first-child{padding-left:0}
+  .jump button{
+    padding:4px 10px;font-size:12px;font-weight:600;
+    background:none;border-color:var(--rule-soft);color:var(--text-2);
+  }
+  .jump button:hover{color:var(--text);background:var(--surface-2);border-color:var(--rule)}
+  .jump button[aria-current=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .jump .up{margin-left:auto;border-color:transparent;color:var(--text-3);font-weight:500}
+  .jump .up:hover{color:var(--text);background:var(--surface-2)}
+  @media (max-width:640px){ .jump .gl{width:100%;padding:4px 0 0} .jump .up{display:none} }
+
+  .stage{font-size:12px;font-weight:650;color:var(--text-2);display:flex;align-items:center;gap:10px;margin:24px 0 10px;scroll-margin-top:56px}
   .stage::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
 
   .q{background:var(--surface);border:1px solid var(--rule);margin-bottom:12px}
@@ -303,17 +325,17 @@ const CASE_COUPN = {
       ]}
   ],
   stages:[
-    { group:'A', name:'A · 매출건 — 사전 검증 (정상 데이터에서 규칙 뽑기)', items:['q01','q02','q03','q04'] },
-    { group:'A', name:'A · 매출건 — 대상 확인', items:['q1'] },
-    { group:'A', name:'A · 매출건 — 생성', items:['q2'] },
-    { group:'A', name:'A · 매출건 — 사후 검증', items:['q31','q32','q33'] },
-    { group:'B', name:'B · 반품건 — 규칙 재확인', items:['r0'] },
-    { group:'B', name:'B · 반품건 — 대상 확인', items:['r1'] },
-    { group:'B', name:'B · 반품건 — 생성', items:['r2'] },
-    { group:'B', name:'B · 반품건 — 사후 검증', items:['r31','r32','r33'] },
-    { group:'C', name:"C · 결제행 PAY_CD='12' — 사전 확인", items:['c01','c02','c1','c03'] },
-    { group:'C', name:"C · 결제행 PAY_CD='12' — 생성 (트리거 있음)", items:['c2'] },
-    { group:'C', name:"C · 결제행 PAY_CD='12' — 사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
+    { group:'A', glabel:'A · 매출건', phase:'compare', name:'A · 매출건 — 사전 검증 (정상 데이터에서 규칙 뽑기)', items:['q01','q02','q03','q04'] },
+    { group:'A', phase:'compare', name:'A · 매출건 — 대상 확인', items:['q1'] },
+    { group:'A', phase:'build',   name:'A · 매출건 — 생성', items:['q2'] },
+    { group:'A', phase:'verify',  name:'A · 매출건 — 사후 검증', items:['q31','q32','q33'] },
+    { group:'B', glabel:'B · 반품건', phase:'compare', name:'B · 반품건 — 규칙 재확인', items:['r0'] },
+    { group:'B', phase:'compare', name:'B · 반품건 — 대상 확인', items:['r1'] },
+    { group:'B', phase:'build',   name:'B · 반품건 — 생성', items:['r2'] },
+    { group:'B', phase:'verify',  name:'B · 반품건 — 사후 검증', items:['r31','r32','r33'] },
+    { group:'C', glabel:'C · 결제행', phase:'compare', name:"C · 결제행 PAY_CD='12' — 사전 확인", items:['c01','c02','c1','c03'] },
+    { group:'C', phase:'build',   name:"C · 결제행 PAY_CD='12' — 생성 (트리거 있음)", items:['c2'] },
+    { group:'C', phase:'verify',  name:"C · 결제행 PAY_CD='12' — 사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
   ],
   queries:{
 
@@ -1305,8 +1327,68 @@ function cardEl(q, sqlText){
   return card;
 }
 
+/* ── 단계 이동 바 ──────────────────────────── */
+const PHASE_LABEL = { compare:'비교', build:'생성', verify:'검증' };
+const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let spyOff = null;
+
+function buildJump(bar, refs){
+  if(refs.length < 2) return;
+
+  const first = new Map();                       // 'group|phase' → 스테이지 element
+  refs.forEach(r => { if(!first.has(r.key)) first.set(r.key, r); });
+
+  const chips = new Map();
+  let lastGroup = null;
+  first.forEach((r, key) => {
+    if(r.group !== lastGroup){
+      lastGroup = r.group;
+      bar.append(mk('span','gl', r.glabel));
+    }
+    const b = mk('button', null, PHASE_LABEL[r.phase] || r.phase);
+    b.type = 'button';
+    b.title = r.name;
+    b.setAttribute('aria-current','false');
+    b.addEventListener('click', () =>
+      r.el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block:'start' }));
+    bar.append(b);
+    chips.set(key, b);
+  });
+
+  const up = mk('button','up','↑ 맨 위');
+  up.type = 'button';
+  up.addEventListener('click', () =>
+    window.scrollTo({ top:0, behavior: reduced() ? 'auto' : 'smooth' }));
+  bar.append(up);
+
+  /* 스크롤 위치에 따라 현재 단계 표시 */
+  const firstKey = refs[0].key;
+  let ticking = false;
+  const onScroll = () => {
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      let key = firstKey;
+      for(const r of refs){
+        if(r.el.getBoundingClientRect().top <= 76) key = r.key;
+        else break;
+      }
+      chips.forEach((b, k) => b.setAttribute('aria-current', String(k === key)));
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+  spyOff = () => window.removeEventListener('scroll', onScroll);
+}
+
+let renderedId = null;
+
 function renderCase(){
   const c = current, host = el('main');
+  const keepY = (renderedId === c.id) ? window.scrollY : 0;
+  renderedId = c.id;
+  if(spyOff){ spyOff(); spyOff = null; }
   host.textContent = '';
 
   const head = mk('div','case-head');
@@ -1320,6 +1402,7 @@ function renderCase(){
     pd.append(mk('h4', null, k.head), mk('p', null, k.note));
     const ul = mk('ul'); k.items.forEach(t => ul.append(mk('li', null, t)));
     pd.append(ul); host.append(pd);
+    window.scrollTo(0, keepY);
     return;
   }
 
@@ -1339,10 +1422,19 @@ function renderCase(){
 
   const bar = mk('div','toolbar');
   host.append(bar);
+  const jump = mk('div','jump');
+  host.append(jump);
 
   const groups = [...new Set(c.stages.map(s => s.group || ''))];
-  c.stages.forEach(st => {
-    const s = mk('div','stage'); s.append(mk('span', null, st.name)); host.append(s);
+  const refs = [];
+  c.stages.forEach((st, i) => {
+    const s = mk('div','stage'); s.id = 'stage-' + i;
+    s.append(mk('span', null, st.name)); host.append(s);
+    refs.push({
+      el:s, group:st.group || '', phase:st.phase || 'compare',
+      key:(st.group || '') + '|' + (st.phase || 'compare'),
+      glabel:st.glabel || (st.name.split('—')[0] || st.name).trim(), name:st.name
+    });
     st.items.forEach(key => {
       const q = c.queries[key];
       const sqlText = build(q.sql, p, optMap);
@@ -1364,6 +1456,9 @@ function renderCase(){
   addBtn('SELECT 만', x => x.kind === 'SELECT');
   if(groups.length > 1) groups.forEach(g => addBtn(g + ' 트랙', x => x.group === g));
   bar.append(mk('span','n', all.length + '개 쿼리'));
+
+  buildJump(jump, refs);
+  window.scrollTo(0, keepY);
 }
 
 function header(c, p){

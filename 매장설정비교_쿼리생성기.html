@@ -64,7 +64,28 @@
     border:1px solid var(--line);
     border-radius:6px;
   }
-  .form{padding:16px 16px 18px;position:sticky;top:18px}
+  .form{padding:16px 16px 18px;position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto}
+
+  /* ---- 기능키 행 편집기 ---- */
+  .fk-head,.fk-row{
+    display:grid;
+    grid-template-columns:50px 50px 92px minmax(0,1fr) 22px;
+    gap:5px;align-items:center;
+  }
+  .fk-head{font-size:10.5px;color:var(--muted);font-weight:600;margin:6px 0 4px}
+  .fk-row{margin-bottom:5px}
+  .fk-row input,.fk-row select{padding:5px 6px;font-size:12px}
+  .fk-row select{font-family:inherit}
+  .fk-row .del{
+    appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);
+    width:22px;height:26px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;padding:0;
+  }
+  .fk-row .del:hover{color:#B03A2E;border-color:#B03A2E}
+  .fk-add{
+    appearance:none;border:1px dashed var(--line);background:#FBFCFD;color:var(--muted);
+    width:100%;padding:5px;border-radius:4px;cursor:pointer;font:inherit;font-size:12px;margin-top:2px;
+  }
+  .fk-add:hover{border-color:var(--brass);color:var(--brass)}
   .field{margin-bottom:14px}
   .field:last-child{margin-bottom:0}
   label{
@@ -136,6 +157,7 @@
   .tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--brass);background:var(--surface)}
   .tab.split{border-left:1px solid var(--line)}
   .tab.apply small{color:var(--brass)}
+  .tab.fnkey small{color:#2E7D6B}
   .tab small{display:block;font-size:10.5px;font-weight:400;color:var(--muted);font-family:ui-monospace,Consolas,monospace}
 
   .bar{
@@ -186,7 +208,7 @@
 
 <header>
   <h1>매장 설정 비교 쿼리 생성기</h1>
-  <p>기준 매장과 비교 매장의 환경설정 · 명칭코드 차이를 찾는 SQL을 만듭니다</p>
+  <p>기준 매장과 비교 매장의 환경설정 · 명칭코드 차이를 찾고, 기능키 사용여부를 장비별로 처리하는 SQL을 만듭니다</p>
 </header>
 
 <div class="wrap">
@@ -289,6 +311,52 @@
     </fieldset>
 
     <fieldset>
+      <legend>기능키 사용여부 · TB_MS_POS_FNKEY</legend>
+      <div class="hint" style="margin-bottom:10px">웹화면에서 전체 매장에 등록한 뒤, 장비 종류에 따라 USE_YN 을 정리하는 쿼리입니다. 아래 입력은 비교 매장 설정과 무관하게 동작합니다.</div>
+      <div class="field row2">
+        <div>
+          <label for="fkHq">본사코드 HQ_OFFICE_CD</label>
+          <input type="text" id="fkHq" value="A0001" spellcheck="false">
+        </div>
+        <div>
+          <label for="fkMode">처리 방식</label>
+          <select id="fkMode">
+            <option value="nonly">대상 아닌 장비만 N</option>
+            <option value="both">대상 Y · 비대상 N</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fkStores">매장코드 제한</label>
+        <textarea id="fkStores" spellcheck="false" style="min-height:44px" placeholder="비우면 본사 전체 매장"></textarea>
+        <div class="hint">쉼표 · 공백 · 줄바꿈으로 구분. 입력하면 본사코드 조건에 STORE_CD IN 이 추가됩니다</div>
+      </div>
+      <div class="field row2">
+        <div>
+          <label for="fkEnvCd">장비 구분 ENVST_CD</label>
+          <input type="text" id="fkEnvCd" value="4019" spellcheck="false">
+        </div>
+        <div>
+          <label for="fkPosVals">포스 값 (ENVST_VAL)</label>
+          <input type="text" id="fkPosVals" value="1, 2, 3" spellcheck="false">
+          <div class="hint">그 외 값은 키오스크로 봅니다</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>기능키 목록</label>
+        <div class="fk-head"><span>FG</span><span>NO</span><span>대상 장비</span><span>설명</span><span></span></div>
+        <div id="fkRows"></div>
+        <button type="button" class="fk-add" id="fkAdd">+ 기능키 추가</button>
+        <div class="hint">FG = 화면(메뉴) 코드, NO = 기능키 코드. 대상 장비에서만 사용하도록 나머지 장비를 N 처리합니다</div>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="fkGroup"> 같은 대상끼리 한 문장으로 묶기</label>
+        <label><input type="checkbox" id="fkCheck" checked> 대상 확인 SELECT 포함</label>
+      </div>
+      <div class="hint">REG_ID · MOD_ID 와 일시 형식은 위 「기준값 반영 쿼리」 설정을 따릅니다</div>
+    </fieldset>
+
+    <fieldset>
       <legend>테이블</legend>
       <div class="field">
         <label for="prefix">스키마 접두사</label>
@@ -306,6 +374,7 @@
       <button class="tab split apply" role="tab" data-i="3" aria-selected="false">매장 설정 반영<small>기준값 → 비교매장</small></button>
       <button class="tab apply" role="tab" data-i="4" aria-selected="false">POS 설정 반영<small>기준값 → 비교매장</small></button>
       <button class="tab apply" role="tab" data-i="5" aria-selected="false">명칭코드 반영<small>기준값 → 비교매장</small></button>
+      <button class="tab split fnkey" role="tab" data-i="6" aria-selected="false">기능키 사용여부<small>TB_MS_POS_FNKEY</small></button>
     </div>
     <div class="bar">
       <span class="meta" id="meta"></span>
@@ -325,7 +394,8 @@
 
   var $ = function(id){ return document.getElementById(id); };
   var active = 0;
-  var queries = ["","","","","",""];
+  var queries = ["","","","","","",""];
+  var N_Q = 7;
 
   /* ---------- helpers ---------- */
 
@@ -914,6 +984,295 @@
     return L.join("\n");
   }
 
+  /* ---------- 7. 기능키 사용여부 (TB_MS_POS_FNKEY) ---------- */
+
+  var fkRows = [
+    { fg:"6030", no:"0356", tgt:"K", nm:"간편결제 (복합결제)" },
+    { fg:"2000", no:"0478", tgt:"P", nm:"강제취소현황 (매출현황)" },
+    { fg:"4000", no:"0476", tgt:"P", nm:"강제취소수신 (환경설정)" },
+    { fg:"4000", no:"0477", tgt:"P", nm:"강제취소송신 (환경설정)" }
+  ];
+  var TGT_NM = { P:"포스만", K:"키오스크만" };
+
+  function drawFkRows(){
+    var box = $("fkRows");
+    box.innerHTML = fkRows.map(function(r,i){
+      return '<div class="fk-row" data-i="' + i + '">' +
+        '<input type="text" data-k="fg" value="' + esc(r.fg) + '" placeholder="6030" spellcheck="false">' +
+        '<input type="text" data-k="no" value="' + esc(r.no) + '" placeholder="0356" spellcheck="false">' +
+        '<select data-k="tgt">' +
+          '<option value="P"' + (r.tgt === "P" ? " selected" : "") + '>포스만</option>' +
+          '<option value="K"' + (r.tgt === "K" ? " selected" : "") + '>키오스크만</option>' +
+        '</select>' +
+        '<input type="text" data-k="nm" value="' + esc(r.nm) + '" placeholder="설명" spellcheck="false">' +
+        '<button type="button" class="del" title="삭제">×</button>' +
+      '</div>';
+    }).join("");
+  }
+
+  // 장비 조건 : 포스이면 true 가 되는 식
+  function fkPosCond(fk, alias){
+    return alias + ".ENVST_VAL IN (" + inList(fk.posVals) + ")";
+  }
+  function fkNotPosCond(fk, alias){
+    return alias + ".ENVST_VAL NOT IN (" + inList(fk.posVals) + ")";
+  }
+
+  // 매장 범위 조건 (TB_MS_STORE 별칭 기준)
+  function fkStoreWhere(fk, a, kw, ind){
+    var L = [];
+    L.push(ind + "WHERE   " + pad(a + ".HQ_OFFICE_CD", kw) + "=   " + lit(fk.hq));
+    if(fk.stores.length){
+      L.push(ind + "AND     " + pad(a + ".STORE_CD", kw) + "IN  (" + inList(fk.stores) + ")");
+    }
+    return L;
+  }
+
+  function fkLabel(r){
+    return "[" + r.fg + "] " + r.no + (r.nm ? " " + r.nm : "") + "  ·  " + TGT_NM[r.tgt];
+  }
+
+  // 한 묶음(같은 대상 장비)에 대한 MERGE
+  function fkMerge(cfg, fk, group){
+    var tbl   = cfg.prefix + "TB_MS_POS_FNKEY";
+    var tStore= cfg.prefix + "TB_MS_STORE";
+    var tPos  = cfg.prefix + "TB_MS_POS";
+    var tEnv  = cfg.prefix + "TB_MS_POS_ENVST";
+    var tgt   = group[0].tgt;
+    var au    = auditCols(cfg);
+    var L     = [];
+
+    // 대상이 포스면 키오스크(비포스)를 N, 대상이 키오스크면 포스를 N
+    var offCond = tgt === "P" ? fkNotPosCond(fk, "C") : fkPosCond(fk, "C");
+    var offNm   = tgt === "P" ? "키오스크 (포스 아닌 것)" : "포스";
+    var useExpr, useCmt;
+    if(fk.mode === "both"){
+      useExpr = "CASE WHEN " + offCond + " THEN 'N' ELSE 'Y' END";
+      useCmt  = "-- " + offNm + " N, 그 외 Y";
+    } else {
+      useExpr = "'N'";
+      useCmt  = "-- " + offNm + " N 처리";
+    }
+
+    var sel = [];
+    sel.push(["A.STORE_CD", "STORE_CD"]);
+    sel.push(["B.POS_NO", "POS_NO"]);
+    sel.push(["D.FNKEY_NO", "FNKEY_NO"]);
+    sel.push(["D.FNKEY_FG", "FNKEY_FG"]);
+    sel.push([useExpr, "USE_YN"]);
+    au.forEach(function(a){ sel.push([a[1], a[0]]); });
+    var w = tabW(sel.map(function(x){ return x[0]; }), 40);
+
+    L.push("MERGE INTO " + tbl + " A");
+    L.push("USING   (");
+    sel.forEach(function(x,i){
+      L.push("            " + (i === 0 ? "SELECT  " : ",       ") + pad(x[0], w) + "AS  " + x[1]);
+    });
+    L.push("            FROM    " + tStore + " A");
+    L.push("            ,       " + tPos + " B");
+    L.push("            ,       " + tEnv + " C");
+    L.push("            ,       (   " + group.map(function(r,i){
+      return (i === 0 ? "" : "                        UNION ALL   ") +
+             "SELECT " + lit(r.fg) + " AS FNKEY_FG, " + lit(r.no) + " AS FNKEY_NO FROM DUAL" +
+             (r.nm ? "     -- " + r.nm : "");
+    }).join("\n"));
+    L.push("                    ) D");
+
+    var kw = tabW(["A.HQ_OFFICE_CD"]);
+    L = L.concat(fkStoreWhere(fk, "A", kw, "            "));
+    L.push("            AND     " + pad("B.STORE_CD", kw) + "=   A.STORE_CD");
+    L.push("            AND     " + pad("C.STORE_CD", kw) + "=   B.STORE_CD");
+    L.push("            AND     " + pad("C.POS_NO", kw) + "=   B.POS_NO");
+    L.push("            AND     " + pad("C.ENVST_CD", kw) + "=   " + lit(fk.envCd));
+    if(fk.mode !== "both"){
+      L.push("            AND     " + offCond + "      " + useCmt);
+    } else {
+      L.push("            " + useCmt);
+    }
+    L.push("        ) B");
+
+    var ok = tabW(["A.STORE_CD","A.POS_NO","A.FNKEY_NO"]);
+    L.push("ON      (           " + pad("B.STORE_CD", ok) + "=   A.STORE_CD");
+    L.push("        AND         " + pad("B.POS_NO", ok) + "=   A.POS_NO");
+    L.push("        AND         " + pad("B.FNKEY_NO", ok) + "=   A.FNKEY_NO");
+    L.push("        )");
+    L.push("WHEN MATCHED THEN");
+    L.push("UPDATE");
+    var uc = ["USE_YN"].concat(auditUpd(cfg));
+    var uw = tabW(uc.map(function(c){ return "A." + c; }));
+    uc.forEach(function(c,i){
+      L.push((i === 0 ? "SET     " : ",       ") + pad("A." + c, uw) + "=   B." + c);
+    });
+    L.push("WHERE   " + neq("A.USE_YN", "B.USE_YN", cfg.dialect) + "      -- 이미 같은 값이면 건너뜀");
+    L.push(";");
+    return L;
+  }
+
+  // PostgreSQL / 범용 : UPDATE
+  function fkUpdate(cfg, fk, group){
+    var tbl   = cfg.prefix + "TB_MS_POS_FNKEY";
+    var tStore= cfg.prefix + "TB_MS_STORE";
+    var tEnv  = cfg.prefix + "TB_MS_POS_ENVST";
+    var tgt   = group[0].tgt;
+    var L     = [];
+
+    var offCond = tgt === "P" ? fkNotPosCond(fk, "C") : fkPosCond(fk, "C");
+    var envSub = function(ind){
+      return [
+        ind + "EXISTS (",
+        ind + "    SELECT  1",
+        ind + "    FROM    " + tEnv + " C",
+        ind + "    WHERE   C.STORE_CD = A.STORE_CD",
+        ind + "    AND     C.POS_NO   = A.POS_NO",
+        ind + "    AND     C.ENVST_CD = " + lit(fk.envCd),
+        ind + "    AND     " + offCond,
+        ind + ")"
+      ];
+    };
+
+    var sets = [];
+    if(fk.mode === "both"){
+      sets.push(["USE_YN", "CASE WHEN\n" + envSub("            ").join("\n") + "\n            THEN 'N' ELSE 'Y' END"]);
+    } else {
+      sets.push(["USE_YN", "'N'"]);
+    }
+    if(cfg.auditId){
+      if(cfg.regOnUpd){
+        sets.push(["REG_DT", dtExpr(cfg)]);
+        sets.push(["REG_ID", lit(cfg.auditId)]);
+      }
+      sets.push(["MOD_DT", dtExpr(cfg)]);
+      sets.push(["MOD_ID", lit(cfg.auditId)]);
+    }
+    L.push("UPDATE  " + tbl + " A");
+    sets.forEach(function(x,i){
+      L.push((i === 0 ? "SET     " : "        ") + pad(x[0], 7) + "= " + x[1] + (i < sets.length - 1 ? "," : ""));
+    });
+    L.push("WHERE   A.FNKEY_NO IN (" + inList(group.map(function(r){ return r.no; })) + ")");
+    L.push("AND     EXISTS (");
+    L.push("            SELECT  1");
+    L.push("            FROM    " + tStore + " S");
+    L.push("            WHERE   S.STORE_CD     = A.STORE_CD");
+    L.push("            AND     S.HQ_OFFICE_CD = " + lit(fk.hq));
+    if(fk.stores.length) L.push("            AND     S.STORE_CD IN (" + inList(fk.stores) + ")");
+    L.push("        )");
+    if(fk.mode !== "both"){
+      var e = envSub("        ");
+      e[0] = "AND     " + e[0].trim();
+      L = L.concat(e);
+      L.push("AND     " + neq("A.USE_YN", "'N'", cfg.dialect));
+    }
+    L.push(";");
+    return L;
+  }
+
+  // 대상 확인 SELECT
+  function fkCheckSel(cfg, fk){
+    var tbl   = cfg.prefix + "TB_MS_POS_FNKEY";
+    var tStore= cfg.prefix + "TB_MS_STORE";
+    var tPos  = cfg.prefix + "TB_MS_POS";
+    var tEnv  = cfg.prefix + "TB_MS_POS_ENVST";
+    var L = [];
+    var nos = fk.rows.map(function(r){ return r.no; });
+    var caseNm = "CASE " + fk.rows.map(function(r){
+      return "WHEN F.FNKEY_NO = " + lit(r.no) + " THEN " + lit((r.nm || r.no) + " / " + TGT_NM[r.tgt]);
+    }).join("\n                 ") + " END";
+    var rows = [
+      ["A.STORE_CD", "STORE_CD"],
+      ["B.POS_NO", "POS_NO"],
+      ["C.ENVST_VAL", "POS_GUBUN"],
+      ["CASE WHEN " + fkPosCond(fk, "C") + " THEN '포스' ELSE '키오스크' END", "DEVICE"],
+      ["F.FNKEY_NO", "FNKEY_NO"],
+      [caseNm, "FNKEY_DESC"],
+      ["F.USE_YN", "USE_YN"],
+      ["CASE WHEN F.FNKEY_NO IS NULL THEN '미등록' END", "STATUS"]
+    ];
+    L.push("-- 0) 대상 확인 : 장비 구분별 현재 USE_YN (STATUS 가 '미등록' 이면 웹화면에서 먼저 등록)");
+    L = L.concat(selectBlock(rows));
+    L.push("FROM        " + tStore + " A");
+    L.push("JOIN        " + tPos + " B  ON  B.STORE_CD = A.STORE_CD");
+    L.push("JOIN        " + tEnv + " C  ON  C.STORE_CD = B.STORE_CD");
+    L.push("                                AND C.POS_NO   = B.POS_NO");
+    L.push("                                AND C.ENVST_CD = " + lit(fk.envCd));
+    L.push("CROSS JOIN  ( " + nos.map(function(n,i){
+      return (i === 0 ? "" : "              UNION ALL ") + "SELECT " + lit(n) + " AS FNKEY_NO" + (cfg.dialect === "oracle" ? " FROM DUAL" : "");
+    }).join("\n") + " ) K");
+    L.push("LEFT JOIN   " + tbl + " F  ON  F.STORE_CD = B.STORE_CD");
+    L.push("                                AND F.POS_NO   = B.POS_NO");
+    L.push("                                AND F.FNKEY_NO = K.FNKEY_NO");
+    L.push("WHERE       A.HQ_OFFICE_CD = " + lit(fk.hq));
+    if(fk.stores.length) L.push("AND         A.STORE_CD IN (" + inList(fk.stores) + ")");
+    L.push("ORDER BY    A.STORE_CD, B.POS_NO, K.FNKEY_NO");
+    L.push(";");
+    return L;
+  }
+
+  function buildFnkey(cfg, fk){
+    var L = [];
+    if(!fk.hq && !fk.stores.length) return "-- 본사코드 또는 매장코드를 입력하세요.";
+    if(!fk.rows.length)             return "-- 기능키를 1개 이상 입력하세요. (FG · NO 모두 필요)";
+    if(!fk.posVals.length)          return "-- 포스 값(ENVST_VAL)을 입력하세요.";
+
+    L.push("-- 기능키 사용여부 정리 : " + (fk.hq ? "본사 " + fk.hq : "") +
+           (fk.stores.length ? (fk.hq ? " · " : "") + "매장 " + fk.stores.join(", ") : fk.hq ? " 전체 매장" : ""));
+    L.push("-- 장비 구분 : TB_MS_POS_ENVST.ENVST_CD = " + fk.envCd +
+           "  →  값 " + fk.posVals.join(", ") + " = 포스 / 그 외 = 키오스크");
+    L.push("-- 처리 방식 : " + (fk.mode === "both"
+           ? "대상 장비 USE_YN = 'Y', 나머지 장비 USE_YN = 'N'"
+           : "웹화면에서 전체 매장에 등록한 뒤, 대상이 아닌 장비만 USE_YN = 'N'"));
+    L.push("-- 대상 기능키");
+    fk.rows.forEach(function(r){ L.push("--   " + fkLabel(r)); });
+    L.push("-- 0) 확인 쿼리로 대상을 확인한 뒤 트랜잭션 안에서 실행하세요.");
+    L.push("");
+
+    if(fk.check){
+      L = L.concat(fkCheckSel(cfg, fk));
+      L.push("");
+    }
+
+    // 묶음 만들기 : 같은 대상끼리 / 기능키별
+    var groups = [];
+    if(fk.group){
+      var byTgt = {};
+      fk.rows.forEach(function(r){ (byTgt[r.tgt] = byTgt[r.tgt] || []).push(r); });
+      ["K","P"].forEach(function(t){ if(byTgt[t]) groups.push(byTgt[t]); });
+    } else {
+      fk.rows.forEach(function(r){ groups.push([r]); });
+    }
+
+    groups.forEach(function(g,i){
+      var tgt = g[0].tgt;
+      var title = g.length === 1
+        ? fkLabel(g[0])
+        : TGT_NM[tgt] + " 사용 기능키 " + g.length + "개 (" + g.map(function(r){ return r.no; }).join(", ") + ")";
+      L.push("-- " + (i + 1) + ") " + title + "  →  " +
+             (tgt === "P" ? "키오스크" : "포스") + " N 처리" + (fk.mode === "both" ? " · " + TGT_NM[tgt].replace("만","") + " Y 처리" : ""));
+      L = L.concat(cfg.dialect === "oracle" ? fkMerge(cfg, fk, g) : fkUpdate(cfg, fk, g));
+      L.push("");
+    });
+
+    L.push("-- 결과 확인 후");
+    L.push("-- COMMIT;");
+    L.push("-- ROLLBACK;");
+    return L.join("\n");
+  }
+
+  function collectFk(){
+    var rows = fkRows.map(function(r){
+      return { fg: r.fg.trim(), no: r.no.trim(), tgt: r.tgt, nm: r.nm.trim() };
+    }).filter(function(r){ return r.fg && r.no; });
+    return {
+      hq: $("fkHq").value.trim(),
+      stores: splitCodes($("fkStores").value),
+      envCd: $("fkEnvCd").value.trim() || "4019",
+      posVals: splitCodes($("fkPosVals").value),
+      mode: $("fkMode").value,
+      group: $("fkGroup").checked,
+      check: $("fkCheck").checked,
+      rows: rows
+    };
+  }
+
   /* ---------- 화면 ---------- */
 
   function highlight(sql){
@@ -958,11 +1317,19 @@
     var cfg = collect();
     var body = $("body");
 
+    var fk = collectFk();
+    queries[6] = buildFnkey(cfg, fk);
+
     if(!cfg.base || cfg.cmps.length === 0){
-      queries = ["","","","","",""];
-      body.innerHTML = '<div class="empty">기준 매장코드와 비교 매장코드를 1개 이상 입력하면 쿼리가 만들어집니다.</div>';
-      $("meta").textContent = "";
+      for(var q = 0; q < 6; q++) queries[q] = "";
       $("chips").innerHTML = "";
+      if(active === 6){
+        body.innerHTML = '<pre class="sql">' + highlight(queries[6]) + '</pre>';
+        $("meta").textContent = "기능키 사용여부 · 기능키 " + fk.rows.length + "개 · " + queries[6].split("\n").length + "줄";
+      } else {
+        body.innerHTML = '<div class="empty">기준 매장코드와 비교 매장코드를 1개 이상 입력하면 쿼리가 만들어집니다.<br>기능키 사용여부 탭은 매장코드 없이도 사용할 수 있습니다.</div>';
+        $("meta").textContent = "";
+      }
       return;
     }
 
@@ -1011,8 +1378,9 @@
     $("chips").innerHTML = chips;
 
     var names = ["매장 환경설정", "POS 환경설정", "명칭코드",
-                 "매장 설정 반영", "POS 설정 반영", "명칭코드 반영"];
-    $("meta").textContent = names[active] + " · 비교 매장 " + cfg.cmps.length + "개 · " +
+                 "매장 설정 반영", "POS 설정 반영", "명칭코드 반영", "기능키 사용여부"];
+    $("meta").textContent = names[active] + " · " +
+      (active === 6 ? "기능키 " + fk.rows.length + "개" : "비교 매장 " + cfg.cmps.length + "개") + " · " +
       queries[active].split("\n").length + "줄";
   }
 
@@ -1058,17 +1426,48 @@
   });
 
   $("copyAll").addEventListener("click", function(){
-    if(!queries[0]) return;
-    copy(queries.join("\n\n\n"), this, "6개 복사했습니다");
+    var list = queries.filter(Boolean);
+    if(!list.length) return;
+    copy(list.join("\n\n\n"), this, list.length + "개 복사했습니다");
   });
 
   ["base","cmps","posno","dialect","onlyBase","withNm","prefix",
-   "doBackup","doInsert","doDelete","perStore","regOnUpd","dtFmt","auditId","syncScope","parentKey"].forEach(function(id){
+   "doBackup","doInsert","doDelete","perStore","regOnUpd","dtFmt","auditId","syncScope","parentKey",
+   "fkHq","fkStores","fkEnvCd","fkPosVals","fkMode","fkGroup","fkCheck"].forEach(function(id){
     $(id).addEventListener("input", render);
     $(id).addEventListener("change", render);
   });
   $("cols").addEventListener("change", render);
 
+  // 기능키 행 편집기
+  $("fkRows").addEventListener("input", function(e){
+    var row = e.target.closest(".fk-row"); if(!row) return;
+    var k = e.target.dataset.k; if(!k) return;
+    fkRows[Number(row.dataset.i)][k] = e.target.value;
+    render();
+  });
+  $("fkRows").addEventListener("change", function(e){
+    var row = e.target.closest(".fk-row"); if(!row) return;
+    var k = e.target.dataset.k; if(!k) return;
+    fkRows[Number(row.dataset.i)][k] = e.target.value;
+    render();
+  });
+  $("fkRows").addEventListener("click", function(e){
+    if(!e.target.classList.contains("del")) return;
+    var row = e.target.closest(".fk-row");
+    fkRows.splice(Number(row.dataset.i), 1);
+    drawFkRows();
+    render();
+  });
+  $("fkAdd").addEventListener("click", function(){
+    fkRows.push({ fg:"", no:"", tgt:"P", nm:"" });
+    drawFkRows();
+    var last = $("fkRows").querySelector(".fk-row:last-child input");
+    if(last) last.focus();
+    render();
+  });
+
+  drawFkRows();
   render();
 })();
 </script>

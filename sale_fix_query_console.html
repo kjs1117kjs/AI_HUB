@@ -202,6 +202,7 @@
         <div class="field">
           <label for="in-store">STORE_CD</label>
           <input type="text" id="in-store" value="" placeholder="비우면 본사 전체" spellcheck="false">
+          <div class="hint">쉼표로 여러 매장 → <code>IN ('BSC0001','BSC0022')</code></div>
         </div>
         <div class="field">
           <span class="lbl">SALE_DATE</span>
@@ -210,6 +211,8 @@
               <span>오늘 <span class="sub">TO_CHAR(SYSDATE,'YYYYMMDD') · 재발 시 그대로 재사용</span></span></label>
             <label><input type="radio" name="datemode" value="fixed">
               <span>날짜 지정 <span class="sub">지난 날짜 재처리·마감 후 실행</span></span></label>
+            <label><input type="radio" name="datemode" value="from">
+              <span>지정일 이후 <span class="sub">SALE_DATE &gt;= 지정일 · 케이스 2~3 원문 조건</span></span></label>
           </div>
           <input type="text" id="in-date" value="20260901" maxlength="8" spellcheck="false" disabled style="margin-top:7px">
         </div>
@@ -238,10 +241,12 @@
    토큰
      {{HQ}} {{DC}} {{STORE}}       : 값 그대로
      {{DATE}}                      : 'YYYYMMDD' 또는 TO_CHAR(SYSDATE,...)  (따옴표 포함)
-     {{LINE:store:d}}              : STORE_CD 입력 시  AND d.STORE_CD = '...'  / 없으면 줄 삭제
+     {{LINE:hq:d}}                 : AND d.HQ_OFFICE_CD = '...'
+     {{LINE:store:d}}              : STORE_CD 입력 시  AND d.STORE_CD = '...'  / 쉼표면 IN (...) / 없으면 줄 삭제
+     {{LINE:date:d}}               : AND d.SALE_DATE = {{DATE}}   (지정일 이후 모드면 >=)
      {{LINE:regfg:m}}              : COUPN_REG_FG 입력 시 AND m.COUPN_REG_FG = '...'
      {{LINE:extra:d}}              : 추가 조건. @. → d.
-     {{OPT:이름}}                  : 케이스 옵션이 채우는 값
+     {{OPT:이름}}                  : 케이스 옵션이 채우는 값 ({raw:'..'} 이면 들여쓰기 없음)
    ════════════════════════════════════════════════════════════════ */
 
 const PENDING_KIND = {
@@ -1190,11 +1195,712 @@ c33:{ tag:'C3-3', kind:'SELECT', scope:'대상 본사', name:'매출 헤더 총�
   }
 };
 
+/* ── 케이스 2 ──────────────────────────────────────────── */
+const CASE_DCMOVE = {
+  id:'dcmove', no:2, title:'0원 상품 할인 이동 (이슈4 · DTL / DTL_DC)', status:'ready',
+  lead:'판매금액이 0 인 상품(사이드 등)에 배분된 할인금액을 같은 전표의 유효 상품으로 옮깁니다. ' +
+       '유효 상품 = (SIDE_P_DTL_NO IS NULL OR SIDE_P_DTL_NO = BILL_DTL_NO) AND SALE_AMT <> 0, 그 중 MAX(BILL_DTL_NO) 로 몰아줍니다. ' +
+       '전표 총액은 변하지 않으므로 트리거가 갱신하는 일계 집계의 순증감은 0 이어야 합니다. ' +
+       '원문 조건은 STORE_CD IN (BSC0001, BSC0022) · SALE_DATE >= 20260901 입니다. 오른쪽 STORE_CD 에 쉼표로, 날짜는 "지정일 이후" 로 넣으세요.',
+  warn:{
+    head:'UPDATE 전에 확인할 것',
+    items:[
+      '실행 순서: 이 케이스(할인 이동) → 케이스 3(부가세 보정). VAT 는 REAL_SALE_AMT 기준인데 여기서 REAL_SALE_AMT 가 바뀝니다.',
+      'A-2 → A-3 → A-4 → A-5 순서를 지키세요. A-3 은 이동액을 DTL_DC 에서 읽으므로 A-5(DTL_DC 정리) 보다 먼저 실행해야 합니다.',
+      '세트 메인 해석: 주신 규칙엔 "사이드"와 "세트 메인" 둘 다 SIDE_P_DTL_NO <> BILL_DTL_NO 로 적혀 있었습니다. 그대로면 전표 0052 는 받을 라인이 없어서(0001 이 세트메인이자 유일한 유효 상품) 세트 메인 = SIDE_P_DTL_NO = BILL_DTL_NO 로 해석했습니다. 맞는지 확인이 필요합니다.',
+      'TB_SL_SALE_DTL 은 TR_SL_SALE_DTL_01, TB_SL_SALE_DTL_DC 는 TR_SL_SALE_DTL_DC_01 트리거가 있습니다. [C-7] 에서 집계 실판매·부가세가 헤더 합계와 같은지 보고 COMMIT 하세요.',
+      '[A-1] 에서 넣을_라인 이 NULL 인 전표가 있으면 유효 상품이 하나도 없는 전표입니다. 그 전표는 A-3/A-4 MERGE 에서 매칭이 안 돼 이동되지 않고, A-2/A-5 로 할인만 지워집니다. 먼저 걸러내세요.',
+      '실측 대상 2건 (20260901 BSC0022 01/0048 라인0008 DC 1원, 01/0052 라인0005 DC 2원).'
+    ]
+  },
+  options:[
+    { key:'a5', type:'radio', label:'A-5 · 0원 상품에 붙은 DTL_DC 행', value:'zero',
+      choices:[
+        { v:'zero',   t:'DC_AMT = 0 으로 남김', sub:'정상 데이터에도 DC_AMT=0 행이 있음(20260901 전사 17건). 기본값.' },
+        { v:'delete', t:'DELETE', sub:'행 자체를 지움. 원복이 어려우니 A-1 결과를 보관하고 실행.' }
+      ]}
+  ],
+  stages:[
+    { phase:'compare', name:'사전 확인 — 대상 확정', items:['q0','q1'] },
+    { phase:'build',   name:'보정 — 할인 이동 (A-2 → A-5 순서)', items:['a2','a3','a4','a5'] },
+    { phase:'verify',  name:'사후 검증 (COMMIT 전)', items:['c1','c2','c3','c7'] }
+  ],
+  queries:{
+
+q0:{ tag:'0-A', kind:'SELECT', scope:'대상 본사', name:'대상 라인 : 판매금액 0 인데 할인이 있는 라인',
+  desc:'SALE_AMT = 0 AND DC_AMT <> 0. 상품구분과 이동받을_BILL_DTL_NO 를 같이 보여 줍니다. 이동받을 라인이 NULL 이면 유효 상품이 없는 전표입니다.',
+  sql:
+`SELECT d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO,
+       d.PROD_CD, d.SALE_AMT, d.DC_AMT, d.REAL_SALE_AMT, d.SALE_YN,
+       NVL(d.SIDE_P_DTL_NO,'(NULL)')  AS SIDE_P_DTL_NO,
+       CASE WHEN d.SIDE_P_DTL_NO IS NULL          THEN '일반'
+            WHEN d.SIDE_P_DTL_NO = d.BILL_DTL_NO  THEN '세트메인'
+            ELSE '사이드' END          AS 상품구분,
+       (SELECT MAX(x.BILL_DTL_NO) FROM TB_SL_SALE_DTL x
+         WHERE x.HQ_OFFICE_CD = d.HQ_OFFICE_CD AND x.HQ_BRAND_CD = d.HQ_BRAND_CD
+           AND x.STORE_CD     = d.STORE_CD     AND x.SALE_DATE   = d.SALE_DATE
+           AND x.POS_NO       = d.POS_NO       AND x.BILL_NO     = d.BILL_NO
+           AND (x.SIDE_P_DTL_NO IS NULL OR x.SIDE_P_DTL_NO = x.BILL_DTL_NO)
+           AND x.SALE_AMT <> 0)        AS 이동받을_BILL_DTL_NO
+  FROM TB_SL_SALE_DTL d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND d.SALE_AMT = 0
+   AND d.DC_AMT  <> 0
+ ORDER BY d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO;`
+},
+
+q1:{ tag:'A-1', kind:'SELECT', scope:'대상 본사', name:'이동 내역 미리보기',
+  desc:'빼올 라인 → 넣을 라인, 변경 전/후 할인·실판매액. 이 결과를 저장해 두면 원복 근거가 됩니다.',
+  sql:
+`SELECT b.STORE_CD, b.SALE_DATE, b.POS_NO, b.BILL_NO,
+       b.BILL_DTL_NO                AS 빼올_라인,
+       b.DC_AMT                     AS 이동금액,
+       b.TARGET_DTL_NO              AS 넣을_라인,
+       t.SALE_AMT                   AS 넣을라인_판매액,
+       t.DC_AMT                     AS 넣을라인_현재할인,
+       t.DC_AMT + b.DC_AMT          AS 넣을라인_변경후할인,
+       t.REAL_SALE_AMT              AS 넣을라인_현재실판매,
+       t.REAL_SALE_AMT - b.DC_AMT   AS 넣을라인_변경후실판매
+  FROM (SELECT d.HQ_OFFICE_CD, d.HQ_BRAND_CD, d.STORE_CD, d.SALE_DATE,
+               d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.DC_AMT,
+               (SELECT MAX(x.BILL_DTL_NO) FROM TB_SL_SALE_DTL x
+                 WHERE x.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND x.HQ_BRAND_CD=d.HQ_BRAND_CD
+                   AND x.STORE_CD=d.STORE_CD AND x.SALE_DATE=d.SALE_DATE
+                   AND x.POS_NO=d.POS_NO AND x.BILL_NO=d.BILL_NO
+                   AND (x.SIDE_P_DTL_NO IS NULL OR x.SIDE_P_DTL_NO = x.BILL_DTL_NO)
+                   AND x.SALE_AMT <> 0) AS TARGET_DTL_NO
+          FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+           {{LINE:store:d}}
+           {{LINE:date:d}}
+           {{LINE:extra:d}}
+           AND d.SALE_AMT = 0 AND d.DC_AMT <> 0) b
+  JOIN TB_SL_SALE_DTL t
+    ON  t.HQ_OFFICE_CD=b.HQ_OFFICE_CD AND t.HQ_BRAND_CD=b.HQ_BRAND_CD
+    AND t.STORE_CD=b.STORE_CD AND t.SALE_DATE=b.SALE_DATE
+    AND t.POS_NO=b.POS_NO AND t.BILL_NO=b.BILL_NO
+    AND t.BILL_DTL_NO=b.TARGET_DTL_NO
+ ORDER BY b.STORE_CD, b.SALE_DATE, b.POS_NO, b.BILL_NO, b.BILL_DTL_NO;`
+},
+
+a2:{ tag:'A-2', kind:'UPDATE', scope:'대상 본사', name:'TB_SL_SALE_DTL : 잘못 배분된 라인의 할인 제거',
+  desc:'0원 상품 라인의 DC_AMT 를 0 으로 하고 REAL_SALE_AMT 를 할인 전으로 되돌립니다.',
+  sql:
+`UPDATE TB_SL_SALE_DTL d
+   SET d.DC_AMT        = 0,
+       d.REAL_SALE_AMT = d.REAL_SALE_AMT + d.DC_AMT,   /* 할인 되돌림 */
+       d.MOD_DT        = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       d.MOD_ID        = USER
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND d.SALE_AMT = 0
+   AND d.DC_AMT  <> 0;`
+},
+
+a3:{ tag:'A-3', kind:'MERGE', scope:'대상 본사', name:'TB_SL_SALE_DTL : 유효 상품으로 할인 이동',
+  desc:'A-2 를 먼저 실행하면 원본 DC_AMT 를 잃으므로 이동액은 TB_SL_SALE_DTL_DC 에서 읽습니다. 반드시 A-5 보다 먼저 실행하세요.',
+  sql:
+`MERGE INTO TB_SL_SALE_DTL t
+USING (
+    SELECT c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE,
+           c.POS_NO, c.BILL_NO,
+           (SELECT MAX(x.BILL_DTL_NO) FROM TB_SL_SALE_DTL x
+             WHERE x.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND x.HQ_BRAND_CD=c.HQ_BRAND_CD
+               AND x.STORE_CD=c.STORE_CD AND x.SALE_DATE=c.SALE_DATE
+               AND x.POS_NO=c.POS_NO AND x.BILL_NO=c.BILL_NO
+               AND (x.SIDE_P_DTL_NO IS NULL OR x.SIDE_P_DTL_NO = x.BILL_DTL_NO)
+               AND x.SALE_AMT <> 0)                    AS TARGET_DTL_NO,
+           SUM(c.DC_AMT)                               AS MOVE_AMT
+      FROM TB_SL_SALE_DTL_DC c
+     WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+       {{LINE:store:c}}
+       {{LINE:date:c}}
+       {{LINE:extra:c}}
+       AND c.DC_AMT <> 0
+       AND EXISTS (SELECT 1 FROM TB_SL_SALE_DTL z
+                    WHERE z.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND z.HQ_BRAND_CD=c.HQ_BRAND_CD
+                      AND z.STORE_CD=c.STORE_CD AND z.SALE_DATE=c.SALE_DATE
+                      AND z.POS_NO=c.POS_NO AND z.BILL_NO=c.BILL_NO
+                      AND z.BILL_DTL_NO=c.BILL_DTL_NO
+                      AND z.SALE_AMT = 0)              /* 0원 상품에 붙은 할인 */
+     GROUP BY c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO
+) s
+ON (    t.HQ_OFFICE_CD = s.HQ_OFFICE_CD
+    AND t.HQ_BRAND_CD  = s.HQ_BRAND_CD
+    AND t.STORE_CD     = s.STORE_CD
+    AND t.SALE_DATE    = s.SALE_DATE
+    AND t.POS_NO       = s.POS_NO
+    AND t.BILL_NO      = s.BILL_NO
+    AND t.BILL_DTL_NO  = s.TARGET_DTL_NO)
+WHEN MATCHED THEN UPDATE SET
+       t.DC_AMT        = t.DC_AMT        + s.MOVE_AMT,
+       t.REAL_SALE_AMT = t.REAL_SALE_AMT - s.MOVE_AMT,
+       t.MOD_DT        = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       t.MOD_ID        = USER;`
+},
+
+a4:{ tag:'A-4', kind:'MERGE', scope:'대상 본사', name:'TB_SL_SALE_DTL_DC : 유효 상품 행으로 할인 이동',
+  desc:'같은 DC_CD · REG_SEQ 의 유효 상품 행에 이동액을 더합니다. 유효 상품 행에 해당 DC_CD 행이 없으면 매칭이 안 돼 이동되지 않습니다.',
+  sql:
+`MERGE INTO TB_SL_SALE_DTL_DC t
+USING (
+    SELECT c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE,
+           c.POS_NO, c.BILL_NO, c.DC_CD, c.REG_SEQ,
+           (SELECT MAX(x.BILL_DTL_NO) FROM TB_SL_SALE_DTL x
+             WHERE x.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND x.HQ_BRAND_CD=c.HQ_BRAND_CD
+               AND x.STORE_CD=c.STORE_CD AND x.SALE_DATE=c.SALE_DATE
+               AND x.POS_NO=c.POS_NO AND x.BILL_NO=c.BILL_NO
+               AND (x.SIDE_P_DTL_NO IS NULL OR x.SIDE_P_DTL_NO = x.BILL_DTL_NO)
+               AND x.SALE_AMT <> 0)                    AS TARGET_DTL_NO,
+           SUM(c.DC_AMT)                               AS MOVE_AMT
+      FROM TB_SL_SALE_DTL_DC c
+     WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+       {{LINE:store:c}}
+       {{LINE:date:c}}
+       {{LINE:extra:c}}
+       AND c.DC_AMT <> 0
+       AND EXISTS (SELECT 1 FROM TB_SL_SALE_DTL z
+                    WHERE z.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND z.HQ_BRAND_CD=c.HQ_BRAND_CD
+                      AND z.STORE_CD=c.STORE_CD AND z.SALE_DATE=c.SALE_DATE
+                      AND z.POS_NO=c.POS_NO AND z.BILL_NO=c.BILL_NO
+                      AND z.BILL_DTL_NO=c.BILL_DTL_NO
+                      AND z.SALE_AMT = 0)
+     GROUP BY c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE,
+              c.POS_NO, c.BILL_NO, c.DC_CD, c.REG_SEQ
+) s
+ON (    t.HQ_OFFICE_CD = s.HQ_OFFICE_CD
+    AND t.HQ_BRAND_CD  = s.HQ_BRAND_CD
+    AND t.STORE_CD     = s.STORE_CD
+    AND t.SALE_DATE    = s.SALE_DATE
+    AND t.POS_NO       = s.POS_NO
+    AND t.BILL_NO      = s.BILL_NO
+    AND t.BILL_DTL_NO  = s.TARGET_DTL_NO
+    AND t.DC_CD        = s.DC_CD
+    AND t.REG_SEQ      = s.REG_SEQ)
+WHEN MATCHED THEN UPDATE SET
+       t.DC_AMT = t.DC_AMT + s.MOVE_AMT,
+       t.MOD_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       t.MOD_ID = USER;`
+},
+
+a5:{ tag:'A-5', kind:p => p.opts.a5 === 'delete' ? 'DELETE' : 'UPDATE', scope:'대상 본사',
+  name:'TB_SL_SALE_DTL_DC : 0원 상품에 붙은 할인행 정리',
+  desc:'A-3/A-4 가 이 행들을 읽으므로 마지막에 실행합니다. 옵션으로 0 처리 / DELETE 를 고릅니다.',
+  sql:
+`{{OPT:a5_head}}
+ WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:c}}
+{{LINE:date:c}}
+{{LINE:extra:c}}
+   AND c.DC_AMT <> 0
+   AND EXISTS (SELECT 1 FROM TB_SL_SALE_DTL z
+                WHERE z.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND z.HQ_BRAND_CD=c.HQ_BRAND_CD
+                  AND z.STORE_CD=c.STORE_CD AND z.SALE_DATE=c.SALE_DATE
+                  AND z.POS_NO=c.POS_NO AND z.BILL_NO=c.BILL_NO
+                  AND z.BILL_DTL_NO=c.BILL_DTL_NO
+                  AND z.SALE_AMT = 0);`
+},
+
+c1:{ tag:'C-1', kind:'SELECT', scope:'대상 본사', name:'이슈4 잔여 : 0 건이어야 함',
+  desc:'A-2 이후 SALE_AMT = 0 AND DC_AMT <> 0 인 라인이 남아 있으면 안 됩니다.',
+  sql:
+`SELECT COUNT(*) AS 남은_0원상품_할인
+  FROM TB_SL_SALE_DTL d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND d.SALE_AMT = 0 AND d.DC_AMT <> 0;`
+},
+
+c2:{ tag:'C-2', kind:'SELECT', scope:'대상 본사', name:'할인 총액 보존 : 헤더 할인 = 상세 할인 합계',
+  desc:'이동이므로 DC_CD · REG_SEQ 단위 총액은 변하지 않아야 합니다. MATCH_YN = N 이 위로 정렬됩니다.',
+  sql:
+`SELECT hd.STORE_CD, hd.SALE_DATE, hd.POS_NO, hd.BILL_NO, hd.DC_CD,
+       hd.DC_AMT                          AS 헤더할인,
+       NVL(dt.SUM_AMT,0)                  AS 상세할인합,
+       hd.DC_AMT - NVL(dt.SUM_AMT,0)      AS 차이,
+       CASE WHEN hd.DC_AMT = NVL(dt.SUM_AMT,0) THEN 'Y' ELSE 'N' END AS MATCH_YN
+  FROM TB_SL_SALE_HDR_DC hd
+  LEFT JOIN (SELECT c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO,
+                    c.DC_CD, c.REG_SEQ, SUM(c.DC_AMT) AS SUM_AMT
+               FROM TB_SL_SALE_DTL_DC c
+              WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+                {{LINE:store:c}}
+                {{LINE:date:c}}
+              GROUP BY c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO,
+                       c.DC_CD, c.REG_SEQ) dt
+    ON  dt.HQ_OFFICE_CD=hd.HQ_OFFICE_CD AND dt.HQ_BRAND_CD=hd.HQ_BRAND_CD
+    AND dt.STORE_CD=hd.STORE_CD AND dt.SALE_DATE=hd.SALE_DATE
+    AND dt.POS_NO=hd.POS_NO AND dt.BILL_NO=hd.BILL_NO
+    AND dt.DC_CD=hd.DC_CD AND dt.REG_SEQ=hd.REG_SEQ
+ WHERE hd.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:hd}}
+{{LINE:date:hd}}
+{{LINE:extra:hd}}
+ ORDER BY MATCH_YN, hd.STORE_CD, hd.POS_NO, hd.BILL_NO;`
+},
+
+c3:{ tag:'C-3', kind:'SELECT', scope:'대상 본사', name:'상세 금액식 검증 : REAL_SALE_AMT = SALE_AMT - DC_AMT (+TIP +ETC)',
+  desc:'A-2/A-3 뒤 실판매액 식이 깨진 라인 수. 0 이어야 합니다.',
+  sql:
+`SELECT COUNT(*) AS 식_불일치_라인
+  FROM TB_SL_SALE_DTL d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND d.REAL_SALE_AMT <> d.SALE_AMT - d.DC_AMT + NVL(d.TIP_AMT,0) + NVL(d.ETC_AMT,0);`
+},
+
+c7:{ tag:'C-7', kind:'SELECT', scope:'집계 대조', name:'트리거가 갱신한 집계 대조 : 헤더 합계 = TB_SL_DAILY_TOTAL',
+  desc:'할인 이동은 총액이 안 변하므로 집계 실판매·부가세가 헤더 합계와 그대로 같아야 합니다.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE,
+       SUM(h.TOT_SALE_AMT)   AS 총매출,
+       SUM(h.TOT_DC_AMT)     AS 총할인,
+       SUM(h.REAL_SALE_AMT)  AS 실판매,
+       SUM(h.VAT_AMT)        AS 부가세,
+       (SELECT t.REAL_SALE_AMT FROM TB_SL_DAILY_TOTAL t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE)      AS 집계_실판매,
+       (SELECT t.VAT_AMT FROM TB_SL_DAILY_TOTAL t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE)      AS 집계_부가세
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+ GROUP BY h.HQ_OFFICE_CD, h.STORE_CD, h.SALE_DATE
+ ORDER BY h.STORE_CD, h.SALE_DATE;`
+}
+
+  },
+  opt(p){
+    return {
+      a5_head: { raw: p.opts.a5 === 'delete'
+        ? 'DELETE FROM TB_SL_SALE_DTL_DC c'
+        : 'UPDATE TB_SL_SALE_DTL_DC c\n' +
+          '   SET c.DC_AMT = 0,\n' +
+          "       c.MOD_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),\n" +
+          '       c.MOD_ID = USER' }
+    };
+  }
+};
+
+/* ── 케이스 3 ──────────────────────────────────────────── */
+const CASE_VAT = {
+  id:'vat', no:3, title:'헤더 부가세 0 보정 (이슈5 · VAT)', status:'ready',
+  lead:'헤더 REAL_SALE_AMT 는 있는데 VAT_AMT 가 0 인 전표. 상세 라인별로 VAT 를 계산하고(B-1), 헤더는 상세 합계로(B-2), ' +
+       '가승인 테이블은 헤더 VAT 를 SALE_AMT 비율로 안분해(B-3) 채웁니다. 실측 대상 33건은 전부 배달건입니다. ' +
+       '원문 조건은 STORE_CD IN (BSC0001, BSC0022) · SALE_DATE >= 20260901 입니다.',
+  warn:{
+    head:'★ 부가세 계산식이 데이터로 확정되지 않았습니다',
+    items:[
+      '20260901 정상 라인 444건으로 후보식을 검증한 결과 어느 것도 100% 가 아닙니다. TRUNC(REAL/11) 326건(73%) · ROUND(REAL/11) 109건(25%) · REAL - ROUND(REAL/1.1) 109건(25%) · TRUNC(SALE_AMT/11) 256건(58%). REAL 500 → VAT 44 처럼 둘 다 안 맞는 사례, REAL 3,300 → 300 과 299 가 공존하는 사례가 있습니다.',
+      '확정된 규칙은 "헤더 VAT = 상세 VAT 합계" 뿐입니다 (304/304). 세무 영향이 있으니 실행 전 담당자 확인이 필요하고, 확정식이 나오면 오른쪽 옵션에서 바꾸면 B-1 · B-1b · C-8 에 같이 반영됩니다.',
+      '실행 순서: 케이스 2(할인 이동) 를 먼저. VAT 는 REAL_SALE_AMT 기준인데 케이스 2 가 그 값을 바꿉니다.',
+      'TB_SL_SALE_DTL · TB_SL_SALE_HDR 에 트리거가 있어 UPDATE 델타가 TB_SL_DAILY_* 집계에 반영됩니다. 이번엔 집계 VAT 가 실제로 늘어나야 정상입니다. [C-7] 로 확인 후 COMMIT 하세요. TB_SL_SALE_PAY_TEMPORARY 는 트리거가 없습니다.',
+      'B-3 정정: TB_SL_SALE_PAY_TEMPORARY 에는 PAY_AMT 가 없고 금액 컬럼은 SALE_AMT 입니다 (ORA-00904 원인). "TAX_AMT = PAY_AMT" 는 TAX_AMT = SALE_AMT 로 해석했습니다 (정상 데이터 78,199/78,425 = 99.7%).',
+      'B-1b(절사 잔액 보정)는 기본 미적용입니다. 현행 시스템도 헤더 REAL 기준값과 맞추지 않습니다 (정상 304전표 중 TRUNC(SUM(REAL)/11) 일치 243 = 80%).'
+    ]
+  },
+  options:[
+    { key:'vat', type:'radio', label:'VAT 계산식 (라인 REAL_SALE_AMT 기준)', value:'trunc',
+      choices:[
+        { v:'trunc', t:'SIGN(R) * TRUNC(ABS(R)/11)', sub:'절사. 정상 라인 73% 일치. 기본값. 반품(음수)도 절사 방향이 양수와 같아짐.' },
+        { v:'round', t:'ROUND(R/11)', sub:'반올림. 25% 일치.' },
+        { v:'net',   t:'R - ROUND(R/1.1)', sub:'공급가 반올림 후 차액. 25% 일치.' }
+      ]},
+    { key:'b1b', type:'radio', label:'B-1b · 라인 절사 잔액을 헤더 REAL 기준에 맞춤', value:'skip',
+      choices:[
+        { v:'skip',  t:'미적용', sub:'시스템 표준과 동일. 실측 9전표 합계 13원 부족이 그대로 남음.' },
+        { v:'apply', t:'적용', sub:'B-1 직후 실행. 잔액을 마지막 유효 라인에 몰아줌. [C-8] 차이가 전건 0 이어야 함.' }
+      ]}
+  ],
+  stages:[
+    { phase:'compare', name:'사전 확인 — 대상 확정', items:['q0'] },
+    { phase:'build',   name:'보정 — 부가세 (B-1 → B-1b → B-2 → B-3 순서)', items:['b1','b1b','b2','b3'] },
+    { phase:'verify',  name:'사후 검증 (COMMIT 전)', items:['c4','c5','c6','c7','c8'] }
+  ],
+  queries:{
+
+q0:{ tag:'0-B', kind:'SELECT', scope:'대상 본사', name:'대상 전표 : 실판매액은 있는데 헤더 부가세가 0',
+  desc:'배달 여부, 금액 있는 상세 라인 수, 가승인 행 수를 같이 봅니다. 실측 33건 (BSC0001 매출8+반품1, BSC0022 매출24).',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN, h.SALE_FG,
+       h.TOT_SALE_AMT, h.TOT_DC_AMT, h.REAL_SALE_AMT,
+       h.VAT_AMT, h.TAX_SALE_AMT, h.NET_SALE_AMT,
+       h.DLVR_YN, h.DLVR_IN_FG,
+       (SELECT COUNT(*) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.STORE_CD=h.STORE_CD
+           AND d.SALE_DATE=h.SALE_DATE AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO
+           AND d.REAL_SALE_AMT <> 0)                    AS 금액있는_상세라인,
+       (SELECT COUNT(*) FROM TB_SL_SALE_PAY_TEMPORARY t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE AND t.POS_NO=h.POS_NO AND t.BILL_NO=h.BILL_NO)
+                                                        AS 가승인_행수
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+   AND h.VAT_AMT = 0
+ ORDER BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO;`
+},
+
+b1:{ tag:'B-1', kind:'UPDATE', scope:'대상 본사', name:'TB_SL_SALE_DTL : 라인별 부가세 계산',
+  desc:'보정 대상 전표(헤더 VAT=0)의 상세 라인만. 반품은 REAL_SALE_AMT 가 음수라 VAT 도 음수로 들어갑니다.',
+  sql:
+`UPDATE TB_SL_SALE_DTL d
+   SET d.VAT_AMT = {{OPT:vat_d}},
+       d.MOD_DT  = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       d.MOD_ID  = USER
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h
+                WHERE h.HQ_OFFICE_CD = d.HQ_OFFICE_CD AND h.HQ_BRAND_CD = d.HQ_BRAND_CD
+                  AND h.STORE_CD     = d.STORE_CD     AND h.SALE_DATE   = d.SALE_DATE
+                  AND h.POS_NO       = d.POS_NO       AND h.BILL_NO     = d.BILL_NO
+                  AND h.REAL_SALE_AMT <> 0
+                  AND h.VAT_AMT = 0);                 /* 보정 대상 전표만 */`
+},
+
+b1b:{ tag:'B-1b', kind:'MERGE', scope:'대상 본사', name:'(선택) 라인별 절사 잔액 보정',
+  when: p => p.opts.b1b === 'apply',
+  desc:'B-1 은 라인마다 독립 절사라 SUM(라인 VAT) 가 헤더 REAL 기준값보다 작아집니다 (실측 9전표 13원). 그 차액을 마지막 유효 라인에 몰아줍니다. B-1 직후 실행.',
+  sql:
+`MERGE INTO TB_SL_SALE_DTL t
+USING (
+    SELECT h.HQ_OFFICE_CD, h.HQ_BRAND_CD, h.STORE_CD, h.SALE_DATE,
+           h.POS_NO, h.BILL_NO,
+           (SELECT MAX(x.BILL_DTL_NO) FROM TB_SL_SALE_DTL x
+             WHERE x.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND x.HQ_BRAND_CD=h.HQ_BRAND_CD
+               AND x.STORE_CD=h.STORE_CD AND x.SALE_DATE=h.SALE_DATE
+               AND x.POS_NO=h.POS_NO AND x.BILL_NO=h.BILL_NO
+               AND x.REAL_SALE_AMT <> 0)                     AS TARGET_DTL_NO,
+           {{OPT:vat_h}}
+             - (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                 WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                   AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                   AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)  AS ADJ_AMT
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+       {{LINE:store:h}}
+       {{LINE:date:h}}
+       {{LINE:extra:h}}
+       AND h.REAL_SALE_AMT <> 0
+) s
+ON (    t.HQ_OFFICE_CD = s.HQ_OFFICE_CD
+    AND t.HQ_BRAND_CD  = s.HQ_BRAND_CD
+    AND t.STORE_CD     = s.STORE_CD
+    AND t.SALE_DATE    = s.SALE_DATE
+    AND t.POS_NO       = s.POS_NO
+    AND t.BILL_NO      = s.BILL_NO
+    AND t.BILL_DTL_NO  = s.TARGET_DTL_NO)
+WHEN MATCHED THEN UPDATE SET
+       t.VAT_AMT = t.VAT_AMT + s.ADJ_AMT,
+       t.MOD_DT  = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       t.MOD_ID  = USER
+ WHERE s.ADJ_AMT <> 0;`
+},
+
+b2:{ tag:'B-2', kind:'UPDATE', scope:'대상 본사', name:'TB_SL_SALE_HDR : 상세 합계로 부가세 / 과세 / 순매출 갱신',
+  desc:'VAT_AMT = SUM(상세 VAT), TAX_SALE_AMT = REAL_SALE_AMT, NET_SALE_AMT = REAL_SALE_AMT - VAT. 대상은 VAT=0 인 전표만.',
+  sql:
+`UPDATE TB_SL_SALE_HDR h
+   SET h.VAT_AMT      = (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                          WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                            AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                            AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO),
+       h.TAX_SALE_AMT = h.REAL_SALE_AMT,
+       h.NET_SALE_AMT = h.REAL_SALE_AMT
+                        - (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                            WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                              AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                              AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO),
+       h.MOD_DT       = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       h.MOD_ID       = USER
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+   AND h.VAT_AMT = 0;`
+},
+
+b3:{ tag:'B-3', kind:'MERGE', scope:'대상 본사', name:'TB_SL_SALE_PAY_TEMPORARY : 부가세 / 과세금액 갱신',
+  desc:'헤더 VAT 를 SALE_AMT 비율로 안분하고 반올림 잔액은 마지막 행에 몰아 SUM(VAT_AMT) = 헤더 VAT 를 보장합니다. TAX_AMT = SALE_AMT. 2단계 상관 서브쿼리는 Oracle 이 해석 못 해서 MERGE + 분석함수로 썼습니다.',
+  sql:
+`MERGE INTO TB_SL_SALE_PAY_TEMPORARY t
+USING (
+    SELECT q.HQ_OFFICE_CD, q.HQ_BRAND_CD, q.STORE_CD, q.SALE_DATE,
+           q.POS_NO, q.BILL_NO, q.LINE_NO, q.LINE_SEQ_NO, q.REG_SEQ,
+           q.SALE_AMT,
+           q.BASE_VAT
+             + CASE WHEN q.RN = q.CNT
+                    THEN q.HDR_VAT - SUM(q.BASE_VAT) OVER (
+                             PARTITION BY q.HQ_OFFICE_CD, q.HQ_BRAND_CD, q.STORE_CD,
+                                          q.SALE_DATE, q.POS_NO, q.BILL_NO)
+                    ELSE 0 END                                   AS NEW_VAT
+      FROM (
+            SELECT w.HQ_OFFICE_CD, w.HQ_BRAND_CD, w.STORE_CD, w.SALE_DATE,
+                   w.POS_NO, w.BILL_NO, w.LINE_NO, w.LINE_SEQ_NO, w.REG_SEQ,
+                   w.SALE_AMT, w.HDR_VAT,
+                   ROUND(w.HDR_VAT * w.SALE_AMT / NULLIF(w.BILL_SUM,0))  AS BASE_VAT,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY w.HQ_OFFICE_CD, w.HQ_BRAND_CD, w.STORE_CD,
+                                    w.SALE_DATE, w.POS_NO, w.BILL_NO
+                           ORDER BY w.LINE_NO, w.LINE_SEQ_NO, w.REG_SEQ)  AS RN,
+                   COUNT(*) OVER (
+                       PARTITION BY w.HQ_OFFICE_CD, w.HQ_BRAND_CD, w.STORE_CD,
+                                    w.SALE_DATE, w.POS_NO, w.BILL_NO)     AS CNT
+              FROM (
+                    SELECT t2.HQ_OFFICE_CD, t2.HQ_BRAND_CD, t2.STORE_CD, t2.SALE_DATE,
+                           t2.POS_NO, t2.BILL_NO, t2.LINE_NO, t2.LINE_SEQ_NO, t2.REG_SEQ,
+                           NVL(t2.SALE_AMT,0)                             AS SALE_AMT,
+                           h.VAT_AMT                                      AS HDR_VAT,
+                           SUM(NVL(t2.SALE_AMT,0)) OVER (
+                               PARTITION BY t2.HQ_OFFICE_CD, t2.HQ_BRAND_CD, t2.STORE_CD,
+                                            t2.SALE_DATE, t2.POS_NO, t2.BILL_NO)
+                                                                          AS BILL_SUM
+                      FROM TB_SL_SALE_PAY_TEMPORARY t2
+                      JOIN TB_SL_SALE_HDR h
+                        ON  h.HQ_OFFICE_CD = t2.HQ_OFFICE_CD
+                        AND h.HQ_BRAND_CD  = t2.HQ_BRAND_CD
+                        AND h.STORE_CD     = t2.STORE_CD
+                        AND h.SALE_DATE    = t2.SALE_DATE
+                        AND h.POS_NO       = t2.POS_NO
+                        AND h.BILL_NO      = t2.BILL_NO
+                     WHERE t2.HQ_OFFICE_CD = '{{HQ}}'
+                       {{LINE:store:t2}}
+                       {{LINE:date:t2}}
+                       {{LINE:extra:t2}}
+                       AND h.REAL_SALE_AMT <> 0
+                   ) w
+           ) q
+) s
+ON (    t.HQ_OFFICE_CD = s.HQ_OFFICE_CD
+    AND t.HQ_BRAND_CD  = s.HQ_BRAND_CD
+    AND t.STORE_CD     = s.STORE_CD
+    AND t.SALE_DATE    = s.SALE_DATE
+    AND t.POS_NO       = s.POS_NO
+    AND t.BILL_NO      = s.BILL_NO
+    AND t.LINE_NO      = s.LINE_NO
+    AND t.LINE_SEQ_NO  = s.LINE_SEQ_NO
+    AND t.REG_SEQ      = s.REG_SEQ)
+WHEN MATCHED THEN UPDATE SET
+       t.VAT_AMT = s.NEW_VAT,
+       t.TAX_AMT = s.SALE_AMT,
+       t.MOD_DT  = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+       t.MOD_ID  = USER;`
+},
+
+c4:{ tag:'C-4', kind:'SELECT', scope:'대상 본사', name:'이슈5 잔여 : 0 건이어야 함',
+  desc:'REAL_SALE_AMT <> 0 AND VAT_AMT = 0 인 헤더가 남아 있으면 안 됩니다.',
+  sql:
+`SELECT COUNT(*) AS 남은_VAT0_전표
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0 AND h.VAT_AMT = 0;`
+},
+
+c5:{ tag:'C-5', kind:'SELECT', scope:'대상 본사', name:'헤더 VAT = 상세 VAT 합계 / 순매출식 / 부호',
+  desc:'확정된 유일한 규칙(헤더 VAT = 상세 합계)과 TAX·NET 식, VAT 부호 = REAL 부호를 한 번에 봅니다. RULE_OK = N 이 위로 정렬됩니다.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN,
+       h.REAL_SALE_AMT, h.VAT_AMT, h.TAX_SALE_AMT, h.NET_SALE_AMT,
+       (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+           AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)          AS 상세VAT합,
+       CASE WHEN h.VAT_AMT = (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                               WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                                 AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                                 AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+             AND h.TAX_SALE_AMT = h.REAL_SALE_AMT
+             AND h.NET_SALE_AMT = h.REAL_SALE_AMT - h.VAT_AMT
+             AND SIGN(h.VAT_AMT) = SIGN(h.REAL_SALE_AMT)
+            THEN 'Y' ELSE 'N' END                                  AS RULE_OK
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+ ORDER BY RULE_OK, h.STORE_CD, h.POS_NO, h.BILL_NO;`
+},
+
+c6:{ tag:'C-6', kind:'SELECT', scope:'대상 본사', name:'가승인 검증 : TAX_AMT = SALE_AMT, VAT 합 = 헤더 VAT',
+  desc:'전표당 행이 2개인 경우(실측 3건)도 안분 잔액 처리로 VAT 합이 헤더와 같아야 합니다.',
+  sql:
+`SELECT t.STORE_CD, t.SALE_DATE, t.POS_NO, t.BILL_NO,
+       COUNT(*)              AS 가승인행수,
+       SUM(t.SALE_AMT)       AS SALE합,
+       SUM(t.TAX_AMT)        AS TAX합,
+       SUM(t.VAT_AMT)        AS VAT합,
+       MAX(h.VAT_AMT)        AS 헤더VAT,
+       CASE WHEN SUM(t.TAX_AMT) = SUM(t.SALE_AMT)
+             AND SUM(t.VAT_AMT) = MAX(h.VAT_AMT)
+            THEN 'Y' ELSE 'N' END AS RULE_OK
+  FROM TB_SL_SALE_PAY_TEMPORARY t
+  JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD=t.HQ_OFFICE_CD AND h.HQ_BRAND_CD=t.HQ_BRAND_CD
+    AND h.STORE_CD=t.STORE_CD AND h.SALE_DATE=t.SALE_DATE
+    AND h.POS_NO=t.POS_NO AND h.BILL_NO=t.BILL_NO
+ WHERE t.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:t}}
+{{LINE:date:t}}
+{{LINE:extra:t}}
+ GROUP BY t.STORE_CD, t.SALE_DATE, t.POS_NO, t.BILL_NO
+ ORDER BY RULE_OK, t.STORE_CD, t.POS_NO, t.BILL_NO;`
+},
+
+c7:{ tag:'C-7', kind:'SELECT', scope:'집계 대조', name:'트리거가 갱신한 집계 대조 : 헤더 합계 = TB_SL_DAILY_TOTAL',
+  desc:'이번엔 집계 부가세가 실제로 늘어나 헤더 합계와 같아져야 정상입니다.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE,
+       SUM(h.TOT_SALE_AMT)   AS 총매출,
+       SUM(h.TOT_DC_AMT)     AS 총할인,
+       SUM(h.REAL_SALE_AMT)  AS 실판매,
+       SUM(h.VAT_AMT)        AS 부가세,
+       (SELECT t.REAL_SALE_AMT FROM TB_SL_DAILY_TOTAL t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE)      AS 집계_실판매,
+       (SELECT t.VAT_AMT FROM TB_SL_DAILY_TOTAL t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE)      AS 집계_부가세
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+ GROUP BY h.HQ_OFFICE_CD, h.STORE_CD, h.SALE_DATE
+ ORDER BY h.STORE_CD, h.SALE_DATE;`
+},
+
+c8:{ tag:'C-8', kind:'SELECT', scope:'대상 본사', name:'절사 잔액 점검 : 라인 VAT 합 vs 헤더 REAL 기준',
+  desc:'B-1b 미적용이면 차이가 남는 게 정상(시스템 표준과 동일), 적용했으면 전건 0 이어야 합니다. 차이 큰 순으로 정렬됩니다.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN,
+       h.REAL_SALE_AMT,
+       (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+           AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)          AS 라인VAT합,
+       {{OPT:vat_h}}                                                 AS 헤더REAL기준,
+       (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+           AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+       - {{OPT:vat_h}}                                               AS 차이
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+ ORDER BY ABS((SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                  AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                  AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+              - {{OPT:vat_h}}) DESC,
+          h.STORE_CD, h.POS_NO, h.BILL_NO;`
+}
+
+  },
+  opt(p){
+    const F = {
+      trunc: a => 'SIGN(' + a + '.REAL_SALE_AMT) * TRUNC(ABS(' + a + '.REAL_SALE_AMT)/11)',
+      round: a => 'ROUND(' + a + '.REAL_SALE_AMT/11)',
+      net  : a => a + '.REAL_SALE_AMT - ROUND(' + a + '.REAL_SALE_AMT/1.1)'
+    };
+    const f = F[p.opts.vat] || F.trunc;
+    return { vat_d: f('d'), vat_h: f('h') };
+  }
+};
+
+/* ── 케이스 4 ──────────────────────────────────────────── */
+const CASE_FINAL = {
+  id:'final', no:4, title:'최종 전체검증 (SP_BENSON_DATA_DAILY_CHECK)', status:'ready',
+  lead:'케이스 1~3 보정을 COMMIT 한 뒤 벤슨 일별 검증 프로시저를 돌려 전표 단위 결과를 로그 테이블에서 확인합니다. ' +
+       '로그 초기화 → 프로시저 실행 → RESULT_CD <> 0000 조회 순서입니다. 날짜는 오른쪽 SALE_DATE 가 그대로 PI_TARGET_DATE 로 들어갑니다.',
+  warn:{
+    head:'실행 전에 확인할 것',
+    items:[
+      '[F-1] 은 WHERE 없이 TB_LOG_BENSON_BILL_CHECK 전체를 지웁니다. 이전 날짜 검증 결과를 남겨야 하면 조건을 붙이거나 건너뛰세요.',
+      '프로시저 안에서 COMMIT 을 하는지 확인되지 않았습니다. 케이스 1~3 이 아직 COMMIT 전이면 같은 세션에서 돌려야 보정분이 보이고, 프로시저가 COMMIT 을 하면 보정분까지 같이 확정됩니다.',
+      'PI_INDEX 의 의미는 문서에 없습니다. 원문 값 1 을 기본으로 두었습니다.',
+      "SALE_DATE 가 '지정일 이후' 모드여도 프로시저는 하루만 받습니다. 여러 날이면 날짜를 바꿔 가며 반복 실행하세요.",
+      "[F-3] 은 RESULT_CD <> '0000' 만 보여 줍니다. 0 건이면 전체 통과입니다. 로그 테이블의 다른 컬럼 구성은 문서에 없어 SELECT * 로 두었습니다."
+    ]
+  },
+  options:[
+    { key:'pi_index', type:'text', label:'PI_INDEX', value:'1', hint:'원문 값 1. 프로시저 명세 확인 후 조정.' }
+  ],
+  stages:[
+    { phase:'compare', plabel:'초기화', name:'로그 초기화', items:['f1'] },
+    { phase:'build',   plabel:'실행',   name:'검증 프로시저 실행', items:['f2'] },
+    { phase:'verify',  plabel:'결과',   name:'결과 확인', items:['f3'] }
+  ],
+  queries:{
+
+f1:{ tag:'F-1', kind:'DELETE', scope:'로그', name:'TB_LOG_BENSON_BILL_CHECK 비우기',
+  desc:'프로시저가 결과를 누적하지 않도록 로그를 먼저 비웁니다. 원문 그대로 전체 삭제입니다.',
+  sql:
+`DELETE FROM TB_LOG_BENSON_BILL_CHECK;`
+},
+
+f2:{ tag:'F-2', kind:'PL/SQL', scope:'프로시저', name:'SP_BENSON_DATA_DAILY_CHECK_IUD01 실행',
+  desc:'PI_TARGET_DATE 는 공통 조건의 SALE_DATE 입니다. SQL*Plus / SQL Developer 스크립트 실행이면 마지막 / 까지 같이 붙여 넣으세요.',
+  sql:
+`SET SERVEROUTPUT ON;
+DECLARE
+  PI_INDEX       VARCHAR2(200);
+  PI_TARGET_DATE VARCHAR2(200);
+BEGIN
+  PI_INDEX       := '{{OPT:pi_index}}';
+  PI_TARGET_DATE := {{DATE}};
+
+  SP_BENSON_DATA_DAILY_CHECK_IUD01(
+    PI_INDEX       => PI_INDEX,
+    PI_TARGET_DATE => PI_TARGET_DATE
+  );
+END;
+/`
+},
+
+f3:{ tag:'F-3', kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_CD <> 0000',
+  desc:'0 건이면 통과. 남는 건은 RESULT_CD 별로 케이스 1~3 중 어느 보정이 빠졌는지 되짚습니다.',
+  sql:
+`SELECT *
+  FROM TB_LOG_BENSON_BILL_CHECK
+ WHERE RESULT_CD <> '0000';`
+}
+
+  },
+  opt(p){
+    return { pi_index: (p.opts.pi_index || '1').trim() };
+  }
+};
+
 /* ── 케이스 목록 ───────────────────────────────────────── */
-const CASES = [ CASE_COUPN,
-  { id:'dtl',  no:2, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
+const CASES = [ CASE_COUPN, CASE_DCMOVE, CASE_VAT, CASE_FINAL,
+  { id:'dtl',  no:5, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
 ];
-for(let i = 3; i <= 20; i++){
+for(let i = 6; i <= 20; i++){
   CASES.push({ id:'diff'+i, no:i, title:'HDR–DTL 값 불일치', status:'pending', pending:'diff' });
 }
 
@@ -1214,21 +1920,31 @@ function params(){
     hq   : inputs.hq.value.trim(),
     store: inputs.store.value.trim(),
     date : mode === 'today' ? "TO_CHAR(SYSDATE,'YYYYMMDD')" : "'" + (dateLit || 'YYYYMMDD') + "'",
-    dateLabel: mode === 'today' ? '오늘 (SYSDATE)' : (dateLit || '(미입력)'),
+    dateOp: mode === 'from' ? '>=' : '=',
+    dateLabel: mode === 'today' ? '오늘 (SYSDATE)'
+             : (dateLit || '(미입력)') + (mode === 'from' ? ' 이후 (>=)' : ''),
     dc   : inputs.dc.value.trim(),
     extra: inputs.extra.value.trim().replace(/;+\s*$/,'').replace(/^\s*AND\s+/i,''),
     opts : optState
   };
 }
 
+function storeCond(v){
+  if(!v) return '';
+  const list = v.split(',').map(x => x.trim()).filter(Boolean);
+  if(list.length <= 1) return "@.STORE_CD = '" + list[0] + "'";
+  return '@.STORE_CD IN (' + list.map(x => "'" + x + "'").join(',') + ')';
+}
+
 function build(sql, p, optMap){
   const lines = {
     hq   : p.hq ? "@.HQ_OFFICE_CD = '" + p.hq + "'" : '',
-    store: p.store ? "@.STORE_CD = '" + p.store + "'" : '',
+    store: storeCond(p.store),
+    date : '@.SALE_DATE ' + p.dateOp + ' ' + p.date,
     regfg: (p.opts.regfg || '').trim() ? "@.COUPN_REG_FG = '" + p.opts.regfg.trim() + "'" : '',
     extra: p.extra ? '(' + p.extra + ')' : ''
   };
-  let out = sql.replace(/^([ \t]*)\{\{LINE:(\w+):([a-zA-Z]*)\}\}\n/gm, (m, indent, key, alias) => {
+  let out = sql.replace(/^([ \t]*)\{\{LINE:(\w+):(\w*)\}\}\n/gm, (m, indent, key, alias) => {
     const cond = lines[key];
     if(!cond) return '';
     const pad = indent.length ? indent : '   ';
@@ -1236,9 +1952,11 @@ function build(sql, p, optMap){
   });
   out = out.replace(/^([ \t]*)\{\{OPT:(\w+)\}\}\n/gm, (m, indent, k) => {
     if(!optMap || optMap[k] === undefined) return m;
-    if(optMap[k] === '') return '';
+    const v = optMap[k];
+    if(v && typeof v === 'object') return (v.raw || '') + '\n';   /* {raw:'...'} : 들여쓰기 없이 그대로 */
+    if(v === '') return '';
     const pad = indent.length ? indent : '   ';
-    return pad + optMap[k] + '\n';
+    return pad + v + '\n';
   });
   out = out.replace(/\{\{OPT:(\w+)\}\}/g, (m, k) => (optMap && optMap[k] !== undefined) ? optMap[k] : m);
   return out
@@ -1309,14 +2027,15 @@ function renderOptions(){
   host.append(block);
 }
 
-function cardEl(q, sqlText){
-  const isWrite = q.kind !== 'SELECT';
+function cardEl(q, sqlText, kind){
+  kind = kind || q.kind;
+  const isWrite = kind !== 'SELECT';
   const card = mk('article','q' + (isWrite ? ' write' : ''));
   const head = mk('div','q-head');
   const title = mk('div','q-title');
   const name = mk('div','name');
   name.append(mk('span','tag','[' + q.tag + ']'), mk('span', null, q.name),
-              mk('span','kind' + (isWrite ? ' write' : ''), q.kind), mk('span','scope', q.scope));
+              mk('span','kind' + (isWrite ? ' write' : ''), kind), mk('span','scope', q.scope));
   if(q.isNew) name.append(mk('span','new','추가'));
   title.append(name, mk('div','desc', q.desc));
   const btn = mk('button', null, '복사'); btn.type = 'button';
@@ -1339,13 +2058,14 @@ function buildJump(bar, refs){
   refs.forEach(r => { if(!first.has(r.key)) first.set(r.key, r); });
 
   const chips = new Map();
+  const multi = new Set(refs.map(r => r.group)).size > 1;
   let lastGroup = null;
   first.forEach((r, key) => {
-    if(r.group !== lastGroup){
+    if(multi && r.group !== lastGroup){
       lastGroup = r.group;
       bar.append(mk('span','gl', r.glabel));
     }
-    const b = mk('button', null, PHASE_LABEL[r.phase] || r.phase);
+    const b = mk('button', null, r.plabel || PHASE_LABEL[r.phase] || r.phase);
     b.type = 'button';
     b.title = r.name;
     b.setAttribute('aria-current','false');
@@ -1433,13 +2153,15 @@ function renderCase(){
     refs.push({
       el:s, group:st.group || '', phase:st.phase || 'compare',
       key:(st.group || '') + '|' + (st.phase || 'compare'),
-      glabel:st.glabel || (st.name.split('—')[0] || st.name).trim(), name:st.name
+      glabel:st.glabel || (st.name.split('—')[0] || st.name).trim(), plabel:st.plabel, name:st.name
     });
     st.items.forEach(key => {
       const q = c.queries[key];
+      if(q.when && !q.when(p)) return;
+      const kind = typeof q.kind === 'function' ? q.kind(p) : q.kind;
       const sqlText = build(q.sql, p, optMap);
-      host.append(cardEl(q, sqlText));
-      all.push({ group:st.group || '', kind:q.kind, tag:q.tag, name:q.name, sql:sqlText });
+      host.append(cardEl(q, sqlText, kind));
+      all.push({ group:st.group || '', kind, tag:q.tag, name:q.name, sql:sqlText });
     });
   });
 
@@ -1511,8 +2233,8 @@ function validate(){
   inputs.date.classList.toggle('bad', v !== '' && !/^\d{8}$/.test(v));
 }
 function syncDateMode(){
-  const fixed = document.querySelector('input[name=datemode]:checked').value === 'fixed';
-  inputs.date.disabled = !fixed;
+  const mode = document.querySelector('input[name=datemode]:checked').value;
+  inputs.date.disabled = (mode === 'today');
 }
 Object.values(inputs).forEach(i => i.addEventListener('input', () => { validate(); renderCase(); }));
 document.querySelectorAll('input[name=datemode]').forEach(r =>

@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매출 보정 쿼리 콘솔</title>
+<style>
+  :root{
+    --bg:#1b2027;
+    --bg-2:#20262e;
+    --surface:#252c35;
+    --surface-2:#2b333d;
+    --rule:#37414c;
+    --rule-soft:#2f3842;
+    --text:#e2e7ec;
+    --text-2:#a7b2bd;
+    --text-3:#78848f;
+    --accent:#86b7dc;
+    --accent-soft:#233748;
+    --caution:#e3aa5c;
+    --caution-soft:#3a2e1c;
+    --ok:#6fc79c;
+    --bad:#e07a6a;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "D2Coding", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+            "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:14.5px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  code{font-family:var(--mono);font-size:.92em;color:var(--accent)}
+
+  .wrap{max-width:1420px;margin:0 auto;padding:22px 20px 90px}
+
+  header.top{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:20px;
+  }
+  header.top h1{font-size:19px;font-weight:650;margin:0;letter-spacing:-.01em}
+  header.top p{margin:0;color:var(--text-2);font-size:13px}
+
+  /* ── 3단 ─────────────────────────────── */
+  .cols{display:grid;grid-template-columns:224px minmax(0,1fr) 296px;gap:22px;align-items:start}
+  @media (max-width:1180px){ .cols{grid-template-columns:minmax(0,1fr) 296px} .nav{grid-column:1/-1;position:static} }
+  @media (max-width:860px){ .cols{grid-template-columns:1fr} .panel{position:static} }
+
+  /* ── 케이스 목록 ──────────────────────── */
+  .nav{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+  .nav h2{font-size:12px;font-weight:650;color:var(--text-2);margin:0 0 8px;padding:0 4px}
+  .nav ol{list-style:none;margin:0;padding:0}
+  .nav li button{
+    width:100%;text-align:left;display:flex;gap:9px;align-items:center;
+    background:none;border:none;border-left:2px solid transparent;border-radius:0;
+    padding:6px 8px 6px 10px;color:var(--text-2);font-size:13px;font-weight:500;
+  }
+  .nav li button:hover{color:var(--text);background:var(--bg-2)}
+  .nav li button[aria-current=true]{color:var(--text);border-left-color:var(--accent);background:var(--surface)}
+  .nav .no{font-family:var(--mono);font-size:11.5px;color:var(--text-3);width:18px;text-align:right;flex:none}
+  .nav .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--text-3);opacity:.5}
+  .nav .dot.ready{background:var(--ok);opacity:1}
+  .nav .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav .legend{margin-top:10px;padding:0 10px;font-size:11.5px;color:var(--text-3);display:flex;gap:12px}
+  .nav .legend span{display:inline-flex;align-items:center;gap:5px}
+  @media (max-width:1180px){
+    .nav ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px}
+  }
+
+  /* ── 조건 패널 ─────────────────────────── */
+  .panel{background:var(--surface);border:1px solid var(--rule);position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+  .panel h2{font-size:12.5px;font-weight:650;margin:0;padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--surface-2);color:var(--text-2)}
+  .panel .body{padding:14px}
+  .field{margin-bottom:13px}
+  .field:last-child{margin-bottom:0}
+  .field label,.field .lbl{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px}
+  .field .hint{font-size:11.5px;color:var(--text-3);font-weight:400;margin-top:4px;line-height:1.45}
+  input[type=text],textarea{
+    width:100%;font-family:var(--mono);font-size:12.5px;color:var(--text);
+    background:var(--bg);border:1px solid var(--rule);border-radius:2px;padding:7px 9px;
+  }
+  textarea{resize:vertical;min-height:58px;line-height:1.5}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  input.bad{border-color:var(--bad)}
+  input[disabled]{opacity:.45}
+  .choice{display:flex;flex-direction:column;gap:5px}
+  .choice label{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;font-weight:400;color:var(--text);cursor:pointer;margin:0}
+  .choice input{margin:3px 0 0;accent-color:var(--accent)}
+  .choice .sub{display:block;font-size:11.5px;color:var(--text-3)}
+  .panel-foot{border-top:1px solid var(--rule);padding:10px 14px;background:var(--surface-2)}
+  .opt-block{border-top:1px dashed var(--rule);margin-top:14px;padding-top:12px}
+  .opt-block .lbl{color:var(--caution)}
+
+  button{
+    font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:pointer;
+    border:1px solid var(--rule);background:var(--surface-2);color:var(--text);
+    border-radius:2px;padding:6px 11px;
+  }
+  button:hover{border-color:var(--text-3)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#10161c}
+  button.primary:hover{filter:brightness(1.08)}
+  button.copied{background:var(--ok);border-color:var(--ok);color:#10161c}
+
+  /* ── 본문 ─────────────────────────────── */
+  .case-head{margin-bottom:16px}
+  .case-head .crumb{font-family:var(--mono);font-size:12px;color:var(--text-3);margin-bottom:2px}
+  .case-head h3{margin:0 0 4px;font-size:18px;font-weight:650}
+  .case-head p{margin:0;color:var(--text-2);font-size:13.5px;max-width:74ch}
+  .toolbar{display:flex;gap:8px;margin:12px 0 18px;flex-wrap:wrap;align-items:center}
+  .toolbar .n{font-size:12px;color:var(--text-3);margin-left:auto}
+
+  .warn{border-left:3px solid var(--caution);background:var(--caution-soft);padding:10px 14px;font-size:13px;color:#f1dcb8;margin-bottom:16px}
+  .warn strong{font-weight:650;color:var(--caution)}
+  .warn ul{margin:6px 0 0;padding-left:18px}
+  .warn li{margin:2px 0}
+
+  .stage{font-size:12px;font-weight:650;color:var(--text-2);display:flex;align-items:center;gap:10px;margin:24px 0 10px}
+  .stage::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+
+  .q{background:var(--surface);border:1px solid var(--rule);margin-bottom:12px}
+  .q-head{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-bottom:1px solid var(--rule-soft)}
+  .q-title{flex:1;min-width:0}
+  .q-title .name{font-size:13.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .q-title .tag{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:600}
+  .q-title .desc{font-size:12.5px;color:var(--text-2);margin-top:3px;max-width:80ch}
+  .kind{font-size:11px;font-weight:700;padding:2px 7px;border-radius:2px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+  .kind.write{background:var(--caution-soft);color:var(--caution)}
+  .scope{font-size:11px;font-weight:600;padding:2px 7px;border-radius:2px;background:var(--surface-2);color:var(--text-2);white-space:nowrap}
+  .new{font-size:11px;font-weight:600;padding:2px 7px;border-radius:2px;background:#1f3a2c;color:var(--ok);white-space:nowrap}
+  pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:var(--mono);font-size:12.3px;line-height:1.6;color:#d9e0e7;background:var(--bg);white-space:pre}
+  .q.write{border-color:var(--caution);border-left-width:4px}
+  .q.write .q-head{background:var(--caution-soft)}
+
+  .pending{border:1px dashed var(--rule);background:var(--bg-2);padding:22px 22px}
+  .pending h4{margin:0 0 6px;font-size:14.5px;font-weight:650}
+  .pending p{margin:0 0 12px;color:var(--text-2);font-size:13.5px;max-width:66ch}
+  .pending ul{margin:0;padding-left:19px;color:var(--text-2);font-size:13.5px}
+  .pending li{margin:4px 0}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);
+    background:var(--text);color:#10161c;font-size:13px;font-weight:600;
+    padding:9px 16px;border-radius:3px;opacity:0;pointer-events:none;
+    transition:opacity .16s ease,transform .16s ease;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>매출 보정 쿼리 콘솔</h1>
+    <p>조건을 넣으면 검증 · 보정 · 사후확인 쿼리를 만들어 줍니다. 실행은 직접 하세요.</p>
+  </header>
+
+  <div class="cols">
+
+    <nav class="nav" aria-label="케이스">
+      <h2>케이스</h2>
+      <ol id="nav-list"></ol>
+      <div class="legend">
+        <span><i class="dot ready"></i>쿼리 있음</span>
+        <span><i class="dot"></i>정보 대기</span>
+      </div>
+    </nav>
+
+    <main id="main"></main>
+
+    <aside class="panel">
+      <h2>공통 조건</h2>
+      <div class="body">
+        <div class="field">
+          <label for="in-hq">HQ_OFFICE_CD</label>
+          <input type="text" id="in-hq" value="H0665" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="in-store">STORE_CD</label>
+          <input type="text" id="in-store" value="" placeholder="비우면 본사 전체" spellcheck="false">
+        </div>
+        <div class="field">
+          <span class="lbl">SALE_DATE</span>
+          <div class="choice">
+            <label><input type="radio" name="datemode" value="today" checked>
+              <span>오늘 <span class="sub">TO_CHAR(SYSDATE,'YYYYMMDD') · 재발 시 그대로 재사용</span></span></label>
+            <label><input type="radio" name="datemode" value="fixed">
+              <span>날짜 지정 <span class="sub">지난 날짜 재처리·마감 후 실행</span></span></label>
+          </div>
+          <input type="text" id="in-date" value="20260901" maxlength="8" spellcheck="false" disabled style="margin-top:7px">
+        </div>
+        <div class="field">
+          <label for="in-dc">DC_CD</label>
+          <input type="text" id="in-dc" value="02" maxlength="2" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="in-extra">추가 WHERE 조건</label>
+          <textarea id="in-extra" spellcheck="false" placeholder="@.POS_NO = '01'"></textarea>
+          <div class="hint"><code>@.</code> 은 각 쿼리의 주 테이블 별칭으로 바뀝니다. 비워두면 넣지 않습니다.</div>
+        </div>
+        <div id="case-options"></div>
+      </div>
+      <div class="panel-foot">
+        <button type="button" id="btn-reset">기본값으로 되돌리기</button>
+      </div>
+    </aside>
+
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   토큰
+     {{HQ}} {{DC}} {{STORE}}       : 값 그대로
+     {{DATE}}                      : 'YYYYMMDD' 또는 TO_CHAR(SYSDATE,...)  (따옴표 포함)
+     {{LINE:store:d}}              : STORE_CD 입력 시  AND d.STORE_CD = '...'  / 없으면 줄 삭제
+     {{LINE:regfg:m}}              : COUPN_REG_FG 입력 시 AND m.COUPN_REG_FG = '...'
+     {{LINE:extra:d}}              : 추가 조건. @. → d.
+     {{OPT:이름}}                  : 케이스 옵션이 채우는 값
+   ════════════════════════════════════════════════════════════════ */
+
+const PENDING_KIND = {
+  dtl: {
+    lead: '아직 쿼리가 없습니다. 아래 내용을 주시면 1번과 같은 형태로 채워 넣겠습니다.',
+    head: '필요한 정보',
+    note: '누락을 무엇으로 판정하고, 없는 행을 무엇으로 되살릴지가 정해져야 쿼리를 씁니다.',
+    items: [
+      '누락 판정 기준 — 어느 테이블에 있는데 TB_SL_SALE_DTL 에 없는 상태인지',
+      '복원 원본 — 금액·수량·상품코드를 어느 테이블에서 가져올지',
+      'TB_SL_SALE_DTL 컬럼 목록과 고정값 후보',
+      'BILL_DTL_NO 채번 규칙',
+      '트리거 유무, 집계 테이블 파급 여부',
+      "반품건(SALE_YN='N') 처리 규칙"
+    ]
+  },
+  diff: {
+    lead: '아직 쿼리가 없습니다. 아래 내용을 주시면 1번과 같은 형태로 채워 넣겠습니다.',
+    head: '필요한 정보',
+    note: '어느 쪽을 정답으로 볼지가 정해져야 UPDATE 방향이 나옵니다.',
+    items: [
+      '대조할 테이블 짝 — 예: TB_SL_SALE_HDR ↔ TB_SL_SALE_DTL',
+      '비교 대상 컬럼 — 어떤 금액·수량 항목을 맞출지',
+      '허용 오차 — 원 단위 절사·반올림 차이를 어디까지 정상으로 볼지',
+      '보정 방향 — HDR 을 DTL 합계로 맞출지, 그 반대인지',
+      '보정 대상 테이블의 트리거·집계 파급 여부'
+    ]
+  }
+};
+
+/* ── 케이스 1 ──────────────────────────────────────────── */
+const CASE_COUPN = {
+  id:'coupn', no:1, title:'쿠폰 할인 누락 (PAY_COUPN · PAY_SEQ)', status:'ready',
+  lead:'세 갈래입니다. A 매출건: HDR_DC 할인은 있는데 쿠폰행이 없는 전표를 DC_REASON_CD 로 마스터에서 만들어 채웁니다. ' +
+       'B 반품건: 원거래 쿠폰행을 복사해 부호를 뒤집습니다. C 결제행: 쿠폰행은 있는데 TB_SL_SALE_PAY_SEQ 의 PAY_CD=\'12\' 가 없는 건을 채웁니다. ' +
+       '순서는 A/B 로 쿠폰행을 먼저 맞추고 C 를 돌립니다. C 는 트리거로 일계 집계 9개 테이블이 같이 바뀝니다.',
+  warn:{
+    head:'INSERT 전에 확인할 것',
+    items:[
+      'A [0-3] 쿠폰 마스터 중복이 0건이어야 합니다. 같은 매장에 PAY_CLASS_CD/COUPN_CD 가 REG_FG 별로 두 줄이면 쿠폰행이 두 배로 들어갑니다.',
+      'A [0-4] 정상 표본이 전표당 1행인지 확인하세요. 2행 이상이 보통이면 DTL_DC 라인 단위로 바꿔야 합니다.',
+      'B [R1] AMT_MATCH 가 N 이면 부분 반품일 수 있습니다. 기본 옵션은 금액이 맞는 전표만 넣습니다.',
+      "B APPR_PROC_FG='1' 은 외부 승인 연동 쿠폰입니다. 승인취소가 선행됐는지 확인 전에는 제외해 두세요.",
+      'C TB_SL_SALE_PAY_SEQ 에는 TR_SL_SALE_PAY_SEQ_01 트리거가 있어 행마다 TB_SL_DAILY_PAY 등 집계가 자동으로 증감합니다. [C0-3] 에서 집계와 실데이터가 이미 맞는 상태여야 하고, 다르면 넣지 마세요. 이중계상이 됩니다.',
+      'C 는 롤백하면 트리거의 집계 변경도 같이 되돌아갑니다. COMMIT 전에 [C3] 를 보세요.',
+      'COMMIT 은 붙지 않습니다. 영업 중에 돌리면 INSERT 뒤에 들어온 전표가 사후 검증에서 불일치로 잡힙니다.'
+    ]
+  },
+  options:[
+    { key:'regfg', type:'text', label:'A · COUPN_REG_FG 고정', value:'H',
+      hint:"[0-1] 실측 단일값 'H'. 비우면 REG_FG 조건 없이 마스터를 조인합니다." },
+    { key:'dcamt', type:'radio', label:'A · COUPN_DC_AMT 채우는 값', value:'master',
+      choices:[
+        { v:'master', t:'마스터값', sub:'m.COUPN_DC_AMT · 율쿠폰이면 0. 이 본사 기본값.' },
+        { v:'actual', t:'실제 할인액', sub:'d.DC_AMT · 36개 매장이 쓰는 관행.' }
+      ]},
+    { key:'amtguard', type:'radio', label:'B · 반품 INSERT 대상', value:'match',
+      choices:[
+        { v:'match', t:'금액 일치 전표만', sub:'반품 HDR_DC 할인액 = 원거래 쿠폰 합계인 전표만. 부분 반품 제외.' },
+        { v:'all',   t:'전부', sub:'[R1] 로 부분 반품이 없다고 확인한 뒤에만.' }
+      ]},
+    { key:'appr1', type:'radio', label:"B · 외부승인 연동(APPR_PROC_FG='1')", value:'exclude',
+      choices:[
+        { v:'exclude', t:'제외', sub:'승인취소 확인 전 기본값.' },
+        { v:'include', t:'포함', sub:'외부 승인취소가 끝난 것을 확인한 뒤.' }
+      ]},
+    { key:'lineno', type:'radio', label:'B · 반품행 LINE_NO', value:'org',
+      choices:[
+        { v:'org', t:'원거래 LINE_NO 그대로', sub:'POS 표준. 실측 82/82.' },
+        { v:'seq', t:'반품 전표 MAX+연번', sub:'반품 전표에 이미 행이 있어 겹칠 때.' }
+      ]},
+    { key:'c_saleyn', type:'radio', label:'C · PAY_SEQ 대상 쿠폰행', value:'sale',
+      choices:[
+        { v:'sale', t:"매출건만 (SALE_YN='Y')", sub:'반품 쿠폰행의 PAY_SEQ 규칙은 [C0-1] 로 먼저 확인.' },
+        { v:'all',  t:'반품 포함', sub:"[C0-1] 의 SALE_YN='N' 행도 금액·부호가 맞을 때." }
+      ]},
+    { key:'c_apprfg', type:'radio', label:'C · APPR_PROC_FG', value:'coupn',
+      choices:[
+        { v:'coupn', t:'쿠폰행 값 따라감', sub:"외부승인 쿠폰이면 '1', 아니면 그대로. NULL 이면 '3'." },
+        { v:'fixed', t:"'3' 고정", sub:'원문대로. 외부승인 쿠폰까지 3 으로 들어감.' }
+      ]}
+  ],
+  stages:[
+    { group:'A', name:'A · 매출건 — 사전 검증 (정상 데이터에서 규칙 뽑기)', items:['q01','q02','q03','q04'] },
+    { group:'A', name:'A · 매출건 — 대상 확인', items:['q1'] },
+    { group:'A', name:'A · 매출건 — 생성', items:['q2'] },
+    { group:'A', name:'A · 매출건 — 사후 검증', items:['q31','q32','q33'] },
+    { group:'B', name:'B · 반품건 — 규칙 재확인', items:['r0'] },
+    { group:'B', name:'B · 반품건 — 대상 확인', items:['r1'] },
+    { group:'B', name:'B · 반품건 — 생성', items:['r2'] },
+    { group:'B', name:'B · 반품건 — 사후 검증', items:['r31','r32','r33'] },
+    { group:'C', name:"C · 결제행 PAY_CD='12' — 사전 확인", items:['c01','c02','c1','c03'] },
+    { group:'C', name:"C · 결제행 PAY_CD='12' — 생성 (트리거 있음)", items:['c2'] },
+    { group:'C', name:"C · 결제행 PAY_CD='12' — 사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
+  ],
+  queries:{
+
+q01:{ tag:'0-1', kind:'SELECT', scope:'전사 표본', name:'고정값 분포',
+  desc:"LINE_SEQ_NO · COUPN_REG_FG · COUPN_APPLY_FG · APPR_PROC_FG · OK_ACC_POINT 가 단일값인지 봅니다. 실측: '0001' / 'H' / '1' / '3' / 0.",
+  sql:
+`SELECT LINE_SEQ_NO, COUPN_REG_FG, COUPN_TYPE_FG, COUPN_APPLY_FG,
+       NVL(APPR_PROC_FG,'(NULL)') AS APPR_PROC_FG, OK_ACC_POINT,
+       COUNT(*) AS CNT, COUNT(DISTINCT STORE_CD) AS 매장수
+  FROM TB_SL_SALE_PAY_COUPN
+ WHERE SALE_DATE = {{DATE}}
+   AND DC_CD     = '{{DC}}'
+   AND SALE_YN   = 'Y'
+{{LINE:extra:}}
+ GROUP BY LINE_SEQ_NO, COUPN_REG_FG, COUPN_TYPE_FG, COUPN_APPLY_FG,
+          NVL(APPR_PROC_FG,'(NULL)'), OK_ACC_POINT
+ ORDER BY CNT DESC;`
+},
+
+q02:{ tag:'0-2', kind:'SELECT', scope:'전사 표본', name:'마스터 대조',
+  desc:'COUPN_DC_RATE 와 COUPN_DC_AMT 가 TB_MS_COUPON 과 맞는지 봅니다. AMT 는 마스터값과 실제할인액 두 관행이 공존합니다.',
+  sql:
+`SELECT m.COUPN_DC_FG,
+       CASE WHEN c.COUPN_DC_RATE = m.COUPN_DC_RATE THEN 'RATE 일치' ELSE 'RATE 불일치' END AS RATE_CHK,
+       CASE WHEN c.COUPN_DC_AMT  = m.COUPN_DC_AMT  THEN 'AMT 마스터값'
+            WHEN c.COUPN_DC_AMT  = c.DC_AMT        THEN 'AMT 실제할인액'
+            ELSE 'AMT 기타' END                                          AS AMT_CHK,
+       COUNT(*) AS CNT, COUNT(DISTINCT c.STORE_CD) AS 매장수
+  FROM TB_SL_SALE_PAY_COUPN c
+  JOIN TB_MS_COUPON m
+    ON  m.STORE_CD     = c.STORE_CD
+    AND m.COUPN_REG_FG = c.COUPN_REG_FG
+    AND m.PAY_CLASS_CD = c.PAY_CLASS_CD
+    AND m.COUPN_CD     = c.COUPN_CD
+ WHERE c.SALE_DATE = {{DATE}}
+   AND c.DC_CD     = '{{DC}}'
+   AND c.SALE_YN   = 'Y'
+{{LINE:extra:c}}
+ GROUP BY m.COUPN_DC_FG,
+       CASE WHEN c.COUPN_DC_RATE = m.COUPN_DC_RATE THEN 'RATE 일치' ELSE 'RATE 불일치' END,
+       CASE WHEN c.COUPN_DC_AMT  = m.COUPN_DC_AMT  THEN 'AMT 마스터값'
+            WHEN c.COUPN_DC_AMT  = c.DC_AMT        THEN 'AMT 실제할인액'
+            ELSE 'AMT 기타' END
+ ORDER BY CNT DESC;`
+},
+
+q03:{ tag:'0-3', kind:'SELECT', scope:'대상 본사', isNew:true, name:'쿠폰 마스터 중복 확인',
+  desc:'[2] 는 STORE_CD + PAY_CLASS_CD + COUPN_CD 로 마스터를 조인합니다. 이 조합이 한 매장에 두 줄이면 쿠폰행이 두 배로 생깁니다. 0건이어야 합니다.',
+  sql:
+`SELECT m.STORE_CD, m.PAY_CLASS_CD, m.COUPN_CD, COUNT(*) AS CNT,
+       LISTAGG(m.COUPN_REG_FG, ',') WITHIN GROUP (ORDER BY m.COUPN_REG_FG) AS REG_FG_LIST
+  FROM TB_MS_COUPON m
+ WHERE m.STORE_CD IN (SELECT s.STORE_CD FROM TB_MS_STORE s WHERE s.HQ_OFFICE_CD = '{{HQ}}')
+{{LINE:store:m}}
+{{LINE:regfg:m}}
+ GROUP BY m.STORE_CD, m.PAY_CLASS_CD, m.COUPN_CD
+HAVING COUNT(*) > 1
+ ORDER BY m.STORE_CD, m.PAY_CLASS_CD, m.COUPN_CD;`
+},
+
+q04:{ tag:'0-4', kind:'SELECT', scope:'전사 표본', isNew:true, name:'전표당 쿠폰 행수 분포',
+  desc:'정상 데이터가 전표당 1행인지 확인합니다. 보정으로 만든 행이 섞이지 않도록 대상 본사는 뺍니다. 1행이 대부분이어야 [2] 의 전표 단위 생성이 맞습니다.',
+  sql:
+`SELECT c.CNT AS 전표당_쿠폰행수,
+       COUNT(*) AS 전표수, COUNT(DISTINCT c.STORE_CD) AS 매장수
+  FROM (SELECT HQ_OFFICE_CD, STORE_CD, POS_NO, BILL_NO, REG_SEQ, DC_CD, COUNT(*) AS CNT
+          FROM TB_SL_SALE_PAY_COUPN
+         WHERE SALE_DATE = {{DATE}}
+           AND DC_CD     = '{{DC}}'
+           AND SALE_YN   = 'Y'
+           AND HQ_OFFICE_CD <> '{{HQ}}'      /* 생성분 제외 */
+         GROUP BY HQ_OFFICE_CD, STORE_CD, POS_NO, BILL_NO, REG_SEQ, DC_CD) c
+ GROUP BY c.CNT
+ ORDER BY c.CNT;`
+},
+
+q1:{ tag:'1', kind:'SELECT', scope:'대상 본사', name:'대상 전표 목록',
+  desc:'HDR_DC 에는 있는데 PAY_COUPN 에는 없는 전표. COUPN_NM 이 NULL 이면 마스터에 없는 코드라 [2] 에서도 빠집니다.',
+  sql:
+`SELECT d.STORE_CD, s.STORE_NM, d.POS_NO, d.BILL_NO, d.REG_SEQ,
+       d.SALE_YN, d.SALE_FG,
+       d.DC_AMT                       AS HDR_DC_AMT,
+       d.DC_REASON_CD,
+       SUBSTR(d.DC_REASON_CD, 1, 3)   AS PAY_CLASS_CD,
+       SUBSTR(d.DC_REASON_CD, 4, 4)   AS COUPN_CD,
+       m.COUPN_REG_FG, m.COUPN_NM, m.COUPN_DC_FG, m.COUPN_DC_RATE, m.COUPN_DC_AMT
+  FROM TB_SL_SALE_HDR_DC d
+  LEFT JOIN TB_MS_STORE s
+    ON  s.HQ_OFFICE_CD = d.HQ_OFFICE_CD
+    AND s.STORE_CD     = d.STORE_CD
+  LEFT JOIN TB_MS_COUPON m
+    ON  m.STORE_CD     = d.STORE_CD
+    AND m.PAY_CLASS_CD = SUBSTR(d.DC_REASON_CD, 1, 3)
+    AND m.COUPN_CD     = SUBSTR(d.DC_REASON_CD, 4, 4)
+    {{LINE:regfg:m}}
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+   AND d.SALE_DATE    = {{DATE}}
+   AND d.DC_CD        = '{{DC}}'
+{{LINE:store:d}}
+{{LINE:extra:d}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                    WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+                      AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+ ORDER BY d.STORE_CD, d.POS_NO, d.BILL_NO;`
+},
+
+q2:{ tag:'2', kind:'INSERT', scope:'대상 본사', name:'쿠폰 결제행 생성 (전표당 1행)',
+  desc:'LINE_NO 는 전표의 기존 MAX(LINE_NO) 뒤에 이어서 채번합니다. 한 전표에 HDR_DC 가 REG_SEQ 별로 여러 줄이어도 ROW_NUMBER 로 겹치지 않게 합니다.',
+  sql:
+`INSERT INTO TB_SL_SALE_PAY_COUPN (
+    HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE,
+    POS_NO, BILL_NO, LINE_NO, LINE_SEQ_NO,
+    REG_SEQ, SALE_YN, SALE_FG, DC_AMT,
+    COUPN_REG_FG, PAY_CLASS_CD, COUPN_CD, COUPN_TYPE_FG,
+    COUPN_DC_RATE, COUPN_DC_AMT, COUPN_APPLY_FG, COUPN_SER_NO,
+    ORG_BILL_NO, REG_DT, REG_ID, MOD_DT,
+    MOD_ID, COUPN_APPR_NO, APPR_PROC_FG, APPR_BARCD_NO,
+    APPR_AMT, APPR_DT, APPR_NO, APPR_MSG,
+    PARTN_CD, DC_CD, OK_ACC_POINT, CARD_TYPE_FG
+)
+SELECT t.HQ_OFFICE_CD,
+       t.HQ_BRAND_CD,
+       t.STORE_CD,
+       t.SALE_DATE,
+       t.POS_NO,
+       t.BILL_NO,
+       LPAD(t.BASE_LINE_NO + t.RN, 4, '0')   /* LINE_NO : 기존 MAX + 연번 */,
+       '0001'                                /* LINE_SEQ_NO   [0-1] 실측 단일값 */,
+       t.REG_SEQ,
+       t.SALE_YN,
+       t.SALE_FG,
+       t.DC_AMT                              /* 전표 총 할인액 */,
+       t.COUPN_REG_FG,
+       t.PAY_CLASS_CD,
+       t.COUPN_CD,
+       CASE WHEN t.COUPN_DC_FG = '2' THEN '1' ELSE '2' END  /* COUPN_TYPE_FG */,
+       t.COUPN_DC_RATE                       /* 마스터값. [0-2] 100% 일치 */,
+       {{OPT:dcamt}},
+       '1'                                   /* COUPN_APPLY_FG [0-1] 실측 단일값 */,
+       NULL                                  /* COUPN_SER_NO */,
+       NULL                                  /* ORG_BILL_NO : 매출건 */,
+       TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')   /* REG_DT */,
+       USER                                  /* REG_ID */,
+       TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')   /* MOD_DT */,
+       USER                                  /* MOD_ID */,
+       NULL                                  /* COUPN_APPR_NO */,
+       '3'                                   /* APPR_PROC_FG  [0-1] 실측 단일값 */,
+       NULL                                  /* APPR_BARCD_NO */,
+       0                                     /* APPR_AMT */,
+       NULL                                  /* APPR_DT */,
+       NULL                                  /* APPR_NO */,
+       NULL                                  /* APPR_MSG */,
+       NULL                                  /* PARTN_CD */,
+       t.DC_CD,
+       0                                     /* OK_ACC_POINT  [0-1] 실측 단일값 */,
+       NULL                                  /* CARD_TYPE_FG */
+  FROM (
+        SELECT d.HQ_OFFICE_CD, d.HQ_BRAND_CD, d.STORE_CD, d.SALE_DATE,
+               d.POS_NO, d.BILL_NO, d.REG_SEQ, d.DC_CD,
+               d.SALE_YN, d.SALE_FG, d.DC_AMT,
+               m.COUPN_REG_FG, m.PAY_CLASS_CD, m.COUPN_CD,
+               m.COUPN_DC_FG, m.COUPN_DC_RATE, m.COUPN_DC_AMT,
+               NVL((SELECT MAX(TO_NUMBER(x.LINE_NO))
+                      FROM TB_SL_SALE_PAY_COUPN x
+                     WHERE x.HQ_OFFICE_CD = d.HQ_OFFICE_CD
+                       AND x.HQ_BRAND_CD  = d.HQ_BRAND_CD
+                       AND x.STORE_CD     = d.STORE_CD
+                       AND x.SALE_DATE    = d.SALE_DATE
+                       AND x.POS_NO       = d.POS_NO
+                       AND x.BILL_NO      = d.BILL_NO), 0)   AS BASE_LINE_NO,
+               ROW_NUMBER() OVER (PARTITION BY d.HQ_OFFICE_CD, d.HQ_BRAND_CD, d.STORE_CD,
+                                               d.SALE_DATE, d.POS_NO, d.BILL_NO
+                                      ORDER BY d.REG_SEQ, d.DC_CD)  AS RN
+          FROM TB_SL_SALE_HDR_DC d
+          JOIN TB_MS_COUPON m
+            ON  m.STORE_CD     = d.STORE_CD
+            AND m.PAY_CLASS_CD = SUBSTR(d.DC_REASON_CD, 1, 3)
+            AND m.COUPN_CD     = SUBSTR(d.DC_REASON_CD, 4, 4)
+            {{LINE:regfg:m}}
+         WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+           AND d.SALE_DATE    = {{DATE}}
+           AND d.DC_CD        = '{{DC}}'
+           AND d.SALE_YN      = 'Y'          /* 반품건 제외 : 부호 규칙이 다름 */
+           AND d.DC_REASON_CD IS NOT NULL
+           {{LINE:store:d}}
+           {{LINE:extra:d}}
+           AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                            WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+                              AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                              AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+                              AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+       ) t;
+
+-- COMMIT;   /* [3] 검증 후 직접 */`
+},
+
+q31:{ tag:'3-1', kind:'SELECT', scope:'대상 본사', name:'매장별 금액 정합',
+  desc:'금액불일치 0, HDR_AMT = COUPN_AMT 여야 합니다. 영업 중이면 INSERT 뒤에 들어온 전표가 불일치로 잡히니 REG_DT 로 걸러 보세요.',
+  sql:
+`SELECT d.STORE_CD, s.STORE_NM,
+       COUNT(*)                                                              AS 전표수,
+       SUM(CASE WHEN d.DC_AMT =  NVL(c.SUM_AMT,0)*d.SALE_FG THEN 1 ELSE 0 END) AS 금액일치,
+       SUM(CASE WHEN d.DC_AMT <> NVL(c.SUM_AMT,0)*d.SALE_FG THEN 1 ELSE 0 END) AS 금액불일치,
+       SUM(d.DC_AMT)                                                         AS HDR_AMT,
+       SUM(NVL(c.SUM_AMT,0))                                                 AS COUPN_AMT
+  FROM TB_SL_SALE_HDR_DC d
+  LEFT JOIN TB_MS_STORE s
+    ON  s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD
+  LEFT JOIN (SELECT HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
+                    REG_SEQ, DC_CD, COUNT(*) AS CNT, SUM(DC_AMT) AS SUM_AMT
+               FROM TB_SL_SALE_PAY_COUPN
+              WHERE HQ_OFFICE_CD = '{{HQ}}'
+                AND SALE_DATE    = {{DATE}}
+              GROUP BY HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
+                       REG_SEQ, DC_CD) c
+    ON  c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+    AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+    AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+    AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+   AND d.SALE_DATE    = {{DATE}}
+   AND d.DC_CD        = '{{DC}}'
+{{LINE:store:d}}
+{{LINE:extra:d}}
+ GROUP BY d.STORE_CD, s.STORE_NM
+ ORDER BY d.STORE_CD;`
+},
+
+q32:{ tag:'3-2', kind:'SELECT', scope:'전사 대조', name:'생성분과 정상 표본의 고정값 패턴 대조',
+  desc:'두 구분이 같은 조합으로 나와야 합니다. 정상 표본은 선택한 COUPN_DC_AMT 관행과 같은 매장만 봅니다.',
+  sql:
+`SELECT CASE WHEN c.HQ_OFFICE_CD = '{{HQ}}' THEN '{{HQ}} 생성분' ELSE '정상 표본' END AS 구분,
+       c.LINE_SEQ_NO, c.COUPN_REG_FG, c.COUPN_TYPE_FG, c.COUPN_APPLY_FG,
+       NVL(c.APPR_PROC_FG,'(NULL)') AS APPR_PROC_FG, c.OK_ACC_POINT,
+       COUNT(*) AS CNT
+  FROM TB_SL_SALE_PAY_COUPN c
+ WHERE c.SALE_DATE = {{DATE}}
+   AND c.DC_CD     = '{{DC}}'
+   AND c.SALE_YN   = 'Y'
+   AND (c.HQ_OFFICE_CD = '{{HQ}}' OR {{OPT:pattern}})
+{{LINE:extra:c}}
+ GROUP BY CASE WHEN c.HQ_OFFICE_CD = '{{HQ}}' THEN '{{HQ}} 생성분' ELSE '정상 표본' END,
+          c.LINE_SEQ_NO, c.COUPN_REG_FG, c.COUPN_TYPE_FG, c.COUPN_APPLY_FG,
+          NVL(c.APPR_PROC_FG,'(NULL)'), c.OK_ACC_POINT
+ ORDER BY 1, 8 DESC;`
+},
+
+q33:{ tag:'3-3', kind:'SELECT', scope:'대상 본사', name:'할인율 재검증',
+  desc:'매장별로 쿠폰율과 실제 할인율의 MIN/MAX 가 같아야 합니다. 벌어지면 다른 쿠폰이 섞였거나 TOT_SALE_AMT 기준이 다른 겁니다.',
+  sql:
+`SELECT c.STORE_CD, COUNT(*) AS 건수,
+       MIN(c.COUPN_DC_RATE)                                        AS 쿠폰율,
+       MIN(ROUND(d.DC_AMT/NULLIF(h.TOT_SALE_AMT,0)*100, 1))        AS 실제율_MIN,
+       MAX(ROUND(d.DC_AMT/NULLIF(h.TOT_SALE_AMT,0)*100, 1))        AS 실제율_MAX
+  FROM TB_SL_SALE_PAY_COUPN c
+  JOIN TB_SL_SALE_HDR_DC d
+    ON  d.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND d.HQ_BRAND_CD=c.HQ_BRAND_CD
+    AND d.STORE_CD=c.STORE_CD AND d.SALE_DATE=c.SALE_DATE
+    AND d.POS_NO=c.POS_NO AND d.BILL_NO=c.BILL_NO
+    AND d.REG_SEQ=c.REG_SEQ AND d.DC_CD=c.DC_CD
+  JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND h.HQ_BRAND_CD=c.HQ_BRAND_CD
+    AND h.STORE_CD=c.STORE_CD AND h.SALE_DATE=c.SALE_DATE
+    AND h.POS_NO=c.POS_NO AND h.BILL_NO=c.BILL_NO
+ WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+   AND c.SALE_DATE    = {{DATE}}
+   AND c.DC_CD        = '{{DC}}'
+{{LINE:store:c}}
+{{LINE:extra:c}}
+ GROUP BY c.STORE_CD
+ ORDER BY c.STORE_CD;`
+},
+
+/* ── 반품건 ────────────────────────────────────────────── */
+r0:{ tag:'R0', kind:'SELECT', scope:'전사 표본', name:'반품 쿠폰 부호 규칙 재확인',
+  desc:'기준일의 반품 쿠폰행을 원거래와 대조합니다. 대조쌍 수와 각 열이 같아야 규칙이 유지되는 겁니다. DC_AMT 만 동일, 나머지 금액·율은 반전입니다.',
+  sql:
+`SELECT COUNT(*)                                                             AS 대조쌍,
+       SUM(CASE WHEN r.SALE_FG       = -1 * o.SALE_FG       THEN 1 ELSE 0 END) AS SALE_FG_반전,
+       SUM(CASE WHEN r.DC_AMT        =      o.DC_AMT        THEN 1 ELSE 0 END) AS DC_AMT_동일,
+       SUM(CASE WHEN r.COUPN_DC_RATE = -1 * o.COUPN_DC_RATE THEN 1 ELSE 0 END) AS RATE_반전,
+       SUM(CASE WHEN r.COUPN_DC_AMT  = -1 * o.COUPN_DC_AMT  THEN 1 ELSE 0 END) AS DCAMT_반전,
+       SUM(CASE WHEN r.APPR_AMT      = -1 * o.APPR_AMT      THEN 1 ELSE 0 END) AS APPRAMT_반전,
+       SUM(CASE WHEN r.LINE_NO       =      o.LINE_NO       THEN 1 ELSE 0 END) AS LINE_NO_동일,
+       SUM(CASE WHEN r.REG_ID        =      o.REG_ID        THEN 1 ELSE 0 END) AS REG_ID_동일,
+       SUM(CASE WHEN r.APPR_PROC_FG  = '1'                  THEN 1 ELSE 0 END) AS 외부승인건
+  FROM TB_SL_SALE_PAY_COUPN r
+  JOIN TB_SL_SALE_PAY_COUPN o
+    ON  o.HQ_OFFICE_CD = r.HQ_OFFICE_CD
+    AND o.HQ_BRAND_CD  = r.HQ_BRAND_CD
+    AND o.STORE_CD     = SUBSTR(r.ORG_BILL_NO, 1, LENGTH(r.ORG_BILL_NO)-14)
+    AND o.SALE_DATE    = SUBSTR(r.ORG_BILL_NO, -14, 8)
+    AND o.POS_NO       = SUBSTR(r.ORG_BILL_NO,  -6, 2)
+    AND o.BILL_NO      = SUBSTR(r.ORG_BILL_NO,  -4)
+    AND o.PAY_CLASS_CD = r.PAY_CLASS_CD
+    AND o.COUPN_CD     = r.COUPN_CD
+    AND o.SALE_YN      = 'Y'
+ WHERE r.SALE_DATE   = {{DATE}}
+   AND r.SALE_YN     = 'N'
+   AND r.ORG_BILL_NO IS NOT NULL
+{{LINE:extra:r}}
+;`
+},
+
+r1:{ tag:'R1', kind:'SELECT', scope:'대상 본사', name:'반품 대상 확인 (부분 반품 · 외부승인 표시)',
+  desc:'원거래엔 쿠폰행이 있는데 반품 전표엔 같은 LINE_NO 가 없는 건. AMT_MATCH 는 반품 HDR_DC 할인액과 원거래 쿠폰 합계 대조입니다. N 이면 부분 반품 가능성이 있어 복사하면 안 됩니다.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO   AS RTN_BILL_NO,
+       h.REAL_SALE_AMT                                AS RTN_AMT,
+       o.REAL_SALE_AMT                                AS ORG_AMT,
+       h.REG_ID, h.REG_DT,
+       o.POS_NO   AS ORG_POS_NO,
+       o.BILL_NO  AS ORG_BILL_NO_4,
+       c.LINE_NO, c.PAY_CLASS_CD, c.COUPN_CD, c.DC_AMT,
+       c.COUPN_DC_RATE, c.COUPN_DC_AMT, c.APPR_PROC_FG,
+       rd.DC_AMT                                      AS RTN_HDR_DC_AMT,
+       SUM(c.DC_AMT) OVER (PARTITION BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO,
+                                        c.REG_SEQ, c.DC_CD)     AS ORG_COUPN_SUM,
+       CASE WHEN rd.DC_AMT IS NULL THEN '반품 HDR_DC 없음'
+            WHEN rd.DC_AMT * rd.SALE_FG
+                 = SUM(c.DC_AMT) OVER (PARTITION BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO,
+                                                    c.REG_SEQ, c.DC_CD)
+            THEN 'Y' ELSE 'N' END                     AS AMT_MATCH,
+       CASE WHEN c.APPR_PROC_FG = '1'
+            THEN '★ 외부승인 연동 - 승인취소 선행 확인 필요' END          AS 주의
+  FROM TB_SL_SALE_HDR h
+  JOIN TB_SL_SALE_HDR o
+    ON  o.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+    AND o.HQ_BRAND_CD  = h.HQ_BRAND_CD
+    AND o.STORE_CD     = SUBSTR(h.ORG_BILL_NO, 1, LENGTH(h.ORG_BILL_NO)-14)
+    AND o.SALE_DATE    = SUBSTR(h.ORG_BILL_NO, -14, 8)
+    AND o.POS_NO       = SUBSTR(h.ORG_BILL_NO,  -6, 2)
+    AND o.BILL_NO      = SUBSTR(h.ORG_BILL_NO,  -4)
+  JOIN TB_SL_SALE_PAY_COUPN c
+    ON  c.HQ_OFFICE_CD = o.HQ_OFFICE_CD
+    AND c.HQ_BRAND_CD  = o.HQ_BRAND_CD
+    AND c.STORE_CD     = o.STORE_CD
+    AND c.SALE_DATE    = o.SALE_DATE
+    AND c.POS_NO       = o.POS_NO
+    AND c.BILL_NO      = o.BILL_NO
+    AND c.SALE_YN      = 'Y'
+  LEFT JOIN TB_SL_SALE_HDR_DC rd
+    ON  rd.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+    AND rd.HQ_BRAND_CD  = h.HQ_BRAND_CD
+    AND rd.STORE_CD     = h.STORE_CD
+    AND rd.SALE_DATE    = h.SALE_DATE
+    AND rd.POS_NO       = h.POS_NO
+    AND rd.BILL_NO      = h.BILL_NO
+    AND rd.REG_SEQ      = c.REG_SEQ
+    AND rd.DC_CD        = c.DC_CD
+ WHERE h.SALE_DATE   = {{DATE}}
+   AND h.SALE_YN     = 'N'
+   AND h.ORG_BILL_NO IS NOT NULL
+{{LINE:hq:h}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN x
+                    WHERE x.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+                      AND x.HQ_BRAND_CD  = h.HQ_BRAND_CD
+                      AND x.STORE_CD     = h.STORE_CD
+                      AND x.SALE_DATE    = h.SALE_DATE
+                      AND x.POS_NO       = h.POS_NO
+                      AND x.BILL_NO      = h.BILL_NO
+                      AND x.LINE_NO      = c.LINE_NO)
+ ORDER BY h.STORE_CD, h.POS_NO, h.BILL_NO, c.LINE_NO;`
+},
+
+r2:{ tag:'R2', kind:'INSERT', scope:'대상 본사', name:'반품 쿠폰행 생성 (원거래 복사 · 부호 반전)',
+  desc:'DC_AMT 는 양수 그대로, SALE_FG · COUPN_DC_RATE · COUPN_DC_AMT · APPR_AMT 는 부호 반전. REG_DT/MOD_DT 는 반품 헤더 시각, REG_ID/MOD_ID 는 원거래 값.',
+  sql:
+`INSERT INTO TB_SL_SALE_PAY_COUPN (
+    HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE,
+    POS_NO, BILL_NO, LINE_NO, LINE_SEQ_NO,
+    REG_SEQ, SALE_YN, SALE_FG, DC_AMT,
+    COUPN_REG_FG, PAY_CLASS_CD, COUPN_CD, COUPN_TYPE_FG,
+    COUPN_DC_RATE, COUPN_DC_AMT, COUPN_APPLY_FG, COUPN_SER_NO,
+    ORG_BILL_NO, REG_DT, REG_ID, MOD_DT,
+    MOD_ID, COUPN_APPR_NO, APPR_PROC_FG, APPR_BARCD_NO,
+    APPR_AMT, APPR_DT, APPR_NO, APPR_MSG,
+    PARTN_CD, DC_CD, OK_ACC_POINT, CARD_TYPE_FG
+)
+SELECT c.HQ_OFFICE_CD,
+       c.HQ_BRAND_CD,
+       c.STORE_CD,
+       h.SALE_DATE               /* 반품 영업일 */,
+       h.POS_NO                  /* 반품 POS (원거래와 다를 수 있음) */,
+       h.BILL_NO                 /* 반품 전표번호 */,
+       {{OPT:lineno}},
+       c.LINE_SEQ_NO,
+       c.REG_SEQ,
+       'N'                       /* SALE_YN */,
+       -1 * c.SALE_FG            /* SALE_FG : 1 -> -1 */,
+       c.DC_AMT                  /* ★ 양수 그대로. 반전 아님 ★ */,
+       c.COUPN_REG_FG,
+       c.PAY_CLASS_CD,
+       c.COUPN_CD,
+       c.COUPN_TYPE_FG,
+       -1 * c.COUPN_DC_RATE      /* 부호반전 (0 이면 0) */,
+       -1 * c.COUPN_DC_AMT       /* 부호반전 (0 이면 0) */,
+       c.COUPN_APPLY_FG,
+       c.COUPN_SER_NO,
+       o.STORE_CD || o.SALE_DATE || o.POS_NO || o.BILL_NO   /* ORG_BILL_NO */,
+       h.REG_DT                  /* 반품 헤더 등록시각 */,
+       c.REG_ID                  /* 원거래와 동일 */,
+       h.REG_DT                  /* MOD_DT */,
+       c.MOD_ID                  /* 원거래와 동일 */,
+       c.COUPN_APPR_NO,
+       c.APPR_PROC_FG,
+       c.APPR_BARCD_NO,
+       -1 * c.APPR_AMT           /* 부호반전 (0 이면 0) */,
+       CASE WHEN c.APPR_PROC_FG = '1' THEN h.REG_DT ELSE c.APPR_DT END   /* APPR_DT */,
+       c.APPR_NO,
+       CASE WHEN c.APPR_PROC_FG = '1' AND c.APPR_MSG = '정상승인'
+            THEN '정상취소' ELSE c.APPR_MSG END                          /* APPR_MSG */,
+       c.PARTN_CD,
+       c.DC_CD,
+       c.OK_ACC_POINT,
+       c.CARD_TYPE_FG
+  FROM TB_SL_SALE_HDR h
+  JOIN TB_SL_SALE_HDR o
+    ON  o.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+    AND o.HQ_BRAND_CD  = h.HQ_BRAND_CD
+    AND o.STORE_CD     = SUBSTR(h.ORG_BILL_NO, 1, LENGTH(h.ORG_BILL_NO)-14)
+    AND o.SALE_DATE    = SUBSTR(h.ORG_BILL_NO, -14, 8)
+    AND o.POS_NO       = SUBSTR(h.ORG_BILL_NO,  -6, 2)
+    AND o.BILL_NO      = SUBSTR(h.ORG_BILL_NO,  -4)
+  JOIN TB_SL_SALE_PAY_COUPN c
+    ON  c.HQ_OFFICE_CD = o.HQ_OFFICE_CD
+    AND c.HQ_BRAND_CD  = o.HQ_BRAND_CD
+    AND c.STORE_CD     = o.STORE_CD
+    AND c.SALE_DATE    = o.SALE_DATE
+    AND c.POS_NO       = o.POS_NO
+    AND c.BILL_NO      = o.BILL_NO
+    AND c.SALE_YN      = 'Y'
+ WHERE h.SALE_DATE   = {{DATE}}
+   AND h.SALE_YN     = 'N'
+   AND h.ORG_BILL_NO IS NOT NULL
+{{LINE:hq:h}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+{{OPT:appr1}}
+{{OPT:amtguard}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN x
+                    WHERE x.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+                      AND x.HQ_BRAND_CD  = h.HQ_BRAND_CD
+                      AND x.STORE_CD     = h.STORE_CD
+                      AND x.SALE_DATE    = h.SALE_DATE
+                      AND x.POS_NO       = h.POS_NO
+                      AND x.BILL_NO      = h.BILL_NO
+                      AND x.LINE_NO      = c.LINE_NO);
+
+-- COMMIT;   /* [R3] 검증 후 직접 */`
+},
+
+r31:{ tag:'R3-1', kind:'SELECT', scope:'대상 본사', name:'반품 헤더 할인액 = 쿠폰 합계',
+  desc:'반품이라 SALE_FG(-1) 를 곱해 부호를 맞춥니다. 전건 MATCH_YN=Y 여야 합니다.',
+  sql:
+`SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.SALE_YN, d.SALE_FG,
+       d.DC_AMT                                     AS HDR_DC_AMT,
+       NVL(c.SUM_AMT,0) * d.SALE_FG                 AS COUPN_SUM_SIGNED,
+       CASE WHEN d.DC_AMT = NVL(c.SUM_AMT,0) * d.SALE_FG
+            THEN 'Y' ELSE 'N' END                   AS MATCH_YN
+  FROM TB_SL_SALE_HDR_DC d
+  LEFT JOIN (SELECT HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
+                    REG_SEQ, DC_CD, SUM(DC_AMT) AS SUM_AMT
+               FROM TB_SL_SALE_PAY_COUPN
+              WHERE SALE_DATE = {{DATE}}
+                AND SALE_YN   = 'N'
+              GROUP BY HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
+                       REG_SEQ, DC_CD) c
+    ON  c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+    AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+    AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+    AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD
+ WHERE d.SALE_DATE = {{DATE}}
+   AND d.SALE_YN   = 'N'
+{{LINE:hq:d}}
+{{LINE:store:d}}
+{{LINE:extra:d}}
+ ORDER BY MATCH_YN, d.STORE_CD, d.POS_NO, d.BILL_NO;`
+},
+
+r32:{ tag:'R3-2', kind:'SELECT', scope:'대상 본사', name:'생성분 부호 규칙 재대조',
+  desc:'반품행을 원거래와 다시 붙여 DC_AMT 동일 · 나머지 반전인지 봅니다. RULE_OK 가 전건 Y 여야 합니다.',
+  sql:
+`SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.LINE_NO,
+       o.DC_AMT        AS ORG_DC_AMT,        r.DC_AMT        AS RTN_DC_AMT,
+       o.COUPN_DC_RATE AS ORG_RATE,          r.COUPN_DC_RATE AS RTN_RATE,
+       o.COUPN_DC_AMT  AS ORG_DC_AMT2,       r.COUPN_DC_AMT  AS RTN_DC_AMT2,
+       o.APPR_AMT      AS ORG_APPR,          r.APPR_AMT      AS RTN_APPR,
+       o.SALE_FG       AS ORG_FG,            r.SALE_FG       AS RTN_FG,
+       CASE WHEN r.DC_AMT        =      o.DC_AMT
+             AND r.SALE_FG       = -1 * o.SALE_FG
+             AND r.COUPN_DC_RATE = -1 * o.COUPN_DC_RATE
+             AND r.COUPN_DC_AMT  = -1 * o.COUPN_DC_AMT
+             AND r.APPR_AMT      = -1 * o.APPR_AMT
+            THEN 'Y' ELSE 'N' END            AS RULE_OK
+  FROM TB_SL_SALE_PAY_COUPN r
+  JOIN TB_SL_SALE_PAY_COUPN o
+    ON  o.HQ_OFFICE_CD = r.HQ_OFFICE_CD
+    AND o.HQ_BRAND_CD  = r.HQ_BRAND_CD
+    AND o.STORE_CD     = SUBSTR(r.ORG_BILL_NO, 1, LENGTH(r.ORG_BILL_NO)-14)
+    AND o.SALE_DATE    = SUBSTR(r.ORG_BILL_NO, -14, 8)
+    AND o.POS_NO       = SUBSTR(r.ORG_BILL_NO,  -6, 2)
+    AND o.BILL_NO      = SUBSTR(r.ORG_BILL_NO,  -4)
+    AND o.PAY_CLASS_CD = r.PAY_CLASS_CD
+    AND o.COUPN_CD     = r.COUPN_CD
+    AND o.SALE_YN      = 'Y'
+ WHERE r.SALE_DATE = {{DATE}}
+   AND r.SALE_YN   = 'N'
+{{LINE:hq:r}}
+{{LINE:store:r}}
+{{LINE:extra:r}}
+ ORDER BY RULE_OK, r.STORE_CD, r.BILL_NO;`
+},
+
+r33:{ tag:'R3-3', kind:'SELECT', scope:'대상 본사', name:'외부승인 연동 반품행 목록',
+  desc:"APPR_PROC_FG='1' 인 반품행. 외부 시스템에서 실제 승인취소가 됐는지 별도로 확인해야 합니다.",
+  sql:
+`SELECT STORE_CD, POS_NO, BILL_NO, LINE_NO, PAY_CLASS_CD, COUPN_CD,
+       APPR_PROC_FG, APPR_NO, APPR_AMT, APPR_DT, APPR_MSG, REG_DT
+  FROM TB_SL_SALE_PAY_COUPN
+ WHERE SALE_DATE    = {{DATE}}
+   AND SALE_YN      = 'N'
+   AND APPR_PROC_FG = '1'
+{{LINE:hq:}}
+{{LINE:store:}}
+{{LINE:extra:}}
+ ORDER BY STORE_CD, POS_NO, BILL_NO;`
+},
+
+/* ── 결제행 PAY_CD='12' ─────────────────────────────────── */
+c01:{ tag:'C0-1', kind:'SELECT', scope:'전사 표본', name:"PAY_CD='12' ↔ 쿠폰행 1:1 규칙 재확인",
+  desc:'기준일 PAY12 행을 같은 LINE_NO 의 쿠폰행과 붙여 봅니다. SALE_YN 별로 나눠서 반품행 규칙도 같이 확인합니다. 원문 실측은 쿠폰매칭 99.1%, 금액·세액 전건 일치.',
+  sql:
+`SELECT q.SALE_YN,
+       COUNT(*)                                                        AS PAY12행,
+       SUM(CASE WHEN c.LINE_NO IS NOT NULL THEN 1 ELSE 0 END)          AS 쿠폰매칭,
+       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT THEN 1 ELSE 0 END)           AS 금액일치,
+       SUM(CASE WHEN q.SALE_FG = c.SALE_FG THEN 1 ELSE 0 END)          AS SALE_FG일치,
+       SUM(CASE WHEN q.REG_SEQ = c.REG_SEQ THEN 1 ELSE 0 END)          AS REG_SEQ일치,
+       SUM(CASE WHEN NVL(q.APPR_PROC_FG,'-') = NVL(c.APPR_PROC_FG,'-') THEN 1 ELSE 0 END) AS APPR_FG일치,
+       SUM(CASE WHEN q.APPR_PROC_FG = '1' THEN 1 ELSE 0 END)           AS 외부승인,
+       SUM(CASE WHEN q.APPR_PROC_FG = '1' AND q.APPR_CARD_NO IS NOT NULL THEN 1 ELSE 0 END) AS 외부승인_카드번호있음,
+       SUM(CASE WHEN q.TAX_AMT=0 AND q.VAT_AMT=0 AND q.TIP_AMT=0
+                 AND q.NO_TAX_AMT=0 AND q.CUP_AMT=0 THEN 1 ELSE 0 END)  AS 세액0,
+       SUM(CASE WHEN q.APPR_SEQ_NO = '0001' THEN 1 ELSE 0 END)         AS APPR_SEQ_0001
+  FROM TB_SL_SALE_PAY_SEQ q
+  LEFT JOIN TB_SL_SALE_PAY_COUPN c
+    ON  c.HQ_OFFICE_CD = q.HQ_OFFICE_CD
+    AND c.HQ_BRAND_CD  = q.HQ_BRAND_CD
+    AND c.STORE_CD     = q.STORE_CD
+    AND c.SALE_DATE    = q.SALE_DATE
+    AND c.POS_NO       = q.POS_NO
+    AND c.BILL_NO      = q.BILL_NO
+    AND c.LINE_NO      = q.LINE_NO
+ WHERE q.SALE_DATE = {{DATE}}
+   AND q.PAY_CD    = '12'
+{{LINE:extra:q}}
+ GROUP BY q.SALE_YN
+ ORDER BY q.SALE_YN DESC;`
+},
+
+c02:{ tag:'C0-2', kind:'SELECT', scope:'전사 표본', isNew:true, name:'역방향 확인 : 쿠폰행 중 PAY12 없는 비율',
+  desc:'C 는 "쿠폰행이면 PAY12 가 있어야 한다" 를 전제로 합니다. 정상 매장에서 이 비율이 0 에 가까워야 전제가 섭니다. 대상 본사는 뺍니다.',
+  sql:
+`SELECT c.SALE_YN,
+       COUNT(*)                                                  AS 쿠폰행,
+       SUM(CASE WHEN q.LINE_NO IS NULL THEN 1 ELSE 0 END)        AS PAY12없음,
+       ROUND(SUM(CASE WHEN q.LINE_NO IS NULL THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) AS 없음비율,
+       COUNT(DISTINCT CASE WHEN q.LINE_NO IS NULL THEN c.STORE_CD END) AS 없음매장수
+  FROM TB_SL_SALE_PAY_COUPN c
+  LEFT JOIN TB_SL_SALE_PAY_SEQ q
+    ON  q.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+    AND q.HQ_BRAND_CD  = c.HQ_BRAND_CD
+    AND q.STORE_CD     = c.STORE_CD
+    AND q.SALE_DATE    = c.SALE_DATE
+    AND q.POS_NO       = c.POS_NO
+    AND q.BILL_NO      = c.BILL_NO
+    AND q.LINE_NO      = c.LINE_NO
+    AND q.PAY_CD       = '12'
+ WHERE c.SALE_DATE = {{DATE}}
+   AND c.DC_CD     = '{{DC}}'
+   AND c.HQ_OFFICE_CD <> '{{HQ}}'      /* 대상 본사 제외 */
+{{LINE:extra:c}}
+ GROUP BY c.SALE_YN
+ ORDER BY c.SALE_YN DESC;`
+},
+
+c1:{ tag:'C1', kind:'SELECT', scope:'대상 본사', name:"대상 확인 : 쿠폰행은 있는데 PAY_CD='12' 가 없는 건",
+  desc:'넣을 PAY_AMT 와 전표의 현재 MAX(PAY_SEQ) 를 같이 봅니다. 외부승인 쿠폰은 표시됩니다.',
+  sql:
+`SELECT c.STORE_CD, c.POS_NO, c.BILL_NO, c.LINE_NO, c.REG_SEQ,
+       c.SALE_YN, c.SALE_FG, c.DC_AMT      AS 넣을_PAY_AMT,
+       c.PAY_CLASS_CD, c.COUPN_CD, c.APPR_PROC_FG,
+       (SELECT NVL(MAX(x.PAY_SEQ),0) FROM TB_SL_SALE_PAY_SEQ x
+         WHERE x.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND x.HQ_BRAND_CD=c.HQ_BRAND_CD
+           AND x.STORE_CD=c.STORE_CD AND x.SALE_DATE=c.SALE_DATE
+           AND x.POS_NO=c.POS_NO AND x.BILL_NO=c.BILL_NO) AS 현재_MAX_PAY_SEQ,
+       CASE WHEN c.APPR_PROC_FG = '1' THEN '★ 외부승인 연동' END AS 주의
+  FROM TB_SL_SALE_PAY_COUPN c
+ WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+   AND c.SALE_DATE    = {{DATE}}
+   AND c.DC_CD        = '{{DC}}'
+{{OPT:c_saleyn}}
+{{LINE:store:c}}
+{{LINE:extra:c}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                    WHERE q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
+                      AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+                      AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
+                      AND q.PAY_CD='12'    AND q.LINE_NO=c.LINE_NO)
+ ORDER BY c.STORE_CD, c.POS_NO, c.BILL_NO, c.LINE_NO;`
+},
+
+c03:{ tag:'C0-3', kind:'SELECT', scope:'대상 본사', name:'★ 실행 직전 필수 · 집계(DAILY_PAY) vs 실데이터(PAY_SEQ)',
+  desc:'매장·PAY_CD 별로 집계와 실데이터를 나란히 놓고 MATCH_YN 을 봅니다. N 이 하나라도 있으면 INSERT 하지 마세요. 트리거가 그 위에 더하면 이중계상입니다.',
+  sql:
+`SELECT NVL(a.STORE_CD, b.STORE_CD)   AS STORE_CD,
+       NVL(a.PAY_CD,   b.PAY_CD)     AS PAY_CD,
+       a.AMT                         AS 집계_DAILY_PAY,
+       b.AMT                         AS 실데이터_PAY_SEQ,
+       b.CNT                         AS 실건수,
+       NVL(a.AMT,0) - NVL(b.AMT,0)   AS 차이,
+       CASE WHEN NVL(a.AMT,0) = NVL(b.AMT,0) THEN 'Y' ELSE 'N' END AS MATCH_YN
+  FROM (SELECT STORE_CD, PAY_CD, SUM(TOT_PAY_AMT) AS AMT
+          FROM TB_SL_DAILY_PAY
+         WHERE HQ_OFFICE_CD = '{{HQ}}'
+           AND SALE_DATE    = {{DATE}}
+{{LINE:store:}}
+         GROUP BY STORE_CD, PAY_CD) a
+  FULL OUTER JOIN
+       (SELECT STORE_CD, PAY_CD, SUM(PAY_AMT) AS AMT, COUNT(*) AS CNT
+          FROM TB_SL_SALE_PAY_SEQ
+         WHERE HQ_OFFICE_CD = '{{HQ}}'
+           AND SALE_DATE    = {{DATE}}
+{{LINE:store:}}
+         GROUP BY STORE_CD, PAY_CD) b
+    ON  a.STORE_CD = b.STORE_CD
+    AND a.PAY_CD   = b.PAY_CD
+ ORDER BY MATCH_YN, 1, 2;`
+},
+
+c2:{ tag:'C2', kind:'INSERT', scope:'대상 본사', name:"PAY_CD='12' 결제행 생성 (트리거로 집계 자동 반영)",
+  desc:'쿠폰행마다 1행. PAY_AMT = 쿠폰 DC_AMT, LINE_NO 는 쿠폰행 그대로, PAY_SEQ 는 전표의 기존 MAX 뒤에 연번. 세액·팁·컵 0.',
+  sql:
+`INSERT INTO TB_SL_SALE_PAY_SEQ (
+    HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE,
+    POS_NO, BILL_NO, PAY_SEQ, REG_SEQ,
+    SALE_YN, SALE_FG, PAY_CD, PAY_AMT,
+    TAX_AMT, VAT_AMT, TIP_AMT, NO_TAX_AMT,
+    LINE_NO, APPR_PROC_FG, APPR_CARD_NO, APPR_SEQ_NO,
+    CASH_BILL_APPR_PROC_FG, CASH_BILL_CARD_NO, REG_DT, REG_ID,
+    MOD_DT, MOD_ID, CUP_AMT, BILL_DT,
+    DLVR_ORDER_FG, DLVR_IN_FG, PAYMENT_ID
+)
+SELECT t.HQ_OFFICE_CD,
+       t.HQ_BRAND_CD,
+       t.STORE_CD,
+       t.SALE_DATE,
+       t.POS_NO,
+       t.BILL_NO,
+       t.BASE_PAY_SEQ + t.RN       /* PAY_SEQ : 기존 MAX + 연번 */,
+       t.REG_SEQ,
+       t.SALE_YN,
+       t.SALE_FG,
+       '12'                        /* PAY_CD : 할인 */,
+       t.DC_AMT                    /* PAY_AMT = 쿠폰 DC_AMT */,
+       0                           /* TAX_AMT     실측 전건 0 */,
+       0                           /* VAT_AMT     실측 전건 0 */,
+       0                           /* TIP_AMT     실측 전건 0 */,
+       0                           /* NO_TAX_AMT  실측 전건 0 */,
+       t.LINE_NO                   /* 쿠폰행 LINE_NO 그대로 */,
+       {{OPT:c_apprfg}},
+       NULL                        /* APPR_CARD_NO */,
+       '0001'                      /* APPR_SEQ_NO  실측 전건 */,
+       NULL                        /* CASH_BILL_APPR_PROC_FG */,
+       NULL                        /* CASH_BILL_CARD_NO */,
+       TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')  /* REG_DT */,
+       USER                                  /* REG_ID */,
+       TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')  /* MOD_DT */,
+       USER                                  /* MOD_ID */,
+       0                           /* CUP_AMT     실측 전건 0 */,
+       t.BILL_DT                   /* 헤더 BILL_DT */,
+       t.DLVR_ORDER_FG,
+       t.DLVR_IN_FG,
+       NULL                        /* PAYMENT_ID */
+  FROM (
+        SELECT c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD, c.SALE_DATE,
+               c.POS_NO, c.BILL_NO, c.LINE_NO, c.REG_SEQ,
+               c.SALE_YN, c.SALE_FG, c.DC_AMT, c.APPR_PROC_FG,
+               h.BILL_DT, h.DLVR_ORDER_FG, h.DLVR_IN_FG,
+               NVL((SELECT MAX(x.PAY_SEQ) FROM TB_SL_SALE_PAY_SEQ x
+                     WHERE x.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+                       AND x.HQ_BRAND_CD  = c.HQ_BRAND_CD
+                       AND x.STORE_CD     = c.STORE_CD
+                       AND x.SALE_DATE    = c.SALE_DATE
+                       AND x.POS_NO       = c.POS_NO
+                       AND x.BILL_NO      = c.BILL_NO), 0)      AS BASE_PAY_SEQ,
+               ROW_NUMBER() OVER (PARTITION BY c.HQ_OFFICE_CD, c.HQ_BRAND_CD, c.STORE_CD,
+                                               c.SALE_DATE, c.POS_NO, c.BILL_NO
+                                      ORDER BY c.LINE_NO)        AS RN
+          FROM TB_SL_SALE_PAY_COUPN c
+          JOIN TB_SL_SALE_HDR h
+            ON  h.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+            AND h.HQ_BRAND_CD  = c.HQ_BRAND_CD
+            AND h.STORE_CD     = c.STORE_CD
+            AND h.SALE_DATE    = c.SALE_DATE
+            AND h.POS_NO       = c.POS_NO
+            AND h.BILL_NO      = c.BILL_NO
+         WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+           AND c.SALE_DATE    = {{DATE}}
+           AND c.DC_CD        = '{{DC}}'
+           {{OPT:c_saleyn}}
+           {{LINE:store:c}}
+           {{LINE:extra:c}}
+           AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                            WHERE q.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+                              AND q.HQ_BRAND_CD  = c.HQ_BRAND_CD
+                              AND q.STORE_CD     = c.STORE_CD
+                              AND q.SALE_DATE    = c.SALE_DATE
+                              AND q.POS_NO       = c.POS_NO
+                              AND q.BILL_NO      = c.BILL_NO
+                              AND q.PAY_CD       = '12'
+                              AND q.LINE_NO      = c.LINE_NO)
+       ) t;
+
+-- COMMIT;   /* [C3] 검증 후 직접. 롤백하면 트리거의 집계 변경도 함께 되돌아간다. */`
+},
+
+c31:{ tag:'C3-1', kind:'SELECT', scope:'대상 본사', name:"쿠폰행 ↔ PAY_CD='12' 1:1 생성 확인",
+  desc:'매장별로 쿠폰행 수 = PAY12생성 = 금액일치, 쿠폰합계 = PAY12합계 여야 합니다.',
+  sql:
+`SELECT c.STORE_CD, c.SALE_YN, COUNT(*) AS 쿠폰행,
+       SUM(CASE WHEN q.LINE_NO IS NOT NULL THEN 1 ELSE 0 END)          AS PAY12생성,
+       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT THEN 1 ELSE 0 END)           AS 금액일치,
+       SUM(c.DC_AMT)                                                   AS 쿠폰합계,
+       SUM(NVL(q.PAY_AMT,0))                                           AS PAY12합계
+  FROM TB_SL_SALE_PAY_COUPN c
+  LEFT JOIN TB_SL_SALE_PAY_SEQ q
+    ON  q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
+    AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+    AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
+    AND q.LINE_NO=c.LINE_NO AND q.PAY_CD='12'
+ WHERE c.HQ_OFFICE_CD = '{{HQ}}'
+   AND c.SALE_DATE    = {{DATE}}
+   AND c.DC_CD        = '{{DC}}'
+{{LINE:store:c}}
+{{LINE:extra:c}}
+ GROUP BY c.STORE_CD, c.SALE_YN
+ ORDER BY c.STORE_CD, c.SALE_YN DESC;`
+},
+
+c32:{ tag:'C3-2', kind:'SELECT', scope:'대상 본사', name:'★ 트리거가 갱신한 집계 확인 (C0-3 재실행)',
+  desc:"PAY_CD='12' 행이 집계에 새로 생기고 금액이 실데이터와 같아야 합니다. 전건 MATCH_YN=Y 가 아니면 COMMIT 하지 말고 롤백하세요.",
+  sql:
+`SELECT NVL(a.STORE_CD, b.STORE_CD)   AS STORE_CD,
+       NVL(a.PAY_CD,   b.PAY_CD)     AS PAY_CD,
+       a.AMT                         AS 집계_DAILY_PAY,
+       b.AMT                         AS 실데이터_PAY_SEQ,
+       b.CNT                         AS 실건수,
+       NVL(a.AMT,0) - NVL(b.AMT,0)   AS 차이,
+       CASE WHEN NVL(a.AMT,0) = NVL(b.AMT,0) THEN 'Y' ELSE 'N' END AS MATCH_YN
+  FROM (SELECT STORE_CD, PAY_CD, SUM(TOT_PAY_AMT) AS AMT
+          FROM TB_SL_DAILY_PAY
+         WHERE HQ_OFFICE_CD = '{{HQ}}'
+           AND SALE_DATE    = {{DATE}}
+{{LINE:store:}}
+         GROUP BY STORE_CD, PAY_CD) a
+  FULL OUTER JOIN
+       (SELECT STORE_CD, PAY_CD, SUM(PAY_AMT) AS AMT, COUNT(*) AS CNT
+          FROM TB_SL_SALE_PAY_SEQ
+         WHERE HQ_OFFICE_CD = '{{HQ}}'
+           AND SALE_DATE    = {{DATE}}
+{{LINE:store:}}
+         GROUP BY STORE_CD, PAY_CD) b
+    ON  a.STORE_CD = b.STORE_CD
+    AND a.PAY_CD   = b.PAY_CD
+ ORDER BY MATCH_YN, 1, 2;`
+},
+
+c33:{ tag:'C3-3', kind:'SELECT', scope:'대상 본사', name:'매출 헤더 총액 vs DAILY_TOTAL',
+  desc:"PAY_CD='12' 는 할인이라 REAL_SALE_AMT 는 변하면 안 됩니다. 실판매 = 집계_실판매 여야 합니다. 나머지 7개 집계 테이블은 컬럼을 몰라 여기서 못 봅니다.",
+  sql:
+`SELECT h.STORE_CD,
+       COUNT(*)                AS 전표수,
+       SUM(h.TOT_SALE_AMT)     AS 총매출,
+       SUM(h.TOT_DC_AMT)       AS 총할인,
+       SUM(h.REAL_SALE_AMT)    AS 실판매,
+       (SELECT SUM(t.REAL_SALE_AMT) FROM TB_SL_DAILY_TOTAL t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE)                          AS 집계_실판매,
+       SUM(h.REAL_SALE_AMT)
+       - (SELECT SUM(t.REAL_SALE_AMT) FROM TB_SL_DAILY_TOTAL t
+           WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+             AND t.SALE_DATE=h.SALE_DATE)                        AS 차이
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+   AND h.SALE_DATE    = {{DATE}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+ GROUP BY h.HQ_OFFICE_CD, h.STORE_CD, h.SALE_DATE
+ ORDER BY h.STORE_CD;`
+}
+  },
+  /* 옵션값 → 토큰 */
+  opt(p){
+    return {
+      dcamt: p.opts.dcamt === 'actual'
+        ? 't.DC_AMT                              /* 실제 할인액 */'
+        : 't.COUPN_DC_AMT                        /* 마스터값 */',
+      pattern: p.opts.dcamt === 'actual' ? 'c.COUPN_DC_AMT = c.DC_AMT' : 'c.COUPN_DC_AMT = 0',
+      lineno: p.opts.lineno === 'seq'
+        ? `LPAD(NVL((SELECT MAX(TO_NUMBER(x.LINE_NO)) FROM TB_SL_SALE_PAY_COUPN x
+                  WHERE x.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND x.HQ_BRAND_CD=h.HQ_BRAND_CD
+                    AND x.STORE_CD=h.STORE_CD AND x.SALE_DATE=h.SALE_DATE
+                    AND x.POS_NO=h.POS_NO AND x.BILL_NO=h.BILL_NO), 0)
+            + ROW_NUMBER() OVER (PARTITION BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO
+                                     ORDER BY c.LINE_NO), 4, '0')   /* LINE_NO : 반품 전표 MAX + 연번 */`
+        : 'c.LINE_NO                 /* 원거래와 동일 (실측 82/82) */',
+      appr1: p.opts.appr1 === 'include' ? ''
+        : "AND NVL(c.APPR_PROC_FG,'0') <> '1'     /* 외부승인 연동건 제외 */",
+      amtguard: p.opts.amtguard === 'all' ? ''
+        : `AND EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_DC rd      /* 부분 반품 제외 : 반품 할인액 = 원거래 쿠폰 합계 */
+                WHERE rd.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+                  AND rd.HQ_BRAND_CD  = h.HQ_BRAND_CD
+                  AND rd.STORE_CD     = h.STORE_CD
+                  AND rd.SALE_DATE    = h.SALE_DATE
+                  AND rd.POS_NO       = h.POS_NO
+                  AND rd.BILL_NO      = h.BILL_NO
+                  AND rd.REG_SEQ      = c.REG_SEQ
+                  AND rd.DC_CD        = c.DC_CD
+                  AND rd.DC_AMT * rd.SALE_FG
+                      = (SELECT SUM(y.DC_AMT) FROM TB_SL_SALE_PAY_COUPN y
+                          WHERE y.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+                            AND y.HQ_BRAND_CD  = c.HQ_BRAND_CD
+                            AND y.STORE_CD     = c.STORE_CD
+                            AND y.SALE_DATE    = c.SALE_DATE
+                            AND y.POS_NO       = c.POS_NO
+                            AND y.BILL_NO      = c.BILL_NO
+                            AND y.REG_SEQ      = c.REG_SEQ
+                            AND y.DC_CD        = c.DC_CD
+                            AND y.SALE_YN      = 'Y'))`,
+      c_saleyn: p.opts.c_saleyn === 'all' ? ''
+        : "AND c.SALE_YN      = 'Y'            /* 매출건만. 반품행은 [C0-1] 확인 후 */",
+      c_apprfg: p.opts.c_apprfg === 'fixed'
+        ? "'3'                         /* APPR_PROC_FG 실측 최다값 */"
+        : "NVL(t.APPR_PROC_FG,'3')     /* APPR_PROC_FG 쿠폰행 값 (외부승인이면 '1') */"
+    };
+  }
+};
+
+/* ── 케이스 목록 ───────────────────────────────────────── */
+const CASES = [ CASE_COUPN,
+  { id:'dtl',  no:2, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
+];
+for(let i = 3; i <= 20; i++){
+  CASES.push({ id:'diff'+i, no:i, title:'HDR–DTL 값 불일치', status:'pending', pending:'diff' });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   상태 · 입력
+   ════════════════════════════════════════════════════════════════ */
+const el = id => document.getElementById(id);
+const inputs = { hq:el('in-hq'), store:el('in-store'), date:el('in-date'), dc:el('in-dc'), extra:el('in-extra') };
+const DEFAULTS = { hq:'H0665', store:'', date:'20260901', datemode:'today', dc:'02', extra:'' };
+let current = CASES[0];
+let optState = {};   // 현재 케이스 옵션값
+
+function params(){
+  const mode = document.querySelector('input[name=datemode]:checked').value;
+  const dateLit = inputs.date.value.trim();
+  return {
+    hq   : inputs.hq.value.trim(),
+    store: inputs.store.value.trim(),
+    date : mode === 'today' ? "TO_CHAR(SYSDATE,'YYYYMMDD')" : "'" + (dateLit || 'YYYYMMDD') + "'",
+    dateLabel: mode === 'today' ? '오늘 (SYSDATE)' : (dateLit || '(미입력)'),
+    dc   : inputs.dc.value.trim(),
+    extra: inputs.extra.value.trim().replace(/;+\s*$/,'').replace(/^\s*AND\s+/i,''),
+    opts : optState
+  };
+}
+
+function build(sql, p, optMap){
+  const lines = {
+    hq   : p.hq ? "@.HQ_OFFICE_CD = '" + p.hq + "'" : '',
+    store: p.store ? "@.STORE_CD = '" + p.store + "'" : '',
+    regfg: (p.opts.regfg || '').trim() ? "@.COUPN_REG_FG = '" + p.opts.regfg.trim() + "'" : '',
+    extra: p.extra ? '(' + p.extra + ')' : ''
+  };
+  let out = sql.replace(/^([ \t]*)\{\{LINE:(\w+):([a-zA-Z]*)\}\}\n/gm, (m, indent, key, alias) => {
+    const cond = lines[key];
+    if(!cond) return '';
+    const pad = indent.length ? indent : '   ';
+    return pad + 'AND ' + cond.replace(/@\./g, alias ? alias + '.' : '') + '\n';
+  });
+  out = out.replace(/^([ \t]*)\{\{OPT:(\w+)\}\}\n/gm, (m, indent, k) => {
+    if(!optMap || optMap[k] === undefined) return m;
+    if(optMap[k] === '') return '';
+    const pad = indent.length ? indent : '   ';
+    return pad + optMap[k] + '\n';
+  });
+  out = out.replace(/\{\{OPT:(\w+)\}\}/g, (m, k) => (optMap && optMap[k] !== undefined) ? optMap[k] : m);
+  return out
+    .replace(/\{\{HQ\}\}/g,    p.hq || 'HQ_OFFICE_CD')
+    .replace(/\{\{STORE\}\}/g, p.store)
+    .replace(/\{\{DATE\}\}/g,  p.date)
+    .replace(/\{\{DC\}\}/g,    p.dc || 'DC');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   렌더링
+   ════════════════════════════════════════════════════════════════ */
+function mk(tag, cls, text){
+  const n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(text !== undefined) n.textContent = text;
+  return n;
+}
+
+function renderNav(){
+  const ol = el('nav-list');
+  ol.textContent = '';
+  CASES.forEach(c => {
+    const li = mk('li');
+    const b = mk('button'); b.type = 'button';
+    b.setAttribute('aria-current', String(c === current));
+    b.append(mk('span','no', c.no), mk('i','dot' + (c.status === 'ready' ? ' ready' : '')), mk('span','ttl', c.title));
+    b.addEventListener('click', () => { current = c; optState = initOpts(c); renderNav(); renderOptions(); renderCase(); });
+    li.append(b); ol.append(li);
+  });
+}
+
+function initOpts(c){
+  const o = {};
+  (c.options || []).forEach(op => o[op.key] = op.value);
+  return o;
+}
+
+function renderOptions(){
+  const host = el('case-options');
+  host.textContent = '';
+  if(!current.options || !current.options.length) return;
+  const block = mk('div','opt-block');
+  block.append(mk('div','lbl', '케이스 ' + current.no + ' 옵션'));
+  current.options.forEach(op => {
+    const f = mk('div','field');
+    if(op.type === 'text'){
+      const lab = mk('label', null, op.label); lab.htmlFor = 'opt-' + op.key;
+      const inp = mk('input'); inp.type = 'text'; inp.id = 'opt-' + op.key; inp.value = optState[op.key] || ''; inp.spellcheck = false;
+      inp.addEventListener('input', () => { optState[op.key] = inp.value; renderCase(); });
+      f.append(lab, inp);
+      if(op.hint) f.append(mk('div','hint', op.hint));
+    } else {
+      f.append(mk('span','lbl', op.label));
+      const ch = mk('div','choice');
+      op.choices.forEach(cho => {
+        const lab = mk('label');
+        const r = mk('input'); r.type = 'radio'; r.name = 'opt-' + op.key; r.value = cho.v; r.checked = optState[op.key] === cho.v;
+        r.addEventListener('change', () => { optState[op.key] = cho.v; renderCase(); });
+        const sp = mk('span', null, cho.t);
+        if(cho.sub) sp.append(mk('span','sub', cho.sub));
+        lab.append(r, sp); ch.append(lab);
+      });
+      f.append(ch);
+    }
+    block.append(f);
+  });
+  host.append(block);
+}
+
+function cardEl(q, sqlText){
+  const isWrite = q.kind !== 'SELECT';
+  const card = mk('article','q' + (isWrite ? ' write' : ''));
+  const head = mk('div','q-head');
+  const title = mk('div','q-title');
+  const name = mk('div','name');
+  name.append(mk('span','tag','[' + q.tag + ']'), mk('span', null, q.name),
+              mk('span','kind' + (isWrite ? ' write' : ''), q.kind), mk('span','scope', q.scope));
+  if(q.isNew) name.append(mk('span','new','추가'));
+  title.append(name, mk('div','desc', q.desc));
+  const btn = mk('button', null, '복사'); btn.type = 'button';
+  btn.addEventListener('click', () => copyFrom(btn, sqlText, '[' + q.tag + '] 복사했습니다'));
+  head.append(title, btn);
+  const pre = mk('pre'); pre.textContent = sqlText;
+  card.append(head, pre);
+  return card;
+}
+
+function renderCase(){
+  const c = current, host = el('main');
+  host.textContent = '';
+
+  const head = mk('div','case-head');
+  head.append(mk('div','crumb','케이스 ' + c.no + ' / ' + CASES.length), mk('h3', null, c.title));
+
+  if(c.status !== 'ready'){
+    const k = PENDING_KIND[c.pending];
+    head.append(mk('p', null, k.lead));
+    host.append(head);
+    const pd = mk('div','pending');
+    pd.append(mk('h4', null, k.head), mk('p', null, k.note));
+    const ul = mk('ul'); k.items.forEach(t => ul.append(mk('li', null, t)));
+    pd.append(ul); host.append(pd);
+    return;
+  }
+
+  head.append(mk('p', null, c.lead));
+  host.append(head);
+
+  if(c.warn){
+    const w = mk('div','warn');
+    w.append(mk('strong', null, c.warn.head));
+    const ul = mk('ul'); c.warn.items.forEach(t => ul.append(mk('li', null, t)));
+    w.append(ul); host.append(w);
+  }
+
+  const p = params();
+  const optMap = c.opt ? c.opt(p) : {};
+  const all = [];
+
+  const bar = mk('div','toolbar');
+  host.append(bar);
+
+  const groups = [...new Set(c.stages.map(s => s.group || ''))];
+  c.stages.forEach(st => {
+    const s = mk('div','stage'); s.append(mk('span', null, st.name)); host.append(s);
+    st.items.forEach(key => {
+      const q = c.queries[key];
+      const sqlText = build(q.sql, p, optMap);
+      host.append(cardEl(q, sqlText));
+      all.push({ group:st.group || '', kind:q.kind, tag:q.tag, name:q.name, sql:sqlText });
+    });
+  });
+
+  const join = list => list.map(x => '/* ── [' + x.tag + '] ' + x.name + ' ── */\n' + x.sql).join('\n\n\n');
+  const addBtn = (label, filter, primary) => {
+    const b = mk('button', primary ? 'primary' : null, label); b.type = 'button';
+    b.addEventListener('click', () => {
+      const list = all.filter(filter);
+      copyFrom(b, header(c, p) + join(list), label + ' — ' + list.length + '개를 복사했습니다');
+    });
+    bar.append(b);
+  };
+  addBtn('전체 복사', () => true, true);
+  addBtn('SELECT 만', x => x.kind === 'SELECT');
+  if(groups.length > 1) groups.forEach(g => addBtn(g + ' 트랙', x => x.group === g));
+  bar.append(mk('span','n', all.length + '개 쿼리'));
+}
+
+function header(c, p){
+  const L = [
+    '/* [케이스 ' + c.no + '] ' + c.title,
+    '   HQ_OFFICE_CD = ' + (p.hq || '(미입력)'),
+    '   STORE_CD     = ' + (p.store || '(본사 전체)'),
+    '   SALE_DATE    = ' + p.dateLabel,
+    '   DC_CD        = ' + (p.dc || '(미입력)')
+  ];
+  if(p.extra) L.push('   추가조건      = ' + p.extra);
+  (c.options || []).forEach(op => {
+    const v = p.opts[op.key];
+    const label = op.type === 'radio' ? (op.choices.find(x => x.v === v) || {}).t : (v || '(없음)');
+    L.push('   ' + op.label + ' = ' + label);
+  });
+  L.push('   생성 ' + new Date().toLocaleString('ko-KR'));
+  L.push('   ※ COMMIT 은 검증 후 직접 */');
+  return L.join('\n') + '\n\n';
+}
+
+/* ── 복사 ─────────────────────────────────── */
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.setAttribute('readonly','');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch(_){}
+    ta.remove(); return ok;
+  }
+}
+let toastTimer;
+function toast(msg){
+  const t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+async function copyFrom(btn, text, msg){
+  const ok = await copyText(text);
+  if(!ok){ toast('복사하지 못했습니다. 쿼리를 직접 선택해 복사하세요'); return; }
+  const old = btn.textContent; btn.textContent = '복사됨'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 1200);
+  toast(msg);
+}
+
+/* ── 이벤트 ───────────────────────────────── */
+function validate(){
+  const v = inputs.date.value.trim();
+  inputs.date.classList.toggle('bad', v !== '' && !/^\d{8}$/.test(v));
+}
+function syncDateMode(){
+  const fixed = document.querySelector('input[name=datemode]:checked').value === 'fixed';
+  inputs.date.disabled = !fixed;
+}
+Object.values(inputs).forEach(i => i.addEventListener('input', () => { validate(); renderCase(); }));
+document.querySelectorAll('input[name=datemode]').forEach(r =>
+  r.addEventListener('change', () => { syncDateMode(); renderCase(); }));
+
+el('btn-reset').addEventListener('click', () => {
+  inputs.hq.value = DEFAULTS.hq; inputs.store.value = DEFAULTS.store;
+  inputs.date.value = DEFAULTS.date; inputs.dc.value = DEFAULTS.dc; inputs.extra.value = DEFAULTS.extra;
+  document.querySelector('input[name=datemode][value=' + DEFAULTS.datemode + ']').checked = true;
+  optState = initOpts(current);
+  syncDateMode(); validate(); renderOptions(); renderCase();
+  toast('기본값으로 되돌렸습니다');
+});
+
+optState = initOpts(current);
+syncDateMode(); renderNav(); renderOptions(); renderCase();
+</script>
+</body>
+</html>

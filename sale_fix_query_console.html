@@ -212,7 +212,7 @@
             <label><input type="radio" name="datemode" value="fixed">
               <span>날짜 지정 <span class="sub">지난 날짜 재처리·마감 후 실행</span></span></label>
             <label><input type="radio" name="datemode" value="from">
-              <span>지정일 이후 <span class="sub">SALE_DATE &gt;= 지정일 · 케이스 2~3 원문 조건</span></span></label>
+              <span>지정일 이후 <span class="sub">SALE_DATE &gt;= 지정일 · 케이스 3~4 원문 조건</span></span></label>
           </div>
           <input type="text" id="in-date" value="20260901" maxlength="8" spellcheck="false" disabled style="margin-top:7px">
         </div>
@@ -279,10 +279,10 @@ const PENDING_KIND = {
 
 /* ── 케이스 1 ──────────────────────────────────────────── */
 const CASE_COUPN = {
-  id:'coupn', no:1, title:'쿠폰 할인 누락 (PAY_COUPN · PAY_SEQ)', status:'ready',
-  lead:'세 갈래입니다. A 매출건: HDR_DC 할인은 있는데 쿠폰행이 없는 전표를 DC_REASON_CD 로 마스터에서 만들어 채웁니다. ' +
-       'B 반품건: 원거래 쿠폰행을 복사해 부호를 뒤집습니다. C 결제행: 쿠폰행은 있는데 TB_SL_SALE_PAY_SEQ 의 PAY_CD=\'12\' 가 없는 건을 채웁니다. ' +
-       '순서는 A/B 로 쿠폰행을 먼저 맞추고 C 를 돌립니다. C 는 트리거로 일계 집계 9개 테이블이 같이 바뀝니다.',
+  id:'coupn', no:1, title:'쿠폰 할인 누락 (PAY_COUPN)', status:'ready',
+  lead:'두 갈래입니다. A 매출건: HDR_DC 할인은 있는데 쿠폰행이 없는 전표를 DC_REASON_CD 로 마스터에서 만들어 채웁니다. ' +
+       'B 반품건: 원거래 쿠폰행을 복사해 부호를 뒤집습니다. ' +
+       '여기서 TB_SL_SALE_PAY_COUPN 을 먼저 맞춘 뒤, 결제행(TB_SL_SALE_PAY_SEQ PAY_CD=\'12\') 은 케이스 2 에서 채웁니다. 이 케이스는 트리거가 없습니다.',
   warn:{
     head:'INSERT 전에 확인할 것',
     items:[
@@ -290,8 +290,7 @@ const CASE_COUPN = {
       'A [0-4] 정상 표본이 전표당 1행인지 확인하세요. 2행 이상이 보통이면 DTL_DC 라인 단위로 바꿔야 합니다.',
       'B [R1] AMT_MATCH 가 N 이면 부분 반품일 수 있습니다. 기본 옵션은 금액이 맞는 전표만 넣습니다.',
       "B APPR_PROC_FG='1' 은 외부 승인 연동 쿠폰입니다. 승인취소가 선행됐는지 확인 전에는 제외해 두세요.",
-      'C TB_SL_SALE_PAY_SEQ 에는 TR_SL_SALE_PAY_SEQ_01 트리거가 있어 행마다 TB_SL_DAILY_PAY 등 집계가 자동으로 증감합니다. [C0-3] 에서 집계와 실데이터가 이미 맞는 상태여야 하고, 다르면 넣지 마세요. 이중계상이 됩니다.',
-      'C 는 롤백하면 트리거의 집계 변경도 같이 되돌아갑니다. COMMIT 전에 [C3] 를 보세요.',
+      '실행 순서: 이 케이스 → 케이스 2(PAY_SEQ). 케이스 2 는 여기서 만든 쿠폰행을 기준으로 결제행을 만듭니다.',
       'COMMIT 은 붙지 않습니다. 영업 중에 돌리면 INSERT 뒤에 들어온 전표가 사후 검증에서 불일치로 잡힙니다.'
     ]
   },
@@ -317,16 +316,6 @@ const CASE_COUPN = {
       choices:[
         { v:'org', t:'원거래 LINE_NO 그대로', sub:'POS 표준. 실측 82/82.' },
         { v:'seq', t:'반품 전표 MAX+연번', sub:'반품 전표에 이미 행이 있어 겹칠 때.' }
-      ]},
-    { key:'c_saleyn', type:'radio', label:'C · PAY_SEQ 대상 쿠폰행', value:'sale',
-      choices:[
-        { v:'sale', t:"매출건만 (SALE_YN='Y')", sub:'반품 쿠폰행의 PAY_SEQ 규칙은 [C0-1] 로 먼저 확인.' },
-        { v:'all',  t:'반품 포함', sub:"[C0-1] 의 SALE_YN='N' 행도 금액·부호가 맞을 때." }
-      ]},
-    { key:'c_apprfg', type:'radio', label:'C · APPR_PROC_FG', value:'coupn',
-      choices:[
-        { v:'coupn', t:'쿠폰행 값 따라감', sub:"외부승인 쿠폰이면 '1', 아니면 그대로. NULL 이면 '3'." },
-        { v:'fixed', t:"'3' 고정", sub:'원문대로. 외부승인 쿠폰까지 3 으로 들어감.' }
       ]}
   ],
   stages:[
@@ -337,10 +326,7 @@ const CASE_COUPN = {
     { group:'B', glabel:'B · 반품건', phase:'compare', name:'B · 반품건 — 규칙 재확인', items:['r0'] },
     { group:'B', phase:'compare', name:'B · 반품건 — 대상 확인', items:['r1'] },
     { group:'B', phase:'build',   name:'B · 반품건 — 생성', items:['r2'] },
-    { group:'B', phase:'verify',  name:'B · 반품건 — 사후 검증', items:['r31','r32','r33'] },
-    { group:'C', glabel:'C · 결제행', phase:'compare', name:"C · 결제행 PAY_CD='12' — 사전 확인", items:['c01','c02','c1','c03'] },
-    { group:'C', phase:'build',   name:"C · 결제행 PAY_CD='12' — 생성 (트리거 있음)", items:['c2'] },
-    { group:'C', phase:'verify',  name:"C · 결제행 PAY_CD='12' — 사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
+    { group:'B', phase:'verify',  name:'B · 반품건 — 사후 검증', items:['r31','r32','r33'] }
   ],
   queries:{
 
@@ -875,6 +861,82 @@ r33:{ tag:'R3-3', kind:'SELECT', scope:'대상 본사', name:'외부승인 연�
 },
 
 /* ── 결제행 PAY_CD='12' ─────────────────────────────────── */
+  },
+  /* 옵션값 → 토큰 */
+  opt(p){
+    return {
+      dcamt: p.opts.dcamt === 'actual'
+        ? 't.DC_AMT                              /* 실제 할인액 */'
+        : 't.COUPN_DC_AMT                        /* 마스터값 */',
+      pattern: p.opts.dcamt === 'actual' ? 'c.COUPN_DC_AMT = c.DC_AMT' : 'c.COUPN_DC_AMT = 0',
+      lineno: p.opts.lineno === 'seq'
+        ? `LPAD(NVL((SELECT MAX(TO_NUMBER(x.LINE_NO)) FROM TB_SL_SALE_PAY_COUPN x
+                  WHERE x.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND x.HQ_BRAND_CD=h.HQ_BRAND_CD
+                    AND x.STORE_CD=h.STORE_CD AND x.SALE_DATE=h.SALE_DATE
+                    AND x.POS_NO=h.POS_NO AND x.BILL_NO=h.BILL_NO), 0)
+            + ROW_NUMBER() OVER (PARTITION BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO
+                                     ORDER BY c.LINE_NO), 4, '0')   /* LINE_NO : 반품 전표 MAX + 연번 */`
+        : 'c.LINE_NO                 /* 원거래와 동일 (실측 82/82) */',
+      appr1: p.opts.appr1 === 'include' ? ''
+        : "AND NVL(c.APPR_PROC_FG,'0') <> '1'     /* 외부승인 연동건 제외 */",
+      amtguard: p.opts.amtguard === 'all' ? ''
+        : `AND EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_DC rd      /* 부분 반품 제외 : 반품 할인액 = 원거래 쿠폰 합계 */
+                WHERE rd.HQ_OFFICE_CD = h.HQ_OFFICE_CD
+                  AND rd.HQ_BRAND_CD  = h.HQ_BRAND_CD
+                  AND rd.STORE_CD     = h.STORE_CD
+                  AND rd.SALE_DATE    = h.SALE_DATE
+                  AND rd.POS_NO       = h.POS_NO
+                  AND rd.BILL_NO      = h.BILL_NO
+                  AND rd.REG_SEQ      = c.REG_SEQ
+                  AND rd.DC_CD        = c.DC_CD
+                  AND rd.DC_AMT * rd.SALE_FG
+                      = (SELECT SUM(y.DC_AMT) FROM TB_SL_SALE_PAY_COUPN y
+                          WHERE y.HQ_OFFICE_CD = c.HQ_OFFICE_CD
+                            AND y.HQ_BRAND_CD  = c.HQ_BRAND_CD
+                            AND y.STORE_CD     = c.STORE_CD
+                            AND y.SALE_DATE    = c.SALE_DATE
+                            AND y.POS_NO       = c.POS_NO
+                            AND y.BILL_NO      = c.BILL_NO
+                            AND y.REG_SEQ      = c.REG_SEQ
+                            AND y.DC_CD        = c.DC_CD
+                            AND y.SALE_YN      = 'Y'))`
+    };
+  }
+};
+
+/* ── 케이스 2 ──────────────────────────────────────────── */
+const CASE_PAYSEQ = {
+  id:'payseq', no:2, title:"쿠폰 결제행 누락 (PAY_SEQ · PAY_CD='12')", status:'ready',
+  lead:'쿠폰행(TB_SL_SALE_PAY_COUPN)은 있는데 TB_SL_SALE_PAY_SEQ 에 PAY_CD=\'12\' 결제행이 없는 전표를 채웁니다. ' +
+       '케이스 1 에서 쿠폰행을 먼저 맞춘 뒤 돌리세요. TB_SL_SALE_PAY_SEQ 에는 트리거가 있어 INSERT 행마다 일계 집계 9개 테이블이 같이 바뀝니다.',
+  warn:{
+    head:'INSERT 전에 확인할 것',
+    items:[
+      '실행 순서: 케이스 1(PAY_COUPN) 을 먼저 COMMIT 하거나 같은 세션에서 이어서 돌리세요. 쿠폰행이 없으면 [C1] 대상에 잡히지 않습니다.',
+      'TB_SL_SALE_PAY_SEQ 에는 TR_SL_SALE_PAY_SEQ_01 트리거가 있어 행마다 TB_SL_DAILY_PAY 등 집계가 자동으로 증감합니다. [C0-3] 에서 집계와 실데이터가 이미 맞는 상태여야 하고, 다르면 넣지 마세요. 이중계상이 됩니다.',
+      '롤백하면 트리거의 집계 변경도 같이 되돌아갑니다. COMMIT 전에 [C3] 를 보세요.',
+      'COMMIT 은 붙지 않습니다. 영업 중에 돌리면 INSERT 뒤에 들어온 전표가 사후 검증에서 불일치로 잡힙니다.'
+    ]
+  },
+  options:[
+    { key:'c_saleyn', type:'radio', label:'대상 쿠폰행', value:'sale',
+      choices:[
+        { v:'sale', t:"매출건만 (SALE_YN='Y')", sub:'반품 쿠폰행의 PAY_SEQ 규칙은 [C0-1] 로 먼저 확인.' },
+        { v:'all',  t:'반품 포함', sub:"[C0-1] 의 SALE_YN='N' 행도 금액·부호가 맞을 때." }
+      ]},
+    { key:'c_apprfg', type:'radio', label:'APPR_PROC_FG', value:'coupn',
+      choices:[
+        { v:'coupn', t:'쿠폰행 값 따라감', sub:"외부승인 쿠폰이면 '1', 아니면 그대로. NULL 이면 '3'." },
+        { v:'fixed', t:"'3' 고정", sub:'원문대로. 외부승인 쿠폰까지 3 으로 들어감.' }
+      ]}
+  ],
+  stages:[
+    { phase:'compare', name:"사전 확인 — 규칙 재확인 · 대상 확인 · 집계 대조", items:['c01','c02','c1','c03'] },
+    { phase:'build',   name:"생성 — PAY_CD='12' 결제행 (트리거 있음)", items:['c2'] },
+    { phase:'verify',  name:"사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
+  ],
+  queries:{
+
 c01:{ tag:'C0-1', kind:'SELECT', scope:'전사 표본', name:"PAY_CD='12' ↔ 쿠폰행 1:1 규칙 재확인",
   desc:'기준일 PAY12 행을 같은 LINE_NO 의 쿠폰행과 붙여 봅니다. SALE_YN 별로 나눠서 반품행 규칙도 같이 확인합니다. 원문 실측은 쿠폰매칭 99.1%, 금액·세액 전건 일치.',
   sql:
@@ -1148,44 +1210,8 @@ c33:{ tag:'C3-3', kind:'SELECT', scope:'대상 본사', name:'매출 헤더 총�
  ORDER BY h.STORE_CD;`
 }
   },
-  /* 옵션값 → 토큰 */
   opt(p){
     return {
-      dcamt: p.opts.dcamt === 'actual'
-        ? 't.DC_AMT                              /* 실제 할인액 */'
-        : 't.COUPN_DC_AMT                        /* 마스터값 */',
-      pattern: p.opts.dcamt === 'actual' ? 'c.COUPN_DC_AMT = c.DC_AMT' : 'c.COUPN_DC_AMT = 0',
-      lineno: p.opts.lineno === 'seq'
-        ? `LPAD(NVL((SELECT MAX(TO_NUMBER(x.LINE_NO)) FROM TB_SL_SALE_PAY_COUPN x
-                  WHERE x.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND x.HQ_BRAND_CD=h.HQ_BRAND_CD
-                    AND x.STORE_CD=h.STORE_CD AND x.SALE_DATE=h.SALE_DATE
-                    AND x.POS_NO=h.POS_NO AND x.BILL_NO=h.BILL_NO), 0)
-            + ROW_NUMBER() OVER (PARTITION BY h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO
-                                     ORDER BY c.LINE_NO), 4, '0')   /* LINE_NO : 반품 전표 MAX + 연번 */`
-        : 'c.LINE_NO                 /* 원거래와 동일 (실측 82/82) */',
-      appr1: p.opts.appr1 === 'include' ? ''
-        : "AND NVL(c.APPR_PROC_FG,'0') <> '1'     /* 외부승인 연동건 제외 */",
-      amtguard: p.opts.amtguard === 'all' ? ''
-        : `AND EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_DC rd      /* 부분 반품 제외 : 반품 할인액 = 원거래 쿠폰 합계 */
-                WHERE rd.HQ_OFFICE_CD = h.HQ_OFFICE_CD
-                  AND rd.HQ_BRAND_CD  = h.HQ_BRAND_CD
-                  AND rd.STORE_CD     = h.STORE_CD
-                  AND rd.SALE_DATE    = h.SALE_DATE
-                  AND rd.POS_NO       = h.POS_NO
-                  AND rd.BILL_NO      = h.BILL_NO
-                  AND rd.REG_SEQ      = c.REG_SEQ
-                  AND rd.DC_CD        = c.DC_CD
-                  AND rd.DC_AMT * rd.SALE_FG
-                      = (SELECT SUM(y.DC_AMT) FROM TB_SL_SALE_PAY_COUPN y
-                          WHERE y.HQ_OFFICE_CD = c.HQ_OFFICE_CD
-                            AND y.HQ_BRAND_CD  = c.HQ_BRAND_CD
-                            AND y.STORE_CD     = c.STORE_CD
-                            AND y.SALE_DATE    = c.SALE_DATE
-                            AND y.POS_NO       = c.POS_NO
-                            AND y.BILL_NO      = c.BILL_NO
-                            AND y.REG_SEQ      = c.REG_SEQ
-                            AND y.DC_CD        = c.DC_CD
-                            AND y.SALE_YN      = 'Y'))`,
       c_saleyn: p.opts.c_saleyn === 'all' ? ''
         : "AND c.SALE_YN      = 'Y'            /* 매출건만. 반품행은 [C0-1] 확인 후 */",
       c_apprfg: p.opts.c_apprfg === 'fixed'
@@ -1195,9 +1221,9 @@ c33:{ tag:'C3-3', kind:'SELECT', scope:'대상 본사', name:'매출 헤더 총�
   }
 };
 
-/* ── 케이스 2 ──────────────────────────────────────────── */
+/* ── 케이스 3 ──────────────────────────────────────────── */
 const CASE_DCMOVE = {
-  id:'dcmove', no:2, title:'0원 상품 할인 이동 (이슈4 · DTL / DTL_DC)', status:'ready',
+  id:'dcmove', no:3, title:'0원 상품 할인 이동 (이슈4 · DTL / DTL_DC)', status:'ready',
   lead:'판매금액이 0 인 상품(사이드 등)에 배분된 할인금액을 같은 전표의 유효 상품으로 옮깁니다. ' +
        '유효 상품 = (SIDE_P_DTL_NO IS NULL OR SIDE_P_DTL_NO = BILL_DTL_NO) AND SALE_AMT <> 0, 그 중 MAX(BILL_DTL_NO) 로 몰아줍니다. ' +
        '전표 총액은 변하지 않으므로 트리거가 갱신하는 일계 집계의 순증감은 0 이어야 합니다. ' +
@@ -1205,7 +1231,7 @@ const CASE_DCMOVE = {
   warn:{
     head:'UPDATE 전에 확인할 것',
     items:[
-      '실행 순서: 이 케이스(할인 이동) → 케이스 3(부가세 보정). VAT 는 REAL_SALE_AMT 기준인데 여기서 REAL_SALE_AMT 가 바뀝니다.',
+      '실행 순서: 이 케이스(할인 이동) → 케이스 4(부가세 보정). VAT 는 REAL_SALE_AMT 기준인데 여기서 REAL_SALE_AMT 가 바뀝니다.',
       'A-2 → A-3 → A-4 → A-5 순서를 지키세요. A-3 은 이동액을 DTL_DC 에서 읽으므로 A-5(DTL_DC 정리) 보다 먼저 실행해야 합니다.',
       '세트 메인 해석: 주신 규칙엔 "사이드"와 "세트 메인" 둘 다 SIDE_P_DTL_NO <> BILL_DTL_NO 로 적혀 있었습니다. 그대로면 전표 0052 는 받을 라인이 없어서(0001 이 세트메인이자 유일한 유효 상품) 세트 메인 = SIDE_P_DTL_NO = BILL_DTL_NO 로 해석했습니다. 맞는지 확인이 필요합니다.',
       'TB_SL_SALE_DTL 은 TR_SL_SALE_DTL_01, TB_SL_SALE_DTL_DC 는 TR_SL_SALE_DTL_DC_01 트리거가 있습니다. [C-7] 에서 집계 실판매·부가세가 헤더 합계와 같은지 보고 COMMIT 하세요.',
@@ -1494,21 +1520,23 @@ c7:{ tag:'C-7', kind:'SELECT', scope:'집계 대조', name:'트리거가 갱신�
   }
 };
 
-/* ── 케이스 3 ──────────────────────────────────────────── */
+/* ── 케이스 4 ──────────────────────────────────────────── */
 const CASE_VAT = {
-  id:'vat', no:3, title:'헤더 부가세 0 보정 (이슈5 · VAT)', status:'ready',
+  id:'vat', no:4, title:'헤더 부가세 0 보정 (이슈5 · VAT)', status:'ready',
   lead:'헤더 REAL_SALE_AMT 는 있는데 VAT_AMT 가 0 인 전표. 상세 라인별로 VAT 를 계산하고(B-1), 헤더는 상세 합계로(B-2), ' +
-       '가승인 테이블은 헤더 VAT 를 SALE_AMT 비율로 안분해(B-3) 채웁니다. 실측 대상 33건은 전부 배달건입니다. ' +
+       '가승인 테이블은 헤더 VAT 를 SALE_AMT 비율로 안분해(B-3) 채웁니다. ' +
+       '앞의 "분석" 트랙은 전부 SELECT 로, VAT 0원 건과 절사 차이 건을 한 화면에서 구분해 보는 용도입니다. 보정 전에 X-5 가 0 건인지 먼저 확인하세요. ' +
        '원문 조건은 STORE_CD IN (BSC0001, BSC0022) · SALE_DATE >= 20260901 입니다.',
   warn:{
     head:'★ 부가세 계산식이 데이터로 확정되지 않았습니다',
     items:[
       '20260901 정상 라인 444건으로 후보식을 검증한 결과 어느 것도 100% 가 아닙니다. TRUNC(REAL/11) 326건(73%) · ROUND(REAL/11) 109건(25%) · REAL - ROUND(REAL/1.1) 109건(25%) · TRUNC(SALE_AMT/11) 256건(58%). REAL 500 → VAT 44 처럼 둘 다 안 맞는 사례, REAL 3,300 → 300 과 299 가 공존하는 사례가 있습니다.',
       '확정된 규칙은 "헤더 VAT = 상세 VAT 합계" 뿐입니다 (304/304). 세무 영향이 있으니 실행 전 담당자 확인이 필요하고, 확정식이 나오면 오른쪽 옵션에서 바꾸면 B-1 · B-1b · C-8 에 같이 반영됩니다.',
-      '실행 순서: 케이스 2(할인 이동) 를 먼저. VAT 는 REAL_SALE_AMT 기준인데 케이스 2 가 그 값을 바꿉니다.',
+      '실행 순서: 케이스 3(할인 이동) 을 먼저. VAT 는 REAL_SALE_AMT 기준인데 케이스 2 가 그 값을 바꿉니다.',
       'TB_SL_SALE_DTL · TB_SL_SALE_HDR 에 트리거가 있어 UPDATE 델타가 TB_SL_DAILY_* 집계에 반영됩니다. 이번엔 집계 VAT 가 실제로 늘어나야 정상입니다. [C-7] 로 확인 후 COMMIT 하세요. TB_SL_SALE_PAY_TEMPORARY 는 트리거가 없습니다.',
       'B-3 정정: TB_SL_SALE_PAY_TEMPORARY 에는 PAY_AMT 가 없고 금액 컬럼은 SALE_AMT 입니다 (ORA-00904 원인). "TAX_AMT = PAY_AMT" 는 TAX_AMT = SALE_AMT 로 해석했습니다 (정상 데이터 78,199/78,425 = 99.7%).',
-      'B-1b(절사 잔액 보정)는 기본 미적용입니다. 현행 시스템도 헤더 REAL 기준값과 맞추지 않습니다 (정상 304전표 중 TRUNC(SUM(REAL)/11) 일치 243 = 80%).'
+      'B-1b(절사 잔액 보정)는 기본 미적용입니다. 현행 시스템도 헤더 REAL 기준값과 맞추지 않습니다 (정상 304전표 중 TRUNC(SUM(REAL)/11) 일치 243 = 80%).',
+      '분석 실측(501 전표): VAT 값있음 462 는 라인합 규칙 100% 일치이고 그중 101 전표가 TRUNC(헤더REAL/11) 과 다릅니다(절사 누적, 정상). VAT 0원은 39 전표입니다. 조회 시점에 따라 앞의 33건과 차이가 있으니 [X-2] 로 현재 건수를 다시 보세요.'
     ]
   },
   options:[
@@ -1525,11 +1553,151 @@ const CASE_VAT = {
       ]}
   ],
   stages:[
-    { phase:'compare', name:'사전 확인 — 대상 확정', items:['q0'] },
-    { phase:'build',   name:'보정 — 부가세 (B-1 → B-1b → B-2 → B-3 순서)', items:['b1','b1b','b2','b3'] },
-    { phase:'verify',  name:'사후 검증 (COMMIT 전)', items:['c4','c5','c6','c7','c8'] }
+    { group:'분석', glabel:'분석 (읽기 전용)', phase:'hdr',  plabel:'헤더', name:'분석 · 헤더 레벨 — 계산값 vs 실제값 · 요약 · 차이 분포', items:['x1','x2','x3'] },
+    { group:'분석', glabel:'분석 (읽기 전용)', phase:'line', plabel:'라인', name:'분석 · 라인 레벨 — 원인 라인 · 진짜 이상', items:['x4','x5'] },
+    { group:'보정', glabel:'보정', phase:'compare', name:'보정 · 사전 확인 — 대상 확정', items:['q0'] },
+    { group:'보정', glabel:'보정', phase:'build',   name:'보정 · 부가세 (B-1 → B-1b → B-2 → B-3 순서)', items:['b1','b1b','b2','b3'] },
+    { group:'보정', glabel:'보정', phase:'verify',  name:'보정 · 사후 검증 (COMMIT 전)', items:['c4','c5','c6','c7','c8'] }
   ],
   queries:{
+
+x1:{ tag:'X-1', kind:'SELECT', scope:'대상 본사', name:'헤더 레벨 불일치 : 계산값 <> 실제값 (구분 ①②③)',
+  desc:'기존 [0-B] 에서 VAT_AMT = 0 조건을 빼고 TRUNC(REAL/11) 과 다른 전표를 전부 봅니다. ① VAT 0원 = 이슈5 보정대상, ② 절사누적 차이 = 라인합과 일치하는 정상, ③ 헤더-라인합 불일치 = 이상.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN, h.SALE_FG,
+       h.TOT_SALE_AMT, h.TOT_DC_AMT, h.REAL_SALE_AMT,
+       h.VAT_AMT                                                    AS 실제VAT,
+       SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11)         AS 계산_TRUNC11,
+       SIGN(h.REAL_SALE_AMT)*ROUND(ABS(h.REAL_SALE_AMT)/11)         AS 계산_ROUND11,
+       (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+           AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)           AS 라인VAT합,
+       h.VAT_AMT - SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11)
+                                                                    AS 차이,
+       CASE WHEN h.VAT_AMT = 0 THEN '① VAT 0원 (이슈5 보정대상)'
+            WHEN h.VAT_AMT = (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                               WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                                 AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                                 AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+                 THEN '② 절사누적 차이 (라인합과는 일치 / 정상)'
+            ELSE '③ 헤더-라인합 불일치 (이상)' END                  AS 구분,
+       h.TAX_SALE_AMT, h.NET_SALE_AMT, h.DLVR_YN, h.DLVR_IN_FG,
+       (SELECT COUNT(*) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.STORE_CD=h.STORE_CD
+           AND d.SALE_DATE=h.SALE_DATE AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO
+           AND d.REAL_SALE_AMT <> 0)                                AS 금액있는_상세라인,
+       (SELECT COUNT(*) FROM TB_SL_SALE_PAY_TEMPORARY t
+         WHERE t.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND t.STORE_CD=h.STORE_CD
+           AND t.SALE_DATE=h.SALE_DATE AND t.POS_NO=h.POS_NO AND t.BILL_NO=h.BILL_NO)
+                                                                    AS 가승인_행수
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+   AND h.VAT_AMT <> SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11)   /* ← 불일치만 */
+ ORDER BY 구분,
+          ABS(h.VAT_AMT - SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11)) DESC,
+          h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO;`
+},
+
+x2:{ tag:'X-2', kind:'SELECT', scope:'대상 본사', name:'요약 : 구분별 건수와 후보식 일치율',
+  desc:'실측 501 전표 = VAT 값있음 462 (TRUNC 361 · ROUND 63 · 라인합 462 = 100%) + VAT 0원 39. 값이 있는 전표는 라인합 규칙을 100% 지킵니다.',
+  sql:
+`SELECT CASE WHEN h.VAT_AMT = 0 THEN '① VAT 0원 (이슈5)'
+            ELSE '② VAT 값있음' END                                  AS 구분,
+       COUNT(*)                                                      AS 전표수,
+       SUM(CASE WHEN h.VAT_AMT = SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11)
+                THEN 1 ELSE 0 END)                                   AS TRUNC11_일치,
+       SUM(CASE WHEN h.VAT_AMT = SIGN(h.REAL_SALE_AMT)*ROUND(ABS(h.REAL_SALE_AMT)/11)
+                THEN 1 ELSE 0 END)                                   AS ROUND11_일치,
+       SUM(CASE WHEN h.VAT_AMT = (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                                   WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                                     AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                                     AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+                THEN 1 ELSE 0 END)                                   AS 라인합_일치
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+ GROUP BY CASE WHEN h.VAT_AMT = 0 THEN '① VAT 0원 (이슈5)' ELSE '② VAT 값있음' END
+ ORDER BY 1;`
+},
+
+x3:{ tag:'X-3', kind:'SELECT', scope:'대상 본사', name:'차이 크기 분포 : 절사 누적이 얼마나 벌어지나',
+  desc:'VAT 값이 있는 전표만. 실측 -3:10 · -2:16 · -1:72 · 0:361 · +1:2 · +3:1 (음수 98 / 양수 3). 이 분포가 B-1b 적용 여부 판단 근거입니다.',
+  sql:
+`SELECT 차이, COUNT(*) AS 전표수, SUM(ABS(차이)) AS 차이합
+  FROM (SELECT h.VAT_AMT - SIGN(h.REAL_SALE_AMT)*TRUNC(ABS(h.REAL_SALE_AMT)/11) AS 차이
+          FROM TB_SL_SALE_HDR h
+         WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+           {{LINE:store:h}}
+           {{LINE:date:h}}
+           {{LINE:extra:h}}
+           AND h.REAL_SALE_AMT <> 0
+           AND h.VAT_AMT <> 0)
+ GROUP BY 차이
+ ORDER BY 차이;`
+},
+
+x4:{ tag:'X-4', kind:'SELECT', scope:'대상 본사', name:'상세 라인 레벨 불일치 : 어느 라인에서 어긋나는지',
+  desc:'헤더 차이의 원인 라인을 찾을 때 씁니다. 상품구분(일반/세트메인/사이드)을 같이 보여 케이스 3 과 연결됩니다.',
+  sql:
+`SELECT d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO,
+       d.PROD_CD, d.SALE_AMT, d.DC_AMT, d.REAL_SALE_AMT,
+       d.VAT_AMT                                                    AS 실제VAT,
+       SIGN(d.REAL_SALE_AMT)*TRUNC(ABS(d.REAL_SALE_AMT)/11)         AS 계산_TRUNC11,
+       SIGN(d.REAL_SALE_AMT)*ROUND(ABS(d.REAL_SALE_AMT)/11)         AS 계산_ROUND11,
+       d.VAT_AMT - SIGN(d.REAL_SALE_AMT)*TRUNC(ABS(d.REAL_SALE_AMT)/11)
+                                                                    AS 차이,
+       NVL(d.SIDE_P_DTL_NO,'(NULL)')                                AS SIDE_P_DTL_NO,
+       CASE WHEN d.SIDE_P_DTL_NO IS NULL         THEN '일반'
+            WHEN d.SIDE_P_DTL_NO = d.BILL_DTL_NO THEN '세트메인'
+            ELSE '사이드' END                                        AS 상품구분
+  FROM TB_SL_SALE_DTL d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:d}}
+{{LINE:date:d}}
+{{LINE:extra:d}}
+   AND d.REAL_SALE_AMT <> 0
+   AND d.VAT_AMT <> SIGN(d.REAL_SALE_AMT)*TRUNC(ABS(d.REAL_SALE_AMT)/11)   /* ← 불일치만 */
+ ORDER BY ABS(d.VAT_AMT - SIGN(d.REAL_SALE_AMT)*TRUNC(ABS(d.REAL_SALE_AMT)/11)) DESC,
+          d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO;`
+},
+
+x5:{ tag:'X-5', kind:'SELECT', scope:'대상 본사', name:'★ 진짜 이상 : 헤더 VAT <> 상세 VAT 합계',
+  desc:'[X-1] 구분 ③. 정상 데이터에선 0 건이어야 합니다 (20260901 정상 304/304 일치). 여기에 걸리는 전표는 절사 차이가 아니라 별도 원인이므로 B-1/B-2 로 덮기 전에 따로 확인하세요.',
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN,
+       h.REAL_SALE_AMT, h.VAT_AMT AS 헤더VAT,
+       (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+         WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+           AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)           AS 라인VAT합,
+       h.VAT_AMT - (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                     WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                       AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                       AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)  AS 차이
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:h}}
+{{LINE:date:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0
+   AND h.VAT_AMT <> (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                      WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                        AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                        AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)
+ ORDER BY ABS(h.VAT_AMT - (SELECT NVL(SUM(d.VAT_AMT),0) FROM TB_SL_SALE_DTL d
+                            WHERE d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.HQ_BRAND_CD=h.HQ_BRAND_CD
+                              AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                              AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)) DESC,
+          h.STORE_CD, h.POS_NO, h.BILL_NO;`
+},
 
 q0:{ tag:'0-B', kind:'SELECT', scope:'대상 본사', name:'대상 전표 : 실판매액은 있는데 헤더 부가세가 0',
   desc:'배달 여부, 금액 있는 상세 라인 수, 가승인 행 수를 같이 봅니다. 실측 33건 (BSC0001 매출8+반품1, BSC0022 매출24).',
@@ -1832,16 +2000,16 @@ c8:{ tag:'C-8', kind:'SELECT', scope:'대상 본사', name:'절사 잔액 점검
   }
 };
 
-/* ── 케이스 4 ──────────────────────────────────────────── */
+/* ── 케이스 5 ──────────────────────────────────────────── */
 const CASE_FINAL = {
-  id:'final', no:4, title:'최종 전체검증 (SP_BENSON_DATA_DAILY_CHECK)', status:'ready',
-  lead:'케이스 1~3 보정을 COMMIT 한 뒤 벤슨 일별 검증 프로시저를 돌려 전표 단위 결과를 로그 테이블에서 확인합니다. ' +
+  id:'final', no:5, title:'최종 전체검증 (SP_BENSON_DATA_DAILY_CHECK)', status:'ready',
+  lead:'케이스 1~4 보정을 COMMIT 한 뒤 벤슨 일별 검증 프로시저를 돌려 전표 단위 결과를 로그 테이블에서 확인합니다. ' +
        '로그 초기화 → 프로시저 실행 → RESULT_CD <> 0000 조회 순서입니다. 날짜는 오른쪽 SALE_DATE 가 그대로 PI_TARGET_DATE 로 들어갑니다.',
   warn:{
     head:'실행 전에 확인할 것',
     items:[
       '[F-1] 은 WHERE 없이 TB_LOG_BENSON_BILL_CHECK 전체를 지웁니다. 이전 날짜 검증 결과를 남겨야 하면 조건을 붙이거나 건너뛰세요.',
-      '프로시저 안에서 COMMIT 을 하는지 확인되지 않았습니다. 케이스 1~3 이 아직 COMMIT 전이면 같은 세션에서 돌려야 보정분이 보이고, 프로시저가 COMMIT 을 하면 보정분까지 같이 확정됩니다.',
+      '프로시저 안에서 COMMIT 을 하는지 확인되지 않았습니다. 케이스 1~4 가 아직 COMMIT 전이면 같은 세션에서 돌려야 보정분이 보이고, 프로시저가 COMMIT 을 하면 보정분까지 같이 확정됩니다.',
       'PI_INDEX 의 의미는 문서에 없습니다. 원문 값 1 을 기본으로 두었습니다.',
       "SALE_DATE 가 '지정일 이후' 모드여도 프로시저는 하루만 받습니다. 여러 날이면 날짜를 바꿔 가며 반복 실행하세요.",
       "[F-3] 은 RESULT_CD <> '0000' 만 보여 줍니다. 0 건이면 전체 통과입니다. 로그 테이블의 다른 컬럼 구성은 문서에 없어 SELECT * 로 두었습니다."
@@ -1883,7 +2051,7 @@ END;
 },
 
 f3:{ tag:'F-3', kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_CD <> 0000',
-  desc:'0 건이면 통과. 남는 건은 RESULT_CD 별로 케이스 1~3 중 어느 보정이 빠졌는지 되짚습니다.',
+  desc:'0 건이면 통과. 남는 건은 RESULT_CD 별로 케이스 1~4 중 어느 보정이 빠졌는지 되짚습니다.',
   sql:
 `SELECT *
   FROM TB_LOG_BENSON_BILL_CHECK
@@ -1897,10 +2065,10 @@ f3:{ tag:'F-3', kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_
 };
 
 /* ── 케이스 목록 ───────────────────────────────────────── */
-const CASES = [ CASE_COUPN, CASE_DCMOVE, CASE_VAT, CASE_FINAL,
-  { id:'dtl',  no:5, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
+const CASES = [ CASE_COUPN, CASE_PAYSEQ, CASE_DCMOVE, CASE_VAT, CASE_FINAL,
+  { id:'dtl',  no:6, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
 ];
-for(let i = 6; i <= 20; i++){
+for(let i = 7; i <= 20; i++){
   CASES.push({ id:'diff'+i, no:i, title:'HDR–DTL 값 불일치', status:'pending', pending:'diff' });
 }
 

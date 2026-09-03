@@ -290,7 +290,8 @@ const CASE_COUPN = {
       'A [0-4] 정상 표본이 전표당 1행인지 확인하세요. 2행 이상이 보통이면 DTL_DC 라인 단위로 바꿔야 합니다.',
       'B [R1] AMT_MATCH 가 N 이면 부분 반품일 수 있습니다. 기본 옵션은 금액이 맞는 전표만 넣습니다.',
       "B APPR_PROC_FG='1' 은 외부 승인 연동 쿠폰입니다. 승인취소가 선행됐는지 확인 전에는 제외해 두세요.",
-      '실행 순서: 이 케이스 → 케이스 2(PAY_SEQ). 케이스 2 는 여기서 만든 쿠폰행을 기준으로 결제행을 만듭니다.',
+      "반품 부호는 테이블마다 다릅니다. HDR_DC.DC_AMT 음수 · PAY_COUPN.DC_AMT 양수 그대로 · PAY_SEQ.PAY_AMT 음수. 이 케이스가 만드는 반품 쿠폰행은 DC_AMT 를 양수로 두고 SALE_FG/RATE/DCAMT/APPR_AMT 만 뒤집습니다. [3-1] 의 COUPN_AMT 는 SALE_FG 를 곱해 헤더와 부호를 맞춘 값입니다.",
+      '실행 순서: 이 케이스 → 케이스 2(PAY_SEQ). 케이스 2 는 여기서 만든 쿠폰행(양수)을 읽어 반품은 부호를 뒤집은 결제행을 만듭니다.',
       'COMMIT 은 붙지 않습니다. 영업 중에 돌리면 INSERT 뒤에 들어온 전표가 사후 검증에서 불일치로 잡힙니다.'
     ]
   },
@@ -525,15 +526,23 @@ SELECT t.HQ_OFFICE_CD,
 -- COMMIT;   /* [3] 검증 후 직접 */`
 },
 
-q31:{ tag:'3-1', kind:'SELECT', scope:'대상 본사', name:'매장별 금액 정합',
-  desc:'금액불일치 0, HDR_AMT = COUPN_AMT 여야 합니다. 영업 중이면 INSERT 뒤에 들어온 전표가 불일치로 잡히니 REG_DT 로 걸러 보세요.',
+q31:{ tag:'3-1', kind:'SELECT', scope:'대상 본사', name:'매장별 금액 정합 (매출 / 반품 분리 · 부호 맞춤)',
+  desc:'금액불일치 0 이고 차액 이 0 이어야 합니다. 쿠폰 합계에 SALE_FG 를 곱해 헤더와 같은 부호로 맞췄으니 반품이 섞여도 HDR_AMT = COUPN_AMT 입니다. ' +
+       '쿠폰행없음 은 쿠폰이 없는데 HDR 할인이 0 이라 일치로 세어진 전표(NVL 가림)이고, 쿠폰2행이상 은 [0-4] 의 전표당 1행 원칙과 대조합니다. 영업 중이면 INSERT 뒤 전표가 불일치로 잡히니 REG_DT 로 걸러 보세요.',
   sql:
 `SELECT d.STORE_CD, s.STORE_NM,
+       CASE WHEN GROUPING(d.SALE_YN) = 1 THEN '합계'
+            WHEN d.SALE_YN = 'Y' THEN '매출' WHEN d.SALE_YN = 'N' THEN '반품'
+            ELSE d.SALE_YN END                                                AS 구분,
        COUNT(*)                                                              AS 전표수,
        SUM(CASE WHEN d.DC_AMT =  NVL(c.SUM_AMT,0)*d.SALE_FG THEN 1 ELSE 0 END) AS 금액일치,
        SUM(CASE WHEN d.DC_AMT <> NVL(c.SUM_AMT,0)*d.SALE_FG THEN 1 ELSE 0 END) AS 금액불일치,
        SUM(d.DC_AMT)                                                         AS HDR_AMT,
-       SUM(NVL(c.SUM_AMT,0))                                                 AS COUPN_AMT
+       SUM(NVL(c.SUM_AMT,0)*d.SALE_FG)                                       AS COUPN_AMT,      /* 헤더와 같은 부호 */
+       SUM(d.DC_AMT) - SUM(NVL(c.SUM_AMT,0)*d.SALE_FG)                       AS 차액,
+       SUM(NVL(c.SUM_AMT,0))                                                 AS COUPN_원부호합,  /* 쿠폰행에 적힌 그대로 */
+       SUM(CASE WHEN c.CNT IS NULL THEN 1 ELSE 0 END)                        AS 쿠폰행없음,
+       SUM(CASE WHEN c.CNT > 1 THEN 1 ELSE 0 END)                            AS 쿠폰2행이상
   FROM TB_SL_SALE_HDR_DC d
   LEFT JOIN TB_MS_STORE s
     ON  s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD
@@ -553,8 +562,9 @@ q31:{ tag:'3-1', kind:'SELECT', scope:'대상 본사', name:'매장별 금액 �
    AND d.DC_CD        = '{{DC}}'
 {{LINE:store:d}}
 {{LINE:extra:d}}
- GROUP BY d.STORE_CD, s.STORE_NM
- ORDER BY d.STORE_CD;`
+ GROUP BY ROLLUP((d.STORE_CD, s.STORE_NM), d.SALE_YN)
+HAVING GROUPING(d.STORE_CD) = 0                                          /* 매장별 소계까지만 */
+ ORDER BY d.STORE_CD, GROUPING(d.SALE_YN), d.SALE_YN DESC;`
 },
 
 q32:{ tag:'3-2', kind:'SELECT', scope:'전사 대조', name:'생성분과 정상 표본의 고정값 패턴 대조',
@@ -604,7 +614,7 @@ q33:{ tag:'3-3', kind:'SELECT', scope:'대상 본사', name:'할인율 재검증
 
 /* ── 반품건 ────────────────────────────────────────────── */
 r0:{ tag:'R0', kind:'SELECT', scope:'전사 표본', name:'반품 쿠폰 부호 규칙 재확인',
-  desc:'기준일의 반품 쿠폰행을 원거래와 대조합니다. 대조쌍 수와 각 열이 같아야 규칙이 유지되는 겁니다. DC_AMT 만 동일, 나머지 금액·율은 반전입니다.',
+  desc:'기준일의 반품 쿠폰행을 원거래와 대조합니다. 대조쌍 수와 각 열이 같아야 규칙이 유지되는 겁니다. DC_AMT 만 동일(양수 유지), 나머지 금액·율은 반전입니다. 실측 20260829 반품 82쌍: DC_AMT 동일 82, SALE_FG 반전 82, RATE 반전 55 · DCAMT 반전 45 (나머지는 원값 0).',
   sql:
 `SELECT COUNT(*)                                                             AS 대조쌍,
        SUM(CASE WHEN r.SALE_FG       = -1 * o.SALE_FG       THEN 1 ELSE 0 END) AS SALE_FG_반전,
@@ -907,22 +917,26 @@ r33:{ tag:'R3-3', kind:'SELECT', scope:'대상 본사', name:'외부승인 연�
 /* ── 케이스 2 ──────────────────────────────────────────── */
 const CASE_PAYSEQ = {
   id:'payseq', no:2, title:"쿠폰 결제행 누락 (PAY_SEQ · PAY_CD='12')", status:'ready',
-  lead:'쿠폰행(TB_SL_SALE_PAY_COUPN)은 있는데 TB_SL_SALE_PAY_SEQ 에 PAY_CD=\'12\' 결제행이 없는 전표를 채웁니다. ' +
+  lead:'쿠폰행(TB_SL_SALE_PAY_COUPN)은 있는데 TB_SL_SALE_PAY_SEQ 에 PAY_CD=\'12\' 결제행이 없는 전표를 매출·반품 구분 없이 채웁니다. ' +
+       '핵심은 부호입니다. 반품 쿠폰행의 DC_AMT 는 양수 그대로인데 PAY_SEQ 의 PAY_AMT 는 음수라서, 반품은 PAY_AMT = -1 × 쿠폰 DC_AMT 로 뒤집어 넣습니다. ' +
        '케이스 1 에서 쿠폰행을 먼저 맞춘 뒤 돌리세요. TB_SL_SALE_PAY_SEQ 에는 트리거가 있어 INSERT 행마다 일계 집계 9개 테이블이 같이 바뀝니다.',
   warn:{
-    head:'INSERT 전에 확인할 것',
+    head:'★ 반품 부호 규칙 — 세 테이블이 서로 다릅니다',
     items:[
+      "반품(SALE_YN='N') 금액 부호: TB_SL_SALE_HDR_DC.DC_AMT 음수 · TB_SL_SALE_PAY_COUPN.DC_AMT 양수 그대로 · TB_SL_SALE_PAY_SEQ.PAY_AMT 음수. 쿠폰행을 그대로 복사하면 결제 합계가 할인액의 2배만큼 틀어집니다.",
+      "DB 실측(20260825~0902, PAY_CD='12'): 반품행 488건 전부 음수(양수 0건, 67개 매장), 매출행 32,132건 전부 양수. 쿠폰행과 대조한 반품 482쌍 전건 PAY_AMT = -1 × 쿠폰 DC_AMT, 예외 0건. [C0-1]·[C0-2] 로 재확인하세요.",
+      '반품행 고정값은 매출건과 같습니다. TAX·VAT·TIP·NO_TAX·CUP 0, APPR_SEQ_NO 0001, APPR_PROC_FG 최다 3.',
+      'H0665 반품 대상 2건(조회 시점): BSC0001 0902 01/0049 쿠폰 19,800 → PAY -19,800, BSC0022 0902 01/0026 쿠폰 2,120 → PAY -2,120. 넣은 뒤 결제합계가 BSC0001 -49,500 · BSC0022 -5,300 으로 TOT_SALE_AMT 와 같아져야 합니다. [C3-4] 에서 봅니다.',
       '실행 순서: 케이스 1(PAY_COUPN) 을 먼저 COMMIT 하거나 같은 세션에서 이어서 돌리세요. 쿠폰행이 없으면 [C1] 대상에 잡히지 않습니다.',
-      'TB_SL_SALE_PAY_SEQ 에는 TR_SL_SALE_PAY_SEQ_01 트리거가 있어 행마다 TB_SL_DAILY_PAY 등 집계가 자동으로 증감합니다. [C0-3] 에서 집계와 실데이터가 이미 맞는 상태여야 하고, 다르면 넣지 마세요. 이중계상이 됩니다.',
-      '롤백하면 트리거의 집계 변경도 같이 되돌아갑니다. COMMIT 전에 [C3] 를 보세요.',
-      'COMMIT 은 붙지 않습니다. 영업 중에 돌리면 INSERT 뒤에 들어온 전표가 사후 검증에서 불일치로 잡힙니다.'
+      'TB_SL_SALE_PAY_SEQ 에는 TR_SL_SALE_PAY_SEQ_01 트리거가 있어 행마다 TB_SL_DAILY_PAY 등 집계가 자동으로 증감합니다. [C0-3] 에서 집계와 실데이터가 이미 맞는 상태여야 하고, 다르면 넣지 마세요. 반품은 집계의 PAY12 금액이 음수만큼 줄어야 정상입니다.',
+      '롤백하면 트리거의 집계 변경도 같이 되돌아갑니다. COMMIT 은 붙지 않습니다. [C3] 를 보고 직접 하세요.'
     ]
   },
   options:[
-    { key:'c_saleyn', type:'radio', label:'대상 쿠폰행', value:'sale',
+    { key:'c_saleyn', type:'radio', label:'대상 쿠폰행', value:'all',
       choices:[
-        { v:'sale', t:"매출건만 (SALE_YN='Y')", sub:'반품 쿠폰행의 PAY_SEQ 규칙은 [C0-1] 로 먼저 확인.' },
-        { v:'all',  t:'반품 포함', sub:"[C0-1] 의 SALE_YN='N' 행도 금액·부호가 맞을 때." }
+        { v:'all',  t:'매출 + 반품 (기본)', sub:'반품은 PAY_AMT 부호를 뒤집어 넣음. 실측 482/482 규칙.' },
+        { v:'sale', t:"매출건만 (SALE_YN='Y')", sub:'반품을 잠시 빼고 돌릴 때만.' }
       ]},
     { key:'c_apprfg', type:'radio', label:'APPR_PROC_FG', value:'coupn',
       choices:[
@@ -931,19 +945,42 @@ const CASE_PAYSEQ = {
       ]}
   ],
   stages:[
-    { phase:'compare', name:"사전 확인 — 규칙 재확인 · 대상 확인 · 집계 대조", items:['c01','c02','c1','c03'] },
-    { phase:'build',   name:"생성 — PAY_CD='12' 결제행 (트리거 있음)", items:['c2'] },
-    { phase:'verify',  name:"사후 검증 (COMMIT 전)", items:['c31','c32','c33'] }
+    { phase:'compare', name:"사전 확인 — 부호 규칙 · 1:1 규칙 · 대상 확인 · 집계 대조", items:['c00','c01','c02','c1','c03'] },
+    { phase:'build',   name:"생성 — PAY_CD='12' 결제행 (매출 +, 반품 - · 트리거 있음)", items:['c2'] },
+    { phase:'verify',  name:"사후 검증 (COMMIT 전)", items:['c31','c34','c32','c33'] }
   ],
   queries:{
 
-c01:{ tag:'C0-1', kind:'SELECT', scope:'전사 표본', name:"PAY_CD='12' ↔ 쿠폰행 1:1 규칙 재확인",
-  desc:'기준일 PAY12 행을 같은 LINE_NO 의 쿠폰행과 붙여 봅니다. SALE_YN 별로 나눠서 반품행 규칙도 같이 확인합니다. 원문 실측은 쿠폰매칭 99.1%, 금액·세액 전건 일치.',
+c00:{ tag:'C0-0', kind:'SELECT', scope:'전사 표본', isNew:true, name:"★ 실행 전 필수 · PAY_CD='12' 반품행의 실제 부호",
+  desc:"SALE_YN='N' 은 전부 음수, 'Y' 는 전부 양수여야 합니다. 실측 반품 488건 음수 / 양수 0건. 하루만으론 표본이 적으니 날짜를 \"지정일 이후\" 로 두고 일주일쯤 잡아 보세요.",
+  sql:
+`SELECT q.SALE_YN, q.SALE_FG,
+       CASE WHEN q.PAY_AMT > 0 THEN '양수'
+            WHEN q.PAY_AMT < 0 THEN '음수'
+            ELSE '0' END                AS 부호,
+       COUNT(*)                         AS 건수,
+       MIN(q.PAY_AMT)                   AS 최소,
+       MAX(q.PAY_AMT)                   AS 최대,
+       COUNT(DISTINCT q.STORE_CD)       AS 매장수
+  FROM TB_SL_SALE_PAY_SEQ q
+ WHERE q.PAY_CD = '12'
+{{LINE:date:q}}
+{{LINE:extra:q}}
+ GROUP BY q.SALE_YN, q.SALE_FG,
+          CASE WHEN q.PAY_AMT > 0 THEN '양수' WHEN q.PAY_AMT < 0 THEN '음수' ELSE '0' END
+ ORDER BY q.SALE_YN DESC, 부호;`
+},
+
+c01:{ tag:'C0-1', kind:'SELECT', scope:'전사 표본', name:"PAY_CD='12' ↔ 쿠폰행 1:1 규칙 재확인 (부호 포함)",
+  desc:'기준일 PAY12 행을 같은 LINE_NO 의 쿠폰행과 붙여 봅니다. 금액일치 는 매출은 PAY = 쿠폰, 반품은 PAY = -쿠폰 기준입니다. 부호반전 열은 반품에서만 쿠폰매칭 수와 같아야 합니다. 원문 실측은 쿠폰매칭 99.1%, 반품 482쌍 전건 반전.',
   sql:
 `SELECT q.SALE_YN,
        COUNT(*)                                                        AS PAY12행,
        SUM(CASE WHEN c.LINE_NO IS NOT NULL THEN 1 ELSE 0 END)          AS 쿠폰매칭,
-       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT THEN 1 ELSE 0 END)           AS 금액일치,
+       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT * CASE WHEN c.SALE_YN='N' THEN -1 ELSE 1 END
+                THEN 1 ELSE 0 END)                                     AS 금액일치,
+       SUM(CASE WHEN q.PAY_AMT = -1 * c.DC_AMT THEN 1 ELSE 0 END)      AS 부호반전,
+       SUM(CASE WHEN q.PAY_AMT =      c.DC_AMT THEN 1 ELSE 0 END)      AS 부호동일,
        SUM(CASE WHEN q.SALE_FG = c.SALE_FG THEN 1 ELSE 0 END)          AS SALE_FG일치,
        SUM(CASE WHEN q.REG_SEQ = c.REG_SEQ THEN 1 ELSE 0 END)          AS REG_SEQ일치,
        SUM(CASE WHEN NVL(q.APPR_PROC_FG,'-') = NVL(c.APPR_PROC_FG,'-') THEN 1 ELSE 0 END) AS APPR_FG일치,
@@ -961,51 +998,61 @@ c01:{ tag:'C0-1', kind:'SELECT', scope:'전사 표본', name:"PAY_CD='12' ↔ �
     AND c.POS_NO       = q.POS_NO
     AND c.BILL_NO      = q.BILL_NO
     AND c.LINE_NO      = q.LINE_NO
- WHERE q.SALE_DATE = {{DATE}}
-   AND q.PAY_CD    = '12'
+ WHERE q.PAY_CD    = '12'
+{{LINE:date:q}}
 {{LINE:extra:q}}
  GROUP BY q.SALE_YN
  ORDER BY q.SALE_YN DESC;`
 },
 
-c02:{ tag:'C0-2', kind:'SELECT', scope:'전사 표본', isNew:true, name:'역방향 확인 : 쿠폰행 중 PAY12 없는 비율',
-  desc:'C 는 "쿠폰행이면 PAY12 가 있어야 한다" 를 전제로 합니다. 정상 매장에서 이 비율이 0 에 가까워야 전제가 섭니다. 대상 본사는 뺍니다.',
+c02:{ tag:'C0-2', kind:'SELECT', scope:'전사 표본', name:'반품 쿠폰행 vs PAY12 부호 대조 (전표별)',
+  desc:"[C0-1] 의 반품 집계를 전표 단위로 풀어 본 것. 쿠폰_DC_AMT 양수 · PAYSEQ_PAY_AMT 음수 · 헤더_DC_AMT 음수, 관계 는 전건 'PAY = -쿠폰' 이어야 합니다. 대상 본사는 뺍니다.",
   sql:
-`SELECT c.SALE_YN,
-       COUNT(*)                                                  AS 쿠폰행,
-       SUM(CASE WHEN q.LINE_NO IS NULL THEN 1 ELSE 0 END)        AS PAY12없음,
-       ROUND(SUM(CASE WHEN q.LINE_NO IS NULL THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) AS 없음비율,
-       COUNT(DISTINCT CASE WHEN q.LINE_NO IS NULL THEN c.STORE_CD END) AS 없음매장수
+`SELECT c.HQ_OFFICE_CD, c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO, c.LINE_NO, c.SALE_YN,
+       c.DC_AMT                         AS 쿠폰_DC_AMT,
+       q.PAY_AMT                        AS PAYSEQ_PAY_AMT,
+       d.DC_AMT                         AS 헤더_DC_AMT,
+       CASE WHEN q.PAY_AMT = -1 * c.DC_AMT THEN 'PAY = -쿠폰'
+            WHEN q.PAY_AMT =      c.DC_AMT THEN 'PAY =  쿠폰'
+            ELSE '기타' END              AS 관계
   FROM TB_SL_SALE_PAY_COUPN c
-  LEFT JOIN TB_SL_SALE_PAY_SEQ q
-    ON  q.HQ_OFFICE_CD = c.HQ_OFFICE_CD
-    AND q.HQ_BRAND_CD  = c.HQ_BRAND_CD
-    AND q.STORE_CD     = c.STORE_CD
-    AND q.SALE_DATE    = c.SALE_DATE
-    AND q.POS_NO       = c.POS_NO
-    AND q.BILL_NO      = c.BILL_NO
-    AND q.LINE_NO      = c.LINE_NO
-    AND q.PAY_CD       = '12'
- WHERE c.SALE_DATE = {{DATE}}
-   AND c.DC_CD     = '{{DC}}'
+  JOIN TB_SL_SALE_PAY_SEQ q
+    ON  q.HQ_OFFICE_CD = c.HQ_OFFICE_CD AND q.HQ_BRAND_CD = c.HQ_BRAND_CD
+    AND q.STORE_CD     = c.STORE_CD     AND q.SALE_DATE   = c.SALE_DATE
+    AND q.POS_NO       = c.POS_NO       AND q.BILL_NO     = c.BILL_NO
+    AND q.LINE_NO      = c.LINE_NO      AND q.PAY_CD      = '12'
+  LEFT JOIN TB_SL_SALE_HDR_DC d
+    ON  d.HQ_OFFICE_CD = c.HQ_OFFICE_CD AND d.HQ_BRAND_CD = c.HQ_BRAND_CD
+    AND d.STORE_CD     = c.STORE_CD     AND d.SALE_DATE   = c.SALE_DATE
+    AND d.POS_NO       = c.POS_NO       AND d.BILL_NO     = c.BILL_NO
+    AND d.DC_CD        = c.DC_CD        AND d.REG_SEQ     = c.REG_SEQ
+ WHERE c.SALE_YN = 'N'
    AND c.HQ_OFFICE_CD <> '{{HQ}}'      /* 대상 본사 제외 */
+{{LINE:date:c}}
 {{LINE:extra:c}}
- GROUP BY c.SALE_YN
- ORDER BY c.SALE_YN DESC;`
+ ORDER BY 관계 DESC, c.HQ_OFFICE_CD, c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO, c.LINE_NO;`
 },
 
 c1:{ tag:'C1', kind:'SELECT', scope:'대상 본사', name:"대상 확인 : 쿠폰행은 있는데 PAY_CD='12' 가 없는 건",
-  desc:'넣을 PAY_AMT 와 전표의 현재 MAX(PAY_SEQ) 를 같이 봅니다. 외부승인 쿠폰은 표시됩니다.',
+  desc:'쿠폰_DC_AMT 와 실제로 넣을 PAY_AMT 를 나란히 보여 줍니다. 반품은 넣을_PAY_AMT 가 음수여야 합니다. 전표의 현재 MAX(PAY_SEQ) 와 외부승인 여부도 표시됩니다.',
   sql:
-`SELECT c.STORE_CD, c.POS_NO, c.BILL_NO, c.LINE_NO, c.REG_SEQ,
-       c.SALE_YN, c.SALE_FG, c.DC_AMT      AS 넣을_PAY_AMT,
+`SELECT c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO, c.LINE_NO, c.REG_SEQ,
+       c.SALE_YN, c.SALE_FG,
+       c.DC_AMT                                                   AS 쿠폰_DC_AMT,
+       c.DC_AMT * CASE WHEN c.SALE_YN = 'N' THEN -1 ELSE 1 END    AS 넣을_PAY_AMT,
        c.PAY_CLASS_CD, c.COUPN_CD, c.APPR_PROC_FG,
+       h.TOT_SALE_AMT                                             AS 헤더_총매출,
+       NVL(h.ORG_BILL_NO,'-')                                     AS ORG_BILL_NO,
        (SELECT NVL(MAX(x.PAY_SEQ),0) FROM TB_SL_SALE_PAY_SEQ x
          WHERE x.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND x.HQ_BRAND_CD=c.HQ_BRAND_CD
            AND x.STORE_CD=c.STORE_CD AND x.SALE_DATE=c.SALE_DATE
-           AND x.POS_NO=c.POS_NO AND x.BILL_NO=c.BILL_NO) AS 현재_MAX_PAY_SEQ,
-       CASE WHEN c.APPR_PROC_FG = '1' THEN '★ 외부승인 연동' END AS 주의
+           AND x.POS_NO=c.POS_NO AND x.BILL_NO=c.BILL_NO)         AS 현재_MAX_PAY_SEQ,
+       CASE WHEN c.APPR_PROC_FG = '1' THEN '★ 외부승인 연동' END  AS 주의
   FROM TB_SL_SALE_PAY_COUPN c
+  JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD = c.HQ_OFFICE_CD AND h.HQ_BRAND_CD = c.HQ_BRAND_CD
+    AND h.STORE_CD     = c.STORE_CD     AND h.SALE_DATE   = c.SALE_DATE
+    AND h.POS_NO       = c.POS_NO       AND h.BILL_NO     = c.BILL_NO
  WHERE c.HQ_OFFICE_CD = '{{HQ}}'
    AND c.SALE_DATE    = {{DATE}}
    AND c.DC_CD        = '{{DC}}'
@@ -1017,7 +1064,7 @@ c1:{ tag:'C1', kind:'SELECT', scope:'대상 본사', name:"대상 확인 : 쿠�
                       AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
                       AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
                       AND q.PAY_CD='12'    AND q.LINE_NO=c.LINE_NO)
- ORDER BY c.STORE_CD, c.POS_NO, c.BILL_NO, c.LINE_NO;`
+ ORDER BY c.SALE_YN DESC, c.STORE_CD, c.POS_NO, c.BILL_NO, c.LINE_NO;`
 },
 
 c03:{ tag:'C0-3', kind:'SELECT', scope:'대상 본사', name:'★ 실행 직전 필수 · 집계(DAILY_PAY) vs 실데이터(PAY_SEQ)',
@@ -1048,8 +1095,8 @@ c03:{ tag:'C0-3', kind:'SELECT', scope:'대상 본사', name:'★ 실행 직전 
  ORDER BY MATCH_YN, 1, 2;`
 },
 
-c2:{ tag:'C2', kind:'INSERT', scope:'대상 본사', name:"PAY_CD='12' 결제행 생성 (트리거로 집계 자동 반영)",
-  desc:'쿠폰행마다 1행. PAY_AMT = 쿠폰 DC_AMT, LINE_NO 는 쿠폰행 그대로, PAY_SEQ 는 전표의 기존 MAX 뒤에 연번. 세액·팁·컵 0.',
+c2:{ tag:'C2', kind:'INSERT', scope:'대상 본사', name:"PAY_CD='12' 결제행 생성 (매출 +, 반품 - · 트리거로 집계 자동 반영)",
+  desc:'쿠폰행마다 1행. PAY_AMT 는 매출 = 쿠폰 DC_AMT, 반품 = -1 × 쿠폰 DC_AMT. SALE_YN/SALE_FG 는 쿠폰행 값, LINE_NO 는 쿠폰행 그대로, PAY_SEQ 는 전표의 기존 MAX 뒤에 연번. 세액·팁·컵 0.',
   sql:
 `INSERT INTO TB_SL_SALE_PAY_SEQ (
     HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE,
@@ -1069,10 +1116,10 @@ SELECT t.HQ_OFFICE_CD,
        t.BILL_NO,
        t.BASE_PAY_SEQ + t.RN       /* PAY_SEQ : 기존 MAX + 연번 */,
        t.REG_SEQ,
-       t.SALE_YN,
-       t.SALE_FG,
+       t.SALE_YN                   /* 쿠폰행 값 (매출 Y / 반품 N) */,
+       CASE WHEN t.SALE_YN = 'N' THEN -1 ELSE 1 END             /* SALE_FG */,
        '12'                        /* PAY_CD : 할인 */,
-       t.DC_AMT                    /* PAY_AMT = 쿠폰 DC_AMT */,
+       t.DC_AMT * CASE WHEN t.SALE_YN = 'N' THEN -1 ELSE 1 END  /* ★ PAY_AMT : 매출 = 쿠폰, 반품 = -쿠폰 (실측 482/482) ★ */,
        0                           /* TAX_AMT     실측 전건 0 */,
        0                           /* VAT_AMT     실측 전건 0 */,
        0                           /* TIP_AMT     실측 전건 0 */,
@@ -1135,14 +1182,25 @@ SELECT t.HQ_OFFICE_CD,
 -- COMMIT;   /* [C3] 검증 후 직접. 롤백하면 트리거의 집계 변경도 함께 되돌아간다. */`
 },
 
-c31:{ tag:'C3-1', kind:'SELECT', scope:'대상 본사', name:"쿠폰행 ↔ PAY_CD='12' 1:1 생성 확인",
-  desc:'매장별로 쿠폰행 수 = PAY12생성 = 금액일치, 쿠폰합계 = PAY12합계 여야 합니다.',
+c31:{ tag:'C3-1', kind:'SELECT', scope:'대상 본사', name:"쿠폰행 ↔ PAY_CD='12' 1:1 생성 · 부호 확인",
+  desc:'매장·구분별로 쿠폰행 = PAY12생성 = 금액일치 이고 차액 이 0 이어야 합니다. PAY12합계 는 실제 부호 그대로라 반품 행은 음수로 나오고, 쿠폰합계_부호맞춤 과 같아야 합니다. 부호오류 · 미생성 이 0 이 아니면 COMMIT 하지 마세요.',
   sql:
-`SELECT c.STORE_CD, c.SALE_YN, COUNT(*) AS 쿠폰행,
-       SUM(CASE WHEN q.LINE_NO IS NOT NULL THEN 1 ELSE 0 END)          AS PAY12생성,
-       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT THEN 1 ELSE 0 END)           AS 금액일치,
-       SUM(c.DC_AMT)                                                   AS 쿠폰합계,
-       SUM(NVL(q.PAY_AMT,0))                                           AS PAY12합계
+`SELECT c.STORE_CD,
+       CASE WHEN GROUPING(c.SALE_YN) = 1 THEN '합계'
+            WHEN c.SALE_YN = 'Y' THEN '매출' WHEN c.SALE_YN = 'N' THEN '반품'
+            ELSE c.SALE_YN END                                                   AS 구분,
+       COUNT(*)                                                                  AS 쿠폰행,
+       SUM(CASE WHEN q.LINE_NO IS NOT NULL THEN 1 ELSE 0 END)                    AS PAY12생성,
+       SUM(CASE WHEN q.PAY_AMT = c.DC_AMT * CASE WHEN c.SALE_YN='N' THEN -1 ELSE 1 END
+                THEN 1 ELSE 0 END)                                               AS 금액일치,
+       SUM(CASE WHEN q.LINE_NO IS NULL THEN 1 ELSE 0 END)                        AS 미생성,
+       SUM(CASE WHEN q.LINE_NO IS NOT NULL
+                 AND q.PAY_AMT <> c.DC_AMT * CASE WHEN c.SALE_YN='N' THEN -1 ELSE 1 END
+                THEN 1 ELSE 0 END)                                               AS 부호오류,
+       SUM(c.DC_AMT)                                                             AS 쿠폰합계_원부호,
+       SUM(c.DC_AMT * CASE WHEN c.SALE_YN='N' THEN -1 ELSE 1 END)                AS 쿠폰합계_부호맞춤,
+       SUM(NVL(q.PAY_AMT,0))                                                     AS PAY12합계,
+       SUM(c.DC_AMT * CASE WHEN c.SALE_YN='N' THEN -1 ELSE 1 END) - SUM(NVL(q.PAY_AMT,0)) AS 차액
   FROM TB_SL_SALE_PAY_COUPN c
   LEFT JOIN TB_SL_SALE_PAY_SEQ q
     ON  q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
@@ -1154,8 +1212,46 @@ c31:{ tag:'C3-1', kind:'SELECT', scope:'대상 본사', name:"쿠폰행 ↔ PAY_
    AND c.DC_CD        = '{{DC}}'
 {{LINE:store:c}}
 {{LINE:extra:c}}
- GROUP BY c.STORE_CD, c.SALE_YN
- ORDER BY c.STORE_CD, c.SALE_YN DESC;`
+ GROUP BY ROLLUP(c.STORE_CD, c.SALE_YN)
+HAVING GROUPING(c.STORE_CD) = 0                                          /* 매장별 소계까지만 */
+ ORDER BY c.STORE_CD, GROUPING(c.SALE_YN), c.SALE_YN DESC;`
+},
+
+c34:{ tag:'C3-4', kind:'SELECT', scope:'대상 본사', isNew:true, name:'결제 총액 정합 : PAY_SEQ 합계 = 헤더 TOT_SALE_AMT',
+  desc:"PAY_CD='12' 를 쓰는 본사는 전표 결제합계가 총매출과 같습니다. 반품 전표는 둘 다 음수. 실측 검산은 BSC0001 -29,700 + (-19,800) = -49,500, BSC0022 -3,180 + (-2,120) = -5,300. 부호를 안 뒤집었으면 여기서 할인액의 2배만큼 어긋납니다. 차이 큰 순 정렬.",
+  sql:
+`SELECT h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN,
+       h.TOT_SALE_AMT, h.TOT_DC_AMT, h.REAL_SALE_AMT,
+       (SELECT NVL(SUM(q.PAY_AMT),0) FROM TB_SL_SALE_PAY_SEQ q
+         WHERE q.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND q.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND q.STORE_CD=h.STORE_CD AND q.SALE_DATE=h.SALE_DATE
+           AND q.POS_NO=h.POS_NO AND q.BILL_NO=h.BILL_NO)          AS PAYSEQ합계,
+       (SELECT NVL(SUM(q.PAY_AMT),0) FROM TB_SL_SALE_PAY_SEQ q
+         WHERE q.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND q.HQ_BRAND_CD=h.HQ_BRAND_CD
+           AND q.STORE_CD=h.STORE_CD AND q.SALE_DATE=h.SALE_DATE
+           AND q.POS_NO=h.POS_NO AND q.BILL_NO=h.BILL_NO
+           AND q.PAY_CD='12')                                      AS 그중_PAY12,
+       h.TOT_SALE_AMT
+         - (SELECT NVL(SUM(q.PAY_AMT),0) FROM TB_SL_SALE_PAY_SEQ q
+             WHERE q.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND q.HQ_BRAND_CD=h.HQ_BRAND_CD
+               AND q.STORE_CD=h.STORE_CD AND q.SALE_DATE=h.SALE_DATE
+               AND q.POS_NO=h.POS_NO AND q.BILL_NO=h.BILL_NO)      AS 차이
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}'
+   AND h.SALE_DATE    = {{DATE}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+   AND EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                WHERE c.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND c.HQ_BRAND_CD=h.HQ_BRAND_CD
+                  AND c.STORE_CD=h.STORE_CD AND c.SALE_DATE=h.SALE_DATE
+                  AND c.POS_NO=h.POS_NO AND c.BILL_NO=h.BILL_NO
+                  AND c.DC_CD='{{DC}}')                            /* 쿠폰 전표만 */
+ ORDER BY ABS(h.TOT_SALE_AMT
+              - (SELECT NVL(SUM(q.PAY_AMT),0) FROM TB_SL_SALE_PAY_SEQ q
+                  WHERE q.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND q.HQ_BRAND_CD=h.HQ_BRAND_CD
+                    AND q.STORE_CD=h.STORE_CD AND q.SALE_DATE=h.SALE_DATE
+                    AND q.POS_NO=h.POS_NO AND q.BILL_NO=h.BILL_NO)) DESC,
+          h.SALE_YN, h.STORE_CD, h.POS_NO, h.BILL_NO;`
 },
 
 c32:{ tag:'C3-2', kind:'SELECT', scope:'대상 본사', name:'★ 트리거가 갱신한 집계 확인 (C0-3 재실행)',
@@ -1212,8 +1308,9 @@ c33:{ tag:'C3-3', kind:'SELECT', scope:'대상 본사', name:'매출 헤더 총�
   },
   opt(p){
     return {
-      c_saleyn: p.opts.c_saleyn === 'all' ? ''
-        : "AND c.SALE_YN      = 'Y'            /* 매출건만. 반품행은 [C0-1] 확인 후 */",
+      c_saleyn: p.opts.c_saleyn === 'sale'
+        ? "AND c.SALE_YN      = 'Y'            /* 매출건만 (옵션) */"
+        : '',
       c_apprfg: p.opts.c_apprfg === 'fixed'
         ? "'3'                         /* APPR_PROC_FG 실측 최다값 */"
         : "NVL(t.APPR_PROC_FG,'3')     /* APPR_PROC_FG 쿠폰행 값 (외부승인이면 '1') */"

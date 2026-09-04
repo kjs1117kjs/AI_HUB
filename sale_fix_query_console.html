@@ -2369,7 +2369,7 @@ const CASE_FINAL = {
       '프로시저는 영수증 1건씩 · 첫 오류에서 RETURN · 앞 단계 통과 시에만 뒷 단계라서 영수증당 코드 1개만 나옵니다. 항목별 쿼리는 그 제약이 없어 같은 영수증이 여러 카드에 나올 수 있고 더 많이 잡습니다. S-3 가 프로시저 순서를 재현해 ORIG_CD(원본 판정) 와 FIXED_CD(결함 제거) 를 나란히 보여 줍니다.',
       "0903 실행 결과(180전표 = 매출 176 · 반품 4, 2매장): 0000 146 · 6102 2 · 8801 32. 8801 32건은 전부 BSC0001, DC_CD 02 33건 169,800원이 PAY_SEQ 도 쿠폰테이블도 없는 진짜 누락 → 케이스 1·2. 06/17 은 ETC 로 정상. 6102 2건은 T0000776 실매출 양수·VAT 음수 = 케이스 4 로 안 잡히는 새 유형. 보완 검사에서 H-5 5건(배달, 케이스 4) · P-3 5건 · D-3 34건 · P-7 1건.",
       '원본 결함 요약(각 카드 ORIG_DETECT 열): HDR_PAY/DTL_PAY 없음은 SUM→NULL 로 미검출(4414·5404 신규코드) · 헤더 할인 0 이면 6001/6002 와 D-2 블록을 아예 안 봄 · 5003 은 DTL_DC 없으면 NULL 통과 · 8801 은 ETC SUM NULL 이면 통과 · 미지원 PAY_CD 나 상세 행 없음은 ORA-20001 로 죽고 WHEN OTHERS 에 삼켜짐(3009·3004 신규코드) · 3202 는 HDR_PAY 일치 시 미검출 · 5P12 는 항상 0건 · 5P33 은 2번째 이후 세트 미검사 · 원문 V-G 는 조인 오류로 실행 불가(수정).',
-      'v3 (2026/09/03 재업로드 소스): 벤슨은 8001 대신 8801(ETC 보정) · 6303/6305 신설 · NE01 은 A0001 만 · 2404 는 도달 불가. 모든 테이블 접근에 HQ_OFFICE_CD 필터. 매장 필터는 [판별] 대부분과 [상세] 에 붙고, E-1/E-2 는 설계 검증이라 전사 대상.',
+      'v3 (2026/09/03 재업로드 소스): 벤슨은 8001 대신 8801(ETC 보정) · 6303/6305 신설 · NE01 은 A0001 만 · 2404 는 도달 불가. 모든 테이블 접근에 HQ_OFFICE_CD 필터(TB_MS_PRODUCT 는 이 컬럼이 없어 STORE_CD+PROD_CD 만). 매장 필터는 [판별] 대부분과 [상세] 에 붙고, E-1/E-2 는 설계 검증이라 전사 대상.',
       'P-1 은 16개 결제상세 테이블을 UNION ALL 로 펼칩니다. 기간을 넓게 잡으면 무겁습니다. 종료일 옵션으로 범위를 자르세요. 오라클 12c 미만이면 H-1/A-3 [상세] 의 CROSS JOIN LATERAL 이 안 되니 그때는 [판별] 결과로 대신하세요.',
       '프로시저 트랙: [F-1] 은 WHERE 없이 TB_LOG_BENSON_BILL_CHECK 전체를 지웁니다. 프로시저 안에서 COMMIT 을 하는지 확인되지 않았고, PI_INDEX 의미는 문서에 없습니다(원문 값 1). 프로시저는 하루만 받으니 여러 날이면 반복 실행하세요.'
     ]
@@ -2387,7 +2387,7 @@ const CASE_FINAL = {
     { group:'직접쿼리', phase:'dtl',   plabel:'상세', name:'상품 레벨 — DTL 행 · 할인 상세 · 배달할인 설명 · 세트 구성', items:['qd1','qd2','qd3','qd4','qd5'] },
     { group:'직접쿼리', phase:'return',plabel:'반품', name:'반품 ↔ 원거래', items:['qr1','qr2'] },
     { group:'직접쿼리', phase:'etc',   plabel:'대사', name:'집계 · 인원 · 결번 · BILL_DT · NE01(참고)', items:['qa1','qa2','qa3','qa4','qa5'] },
-    { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 목록 (전사 표본)', items:['qe1','qe2'] },
+    { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 목록 · PAY_CD 동반 비율 (전사 표본)', items:['qe1','qe2','qe3'] },
     { group:'직접쿼리', phase:'codes', plabel:'코드', name:'결과코드 상세 설명', items:['qcodes'] },
     { group:'프로시저', glabel:'프로시저', phase:'reset', plabel:'초기화', name:'프로시저 · 로그 초기화', items:['f1'] },
     { group:'프로시저', phase:'build',  plabel:'실행',   name:'프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행', items:['f2'] },
@@ -2497,6 +2497,8 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"3102", cards:"P-4", note:"PAY_CD 별 SUM(PAY_SEQ) ≠ HDR_PAY" },
     { code:"3201", cards:"P-4", note:"DTL_PAY 에 PAY_CD 없음" },
     { code:"3202", cards:"P-4", note:"PAY_CD 별 SUM(PAY_SEQ) ≠ SUM(DTL_PAY)" },
+    { code:"3103", cards:"P-4", note:"HDR_PAY 에만 있고 PAY_SEQ 없음 · 신규·역방향" },
+    { code:"3203", cards:"P-4", note:"DTL_PAY 에만 있고 PAY_SEQ 없음 · 신규·역방향" },
     { code:"P01", cards:"P-5", note:"TB_SL_SALE_PAY 없음" },
     { code:"P02", cards:"P-5", note:"PAY_SEQ 없음" },
     { code:"P03", cards:"P-5", note:"TB_SL_SALE_PAY ≠ PAY_SEQ 금액" },
@@ -2528,1013 +2530,1123 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"DT03", cards:"A-4", note:"BILL_DT 영업일과 2일 이상 차이" },
     { code:"NE01", cards:"A-5", note:"최종 4자 대사 (벤슨 미실행·참고)" },
     { code:"DCR01", cards:"E-1", note:"면제 DC_CD 인데 결제행 생성률 50% 초과" },
-    { code:"DC09", cards:"E-2", note:"09/13 만 있고 결제행 없음" }
+    { code:"DC09", cards:"E-2", note:"09/13 만 있고 결제행 없음" },
+    { code:"PYR01", cards:"E-3", note:"제외대상(05/12)인데 HDR_PAY 동반 있음 — 사각지대" },
+    { code:"PYR02", cards:"E-3", note:"검사대상인데 HDR_PAY 동반률 50% 미만 — 오탐 위험" }
   ]
 },
 
 qs0:{ tag:"S-0", kind:"SELECT", scope:"대상 본사", isNew:true, name:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)",
   desc:"하루치를 한 번에 봅니다. 카드 30장의 [판별] 결과를 카드·코드별 건수로 요약한 한 장이라, 건수가 있는 카드로만 들어가면 됩니다. 0건 카드도 '(0건)' 으로 한 줄 나와 \"돌긴 돌았다\" 가 보입니다. S-3 는 FIXED_CD 별, R-1 은 OK 를 제외한 R01~R06 만 셉니다. 단위 열이 전표/상세행/결제행/할인행 중 무엇을 세는지 알려 줍니다. E-1/E-2(전사 표본, 무거움) 와 D-4(참고) 는 뺐고, S-1/S-2 는 이 카드에 포함되는 정보라 뺐습니다. 하루치 한 본사면 몇 초, 기간을 넓히면 P-1(16테이블) 이 가장 무겁습니다. 코드 뜻과 이동은 바로 위 [색인] 카드에서 코드를 검색하세요.",
   sql:
-`/* ═══ S-0 · 전 카드 건수 요약 — 카드 30장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1/E-2(전사) 와 D-4(참고) 는 제외 ═══ */
+`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1/E-2/E-3(전사) 와 D-4(참고) 는 제외. ANSI 조인 없이 인라인 뷰만 씁니다 (ORA-00918 회피) ═══ */
 SELECT 카드, 코드, 건수, 단위
   FROM (
   /* ───── S-3 ───── */
-  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(x.FIXED_CD,'(0건)') AS 코드, COUNT(x.FIXED_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, HQ_OFFICE_CD, SALE_YN
+  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT FIXED_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, HQ_OFFICE_CD, SALE_YN
+                      ,TOT_SALE_AMT, TOT_DC_AMT, VAT_AMT, NET_SALE_AMT, REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            D AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, COUNT(*) CNT
+                        ,SUM(SALE_AMT) SALE_AMT, SUM(DC_AMT) DC_AMT, SUM(REAL_SALE_AMT) REAL_AMT, SUM(VAT_AMT) VAT_AMT
+                        ,SUM(CASE WHEN VAT_AMT       < 0 THEN 1 ELSE 0 END)                 MINUS_VAT_CNT
+                        ,SUM(CASE WHEN REAL_SALE_AMT < 0 THEN 1 ELSE 0 END)                 MINUS_REAL_CNT
+                        ,SUM(CASE WHEN DC_AMT        < 0 THEN 1 ELSE 0 END)                 MINUS_DC_CNT
+                        ,SUM(CASE WHEN ABS(SALE_AMT) < ABS(DC_AMT) THEN 1 ELSE 0 END)       OVER_DC_CNT
+                        ,SUM(CASE WHEN SALE_AMT - DC_AMT <> REAL_SALE_AMT THEN 1 ELSE 0 END) ERR_5001
+                        ,SUM(DECODE(SUBSTRB(PROD_CD,1,4),'LYNK',ERP_SEND_AMT,SALE_AMT))     ERP_SEND_AMT
+                    FROM TB_SL_SALE_DTL WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                   GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            DD5003 AS (
+                SELECT A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO
+                      ,SUM(CASE WHEN X.SUM_DC IS NOT NULL AND A.DC_AMT <> X.SUM_DC THEN 1 ELSE 0 END) ERR_ORIG
+                      ,SUM(CASE WHEN A.DC_AMT <> NVL(X.SUM_DC,0) THEN 1 ELSE 0 END)                   ERR_FIXED
+                  FROM TB_SL_SALE_DTL A
+                  LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO,SUM(DC_AMT) SUM_DC
+                               FROM TB_SL_SALE_DTL_DC WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                              GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO) X
+                    ON X.STORE_CD=A.STORE_CD AND X.SALE_DATE=A.SALE_DATE AND X.POS_NO=A.POS_NO AND X.BILL_NO=A.BILL_NO
+                   AND X.BILL_DTL_NO=A.BILL_DTL_NO
+                 WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.{{OPT:datecond}}
+                 GROUP BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO),
+            S AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, COUNT(*) CNT
+                        ,SUM(DECODE(PAY_CD,'05',0,'12',0,PAY_AMT))       REAL_AMT
+                        ,SUM(DECODE(PAY_CD,'05',PAY_AMT,'12',PAY_AMT,0)) DC_AMT
+                        ,SUM(VAT_AMT)                                    VAT_AMT
+                        ,SUM(DECODE(PAY_CD,'04',VAT_AMT,0))              POINT_VAT
+                        ,SUM(PAY_AMT)                                    PAY_ALL
+                    FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                   GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            E AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, SUM(DC_AMT) ETC_DC
+                    FROM TB_SL_SALE_HDR_DC
+                   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} AND DC_CD NOT IN ('02','12','05')
+                   GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(PAY_AMT) AMT FROM TB_SL_SALE_HDR_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            DP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(PAY_AMT) AMT FROM TB_SL_SALE_DTL_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(DC_AMT)  AMT FROM TB_SL_SALE_HDR_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            DD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(DC_AMT)  AMT FROM TB_SL_SALE_DTL_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            JUDGE AS (
+                SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
+                      ,B.TOT_SALE_AMT, B.TOT_DC_AMT, B.VAT_AMT, B.NET_SALE_AMT, B.REAL_SALE_AMT
+                      ,D.SALE_AMT DTL_SALE, D.DC_AMT DTL_DC, D.VAT_AMT DTL_VAT, D.REAL_AMT DTL_REAL
+                      ,S.REAL_AMT SEQ_REAL, S.DC_AMT SEQ_DC, S.VAT_AMT SEQ_VAT, E.ETC_DC
+                      ,HP.AMT HDRPAY_AMT, HD.AMT HDRDC_AMT, DD.AMT DTLDC_AMT
+                      -- ---------------- 원본 프로시저 판정 (결함 그대로) ----------------
+                      ,CASE
+                         WHEN B.TOT_SALE_AMT IS NULL                          THEN '1404'
+                         WHEN D.CNT IS NULL                                   THEN '4404'
+                         WHEN S.CNT IS NULL                                   THEN '3404'
+                         WHEN B.TOT_DC_AMT <> 0 AND HD.CNT IS NULL            THEN '6404'
+                         WHEN B.TOT_DC_AMT <> 0 AND DD.CNT IS NULL            THEN '7404'
+                         WHEN B.SALE_YN='Y' AND B.REAL_SALE_AMT < 0           THEN '9211'
+                         WHEN B.SALE_YN='N' AND B.REAL_SALE_AMT > 0           THEN '9212'
+                         WHEN B.NET_SALE_AMT + B.VAT_AMT <> B.REAL_SALE_AMT   THEN '9023'
+                         WHEN B.TOT_SALE_AMT  <> D.SALE_AMT                   THEN '9001'
+                         WHEN B.TOT_DC_AMT    <> D.DC_AMT                     THEN '9002'
+                         WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
+                           OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
+                         WHEN B.REAL_SALE_AMT <> D.REAL_AMT                   THEN '9004'
+                         WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.DC_AMT THEN '8001'
+                         WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.DC_AMT
+                          AND E.ETC_DC IS NOT NULL                                              -- NULL 이면 통과(결함)
+                          AND B.TOT_DC_AMT <> S.DC_AMT + E.ETC_DC              THEN '8801'
+                         WHEN B.VAT_AMT       <> S.VAT_AMT                    THEN '8002'
+                         WHEN B.REAL_SALE_AMT <> S.REAL_AMT                   THEN '8003'
+                         WHEN HP.AMT IS NOT NULL AND B.REAL_SALE_AMT <> HP.AMT THEN '7001'      -- NULL 이면 통과(결함)
+                         WHEN B.TOT_DC_AMT <> 0 AND B.TOT_DC_AMT <> NVL(HD.AMT,0) THEN '6001'   -- 할인 0 이면 미조회(결함)
+                         WHEN B.TOT_DC_AMT <> 0 AND B.TOT_DC_AMT <> NVL(DD.AMT,0) THEN '6002'
+                         WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0          THEN '6102'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0          THEN '6303'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0          THEN '6305'
+                         WHEN D.OVER_DC_CNT > 0                               THEN '6405'
+                         WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)  THEN '6505'
+                         WHEN D.ERR_5001 > 0                                  THEN '5001'
+                         WHEN Z.ERR_ORIG > 0                                  THEN '5003'
+                         WHEN B.HQ_OFFICE_CD = 'A0001'
+                          AND ( B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
+                             OR B.TOT_SALE_AMT <> NVL(S.PAY_ALL,0)
+                             OR B.TOT_SALE_AMT <> NVL(D.SALE_AMT,0) )         THEN 'NE01'
+                         ELSE '0000' END AS ORIG_CD
+                      -- ---------------- 결함 제거 판정 ----------------
+                      ,CASE
+                         WHEN B.TOT_SALE_AMT IS NULL                          THEN '1404'
+                         WHEN D.CNT IS NULL                                   THEN '4404'
+                         WHEN S.CNT IS NULL                                   THEN '3404'
+                         WHEN HP.CNT IS NULL                                  THEN '4414'
+                         WHEN DP.CNT IS NULL                                  THEN '5404'
+                         WHEN B.TOT_DC_AMT <> 0 AND HD.CNT IS NULL            THEN '6404'
+                         WHEN B.TOT_DC_AMT <> 0 AND DD.CNT IS NULL            THEN '7404'
+                         WHEN B.SALE_YN='Y' AND B.REAL_SALE_AMT < 0           THEN '9211'
+                         WHEN B.SALE_YN='N' AND B.REAL_SALE_AMT > 0           THEN '9212'
+                         WHEN B.NET_SALE_AMT + B.VAT_AMT <> B.REAL_SALE_AMT   THEN '9023'
+                         WHEN B.TOT_SALE_AMT  <> D.SALE_AMT                   THEN '9001'
+                         WHEN B.TOT_DC_AMT    <> D.DC_AMT                     THEN '9002'
+                         WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
+                           OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
+                         WHEN B.REAL_SALE_AMT <> D.REAL_AMT                   THEN '9004'
+                         WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.DC_AMT THEN '8001'
+                         WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.DC_AMT
+                          AND B.TOT_DC_AMT <> S.DC_AMT + NVL(E.ETC_DC,0)      THEN '8801'
+                         WHEN B.VAT_AMT       <> S.VAT_AMT                    THEN '8002'
+                         WHEN B.REAL_SALE_AMT <> S.REAL_AMT                   THEN '8003'
+                         WHEN B.REAL_SALE_AMT <> NVL(HP.AMT,0)                THEN '7001'
+                         WHEN B.TOT_DC_AMT    <> NVL(HD.AMT,0)                THEN '6001'
+                         WHEN B.TOT_DC_AMT    <> NVL(DD.AMT,0)                THEN '6002'
+                         WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0          THEN '6102'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0          THEN '6303'
+                         WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0          THEN '6305'
+                         WHEN D.OVER_DC_CNT > 0                               THEN '6405'
+                         WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)  THEN '6505'
+                         WHEN D.ERR_5001 > 0                                  THEN '5001'
+                         WHEN Z.ERR_FIXED > 0                                 THEN '5003'
+                         WHEN B.HQ_OFFICE_CD = 'A0001'
+                          AND ( B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
+                             OR B.TOT_SALE_AMT <> NVL(S.PAY_ALL,0)
+                             OR B.TOT_SALE_AMT <> NVL(D.SALE_AMT,0) )         THEN 'NE01'
+                         ELSE '0000' END AS FIXED_CD
+                  FROM BILLS B
+                  LEFT JOIN D      ON D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
+                  LEFT JOIN DD5003 Z ON Z.STORE_CD=B.STORE_CD AND Z.SALE_DATE=B.SALE_DATE AND Z.POS_NO=B.POS_NO AND Z.BILL_NO=B.BILL_NO
+                  LEFT JOIN S      ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
+                  LEFT JOIN E      ON E.STORE_CD=B.STORE_CD AND E.SALE_DATE=B.SALE_DATE AND E.POS_NO=B.POS_NO AND E.BILL_NO=B.BILL_NO
+                  LEFT JOIN HP     ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
+                  LEFT JOIN DP     ON DP.STORE_CD=B.STORE_CD AND DP.SALE_DATE=B.SALE_DATE AND DP.POS_NO=B.POS_NO AND DP.BILL_NO=B.BILL_NO
+                  LEFT JOIN HD     ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
+                  LEFT JOIN DD     ON DD.STORE_CD=B.STORE_CD AND DD.SALE_DATE=B.SALE_DATE AND DD.POS_NO=B.POS_NO AND DD.BILL_NO=B.BILL_NO
+            )
+            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
+                  ,ORIG_CD, FIXED_CD
+                  ,CASE WHEN ORIG_CD <> FIXED_CD THEN 'Y' ELSE ' ' END AS DIFF
                   ,TOT_SALE_AMT, TOT_DC_AMT, VAT_AMT, NET_SALE_AMT, REAL_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        D AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, COUNT(*) CNT
-                    ,SUM(SALE_AMT) SALE_AMT, SUM(DC_AMT) DC_AMT, SUM(REAL_SALE_AMT) REAL_AMT, SUM(VAT_AMT) VAT_AMT
-                    ,SUM(CASE WHEN VAT_AMT       < 0 THEN 1 ELSE 0 END)                 MINUS_VAT_CNT
-                    ,SUM(CASE WHEN REAL_SALE_AMT < 0 THEN 1 ELSE 0 END)                 MINUS_REAL_CNT
-                    ,SUM(CASE WHEN DC_AMT        < 0 THEN 1 ELSE 0 END)                 MINUS_DC_CNT
-                    ,SUM(CASE WHEN ABS(SALE_AMT) < ABS(DC_AMT) THEN 1 ELSE 0 END)       OVER_DC_CNT
-                    ,SUM(CASE WHEN SALE_AMT - DC_AMT <> REAL_SALE_AMT THEN 1 ELSE 0 END) ERR_5001
-                    ,SUM(DECODE(SUBSTRB(PROD_CD,1,4),'LYNK',ERP_SEND_AMT,SALE_AMT))     ERP_SEND_AMT
-                FROM TB_SL_SALE_DTL WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-               GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        DD5003 AS (
-            SELECT A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO
-                  ,SUM(CASE WHEN X.SUM_DC IS NOT NULL AND A.DC_AMT <> X.SUM_DC THEN 1 ELSE 0 END) ERR_ORIG
-                  ,SUM(CASE WHEN A.DC_AMT <> NVL(X.SUM_DC,0) THEN 1 ELSE 0 END)                   ERR_FIXED
-              FROM TB_SL_SALE_DTL A
-              LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO,SUM(DC_AMT) SUM_DC
-                           FROM TB_SL_SALE_DTL_DC WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                          GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO) X
-                ON X.STORE_CD=A.STORE_CD AND X.SALE_DATE=A.SALE_DATE AND X.POS_NO=A.POS_NO AND X.BILL_NO=A.BILL_NO
-               AND X.BILL_DTL_NO=A.BILL_DTL_NO
-             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.{{OPT:datecond}}
-             GROUP BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO),
-        S AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, COUNT(*) CNT
-                    ,SUM(DECODE(PAY_CD,'05',0,'12',0,PAY_AMT))       REAL_AMT
-                    ,SUM(DECODE(PAY_CD,'05',PAY_AMT,'12',PAY_AMT,0)) DC_AMT
-                    ,SUM(VAT_AMT)                                    VAT_AMT
-                    ,SUM(DECODE(PAY_CD,'04',VAT_AMT,0))              POINT_VAT
-                    ,SUM(PAY_AMT)                                    PAY_ALL
-                FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-               GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        E AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, SUM(DC_AMT) ETC_DC
-                FROM TB_SL_SALE_HDR_DC
-               WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} AND DC_CD NOT IN ('02','12','05')
-               GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(PAY_AMT) AMT FROM TB_SL_SALE_HDR_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        DP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(PAY_AMT) AMT FROM TB_SL_SALE_DTL_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(DC_AMT)  AMT FROM TB_SL_SALE_HDR_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        DD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,COUNT(*) CNT,SUM(DC_AMT)  AMT FROM TB_SL_SALE_DTL_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        JUDGE AS (
-            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
-                  ,B.TOT_SALE_AMT, B.TOT_DC_AMT, B.VAT_AMT, B.NET_SALE_AMT, B.REAL_SALE_AMT
-                  ,D.SALE_AMT DTL_SALE, D.DC_AMT DTL_DC, D.VAT_AMT DTL_VAT, D.REAL_AMT DTL_REAL
-                  ,S.REAL_AMT SEQ_REAL, S.DC_AMT SEQ_DC, S.VAT_AMT SEQ_VAT, E.ETC_DC
-                  ,HP.AMT HDRPAY_AMT, HD.AMT HDRDC_AMT, DD.AMT DTLDC_AMT
-                  -- ---------------- 원본 프로시저 판정 (결함 그대로) ----------------
-                  ,CASE
-                     WHEN B.TOT_SALE_AMT IS NULL                          THEN '1404'
-                     WHEN D.CNT IS NULL                                   THEN '4404'
-                     WHEN S.CNT IS NULL                                   THEN '3404'
-                     WHEN B.TOT_DC_AMT <> 0 AND HD.CNT IS NULL            THEN '6404'
-                     WHEN B.TOT_DC_AMT <> 0 AND DD.CNT IS NULL            THEN '7404'
-                     WHEN B.SALE_YN='Y' AND B.REAL_SALE_AMT < 0           THEN '9211'
-                     WHEN B.SALE_YN='N' AND B.REAL_SALE_AMT > 0           THEN '9212'
-                     WHEN B.NET_SALE_AMT + B.VAT_AMT <> B.REAL_SALE_AMT   THEN '9023'
-                     WHEN B.TOT_SALE_AMT  <> D.SALE_AMT                   THEN '9001'
-                     WHEN B.TOT_DC_AMT    <> D.DC_AMT                     THEN '9002'
-                     WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
-                       OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
-                     WHEN B.REAL_SALE_AMT <> D.REAL_AMT                   THEN '9004'
-                     WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.DC_AMT THEN '8001'
-                     WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.DC_AMT
-                      AND E.ETC_DC IS NOT NULL                                              -- NULL 이면 통과(결함)
-                      AND B.TOT_DC_AMT <> S.DC_AMT + E.ETC_DC              THEN '8801'
-                     WHEN B.VAT_AMT       <> S.VAT_AMT                    THEN '8002'
-                     WHEN B.REAL_SALE_AMT <> S.REAL_AMT                   THEN '8003'
-                     WHEN HP.AMT IS NOT NULL AND B.REAL_SALE_AMT <> HP.AMT THEN '7001'      -- NULL 이면 통과(결함)
-                     WHEN B.TOT_DC_AMT <> 0 AND B.TOT_DC_AMT <> NVL(HD.AMT,0) THEN '6001'   -- 할인 0 이면 미조회(결함)
-                     WHEN B.TOT_DC_AMT <> 0 AND B.TOT_DC_AMT <> NVL(DD.AMT,0) THEN '6002'
-                     WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0          THEN '6102'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0          THEN '6303'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0          THEN '6305'
-                     WHEN D.OVER_DC_CNT > 0                               THEN '6405'
-                     WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)  THEN '6505'
-                     WHEN D.ERR_5001 > 0                                  THEN '5001'
-                     WHEN Z.ERR_ORIG > 0                                  THEN '5003'
-                     WHEN B.HQ_OFFICE_CD = 'A0001'
-                      AND ( B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
-                         OR B.TOT_SALE_AMT <> NVL(S.PAY_ALL,0)
-                         OR B.TOT_SALE_AMT <> NVL(D.SALE_AMT,0) )         THEN 'NE01'
-                     ELSE '0000' END AS ORIG_CD
-                  -- ---------------- 결함 제거 판정 ----------------
-                  ,CASE
-                     WHEN B.TOT_SALE_AMT IS NULL                          THEN '1404'
-                     WHEN D.CNT IS NULL                                   THEN '4404'
-                     WHEN S.CNT IS NULL                                   THEN '3404'
-                     WHEN HP.CNT IS NULL                                  THEN '4414'
-                     WHEN DP.CNT IS NULL                                  THEN '5404'
-                     WHEN B.TOT_DC_AMT <> 0 AND HD.CNT IS NULL            THEN '6404'
-                     WHEN B.TOT_DC_AMT <> 0 AND DD.CNT IS NULL            THEN '7404'
-                     WHEN B.SALE_YN='Y' AND B.REAL_SALE_AMT < 0           THEN '9211'
-                     WHEN B.SALE_YN='N' AND B.REAL_SALE_AMT > 0           THEN '9212'
-                     WHEN B.NET_SALE_AMT + B.VAT_AMT <> B.REAL_SALE_AMT   THEN '9023'
-                     WHEN B.TOT_SALE_AMT  <> D.SALE_AMT                   THEN '9001'
-                     WHEN B.TOT_DC_AMT    <> D.DC_AMT                     THEN '9002'
-                     WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
-                       OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
-                     WHEN B.REAL_SALE_AMT <> D.REAL_AMT                   THEN '9004'
-                     WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.DC_AMT THEN '8001'
-                     WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.DC_AMT
-                      AND B.TOT_DC_AMT <> S.DC_AMT + NVL(E.ETC_DC,0)      THEN '8801'
-                     WHEN B.VAT_AMT       <> S.VAT_AMT                    THEN '8002'
-                     WHEN B.REAL_SALE_AMT <> S.REAL_AMT                   THEN '8003'
-                     WHEN B.REAL_SALE_AMT <> NVL(HP.AMT,0)                THEN '7001'
-                     WHEN B.TOT_DC_AMT    <> NVL(HD.AMT,0)                THEN '6001'
-                     WHEN B.TOT_DC_AMT    <> NVL(DD.AMT,0)                THEN '6002'
-                     WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0          THEN '6102'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0          THEN '6303'
-                     WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0          THEN '6305'
-                     WHEN D.OVER_DC_CNT > 0                               THEN '6405'
-                     WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)  THEN '6505'
-                     WHEN D.ERR_5001 > 0                                  THEN '5001'
-                     WHEN Z.ERR_FIXED > 0                                 THEN '5003'
-                     WHEN B.HQ_OFFICE_CD = 'A0001'
-                      AND ( B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
-                         OR B.TOT_SALE_AMT <> NVL(S.PAY_ALL,0)
-                         OR B.TOT_SALE_AMT <> NVL(D.SALE_AMT,0) )         THEN 'NE01'
-                     ELSE '0000' END AS FIXED_CD
-              FROM BILLS B
-              LEFT JOIN D      ON D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
-              LEFT JOIN DD5003 Z ON Z.STORE_CD=B.STORE_CD AND Z.SALE_DATE=B.SALE_DATE AND Z.POS_NO=B.POS_NO AND Z.BILL_NO=B.BILL_NO
-              LEFT JOIN S      ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
-              LEFT JOIN E      ON E.STORE_CD=B.STORE_CD AND E.SALE_DATE=B.SALE_DATE AND E.POS_NO=B.POS_NO AND E.BILL_NO=B.BILL_NO
-              LEFT JOIN HP     ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
-              LEFT JOIN DP     ON DP.STORE_CD=B.STORE_CD AND DP.SALE_DATE=B.SALE_DATE AND DP.POS_NO=B.POS_NO AND DP.BILL_NO=B.BILL_NO
-              LEFT JOIN HD     ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
-              LEFT JOIN DD     ON DD.STORE_CD=B.STORE_CD AND DD.SALE_DATE=B.SALE_DATE AND DD.POS_NO=B.POS_NO AND DD.BILL_NO=B.BILL_NO
-        )
-        SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
-              ,ORIG_CD, FIXED_CD
-              ,CASE WHEN ORIG_CD <> FIXED_CD THEN 'Y' ELSE ' ' END AS DIFF
-              ,TOT_SALE_AMT, TOT_DC_AMT, VAT_AMT, NET_SALE_AMT, REAL_SALE_AMT
-              ,DTL_SALE, DTL_DC, DTL_VAT, DTL_REAL
-              ,SEQ_REAL, SEQ_DC, SEQ_VAT, ETC_DC
-              ,HDRPAY_AMT, HDRDC_AMT, DTLDC_AMT
-          FROM JUDGE
-         WHERE FIXED_CD <> '0000'                 -- 정상까지 보려면 이 줄 삭제
-    ) x ON 1=1
-   GROUP BY x.FIXED_CD
+                  ,DTL_SALE, DTL_DC, DTL_VAT, DTL_REAL
+                  ,SEQ_REAL, SEQ_DC, SEQ_VAT, ETC_DC
+                  ,HDRPAY_AMT, HDRDC_AMT, DTLDC_AMT
+              FROM JUDGE
+             WHERE FIXED_CD <> '0000'                 -- 정상까지 보려면 이 줄 삭제
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-1 ───── */
-  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN, TOT_SALE_AMT, TOT_DC_AMT, REAL_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        CNT AS (
-            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL     X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DTL_CNT
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) SEQ_CNT
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_HDR_PAY X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) HPAY_CNT
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL_PAY X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DPAY_CNT
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_HDR_DC  X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) HDC_CNT
-                  ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL_DC  X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DDC_CNT
-              FROM BILLS B
-        )
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
-              ,B.TOT_SALE_AMT, B.TOT_DC_AMT, B.REAL_SALE_AMT
-              ,C.DTL_CNT, C.SEQ_CNT, C.HPAY_CNT, C.DPAY_CNT, C.HDC_CNT, C.DDC_CNT
-              ,CASE WHEN B.TOT_SALE_AMT IS NULL                  THEN '1404'
-                    WHEN C.DTL_CNT  = 0                          THEN '4404'
-                    WHEN C.SEQ_CNT  = 0                          THEN '3404'
-                    WHEN C.HPAY_CNT = 0                          THEN '4414'
-                    WHEN C.DPAY_CNT = 0                          THEN '5404'
-                    WHEN B.TOT_DC_AMT <> 0 AND C.HDC_CNT = 0     THEN '6404'
-                    WHEN B.TOT_DC_AMT <> 0 AND C.DDC_CNT = 0     THEN '7404'
-               END AS RESULT_CD
-              ,CASE WHEN B.TOT_SALE_AMT IS NULL OR C.DTL_CNT=0 OR C.SEQ_CNT=0
-                      OR (B.TOT_DC_AMT<>0 AND (C.HDC_CNT=0 OR C.DDC_CNT=0)) THEN 'Y'
-                    ELSE 'N (원본 미검출)' END AS ORIG_DETECT
-          FROM BILLS B, CNT C
-         WHERE C.STORE_CD=B.STORE_CD AND C.SALE_DATE=B.SALE_DATE AND C.POS_NO=B.POS_NO AND C.BILL_NO=B.BILL_NO
-           AND (  B.TOT_SALE_AMT IS NULL
-               OR C.DTL_CNT=0 OR C.SEQ_CNT=0 OR C.HPAY_CNT=0 OR C.DPAY_CNT=0
-               OR (B.TOT_DC_AMT<>0 AND (C.HDC_CNT=0 OR C.DDC_CNT=0)) )
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN, TOT_SALE_AMT, TOT_DC_AMT, REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            CNT AS (
+                SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL     X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DTL_CNT
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) SEQ_CNT
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_HDR_PAY X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) HPAY_CNT
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL_PAY X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DPAY_CNT
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_HDR_DC  X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) HDC_CNT
+                      ,(SELECT COUNT(*) FROM TB_SL_SALE_DTL_DC  X WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO) DDC_CNT
+                  FROM BILLS B
+            )
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
+                  ,B.TOT_SALE_AMT, B.TOT_DC_AMT, B.REAL_SALE_AMT
+                  ,C.DTL_CNT, C.SEQ_CNT, C.HPAY_CNT, C.DPAY_CNT, C.HDC_CNT, C.DDC_CNT
+                  ,CASE WHEN B.TOT_SALE_AMT IS NULL                  THEN '1404'
+                        WHEN C.DTL_CNT  = 0                          THEN '4404'
+                        WHEN C.SEQ_CNT  = 0                          THEN '3404'
+                        WHEN C.HPAY_CNT = 0                          THEN '4414'
+                        WHEN C.DPAY_CNT = 0                          THEN '5404'
+                        WHEN B.TOT_DC_AMT <> 0 AND C.HDC_CNT = 0     THEN '6404'
+                        WHEN B.TOT_DC_AMT <> 0 AND C.DDC_CNT = 0     THEN '7404'
+                   END AS RESULT_CD
+                  ,CASE WHEN B.TOT_SALE_AMT IS NULL OR C.DTL_CNT=0 OR C.SEQ_CNT=0
+                          OR (B.TOT_DC_AMT<>0 AND (C.HDC_CNT=0 OR C.DDC_CNT=0)) THEN 'Y'
+                        ELSE 'N (원본 미검출)' END AS ORIG_DETECT
+              FROM BILLS B, CNT C
+             WHERE C.STORE_CD=B.STORE_CD AND C.SALE_DATE=B.SALE_DATE AND C.POS_NO=B.POS_NO AND C.BILL_NO=B.BILL_NO
+               AND (  B.TOT_SALE_AMT IS NULL
+                   OR C.DTL_CNT=0 OR C.SEQ_CNT=0 OR C.HPAY_CNT=0 OR C.DPAY_CNT=0
+                   OR (B.TOT_DC_AMT<>0 AND (C.HDC_CNT=0 OR C.DDC_CNT=0)) )
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-2 ───── */
-  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '테이블' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT 'ORPH' AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY_SEQ', COUNT(*) FROM TB_SL_SALE_PAY_SEQ x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_HDR_PAY', COUNT(*) FROM TB_SL_SALE_HDR_PAY x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_DTL_PAY', COUNT(*) FROM TB_SL_SALE_DTL_PAY x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_HDR_DC', COUNT(*) FROM TB_SL_SALE_HDR_DC x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_DTL_DC', COUNT(*) FROM TB_SL_SALE_DTL_DC x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY', COUNT(*) FROM TB_SL_SALE_PAY x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY_COUPN', COUNT(*) FROM TB_SL_SALE_PAY_COUPN x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-        UNION ALL SELECT 'ORPH', 'TB_SL_SALE_CASH_RCP', COUNT(*) FROM TB_SL_SALE_CASH_RCP x
-         WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
-          (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
-            AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '테이블' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY_SEQ', COUNT(*) FROM TB_SL_SALE_PAY_SEQ x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_HDR_PAY', COUNT(*) FROM TB_SL_SALE_HDR_PAY x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_DTL_PAY', COUNT(*) FROM TB_SL_SALE_DTL_PAY x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_HDR_DC', COUNT(*) FROM TB_SL_SALE_HDR_DC x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_DTL_DC', COUNT(*) FROM TB_SL_SALE_DTL_DC x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY', COUNT(*) FROM TB_SL_SALE_PAY x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY_COUPN', COUNT(*) FROM TB_SL_SALE_PAY_COUPN x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+            UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_CASH_RCP', COUNT(*) FROM TB_SL_SALE_CASH_RCP x
+             WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
+              (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
+                AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-3 ───── */
-  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
-              ,TOT_SALE_AMT, TOT_DC_AMT, NET_SALE_AMT, VAT_AMT, REAL_SALE_AMT
-              ,NET_SALE_AMT + VAT_AMT AS NET_PLUS_VAT
-              ,(NET_SALE_AMT + VAT_AMT) - REAL_SALE_AMT AS DIFF
-              ,CASE WHEN SALE_YN='Y' AND REAL_SALE_AMT < 0 THEN '9211'
-                    WHEN SALE_YN='N' AND REAL_SALE_AMT > 0 THEN '9212'
-                    ELSE '9023' END AS RESULT_CD
-          FROM TB_SL_SALE_HDR
-         WHERE HQ_OFFICE_CD = '{{HQ}}'
-           AND {{OPT:datecond}}
-           {{LINE:store:}}
-           {{LINE:extra:}}
-           AND (  (SALE_YN='Y' AND REAL_SALE_AMT < 0)
-               OR (SALE_YN='N' AND REAL_SALE_AMT > 0)
-               OR (NET_SALE_AMT + VAT_AMT <> REAL_SALE_AMT) )
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
+                  ,TOT_SALE_AMT, TOT_DC_AMT, NET_SALE_AMT, VAT_AMT, REAL_SALE_AMT
+                  ,NET_SALE_AMT + VAT_AMT AS NET_PLUS_VAT
+                  ,(NET_SALE_AMT + VAT_AMT) - REAL_SALE_AMT AS DIFF
+                  ,CASE WHEN SALE_YN='Y' AND REAL_SALE_AMT < 0 THEN '9211'
+                        WHEN SALE_YN='N' AND REAL_SALE_AMT > 0 THEN '9212'
+                        ELSE '9023' END AS RESULT_CD
+              FROM TB_SL_SALE_HDR
+             WHERE HQ_OFFICE_CD = '{{HQ}}'
+               AND {{OPT:datecond}}
+               {{LINE:store:}}
+               {{LINE:extra:}}
+               AND (  (SALE_YN='Y' AND REAL_SALE_AMT < 0)
+                   OR (SALE_YN='N' AND REAL_SALE_AMT > 0)
+                   OR (NET_SALE_AMT + VAT_AMT <> REAL_SALE_AMT) )
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-4 ───── */
-  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT STORE_CD, POS_NO, BILL_NO, SALE_YN
-              ,REAL_SALE_AMT, TAX_SALE_AMT, NO_TAX_SALE_AMT, NET_SALE_AMT, VAT_AMT
-              ,TAX_SALE_AMT + NVL(NO_TAX_SALE_AMT,0) - REAL_SALE_AMT AS 과세면세차
-              ,'9024' AS RESULT_CD
-          FROM TB_SL_SALE_HDR
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-           AND TAX_SALE_AMT + NVL(NO_TAX_SALE_AMT,0) <> REAL_SALE_AMT
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT STORE_CD, POS_NO, BILL_NO, SALE_YN
+                  ,REAL_SALE_AMT, TAX_SALE_AMT, NO_TAX_SALE_AMT, NET_SALE_AMT, VAT_AMT
+                  ,TAX_SALE_AMT + NVL(NO_TAX_SALE_AMT,0) - REAL_SALE_AMT AS 과세면세차
+                  ,'9024' AS RESULT_CD
+              FROM TB_SL_SALE_HDR
+             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+               AND TAX_SALE_AMT + NVL(NO_TAX_SALE_AMT,0) <> REAL_SALE_AMT
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-5 ───── */
-  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
-              ,h.TOT_SALE_AMT, h.TOT_DC_AMT, h.REAL_SALE_AMT
-              ,h.TAX_SALE_AMT, h.NO_TAX_SALE_AMT, h.NET_SALE_AMT, h.VAT_AMT
-              ,(SELECT SUM(d.VAT_AMT) FROM TB_SL_SALE_DTL d
-                 WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
-                   AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)          AS 상세VAT합
-              ,(SELECT SUM(s.VAT_AMT) FROM TB_SL_SALE_PAY_SEQ s
-                 WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE
-                   AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO)          AS 결제VAT합
-              ,(SELECT LISTAGG(s.PAY_CD,',') WITHIN GROUP (ORDER BY s.PAY_SEQ)
-                  FROM TB_SL_SALE_PAY_SEQ s
-                 WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE
-                   AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO)          AS 결제수단
-              ,'VAT00' AS RESULT_CD
-          FROM TB_SL_SALE_HDR h
-         WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
-           AND h.REAL_SALE_AMT <> 0
-           AND NVL(h.TAX_SALE_AMT,0) <> 0          /* 과세매출이 있는데 */
-           AND NVL(h.VAT_AMT,0) = 0                /* 부가세가 0        */
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
+                  ,h.TOT_SALE_AMT, h.TOT_DC_AMT, h.REAL_SALE_AMT
+                  ,h.TAX_SALE_AMT, h.NO_TAX_SALE_AMT, h.NET_SALE_AMT, h.VAT_AMT
+                  ,(SELECT SUM(d.VAT_AMT) FROM TB_SL_SALE_DTL d
+                     WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE
+                       AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO)          AS 상세VAT합
+                  ,(SELECT SUM(s.VAT_AMT) FROM TB_SL_SALE_PAY_SEQ s
+                     WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE
+                       AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO)          AS 결제VAT합
+                  ,(SELECT LISTAGG(s.PAY_CD,',') WITHIN GROUP (ORDER BY s.PAY_SEQ)
+                      FROM TB_SL_SALE_PAY_SEQ s
+                     WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE
+                       AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO)          AS 결제수단
+                  ,'VAT00' AS RESULT_CD
+              FROM TB_SL_SALE_HDR h
+             WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+               AND h.REAL_SALE_AMT <> 0
+               AND NVL(h.TAX_SALE_AMT,0) <> 0          /* 과세매출이 있는데 */
+               AND NVL(h.VAT_AMT,0) = 0                /* 부가세가 0        */
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-6 ───── */
-  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_SALE_AMT, TOT_DC_AMT, VAT_AMT, REAL_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        D AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
-                  ,SUM(SALE_AMT) SALE_AMT, SUM(DC_AMT) DC_AMT, SUM(REAL_SALE_AMT) REAL_AMT, SUM(VAT_AMT) VAT_AMT
-              FROM TB_SL_SALE_DTL
-             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-             GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
-        )
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
-              ,B.TOT_SALE_AMT , D.SALE_AMT, B.TOT_SALE_AMT  - D.SALE_AMT AS DIFF_9001
-              ,B.TOT_DC_AMT   , D.DC_AMT  , B.TOT_DC_AMT    - D.DC_AMT   AS DIFF_9002
-              ,B.VAT_AMT      , D.VAT_AMT , B.VAT_AMT       - D.VAT_AMT  AS DIFF_9003
-              ,B.REAL_SALE_AMT, D.REAL_AMT, B.REAL_SALE_AMT - D.REAL_AMT AS DIFF_9004
-              ,CASE WHEN B.TOT_SALE_AMT  <> D.SALE_AMT THEN '9001'
-                    WHEN B.TOT_DC_AMT    <> D.DC_AMT   THEN '9002'
-                    WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
-                      OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
-                    WHEN B.REAL_SALE_AMT <> D.REAL_AMT THEN '9004'
-               END AS RESULT_CD
-          FROM BILLS B, D
-         WHERE D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
-           AND (  B.TOT_SALE_AMT  <> D.SALE_AMT
-               OR B.TOT_DC_AMT    <> D.DC_AMT
-               OR B.REAL_SALE_AMT <> D.REAL_AMT
-               OR (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
-               OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) )
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_SALE_AMT, TOT_DC_AMT, VAT_AMT, REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            D AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
+                      ,SUM(SALE_AMT) SALE_AMT, SUM(DC_AMT) DC_AMT, SUM(REAL_SALE_AMT) REAL_AMT, SUM(VAT_AMT) VAT_AMT
+                  FROM TB_SL_SALE_DTL
+                 WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                 GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
+            )
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+                  ,B.TOT_SALE_AMT , D.SALE_AMT, B.TOT_SALE_AMT  - D.SALE_AMT AS DIFF_9001
+                  ,B.TOT_DC_AMT   , D.DC_AMT  , B.TOT_DC_AMT    - D.DC_AMT   AS DIFF_9002
+                  ,B.VAT_AMT      , D.VAT_AMT AS DTL_VAT_AMT, B.VAT_AMT - D.VAT_AMT  AS DIFF_9003
+                  ,B.REAL_SALE_AMT, D.REAL_AMT, B.REAL_SALE_AMT - D.REAL_AMT AS DIFF_9004
+                  ,CASE WHEN B.TOT_SALE_AMT  <> D.SALE_AMT THEN '9001'
+                        WHEN B.TOT_DC_AMT    <> D.DC_AMT   THEN '9002'
+                        WHEN (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
+                          OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) THEN '9003'
+                        WHEN B.REAL_SALE_AMT <> D.REAL_AMT THEN '9004'
+                   END AS RESULT_CD
+              FROM BILLS B, D
+             WHERE D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
+               AND (  B.TOT_SALE_AMT  <> D.SALE_AMT
+                   OR B.TOT_DC_AMT    <> D.DC_AMT
+                   OR B.REAL_SALE_AMT <> D.REAL_AMT
+                   OR (B.SALE_DATE >  '20210206' AND B.VAT_AMT <> D.VAT_AMT)
+                   OR (B.SALE_DATE <= '20210206' AND ABS(B.VAT_AMT) <> ABS(D.VAT_AMT)) )
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-7 ───── */
-  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, HQ_OFFICE_CD, TOT_DC_AMT, VAT_AMT, REAL_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        S AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
-                  ,SUM(DECODE(PAY_CD,'05',0,'12',0,PAY_AMT))       SEQ_REAL
-                  ,SUM(DECODE(PAY_CD,'05',PAY_AMT,'12',PAY_AMT,0)) SEQ_DC
-                  ,SUM(VAT_AMT)                                    SEQ_VAT
-              FROM TB_SL_SALE_PAY_SEQ
-             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-             GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
-        ),
-        E AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SUM(DC_AMT) ETC_DC
-              FROM TB_SL_SALE_HDR_DC
-             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-               AND DC_CD NOT IN ('02','12','05')
-             GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
-        )
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
-              ,B.TOT_DC_AMT, S.SEQ_DC, NVL(E.ETC_DC,0) AS ETC_DC
-              ,B.TOT_DC_AMT - S.SEQ_DC                  AS DIFF_8001
-              ,B.TOT_DC_AMT - (S.SEQ_DC + NVL(E.ETC_DC,0)) AS DIFF_8801
-              ,B.VAT_AMT      , S.SEQ_VAT , B.VAT_AMT       - S.SEQ_VAT  AS DIFF_8002
-              ,B.REAL_SALE_AMT, S.SEQ_REAL, B.REAL_SALE_AMT - S.SEQ_REAL AS DIFF_8003
-              ,CASE WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.SEQ_DC           THEN '8001'
-                    WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC
-                     AND B.TOT_DC_AMT <> S.SEQ_DC + NVL(E.ETC_DC,0)                                     THEN '8801'
-                    WHEN B.VAT_AMT       <> S.SEQ_VAT  THEN '8002'
-                    WHEN B.REAL_SALE_AMT <> S.SEQ_REAL THEN '8003'
-               END AS RESULT_CD
-              ,CASE WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC AND E.ETC_DC IS NULL
-                    THEN 'N (ETC SUM NULL → 통과)' ELSE 'Y' END AS ORIG_DETECT
-          FROM BILLS B
-          JOIN S ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
-          LEFT JOIN E ON E.STORE_CD=B.STORE_CD AND E.SALE_DATE=B.SALE_DATE AND E.POS_NO=B.POS_NO AND E.BILL_NO=B.BILL_NO
-         WHERE (B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.SEQ_DC)
-            OR (B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC AND B.TOT_DC_AMT <> S.SEQ_DC + NVL(E.ETC_DC,0))
-            OR B.VAT_AMT       <> S.SEQ_VAT
-            OR B.REAL_SALE_AMT <> S.SEQ_REAL
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, HQ_OFFICE_CD, TOT_DC_AMT, VAT_AMT, REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            S AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
+                      ,SUM(DECODE(PAY_CD,'05',0,'12',0,PAY_AMT))       SEQ_REAL
+                      ,SUM(DECODE(PAY_CD,'05',PAY_AMT,'12',PAY_AMT,0)) SEQ_DC
+                      ,SUM(VAT_AMT)                                    SEQ_VAT
+                  FROM TB_SL_SALE_PAY_SEQ
+                 WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                 GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
+            ),
+            E AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SUM(DC_AMT) ETC_DC
+                  FROM TB_SL_SALE_HDR_DC
+                 WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                   AND DC_CD NOT IN ('02','12','05')
+                 GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO
+            )
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+                  ,B.TOT_DC_AMT, S.SEQ_DC, NVL(E.ETC_DC,0) AS ETC_DC
+                  ,B.TOT_DC_AMT - S.SEQ_DC                  AS DIFF_8001
+                  ,B.TOT_DC_AMT - (S.SEQ_DC + NVL(E.ETC_DC,0)) AS DIFF_8801
+                  ,B.VAT_AMT      , S.SEQ_VAT , B.VAT_AMT       - S.SEQ_VAT  AS DIFF_8002
+                  ,B.REAL_SALE_AMT, S.SEQ_REAL, B.REAL_SALE_AMT - S.SEQ_REAL AS DIFF_8003
+                  ,CASE WHEN B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.SEQ_DC           THEN '8001'
+                        WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC
+                         AND B.TOT_DC_AMT <> S.SEQ_DC + NVL(E.ETC_DC,0)                                     THEN '8801'
+                        WHEN B.VAT_AMT       <> S.SEQ_VAT  THEN '8002'
+                        WHEN B.REAL_SALE_AMT <> S.SEQ_REAL THEN '8003'
+                   END AS RESULT_CD
+                  ,CASE WHEN B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC AND E.ETC_DC IS NULL
+                        THEN 'N (ETC SUM NULL → 통과)' ELSE 'Y' END AS ORIG_DETECT
+              FROM BILLS B
+              JOIN S ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
+              LEFT JOIN E ON E.STORE_CD=B.STORE_CD AND E.SALE_DATE=B.SALE_DATE AND E.POS_NO=B.POS_NO AND E.BILL_NO=B.BILL_NO
+             WHERE (B.HQ_OFFICE_CD NOT IN ('H0393','H0665') AND B.TOT_DC_AMT <> S.SEQ_DC)
+                OR (B.HQ_OFFICE_CD = 'H0665' AND B.TOT_DC_AMT <> S.SEQ_DC AND B.TOT_DC_AMT <> S.SEQ_DC + NVL(E.ETC_DC,0))
+                OR B.VAT_AMT       <> S.SEQ_VAT
+                OR B.REAL_SALE_AMT <> S.SEQ_REAL
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-8 ───── */
-  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_DC_AMT, REAL_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT) AMT FROM TB_SL_SALE_HDR_PAY
-                WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)  AMT FROM TB_SL_SALE_HDR_DC
-                WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        DD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)  AMT FROM TB_SL_SALE_DTL_DC
-                WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
-              ,B.REAL_SALE_AMT, NVL(HP.AMT,0) AS HDR_PAY_AMT, B.REAL_SALE_AMT - NVL(HP.AMT,0) AS DIFF_7001
-              ,B.TOT_DC_AMT   , NVL(HD.AMT,0) AS HDR_DC_AMT , B.TOT_DC_AMT    - NVL(HD.AMT,0) AS DIFF_6001
-              ,                 NVL(DD.AMT,0) AS DTL_DC_AMT , B.TOT_DC_AMT    - NVL(DD.AMT,0) AS DIFF_6002
-              ,CASE WHEN B.REAL_SALE_AMT <> NVL(HP.AMT,0) THEN '7001'
-                    WHEN B.TOT_DC_AMT    <> NVL(HD.AMT,0) THEN '6001'
-                    WHEN B.TOT_DC_AMT    <> NVL(DD.AMT,0) THEN '6002'
-               END AS RESULT_CD
-              ,CASE WHEN HP.AMT IS NULL AND B.REAL_SALE_AMT <> 0     THEN 'N (HDR_PAY 없음 → NULL 통과)'
-                    WHEN B.TOT_DC_AMT = 0
-                     AND (NVL(HD.AMT,0)<>0 OR NVL(DD.AMT,0)<>0)      THEN 'N (헤더할인 0 → 미조회)'
-                    ELSE 'Y' END AS ORIG_DETECT
-          FROM BILLS B
-          LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
-          LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
-          LEFT JOIN DD ON DD.STORE_CD=B.STORE_CD AND DD.SALE_DATE=B.SALE_DATE AND DD.POS_NO=B.POS_NO AND DD.BILL_NO=B.BILL_NO
-         WHERE B.REAL_SALE_AMT <> NVL(HP.AMT,0)
-            OR B.TOT_DC_AMT    <> NVL(HD.AMT,0)
-            OR B.TOT_DC_AMT    <> NVL(DD.AMT,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_DC_AMT, REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT) AMT FROM TB_SL_SALE_HDR_PAY
+                    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)  AMT FROM TB_SL_SALE_HDR_DC
+                    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            DD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)  AMT FROM TB_SL_SALE_DTL_DC
+                    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+                  ,B.REAL_SALE_AMT, NVL(HP.AMT,0) AS HDR_PAY_AMT, B.REAL_SALE_AMT - NVL(HP.AMT,0) AS DIFF_7001
+                  ,B.TOT_DC_AMT   , NVL(HD.AMT,0) AS HDR_DC_AMT , B.TOT_DC_AMT    - NVL(HD.AMT,0) AS DIFF_6001
+                  ,                 NVL(DD.AMT,0) AS DTL_DC_AMT , B.TOT_DC_AMT    - NVL(DD.AMT,0) AS DIFF_6002
+                  ,CASE WHEN B.REAL_SALE_AMT <> NVL(HP.AMT,0) THEN '7001'
+                        WHEN B.TOT_DC_AMT    <> NVL(HD.AMT,0) THEN '6001'
+                        WHEN B.TOT_DC_AMT    <> NVL(DD.AMT,0) THEN '6002'
+                   END AS RESULT_CD
+                  ,CASE WHEN HP.AMT IS NULL AND B.REAL_SALE_AMT <> 0     THEN 'N (HDR_PAY 없음 → NULL 통과)'
+                        WHEN B.TOT_DC_AMT = 0
+                         AND (NVL(HD.AMT,0)<>0 OR NVL(DD.AMT,0)<>0)      THEN 'N (헤더할인 0 → 미조회)'
+                        ELSE 'Y' END AS ORIG_DETECT
+              FROM BILLS B
+              LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
+              LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
+              LEFT JOIN DD ON DD.STORE_CD=B.STORE_CD AND DD.SALE_DATE=B.SALE_DATE AND DD.POS_NO=B.POS_NO AND DD.BILL_NO=B.BILL_NO
+             WHERE B.REAL_SALE_AMT <> NVL(HP.AMT,0)
+                OR B.TOT_DC_AMT    <> NVL(HD.AMT,0)
+                OR B.TOT_DC_AMT    <> NVL(DD.AMT,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-9 ───── */
-  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN, TOT_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        S AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, SUM(DECODE(PAY_CD,'04',VAT_AMT,0)) POINT_VAT
-                FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-               GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        D AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO
-                    ,SUM(CASE WHEN VAT_AMT       < 0 THEN 1 ELSE 0 END)             MINUS_VAT_CNT
-                    ,SUM(CASE WHEN REAL_SALE_AMT < 0 THEN 1 ELSE 0 END)             MINUS_REAL_CNT
-                    ,SUM(CASE WHEN DC_AMT        < 0 THEN 1 ELSE 0 END)             MINUS_DC_CNT
-                    ,SUM(CASE WHEN ABS(SALE_AMT) < ABS(DC_AMT) THEN 1 ELSE 0 END)   OVER_DC_CNT
-                    ,SUM(DECODE(SUBSTRB(PROD_CD,1,4),'LYNK',ERP_SEND_AMT,SALE_AMT)) ERP_SEND_AMT
-                FROM TB_SL_SALE_DTL WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-               GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
-              ,NVL(S.POINT_VAT,0) AS POINT_VAT
-              ,D.MINUS_VAT_CNT, D.MINUS_REAL_CNT, D.MINUS_DC_CNT, D.OVER_DC_CNT
-              ,B.TOT_SALE_AMT, D.ERP_SEND_AMT, NVL(B.TOT_SALE_AMT,0) - NVL(D.ERP_SEND_AMT,0) AS DIFF_6505
-              ,CASE WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
-                    WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0              THEN '6102'
-                    WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0              THEN '6303'
-                    WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0              THEN '6305'
-                    WHEN D.OVER_DC_CNT > 0                                   THEN '6405'
-                    WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)      THEN '6505'
-               END AS RESULT_CD
-          FROM BILLS B
-          LEFT JOIN S ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
-          LEFT JOIN D ON D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
-         WHERE (NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207')
-            OR (B.SALE_YN='Y' AND (D.MINUS_VAT_CNT > 0 OR D.MINUS_REAL_CNT > 0 OR D.MINUS_DC_CNT > 0))
-            OR D.OVER_DC_CNT > 0
-            OR NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN, TOT_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            S AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, SUM(DECODE(PAY_CD,'04',VAT_AMT,0)) POINT_VAT
+                    FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                   GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            D AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO
+                        ,SUM(CASE WHEN VAT_AMT       < 0 THEN 1 ELSE 0 END)             MINUS_VAT_CNT
+                        ,SUM(CASE WHEN REAL_SALE_AMT < 0 THEN 1 ELSE 0 END)             MINUS_REAL_CNT
+                        ,SUM(CASE WHEN DC_AMT        < 0 THEN 1 ELSE 0 END)             MINUS_DC_CNT
+                        ,SUM(CASE WHEN ABS(SALE_AMT) < ABS(DC_AMT) THEN 1 ELSE 0 END)   OVER_DC_CNT
+                        ,SUM(DECODE(SUBSTRB(PROD_CD,1,4),'LYNK',ERP_SEND_AMT,SALE_AMT)) ERP_SEND_AMT
+                    FROM TB_SL_SALE_DTL WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                   GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.SALE_YN
+                  ,NVL(S.POINT_VAT,0) AS POINT_VAT
+                  ,D.MINUS_VAT_CNT, D.MINUS_REAL_CNT, D.MINUS_DC_CNT, D.OVER_DC_CNT
+                  ,B.TOT_SALE_AMT, D.ERP_SEND_AMT, NVL(B.TOT_SALE_AMT,0) - NVL(D.ERP_SEND_AMT,0) AS DIFF_6505
+                  ,CASE WHEN NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207' THEN '6103'
+                        WHEN B.SALE_YN='Y' AND D.MINUS_VAT_CNT  > 0              THEN '6102'
+                        WHEN B.SALE_YN='Y' AND D.MINUS_REAL_CNT > 0              THEN '6303'
+                        WHEN B.SALE_YN='Y' AND D.MINUS_DC_CNT   > 0              THEN '6305'
+                        WHEN D.OVER_DC_CNT > 0                                   THEN '6405'
+                        WHEN NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)      THEN '6505'
+                   END AS RESULT_CD
+              FROM BILLS B
+              LEFT JOIN S ON S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
+              LEFT JOIN D ON D.STORE_CD=B.STORE_CD AND D.SALE_DATE=B.SALE_DATE AND D.POS_NO=B.POS_NO AND D.BILL_NO=B.BILL_NO
+             WHERE (NVL(S.POINT_VAT,0) <> 0 AND B.SALE_DATE > '20250207')
+                OR (B.SALE_YN='Y' AND (D.MINUS_VAT_CNT > 0 OR D.MINUS_REAL_CNT > 0 OR D.MINUS_DC_CNT > 0))
+                OR D.OVER_DC_CNT > 0
+                OR NVL(B.TOT_SALE_AMT,0) <> NVL(D.ERP_SEND_AMT,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-10 ───── */
-  SELECT 11 AS 순번, 'H-10' AS 카드, NVL('SIGN','(0건)') AS 코드, COUNT('SIGN') AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN AS 헤더SALE_YN, h.REAL_SALE_AMT AS 헤더REAL, h.VAT_AMT AS 헤더VAT
-              ,SUM(CASE WHEN d.SALE_YN='Y' AND d.VAT_AMT       < 0 THEN 1 ELSE 0 END) AS "6102_매출VAT음수"
-              ,SUM(CASE WHEN d.SALE_YN='N' AND d.VAT_AMT       > 0 THEN 1 ELSE 0 END) AS "6112_반품VAT양수"
-              ,SUM(CASE WHEN d.SALE_YN='Y' AND d.REAL_SALE_AMT < 0 THEN 1 ELSE 0 END) AS "6303_매출REAL음수"
-              ,SUM(CASE WHEN d.SALE_YN='N' AND d.REAL_SALE_AMT > 0 THEN 1 ELSE 0 END) AS "6313_반품REAL양수"
-              ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ s
-                 WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
-                   AND s.SALE_YN='Y' AND s.PAY_AMT < 0)                                AS "3211_매출PAY음수"
-              ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ s
-                 WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
-                   AND s.SALE_YN='N' AND s.PAY_AMT > 0)                                AS "3212_반품PAY양수"
-              ,CASE WHEN h.SALE_YN <> MIN(d.SALE_YN) OR h.SALE_YN <> MAX(d.SALE_YN) THEN 'MIX 헤더/상세 SALE_YN 불일치' END AS 비고
-          FROM TB_SL_SALE_HDR h
-          JOIN TB_SL_SALE_DTL d
-            ON d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO
-         WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
-        {{LINE:store:h}}
-        {{LINE:extra:h}}
-         GROUP BY h.HQ_OFFICE_CD, h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN, h.REAL_SALE_AMT, h.VAT_AMT
-        HAVING SUM(CASE WHEN (d.SALE_YN='Y' AND (d.VAT_AMT < 0 OR d.REAL_SALE_AMT < 0))
-                          OR (d.SALE_YN='N' AND (d.VAT_AMT > 0 OR d.REAL_SALE_AMT > 0)) THEN 1 ELSE 0 END) > 0
-            OR EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
-                        WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
-                          AND ((s.SALE_YN='Y' AND s.PAY_AMT < 0) OR (s.SALE_YN='N' AND s.PAY_AMT > 0)))
-            OR h.SALE_YN <> MIN(d.SALE_YN) OR h.SALE_YN <> MAX(d.SALE_YN)
-    ) x ON 1=1
-   GROUP BY 'SIGN'
+  SELECT 11 AS 순번, 'H-10' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT 'SIGN' AS 코드 FROM (
+            SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN AS 헤더SALE_YN, h.REAL_SALE_AMT AS 헤더REAL, h.VAT_AMT AS 헤더VAT
+                  ,SUM(CASE WHEN d.SALE_YN='Y' AND d.VAT_AMT       < 0 THEN 1 ELSE 0 END) AS "6102_매출VAT음수"
+                  ,SUM(CASE WHEN d.SALE_YN='N' AND d.VAT_AMT       > 0 THEN 1 ELSE 0 END) AS "6112_반품VAT양수"
+                  ,SUM(CASE WHEN d.SALE_YN='Y' AND d.REAL_SALE_AMT < 0 THEN 1 ELSE 0 END) AS "6303_매출REAL음수"
+                  ,SUM(CASE WHEN d.SALE_YN='N' AND d.REAL_SALE_AMT > 0 THEN 1 ELSE 0 END) AS "6313_반품REAL양수"
+                  ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ s
+                     WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
+                       AND s.SALE_YN='Y' AND s.PAY_AMT < 0)                                AS "3211_매출PAY음수"
+                  ,(SELECT COUNT(*) FROM TB_SL_SALE_PAY_SEQ s
+                     WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
+                       AND s.SALE_YN='N' AND s.PAY_AMT > 0)                                AS "3212_반품PAY양수"
+                  ,CASE WHEN h.SALE_YN <> MIN(d.SALE_YN) OR h.SALE_YN <> MAX(d.SALE_YN) THEN 'MIX 헤더/상세 SALE_YN 불일치' END AS 비고
+              FROM TB_SL_SALE_HDR h
+              JOIN TB_SL_SALE_DTL d
+                ON d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO
+             WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+            {{LINE:store:h}}
+            {{LINE:extra:h}}
+             GROUP BY h.HQ_OFFICE_CD, h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, h.SALE_YN, h.REAL_SALE_AMT, h.VAT_AMT
+            HAVING SUM(CASE WHEN (d.SALE_YN='Y' AND (d.VAT_AMT < 0 OR d.REAL_SALE_AMT < 0))
+                              OR (d.SALE_YN='N' AND (d.VAT_AMT > 0 OR d.REAL_SALE_AMT > 0)) THEN 1 ELSE 0 END) > 0
+                OR EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+                            WHERE s.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
+                              AND ((s.SALE_YN='Y' AND s.PAY_AMT < 0) OR (s.SALE_YN='N' AND s.PAY_AMT > 0)))
+                OR h.SALE_YN <> MIN(d.SALE_YN) OR h.SALE_YN <> MAX(d.SALE_YN)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-1 ───── */
-  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '결제행' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        PAYDTL AS (
-            SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'01' PAY_CD, SALE_AMT AM_PAY, DC_AMT AM_DC, VAT_AMT AM_VAT
-              FROM TB_SL_SALE_PAY_CARD      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'02',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_CASH      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'03',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_PAYCO     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'04',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_VPOINT    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'05',0,NVL(VCOUPN_DC_AMT,0),0
-              FROM TB_SL_SALE_PAY_VCOUPN    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'06',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_VCHARGE   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'07',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_MPAY      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'08',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_MCOUPN    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'10',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_PREPAID   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'11',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_POSTPAID  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'12',0,NVL(DC_AMT,0)*SALE_FG,0
-              FROM TB_SL_SALE_PAY_COUPN     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'13',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_GIFT      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'14',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_FSTMP     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'17',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_EMP_CARD  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'18',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_TEMPORARY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-            UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'19',SALE_AMT,0,VAT_AMT
-              FROM TB_SL_SALE_PAY_VORDER    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-        ),
-        SEQ AS (
-            SELECT S.STORE_CD, S.SALE_DATE, S.POS_NO, S.BILL_NO, S.PAY_SEQ, S.LINE_NO, S.PAY_CD
-                  ,S.PAY_AMT SEQ_PAY_AMT, S.VAT_AMT SEQ_VAT_AMT
-              FROM TB_SL_SALE_PAY_SEQ S, BILLS B
-             WHERE S.HQ_OFFICE_CD = '{{HQ}}' AND S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
-               AND S.PAY_AMT <> 0
-        )
-        SELECT Q.STORE_CD, Q.SALE_DATE, Q.POS_NO, Q.BILL_NO, Q.PAY_SEQ, Q.LINE_NO, Q.PAY_CD
-              ,Q.SEQ_PAY_AMT, P.AM_PAY, P.AM_DC
-              ,Q.SEQ_VAT_AMT, P.AM_VAT
-              ,CASE WHEN Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
-                                                                                    THEN '3009'
-                    WHEN P.PAY_CD IS NULL                                           THEN '3004'
-                    WHEN Q.PAY_CD IN ('05','12')     AND Q.SEQ_PAY_AMT <> P.AM_DC   THEN '3001'
-                    WHEN Q.PAY_CD NOT IN ('05','12') AND Q.SEQ_PAY_AMT <> P.AM_PAY  THEN '3002'
-                    WHEN Q.PAY_CD NOT IN ('05','12') AND Q.SEQ_VAT_AMT <> P.AM_VAT  THEN '3003'
-               END AS RESULT_CD
-              ,CASE WHEN Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
-                      OR P.PAY_CD IS NULL THEN 'N (프로시저 ORA-20001 로 사망)' ELSE 'Y' END AS ORIG_DETECT
-          FROM SEQ Q
-          LEFT JOIN PAYDTL P
-            ON  P.STORE_CD=Q.STORE_CD AND P.SALE_DATE=Q.SALE_DATE AND P.POS_NO=Q.POS_NO
-            AND P.BILL_NO =Q.BILL_NO  AND P.LINE_NO  =Q.LINE_NO   AND P.PAY_CD=Q.PAY_CD
-         WHERE Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
-            OR P.PAY_CD IS NULL
-            OR (Q.PAY_CD IN ('05','12')     AND Q.SEQ_PAY_AMT <> P.AM_DC)
-            OR (Q.PAY_CD NOT IN ('05','12') AND (Q.SEQ_PAY_AMT <> P.AM_PAY OR Q.SEQ_VAT_AMT <> P.AM_VAT))
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            PAYDTL AS (
+                SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'01' PAY_CD, SALE_AMT AM_PAY, DC_AMT AM_DC, VAT_AMT AM_VAT
+                  FROM TB_SL_SALE_PAY_CARD      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'02',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_CASH      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'03',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_PAYCO     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'04',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_VPOINT    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'05',0,NVL(VCOUPN_DC_AMT,0),0
+                  FROM TB_SL_SALE_PAY_VCOUPN    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'06',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_VCHARGE   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'07',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_MPAY      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'08',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_MCOUPN    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'10',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_PREPAID   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'11',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_POSTPAID  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'12',0,NVL(DC_AMT,0)*SALE_FG,0
+                  FROM TB_SL_SALE_PAY_COUPN     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'13',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_GIFT      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'14',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_FSTMP     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'17',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_EMP_CARD  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'18',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_TEMPORARY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'19',SALE_AMT,0,VAT_AMT
+                  FROM TB_SL_SALE_PAY_VORDER    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+            ),
+            SEQ AS (
+                SELECT S.STORE_CD, S.SALE_DATE, S.POS_NO, S.BILL_NO, S.PAY_SEQ, S.LINE_NO, S.PAY_CD
+                      ,S.PAY_AMT SEQ_PAY_AMT, S.VAT_AMT SEQ_VAT_AMT
+                  FROM TB_SL_SALE_PAY_SEQ S, BILLS B
+                 WHERE S.HQ_OFFICE_CD = '{{HQ}}' AND S.STORE_CD=B.STORE_CD AND S.SALE_DATE=B.SALE_DATE AND S.POS_NO=B.POS_NO AND S.BILL_NO=B.BILL_NO
+                   AND S.PAY_AMT <> 0
+            )
+            SELECT Q.STORE_CD, Q.SALE_DATE, Q.POS_NO, Q.BILL_NO, Q.PAY_SEQ, Q.LINE_NO, Q.PAY_CD
+                  ,Q.SEQ_PAY_AMT, P.AM_PAY, P.AM_DC
+                  ,Q.SEQ_VAT_AMT, P.AM_VAT
+                  ,CASE WHEN Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
+                                                                                        THEN '3009'
+                        WHEN P.PAY_CD IS NULL                                           THEN '3004'
+                        WHEN Q.PAY_CD IN ('05','12')     AND Q.SEQ_PAY_AMT <> P.AM_DC   THEN '3001'
+                        WHEN Q.PAY_CD NOT IN ('05','12') AND Q.SEQ_PAY_AMT <> P.AM_PAY  THEN '3002'
+                        WHEN Q.PAY_CD NOT IN ('05','12') AND Q.SEQ_VAT_AMT <> P.AM_VAT  THEN '3003'
+                   END AS RESULT_CD
+                  ,CASE WHEN Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
+                          OR P.PAY_CD IS NULL THEN 'N (프로시저 ORA-20001 로 사망)' ELSE 'Y' END AS ORIG_DETECT
+              FROM SEQ Q
+              LEFT JOIN PAYDTL P
+                ON  P.STORE_CD=Q.STORE_CD AND P.SALE_DATE=Q.SALE_DATE AND P.POS_NO=Q.POS_NO
+                AND P.BILL_NO =Q.BILL_NO  AND P.LINE_NO  =Q.LINE_NO   AND P.PAY_CD=Q.PAY_CD
+             WHERE Q.PAY_CD NOT IN ('01','02','03','04','05','06','07','08','10','11','12','13','14','17','18','19')
+                OR P.PAY_CD IS NULL
+                OR (Q.PAY_CD IN ('05','12')     AND Q.SEQ_PAY_AMT <> P.AM_DC)
+                OR (Q.PAY_CD NOT IN ('05','12') AND (Q.SEQ_PAY_AMT <> P.AM_PAY OR Q.SEQ_VAT_AMT <> P.AM_VAT))
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-2 ───── */
-  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '결제상세행' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH PD AS (
-          SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'01' PAY_CD,SALE_AMT AMT FROM TB_SL_SALE_PAY_CARD      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'02',SALE_AMT FROM TB_SL_SALE_PAY_CASH       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'03',SALE_AMT FROM TB_SL_SALE_PAY_PAYCO      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'04',SALE_AMT FROM TB_SL_SALE_PAY_VPOINT     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'05',NVL(VCOUPN_DC_AMT,0) FROM TB_SL_SALE_PAY_VCOUPN WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'06',SALE_AMT FROM TB_SL_SALE_PAY_VCHARGE    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'07',SALE_AMT FROM TB_SL_SALE_PAY_MPAY       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'08',SALE_AMT FROM TB_SL_SALE_PAY_MCOUPN     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'10',SALE_AMT FROM TB_SL_SALE_PAY_PREPAID    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'11',SALE_AMT FROM TB_SL_SALE_PAY_POSTPAID   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'12',NVL(DC_AMT,0)*SALE_FG FROM TB_SL_SALE_PAY_COUPN WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'13',SALE_AMT FROM TB_SL_SALE_PAY_GIFT       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'14',SALE_AMT FROM TB_SL_SALE_PAY_FSTMP      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'17',SALE_AMT FROM TB_SL_SALE_PAY_EMP_CARD   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'18',SALE_AMT FROM TB_SL_SALE_PAY_TEMPORARY  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-          UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'19',SALE_AMT FROM TB_SL_SALE_PAY_VORDER     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}})
-        SELECT P.STORE_CD, P.POS_NO, P.BILL_NO, P.LINE_NO, P.PAY_CD, P.AMT
-              ,'3005' AS RESULT_CD, '결제상세 있는데 PAY_SEQ 없음' AS 설명
-          FROM PD P
-         WHERE NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ S
-                WHERE S.HQ_OFFICE_CD='{{HQ}}'
-                  AND S.HQ_OFFICE_CD = '{{HQ}}' AND S.STORE_CD=P.STORE_CD AND S.SALE_DATE=P.SALE_DATE
-                  AND S.POS_NO=P.POS_NO     AND S.BILL_NO=P.BILL_NO
-                  AND S.LINE_NO=P.LINE_NO   AND S.PAY_CD=P.PAY_CD)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제상세행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH PD AS (
+              SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'01' PAY_CD,SALE_AMT AMT FROM TB_SL_SALE_PAY_CARD      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'02',SALE_AMT FROM TB_SL_SALE_PAY_CASH       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'03',SALE_AMT FROM TB_SL_SALE_PAY_PAYCO      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'04',SALE_AMT FROM TB_SL_SALE_PAY_VPOINT     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'05',NVL(VCOUPN_DC_AMT,0) FROM TB_SL_SALE_PAY_VCOUPN WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'06',SALE_AMT FROM TB_SL_SALE_PAY_VCHARGE    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'07',SALE_AMT FROM TB_SL_SALE_PAY_MPAY       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'08',SALE_AMT FROM TB_SL_SALE_PAY_MCOUPN     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'10',SALE_AMT FROM TB_SL_SALE_PAY_PREPAID    WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'11',SALE_AMT FROM TB_SL_SALE_PAY_POSTPAID   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'12',NVL(DC_AMT,0)*SALE_FG FROM TB_SL_SALE_PAY_COUPN WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'13',SALE_AMT FROM TB_SL_SALE_PAY_GIFT       WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'14',SALE_AMT FROM TB_SL_SALE_PAY_FSTMP      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'17',SALE_AMT FROM TB_SL_SALE_PAY_EMP_CARD   WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'18',SALE_AMT FROM TB_SL_SALE_PAY_TEMPORARY  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+              UNION ALL SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,LINE_NO,'19',SALE_AMT FROM TB_SL_SALE_PAY_VORDER     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}})
+            SELECT P.STORE_CD, P.POS_NO, P.BILL_NO, P.LINE_NO, P.PAY_CD, P.AMT
+                  ,'3005' AS RESULT_CD, '결제상세 있는데 PAY_SEQ 없음' AS 설명
+              FROM PD P
+             WHERE NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ S
+                    WHERE S.HQ_OFFICE_CD='{{HQ}}'
+                      AND S.HQ_OFFICE_CD = '{{HQ}}' AND S.STORE_CD=P.STORE_CD AND S.SALE_DATE=P.SALE_DATE
+                      AND S.POS_NO=P.POS_NO     AND S.BILL_NO=P.BILL_NO
+                      AND S.LINE_NO=P.LINE_NO   AND S.PAY_CD=P.PAY_CD)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-3 ───── */
-  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '결제행' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT STORE_CD, POS_NO, BILL_NO, PAY_SEQ, PAY_CD, LINE_NO
-              ,PAY_AMT, TAX_AMT, NO_TAX_AMT, VAT_AMT
-              ,PAY_AMT - (NVL(TAX_AMT,0) + NVL(NO_TAX_AMT,0)) AS 차이
-              ,'PAY01' AS RESULT_CD
-          FROM TB_SL_SALE_PAY_SEQ
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-           AND PAY_CD NOT IN ('05','12')
-           AND PAY_AMT <> NVL(TAX_AMT,0) + NVL(NO_TAX_AMT,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT STORE_CD, POS_NO, BILL_NO, PAY_SEQ, PAY_CD, LINE_NO
+                  ,PAY_AMT, TAX_AMT, NO_TAX_AMT, VAT_AMT
+                  ,PAY_AMT - (NVL(TAX_AMT,0) + NVL(NO_TAX_AMT,0)) AS 차이
+                  ,'PAY01' AS RESULT_CD
+              FROM TB_SL_SALE_PAY_SEQ
+             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+               AND PAY_CD NOT IN ('05','12')
+               AND PAY_AMT <> NVL(TAX_AMT,0) + NVL(NO_TAX_AMT,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-4 ───── */
-  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표·PAY_CD' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        S AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-                FROM TB_SL_SALE_PAY_SEQ X, BILLS B
-               WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-                 AND X.PAY_AMT <> 0
-               GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD),
-        HP AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-                FROM TB_SL_SALE_HDR_PAY X, BILLS B
-               WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-               GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD),
-        DP AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-                FROM TB_SL_SALE_DTL_PAY X, BILLS B
-               WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-               GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD)
-        SELECT S.STORE_CD, S.SALE_DATE, S.POS_NO, S.BILL_NO, S.PAY_CD
-              ,S.AMT AS SEQ_AMT, HP.AMT AS HDR_PAY_AMT, DP.AMT AS DTL_PAY_AMT
-              ,CASE WHEN HP.PAY_CD IS NULL   THEN '3101'
-                    WHEN S.AMT <> HP.AMT     THEN '3102'
-                    WHEN DP.PAY_CD IS NULL   THEN '3201'
-                    WHEN S.AMT <> DP.AMT     THEN '3202' END AS RESULT_CD
-              ,CASE WHEN HP.PAY_CD IS NOT NULL AND S.AMT = HP.AMT AND DP.PAY_CD IS NOT NULL AND S.AMT <> DP.AMT
-                    THEN 'N (V_SEQ_SUM_AMT 미계산)' ELSE 'Y' END AS ORIG_DETECT
-          FROM S
-          LEFT JOIN HP ON HP.STORE_CD=S.STORE_CD AND HP.SALE_DATE=S.SALE_DATE AND HP.POS_NO=S.POS_NO AND HP.BILL_NO=S.BILL_NO AND HP.PAY_CD=S.PAY_CD
-          LEFT JOIN DP ON DP.STORE_CD=S.STORE_CD AND DP.SALE_DATE=S.SALE_DATE AND DP.POS_NO=S.POS_NO AND DP.BILL_NO=S.BILL_NO AND DP.PAY_CD=S.PAY_CD
-         WHERE HP.PAY_CD IS NULL OR DP.PAY_CD IS NULL
-            OR S.AMT <> HP.AMT   OR S.AMT <> DP.AMT
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
+                  FROM TB_SL_SALE_HDR h
+                 WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+            {{LINE:store:h}}
+            {{LINE:extra:h}}
+            ),
+            S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+                    FROM TB_SL_SALE_PAY_SEQ X
+                    JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+                   WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+                     AND X.PAY_CD NOT IN ('05','12')             /* ★ 할인성 결제 제외 — HDR_PAY/DTL_PAY 에 원래 없음 */
+                   GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+            HP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+                    FROM TB_SL_SALE_HDR_PAY X
+                    JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+                   WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+                     AND X.PAY_CD NOT IN ('05','12')
+                   GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+            DP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+                    FROM TB_SL_SALE_DTL_PAY X
+                    JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+                   WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+                     AND X.PAY_CD NOT IN ('05','12')
+                   GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+            /* 세 테이블에 등장하는 모든 (전표 + PAY_CD) 조합 — 양방향 대사의 기준 */
+            K AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM S
+                  UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM HP
+                  UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM DP)
+            SELECT K.STORE_CD, K.SALE_DATE, K.POS_NO, K.BILL_NO, K.PAY_CD
+                  ,S.AMT  AS SEQ_AMT
+                  ,HP.AMT AS HDR_PAY_AMT
+                  ,DP.AMT AS DTL_PAY_AMT
+                  ,S.AMT - HP.AMT AS DIFF_HDR
+                  ,S.AMT - DP.AMT AS DIFF_DTL
+                  ,CASE WHEN S.PAY_CD  IS NULL THEN '3103'
+                        WHEN HP.PAY_CD IS NULL THEN '3101'
+                        WHEN S.AMT <> HP.AMT   THEN '3102' END AS HDR_CD
+                  ,CASE WHEN S.PAY_CD  IS NULL THEN '3203'
+                        WHEN DP.PAY_CD IS NULL THEN '3201'
+                        WHEN S.AMT <> DP.AMT   THEN '3202' END AS DTL_CD
+                  ,TRIM('+' FROM NVL(CASE WHEN S.PAY_CD IS NULL THEN '3103' WHEN HP.PAY_CD IS NULL THEN '3101' WHEN S.AMT <> HP.AMT THEN '3102' END,'')
+                              || '+' ||
+                              NVL(CASE WHEN S.PAY_CD IS NULL THEN '3203' WHEN DP.PAY_CD IS NULL THEN '3201' WHEN S.AMT <> DP.AMT THEN '3202' END,''))
+                                                                                                AS RESULT_CD   /* HDR+DTL 합친 코드 (S-0 집계용) */
+              FROM K
+              LEFT JOIN S  ON S.STORE_CD =K.STORE_CD AND S.SALE_DATE =K.SALE_DATE AND S.POS_NO =K.POS_NO AND S.BILL_NO =K.BILL_NO AND S.PAY_CD =K.PAY_CD
+              LEFT JOIN HP ON HP.STORE_CD=K.STORE_CD AND HP.SALE_DATE=K.SALE_DATE AND HP.POS_NO=K.POS_NO AND HP.BILL_NO=K.BILL_NO AND HP.PAY_CD=K.PAY_CD
+              LEFT JOIN DP ON DP.STORE_CD=K.STORE_CD AND DP.SALE_DATE=K.SALE_DATE AND DP.POS_NO=K.POS_NO AND DP.BILL_NO=K.BILL_NO AND DP.PAY_CD=K.PAY_CD
+             WHERE (   S.PAY_CD  IS NULL
+                    OR HP.PAY_CD IS NULL
+                    OR DP.PAY_CD IS NULL
+                    OR S.AMT <> HP.AMT
+                    OR S.AMT <> DP.AMT )
+               AND (NVL(S.AMT,0) <> 0 OR NVL(HP.AMT,0) <> 0 OR NVL(DP.AMT,0) <> 0)  /* 세 값 모두 0 인 조합 제외 */
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-5 ───── */
-  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표·PAY_CD' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.POS_NO,s.POS_NO) POS_NO
-              ,NVL(p.BILL_NO,s.BILL_NO) BILL_NO, NVL(p.PAY_CD,s.PAY_CD) PAY_CD
-              ,p.AMT AS PAY금액, s.AMT AS PAY_SEQ금액
-              ,CASE WHEN p.PAY_CD IS NULL THEN 'P01 TB_SL_SALE_PAY 없음'
-                    WHEN s.PAY_CD IS NULL THEN 'P02 TB_SL_SALE_PAY_SEQ 없음'
-                    ELSE 'P03 금액 불일치' END AS RESULT_CD
-          FROM (SELECT STORE_CD,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
-                 WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                 GROUP BY STORE_CD,POS_NO,BILL_NO,PAY_CD) p
-          FULL OUTER JOIN
-               (SELECT STORE_CD,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
-                 WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                 GROUP BY STORE_CD,POS_NO,BILL_NO,PAY_CD) s
-            ON s.STORE_CD=p.STORE_CD AND s.POS_NO=p.POS_NO
-           AND s.BILL_NO=p.BILL_NO   AND s.PAY_CD=p.PAY_CD
-         WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.SALE_DATE,s.SALE_DATE) SALE_DATE, NVL(p.POS_NO,s.POS_NO) POS_NO
+                  ,NVL(p.BILL_NO,s.BILL_NO) BILL_NO, NVL(p.PAY_CD,s.PAY_CD) PAY_CD
+                  ,p.AMT AS PAY금액, s.AMT AS PAY_SEQ금액
+                  ,CASE WHEN p.PAY_CD IS NULL THEN 'P01 TB_SL_SALE_PAY 없음'
+                        WHEN s.PAY_CD IS NULL THEN 'P02 TB_SL_SALE_PAY_SEQ 없음'
+                        ELSE 'P03 금액 불일치' END AS RESULT_CD
+              FROM (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
+                     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                     GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) p
+              FULL OUTER JOIN
+                   (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
+                     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                     GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) s
+                ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO
+               AND s.BILL_NO=p.BILL_NO   AND s.PAY_CD=p.PAY_CD
+             WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-6 ───── */
-  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '상세행' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD
-              ,d.SALE_AMT, d.DC_AMT, d.REAL_SALE_AMT
-              ,NVL(p.AMT,0) AS DTL_PAY합, d.REAL_SALE_AMT - NVL(p.AMT,0) AS 차이
-              ,'D001' AS RESULT_CD
-          FROM TB_SL_SALE_DTL d
-          LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO,SUM(PAY_AMT) AMT
-                       FROM TB_SL_SALE_DTL_PAY
-                      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                      GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO) p
-            ON  p.STORE_CD=d.STORE_CD AND p.SALE_DATE=d.SALE_DATE AND p.POS_NO=d.POS_NO
-            AND p.BILL_NO=d.BILL_NO   AND p.BILL_DTL_NO=d.BILL_DTL_NO
-         WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
-           AND d.REAL_SALE_AMT <> NVL(p.AMT,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD
+                  ,d.SALE_AMT, d.DC_AMT, d.REAL_SALE_AMT
+                  ,NVL(p.AMT,0) AS DTL_PAY합, d.REAL_SALE_AMT - NVL(p.AMT,0) AS 차이
+                  ,'D001' AS RESULT_CD
+              FROM TB_SL_SALE_DTL d
+              LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO,SUM(PAY_AMT) AMT
+                           FROM TB_SL_SALE_DTL_PAY
+                          WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                          GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,BILL_DTL_NO) p
+                ON  p.STORE_CD=d.STORE_CD AND p.SALE_DATE=d.SALE_DATE AND p.POS_NO=d.POS_NO
+                AND p.BILL_NO=d.BILL_NO   AND p.BILL_DTL_NO=d.BILL_DTL_NO
+             WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+               AND d.REAL_SALE_AMT <> NVL(p.AMT,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-7 ───── */
-  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '영수증행' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.PAY_SEQ, r.PAY_CD
-              ,r.PAY_AMT AS 영수증금액, r.SALE_YN, r.NO_SALE_YN
-              ,(SELECT LISTAGG(s.PAY_CD||':'||s.PAY_AMT, ' / ') WITHIN GROUP (ORDER BY s.PAY_SEQ)
-                  FROM TB_SL_SALE_PAY_SEQ s
-                 WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=r.STORE_CD AND s.SALE_DATE=r.SALE_DATE
-                   AND s.POS_NO=r.POS_NO AND s.BILL_NO=r.BILL_NO)     AS 실제결제내역
-              ,'RCP01' AS RESULT_CD
-          FROM TB_SL_SALE_CASH_RCP r
-         WHERE r.HQ_OFFICE_CD = '{{HQ}}' AND r.{{OPT:datecond}}
-           AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
-                WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=r.STORE_CD AND s.SALE_DATE=r.SALE_DATE
-                  AND s.POS_NO=r.POS_NO AND s.BILL_NO=r.BILL_NO
-                  AND s.PAY_CD='02')
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '영수증행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.PAY_SEQ, r.PAY_CD
+                  ,r.PAY_AMT AS 영수증금액, r.SALE_YN, r.NO_SALE_YN
+                  ,(SELECT LISTAGG(s.PAY_CD||':'||s.PAY_AMT, ' / ') WITHIN GROUP (ORDER BY s.PAY_SEQ)
+                      FROM TB_SL_SALE_PAY_SEQ s
+                     WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=r.STORE_CD AND s.SALE_DATE=r.SALE_DATE
+                       AND s.POS_NO=r.POS_NO AND s.BILL_NO=r.BILL_NO)     AS 실제결제내역
+                  ,'RCP01' AS RESULT_CD
+              FROM TB_SL_SALE_CASH_RCP r
+             WHERE r.HQ_OFFICE_CD = '{{HQ}}' AND r.{{OPT:datecond}}
+               AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+                    WHERE s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=r.STORE_CD AND s.SALE_DATE=r.SALE_DATE
+                      AND s.POS_NO=r.POS_NO AND s.BILL_NO=r.BILL_NO
+                      AND s.PAY_CD='02')
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-1 ───── */
-  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '상세행' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO, A.PROD_CD
-              ,A.SALE_AMT, A.DC_AMT, A.REAL_SALE_AMT
-              ,A.SALE_AMT - A.DC_AMT      AS EXPECT_REAL
-              ,NVL(DD.SUM_DC_AMT,0)       AS DTL_DC_SUM
-              ,NVL(DD.CNT,0)              AS DTL_DC_CNT
-              ,CASE WHEN A.SALE_AMT - A.DC_AMT <> A.REAL_SALE_AMT THEN '5001'
-                    WHEN A.DC_AMT <> NVL(DD.SUM_DC_AMT,0)         THEN '5003' END AS RESULT_CD
-              ,CASE WHEN A.SALE_AMT - A.DC_AMT = A.REAL_SALE_AMT AND NVL(DD.CNT,0) = 0
-                    THEN 'N (DTL_DC 없음 -> NULL 통과)' ELSE 'Y' END AS ORIG_DETECT
-          FROM TB_SL_SALE_DTL A
-          LEFT JOIN (SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, BILL_DTL_NO
-                           ,SUM(DC_AMT) SUM_DC_AMT, COUNT(*) CNT
-                       FROM TB_SL_SALE_DTL_DC
-                      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                      GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO, BILL_DTL_NO) DD
-            ON  DD.STORE_CD    = A.STORE_CD  AND DD.SALE_DATE = A.SALE_DATE
-            AND DD.POS_NO      = A.POS_NO    AND DD.BILL_NO   = A.BILL_NO
-            AND DD.BILL_DTL_NO = A.BILL_DTL_NO
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.{{OPT:datecond}}
-           AND (  A.SALE_AMT - A.DC_AMT <> A.REAL_SALE_AMT
-               OR A.DC_AMT <> NVL(DD.SUM_DC_AMT,0) )
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO, A.PROD_CD
+                  ,A.SALE_AMT, A.DC_AMT, A.REAL_SALE_AMT
+                  ,A.SALE_AMT - A.DC_AMT      AS EXPECT_REAL
+                  ,NVL(DD.SUM_DC_AMT,0)       AS DTL_DC_SUM
+                  ,NVL(DD.CNT,0)              AS DTL_DC_CNT
+                  ,CASE WHEN A.SALE_AMT - A.DC_AMT <> A.REAL_SALE_AMT THEN '5001'
+                        WHEN A.DC_AMT <> NVL(DD.SUM_DC_AMT,0)         THEN '5003' END AS RESULT_CD
+                  ,CASE WHEN A.SALE_AMT - A.DC_AMT = A.REAL_SALE_AMT AND NVL(DD.CNT,0) = 0
+                        THEN 'N (DTL_DC 없음 -> NULL 통과)' ELSE 'Y' END AS ORIG_DETECT
+              FROM TB_SL_SALE_DTL A
+              LEFT JOIN (SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, BILL_DTL_NO
+                               ,SUM(DC_AMT) SUM_DC_AMT, COUNT(*) CNT
+                           FROM TB_SL_SALE_DTL_DC
+                          WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                          GROUP BY STORE_CD, SALE_DATE, POS_NO, BILL_NO, BILL_DTL_NO) DD
+                ON  DD.STORE_CD    = A.STORE_CD  AND DD.SALE_DATE = A.SALE_DATE
+                AND DD.POS_NO      = A.POS_NO    AND DD.BILL_NO   = A.BILL_NO
+                AND DD.BILL_DTL_NO = A.BILL_DTL_NO
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.{{OPT:datecond}}
+               AND (  A.SALE_AMT - A.DC_AMT <> A.REAL_SALE_AMT
+                   OR A.DC_AMT <> NVL(DD.SUM_DC_AMT,0) )
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-2 ───── */
-  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '할인행' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_DC_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        )
-        -- 2404 : DTL 마이너스
-        SELECT '2404' RESULT_CD, A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
-              ,A.PROD_CD, A.SALE_AMT, A.DC_AMT AS DC_AMT_DTL, NULL AS DC_AMT_DTLDC, A.REAL_SALE_AMT
-              ,'6303/6305 선점 → 2404 도달 불가' AS ORIG_DETECT
-          FROM TB_SL_SALE_DTL A, BILLS B
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-           AND A.SALE_YN='Y' AND (A.DC_AMT < 0 OR A.REAL_SALE_AMT < 0)
-        UNION ALL
-        -- 2504 : 할인 > 상품금액
-        SELECT '2504', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
-              ,D.PROD_CD, D.SALE_AMT, D.DC_AMT, A.DC_AMT, D.REAL_SALE_AMT
-              ,CASE WHEN B.TOT_DC_AMT = 0 THEN 'N (헤더할인 0 → 블록 미실행)' ELSE 'Y' END
-          FROM TB_SL_SALE_DTL_DC A, TB_SL_SALE_DTL D, BILLS B
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-           AND D.HQ_OFFICE_CD = '{{HQ}}' AND D.STORE_CD=A.STORE_CD AND D.SALE_DATE=A.SALE_DATE AND D.POS_NO=A.POS_NO AND D.BILL_NO=A.BILL_NO
-           AND D.BILL_DTL_NO=A.BILL_DTL_NO
-           AND A.SALE_YN='Y' AND A.DC_AMT > D.SALE_AMT
-        UNION ALL
-        -- 2405 / 2406 : 고아 할인행 / BILL_DTL_NO 별 합계 불일치
-        SELECT CASE WHEN D.BILL_DTL_NO IS NULL THEN '2405' ELSE '2406' END
-              ,X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.BILL_DTL_NO
-              ,D.PROD_CD, D.SALE_AMT, D.DC_AMT, X.SUM_DC_AMT, D.REAL_SALE_AMT
-              ,CASE WHEN B.TOT_DC_AMT = 0        THEN 'N (헤더할인 0 → 블록 미실행)'
-                    WHEN D.BILL_DTL_NO IS NULL   THEN 'N (2405 후 RETURN 누락으로 오판정)'
-                    ELSE 'Y' END
-          FROM (SELECT A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO,A.BILL_DTL_NO, SUM(A.DC_AMT) SUM_DC_AMT
-                  FROM TB_SL_SALE_DTL_DC A, BILLS B
-                 WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-                 GROUP BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO,A.BILL_DTL_NO) X
-          JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
-          LEFT JOIN TB_SL_SALE_DTL D
-            ON D.HQ_OFFICE_CD = '{{HQ}}' AND D.STORE_CD=X.STORE_CD AND D.SALE_DATE=X.SALE_DATE AND D.POS_NO=X.POS_NO AND D.BILL_NO=X.BILL_NO
-           AND D.BILL_DTL_NO=X.BILL_DTL_NO
-         WHERE D.BILL_DTL_NO IS NULL OR X.SUM_DC_AMT <> D.DC_AMT
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_DC_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            )
+            -- 2404 : DTL 마이너스
+            SELECT '2404' RESULT_CD, A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
+                  ,A.PROD_CD, A.SALE_AMT, A.DC_AMT AS DC_AMT_DTL, NULL AS DC_AMT_DTLDC, A.REAL_SALE_AMT
+                  ,'6303/6305 선점 → 2404 도달 불가' AS ORIG_DETECT
+              FROM TB_SL_SALE_DTL A, BILLS B
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+               AND A.SALE_YN='Y' AND (A.DC_AMT < 0 OR A.REAL_SALE_AMT < 0)
+            UNION ALL
+            -- 2504 : 할인 > 상품금액
+            SELECT '2504', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
+                  ,D.PROD_CD, D.SALE_AMT, D.DC_AMT, A.DC_AMT, D.REAL_SALE_AMT
+                  ,CASE WHEN B.TOT_DC_AMT = 0 THEN 'N (헤더할인 0 → 블록 미실행)' ELSE 'Y' END
+              FROM TB_SL_SALE_DTL_DC A, TB_SL_SALE_DTL D, BILLS B
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+               AND D.HQ_OFFICE_CD = '{{HQ}}' AND D.STORE_CD=A.STORE_CD AND D.SALE_DATE=A.SALE_DATE AND D.POS_NO=A.POS_NO AND D.BILL_NO=A.BILL_NO
+               AND D.BILL_DTL_NO=A.BILL_DTL_NO
+               AND A.SALE_YN='Y' AND A.DC_AMT > D.SALE_AMT
+            UNION ALL
+            -- 2405 / 2406 : 고아 할인행 / BILL_DTL_NO 별 합계 불일치
+            SELECT CASE WHEN D.BILL_DTL_NO IS NULL THEN '2405' ELSE '2406' END
+                  ,X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.BILL_DTL_NO
+                  ,D.PROD_CD, D.SALE_AMT, D.DC_AMT, X.SUM_DC_AMT, D.REAL_SALE_AMT
+                  ,CASE WHEN B.TOT_DC_AMT = 0        THEN 'N (헤더할인 0 → 블록 미실행)'
+                        WHEN D.BILL_DTL_NO IS NULL   THEN 'N (2405 후 RETURN 누락으로 오판정)'
+                        ELSE 'Y' END
+              FROM (SELECT A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO,A.BILL_DTL_NO, SUM(A.DC_AMT) SUM_DC_AMT
+                      FROM TB_SL_SALE_DTL_DC A, BILLS B
+                     WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+                     GROUP BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO,A.BILL_DTL_NO) X
+              JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+              LEFT JOIN TB_SL_SALE_DTL D
+                ON D.HQ_OFFICE_CD = '{{HQ}}' AND D.STORE_CD=X.STORE_CD AND D.SALE_DATE=X.SALE_DATE AND D.POS_NO=X.POS_NO AND D.BILL_NO=X.BILL_NO
+               AND D.BILL_DTL_NO=X.BILL_DTL_NO
+             WHERE D.BILL_DTL_NO IS NULL OR X.SUM_DC_AMT <> D.DC_AMT
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-3 ───── */
-  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '할인행' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.SALE_YN, d.DC_CD, d.DC_AMT
-              ,d.DLVR_ORDER_FG, d.DLVR_IN_FG, d.DLVR_IN_SVC_NM
-              ,NVL(d.APP_DC_DESC,'(NULL)') AS APP_DC_DESC
-              ,h.DLVR_YN, h.REAL_SALE_AMT
-              ,'APP01' AS RESULT_CD
-          FROM TB_SL_SALE_HDR_DC d
-          JOIN TB_SL_SALE_HDR h
-            ON h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=d.STORE_CD AND h.SALE_DATE=d.SALE_DATE
-           AND h.POS_NO=d.POS_NO     AND h.BILL_NO=d.BILL_NO
-         WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
-           AND d.APP_DC_DESC IS NULL
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.SALE_YN, d.DC_CD, d.DC_AMT
+                  ,d.DLVR_ORDER_FG, d.DLVR_IN_FG, d.DLVR_IN_SVC_NM
+                  ,NVL(d.APP_DC_DESC,'(NULL)') AS APP_DC_DESC
+                  ,h.DLVR_YN, h.REAL_SALE_AMT
+                  ,'APP01' AS RESULT_CD
+              FROM TB_SL_SALE_HDR_DC d
+              JOIN TB_SL_SALE_HDR h
+                ON h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=d.STORE_CD AND h.SALE_DATE=d.SALE_DATE
+               AND h.POS_NO=d.POS_NO     AND h.BILL_NO=d.BILL_NO
+             WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+               AND d.APP_DC_DESC IS NULL
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-5 ───── */
-  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '상세행' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        )
-        -- 5P04 : 마스터에 없는 상품
-        SELECT '5P04' RESULT_CD, A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
-              ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD, 'Y' AS ORIG_DETECT
-          FROM TB_SL_SALE_DTL A, BILLS B
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-           AND A.SALE_YN='Y'
-           AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.HQ_OFFICE_CD = '{{HQ}}' AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD)
-        UNION ALL
-        -- 5P12 : 구성상품인데 CLASS_CD 없음   (원본 프로시저 : 한 번도 검출된 적 없음)
-        SELECT '5P12', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
-              ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD, 'N (변수 미대입 → 항상 0건)'
-          FROM TB_SL_SALE_DTL A, BILLS B
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-           AND A.SIDE_P_DTL_NO IS NOT NULL
-           AND A.SIDE_P_DTL_NO <> A.BILL_DTL_NO
-           AND A.SDSEL_CLASS_CD IS NULL
-        UNION ALL
-        -- 5P33 : 모상품은 있는데 구성상품 없음
-        SELECT '5P33', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
-              ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD
-              ,CASE WHEN ROW_NUMBER() OVER (PARTITION BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO ORDER BY A.BILL_DTL_NO) = 1
-                    THEN 'Y' ELSE 'N (카운터 미초기화 → 2번째 이후 미검사)' END
-          FROM TB_SL_SALE_DTL A, TB_MS_PRODUCT P, BILLS B
-         WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-           AND P.HQ_OFFICE_CD = '{{HQ}}' AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD
-           AND P.SDSEL_GRP_CD IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_DTL C
-                            WHERE C.HQ_OFFICE_CD = '{{HQ}}' AND C.STORE_CD=A.STORE_CD AND C.SALE_DATE=A.SALE_DATE AND C.POS_NO=A.POS_NO AND C.BILL_NO=A.BILL_NO
-                              AND C.SIDE_P_DTL_NO=A.BILL_DTL_NO AND C.BILL_DTL_NO<>A.BILL_DTL_NO)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            )
+            -- 5P04 : 마스터에 없는 상품
+            SELECT '5P04' RESULT_CD, A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
+                  ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD, 'Y' AS ORIG_DETECT
+              FROM TB_SL_SALE_DTL A, BILLS B
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+               AND A.SALE_YN='Y'
+               AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD)
+            UNION ALL
+            -- 5P12 : 구성상품인데 CLASS_CD 없음   (원본 프로시저 : 한 번도 검출된 적 없음)
+            SELECT '5P12', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
+                  ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD, 'N (변수 미대입 → 항상 0건)'
+              FROM TB_SL_SALE_DTL A, BILLS B
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+               AND A.SIDE_P_DTL_NO IS NOT NULL
+               AND A.SIDE_P_DTL_NO <> A.BILL_DTL_NO
+               AND A.SDSEL_CLASS_CD IS NULL
+            UNION ALL
+            -- 5P33 : 모상품은 있는데 구성상품 없음
+            SELECT '5P33', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
+                  ,A.PROD_CD, A.SIDE_P_DTL_NO, A.SDSEL_CLASS_CD
+                  ,CASE WHEN ROW_NUMBER() OVER (PARTITION BY A.STORE_CD,A.SALE_DATE,A.POS_NO,A.BILL_NO ORDER BY A.BILL_DTL_NO) = 1
+                        THEN 'Y' ELSE 'N (카운터 미초기화 → 2번째 이후 미검사)' END
+              FROM TB_SL_SALE_DTL A, TB_MS_PRODUCT P, BILLS B
+             WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
+               AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD
+               AND P.SDSEL_GRP_CD IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_DTL C
+                                WHERE C.HQ_OFFICE_CD = '{{HQ}}' AND C.STORE_CD=A.STORE_CD AND C.SALE_DATE=A.SALE_DATE AND C.POS_NO=A.POS_NO AND C.BILL_NO=A.BILL_NO
+                                  AND C.SIDE_P_DTL_NO=A.BILL_DTL_NO AND C.BILL_DTL_NO<>A.BILL_DTL_NO)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-1 ───── */
-  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(CASE WHEN x.RESULT_CD<>'OK' THEN x.RESULT_CD END,'(0건)') AS 코드, COUNT(CASE WHEN x.RESULT_CD<>'OK' THEN x.RESULT_CD END) AS 건수, '반품전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.SALE_YN, r.REAL_SALE_AMT, r.REG_ID, r.REG_DT
-              ,NVL(r.ORG_BILL_NO,'(없음)') AS ORG_BILL_NO
-              ,o.BILL_NO AS 원거래BILL, o.SALE_YN AS 원거래SALE_YN, o.REAL_SALE_AMT AS 원거래금액
-              ,CASE WHEN r.ORG_BILL_NO IS NULL THEN 'R01 원거래키 없음'
-                    WHEN o.BILL_NO IS NULL     THEN 'R02 원거래가 실재하지 않음'
-                    WHEN o.SALE_YN = 'N'       THEN 'R03 원거래도 반품행'
-                    WHEN o.ORG_BILL_NO IS NULL THEN 'R04 원거래 역링크 미설정'
-                    WHEN o.ORG_BILL_NO <> r.STORE_CD||r.SALE_DATE||r.POS_NO||r.BILL_NO
-                                               THEN 'R05 역링크 불일치'
-                    WHEN r.REAL_SALE_AMT <> -o.REAL_SALE_AMT
-                                               THEN 'R06 금액 부호/크기 불일치'
-                    ELSE 'OK' END AS RESULT_CD
-          FROM TB_SL_SALE_HDR r
-          LEFT JOIN TB_SL_SALE_HDR o
-            ON  o.STORE_CD  = SUBSTR(r.ORG_BILL_NO, 1, LENGTH(r.ORG_BILL_NO)-14)
-            AND o.SALE_DATE = SUBSTR(r.ORG_BILL_NO, -14, 8)
-            AND o.POS_NO    = SUBSTR(r.ORG_BILL_NO, -6, 2)
-            AND o.BILL_NO   = SUBSTR(r.ORG_BILL_NO, -4)
-         WHERE r.HQ_OFFICE_CD = '{{HQ}}' AND r.{{OPT:datecond}}
-           AND r.SALE_YN = 'N'
-    ) x ON 1=1
-   GROUP BY CASE WHEN x.RESULT_CD<>'OK' THEN x.RESULT_CD END
+  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '반품전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT CASE WHEN RESULT_CD<>'OK' THEN RESULT_CD END AS 코드 FROM (
+            SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.SALE_YN, r.REAL_SALE_AMT, r.REG_ID, r.REG_DT
+                  ,NVL(r.ORG_BILL_NO,'(없음)') AS ORG_BILL_NO
+                  ,o.BILL_NO AS 원거래BILL, o.SALE_YN AS 원거래SALE_YN, o.REAL_SALE_AMT AS 원거래금액
+                  ,CASE WHEN r.ORG_BILL_NO IS NULL THEN 'R01 원거래키 없음'
+                        WHEN o.BILL_NO IS NULL     THEN 'R02 원거래가 실재하지 않음'
+                        WHEN o.SALE_YN = 'N'       THEN 'R03 원거래도 반품행'
+                        WHEN o.ORG_BILL_NO IS NULL THEN 'R04 원거래 역링크 미설정'
+                        WHEN o.ORG_BILL_NO <> r.STORE_CD||r.SALE_DATE||r.POS_NO||r.BILL_NO
+                                                   THEN 'R05 역링크 불일치'
+                        WHEN r.REAL_SALE_AMT <> -o.REAL_SALE_AMT
+                                                   THEN 'R06 금액 부호/크기 불일치'
+                        ELSE 'OK' END AS RESULT_CD
+              FROM TB_SL_SALE_HDR r
+              LEFT JOIN TB_SL_SALE_HDR o
+                ON  o.STORE_CD  = SUBSTR(r.ORG_BILL_NO, 1, LENGTH(r.ORG_BILL_NO)-14)
+                AND o.SALE_DATE = SUBSTR(r.ORG_BILL_NO, -14, 8)
+                AND o.POS_NO    = SUBSTR(r.ORG_BILL_NO, -6, 2)
+                AND o.BILL_NO   = SUBSTR(r.ORG_BILL_NO, -4)
+             WHERE r.HQ_OFFICE_CD = '{{HQ}}' AND r.{{OPT:datecond}}
+               AND r.SALE_YN = 'N'
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-2 ───── */
-  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT o.STORE_CD, o.POS_NO, o.BILL_NO, o.SALE_YN, o.REAL_SALE_AMT, o.ORG_BILL_NO
-              ,'R07' AS RESULT_CD
-          FROM TB_SL_SALE_HDR o
-         WHERE o.HQ_OFFICE_CD = '{{HQ}}' AND o.{{OPT:datecond}}
-           AND o.SALE_YN = 'Y' AND o.ORG_BILL_NO IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR r
-                WHERE r.STORE_CD  = SUBSTR(o.ORG_BILL_NO, 1, LENGTH(o.ORG_BILL_NO)-14)
-                  AND r.SALE_DATE = SUBSTR(o.ORG_BILL_NO, -14, 8)
-                  AND r.POS_NO    = SUBSTR(o.ORG_BILL_NO, -6, 2)
-                  AND r.BILL_NO   = SUBSTR(o.ORG_BILL_NO, -4))
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT o.STORE_CD, o.POS_NO, o.BILL_NO, o.SALE_YN, o.REAL_SALE_AMT, o.ORG_BILL_NO
+                  ,'R07' AS RESULT_CD
+              FROM TB_SL_SALE_HDR o
+             WHERE o.HQ_OFFICE_CD = '{{HQ}}' AND o.{{OPT:datecond}}
+               AND o.SALE_YN = 'Y' AND o.ORG_BILL_NO IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR r
+                    WHERE r.STORE_CD  = SUBSTR(o.ORG_BILL_NO, 1, LENGTH(o.ORG_BILL_NO)-14)
+                      AND r.SALE_DATE = SUBSTR(o.ORG_BILL_NO, -14, 8)
+                      AND r.POS_NO    = SUBSTR(o.ORG_BILL_NO, -6, 2)
+                      AND r.BILL_NO   = SUBSTR(o.ORG_BILL_NO, -4))
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-1 ───── */
-  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '매장' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT t.STORE_CD
-              ,t.REAL_SALE_AMT AS 집계_실판매, x.H_REAL AS 헤더_실판매, t.REAL_SALE_AMT-x.H_REAL AS 실판매차
-              ,t.VAT_AMT       AS 집계_부가세, x.H_VAT  AS 헤더_부가세, t.VAT_AMT-x.H_VAT        AS 부가세차
-              ,t.BILL_CNT      AS 집계_전표수, x.H_CNT  AS 헤더_전표수, t.BILL_CNT-x.H_CNT       AS 전표수차
-              ,'AGG01' AS RESULT_CD
-          FROM TB_SL_DAILY_TOTAL t
-          JOIN (SELECT STORE_CD, SUM(REAL_SALE_AMT) H_REAL, SUM(VAT_AMT) H_VAT, COUNT(*) H_CNT
-                  FROM TB_SL_SALE_HDR WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                 GROUP BY STORE_CD) x ON x.STORE_CD = t.STORE_CD
-         WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
-           AND (t.REAL_SALE_AMT <> x.H_REAL OR t.VAT_AMT <> x.H_VAT OR t.BILL_CNT <> x.H_CNT)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '매장' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT t.STORE_CD, t.SALE_DATE
+                  ,t.REAL_SALE_AMT AS 집계_실판매, x.H_REAL AS 헤더_실판매, t.REAL_SALE_AMT-x.H_REAL AS 실판매차
+                  ,t.VAT_AMT       AS 집계_부가세, x.H_VAT  AS 헤더_부가세, t.VAT_AMT-x.H_VAT        AS 부가세차
+                  ,t.BILL_CNT      AS 집계_전표수, x.H_CNT  AS 헤더_전표수, t.BILL_CNT-x.H_CNT       AS 전표수차
+                  ,'AGG01' AS RESULT_CD
+              FROM TB_SL_DAILY_TOTAL t
+              JOIN (SELECT STORE_CD, SALE_DATE, SUM(REAL_SALE_AMT) H_REAL, SUM(VAT_AMT) H_VAT, COUNT(*) H_CNT
+                      FROM TB_SL_SALE_HDR WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                     GROUP BY STORE_CD, SALE_DATE) x ON x.STORE_CD = t.STORE_CD AND x.SALE_DATE = t.SALE_DATE
+             WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
+               AND (t.REAL_SALE_AMT <> x.H_REAL OR t.VAT_AMT <> x.H_VAT OR t.BILL_CNT <> x.H_CNT)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-2 ───── */
-  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.TOT_GUEST_CNT
-              ,NVL(g.G,0) AS GUEST_합, h.TOT_GUEST_CNT - NVL(g.G,0) AS 차이
-              ,'GST01' AS RESULT_CD
-          FROM TB_SL_SALE_HDR h
-          LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO
-                           ,SUM(NVL(GUEST_CNT_1,0)+NVL(GUEST_CNT_2,0)+NVL(GUEST_CNT_3,0)
-                               +NVL(GUEST_CNT_4,0)+NVL(GUEST_CNT_5,0)+NVL(GUEST_CNT_6,0)) G
-                       FROM TB_SL_SALE_HDR_GUEST
-                      WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                      GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO) g
-            ON g.STORE_CD=h.STORE_CD AND g.SALE_DATE=h.SALE_DATE
-           AND g.POS_NO=h.POS_NO     AND g.BILL_NO=h.BILL_NO
-         WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
-           AND h.TOT_GUEST_CNT <> NVL(g.G,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.TOT_GUEST_CNT
+                  ,NVL(g.G,0) AS GUEST_합, h.TOT_GUEST_CNT - NVL(g.G,0) AS 차이
+                  ,'GST01' AS RESULT_CD
+              FROM TB_SL_SALE_HDR h
+              LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO
+                               ,SUM(NVL(GUEST_CNT_1,0)+NVL(GUEST_CNT_2,0)+NVL(GUEST_CNT_3,0)
+                                   +NVL(GUEST_CNT_4,0)+NVL(GUEST_CNT_5,0)+NVL(GUEST_CNT_6,0)) G
+                           FROM TB_SL_SALE_HDR_GUEST
+                          WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+                          GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO) g
+                ON g.STORE_CD=h.STORE_CD AND g.SALE_DATE=h.SALE_DATE
+               AND g.POS_NO=h.POS_NO     AND g.BILL_NO=h.BILL_NO
+             WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+               AND h.TOT_GUEST_CNT <> NVL(g.G,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-3 ───── */
-  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, 'POS' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT STORE_CD, POS_NO, COUNT(*) AS 전표수
-              ,MIN(BILL_NO) AS MIN_BILL, MAX(BILL_NO) AS MAX_BILL
-              ,TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 - COUNT(*) AS 결번수
-              ,COUNT(*) - COUNT(DISTINCT BILL_NO) AS 중복수
-              ,'SEQ01' AS RESULT_CD
-          FROM TB_SL_SALE_HDR
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD, POS_NO
-        HAVING TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 <> COUNT(*)
-            OR COUNT(*) <> COUNT(DISTINCT BILL_NO)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 'POS' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT STORE_CD, SALE_DATE, POS_NO, COUNT(*) AS 전표수
+                  ,MIN(BILL_NO) AS MIN_BILL, MAX(BILL_NO) AS MAX_BILL
+                  ,TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 - COUNT(*) AS 결번수
+                  ,COUNT(*) - COUNT(DISTINCT BILL_NO) AS 중복수
+                  ,'SEQ01' AS RESULT_CD
+              FROM TB_SL_SALE_HDR
+             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+             GROUP BY STORE_CD, SALE_DATE, POS_NO
+            HAVING TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 <> COUNT(*)
+                OR COUNT(*) <> COUNT(DISTINCT BILL_NO)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-4 ───── */
-  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표' AS 단위
-    FROM DUAL LEFT JOIN (
-        SELECT STORE_CD, POS_NO, BILL_NO, SALE_DATE, BILL_DT, REG_DT, REG_ID
-              ,CASE WHEN BILL_DT IS NULL                                  THEN 'DT01 BILL_DT NULL'
-                    WHEN BILL_DT > TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')    THEN 'DT02 미래시각'
-                    ELSE 'DT03 영업일과 2일 이상 차이' END AS RESULT_CD
-          FROM TB_SL_SALE_HDR
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-           AND (BILL_DT IS NULL
-             OR BILL_DT > TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
-             OR SUBSTR(BILL_DT,1,8) NOT IN
-                (SALE_DATE, TO_CHAR(TO_DATE(SALE_DATE,'YYYYMMDD')+1,'YYYYMMDD')))
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            SELECT STORE_CD, POS_NO, BILL_NO, SALE_DATE, BILL_DT, REG_DT, REG_ID
+                  ,CASE WHEN BILL_DT IS NULL                                  THEN 'DT01 BILL_DT NULL'
+                        WHEN BILL_DT > TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')    THEN 'DT02 미래시각'
+                        ELSE 'DT03 영업일과 2일 이상 차이' END AS RESULT_CD
+              FROM TB_SL_SALE_HDR
+             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
+               AND (BILL_DT IS NULL
+                 OR BILL_DT > TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+                 OR SUBSTR(BILL_DT,1,8) NOT IN
+                    (SALE_DATE, TO_CHAR(TO_DATE(SALE_DATE,'YYYYMMDD')+1,'YYYYMMDD')))
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-5 ───── */
-  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(x.RESULT_CD,'(0건)') AS 코드, COUNT(x.RESULT_CD) AS 건수, '전표 (참고)' AS 단위
-    FROM DUAL LEFT JOIN (
-        WITH BILLS AS (
-            SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_SALE_AMT
-              FROM TB_SL_SALE_HDR
-             WHERE HQ_OFFICE_CD = '{{HQ}}'
-               AND {{OPT:datecond}}
-               {{LINE:store:}}
-               {{LINE:extra:}}
-        ),
-        HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT)  AMT FROM TB_SL_SALE_HDR_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)   AMT FROM TB_SL_SALE_HDR_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        S  AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT)  AMT FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
-        D  AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(SALE_AMT) AMT FROM TB_SL_SALE_DTL     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
-        SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
-              ,B.TOT_SALE_AMT
-              ,NVL(HP.AMT,0) + NVL(HD.AMT,0) AS PAY_PLUS_DC
-              ,NVL(S.AMT,0)  AS PAY_SEQ_AMT
-              ,NVL(D.AMT,0)  AS DTL_AMT
-              ,'NE01' AS RESULT_CD
-          FROM BILLS B
-          LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
-          LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
-          LEFT JOIN S  ON S.STORE_CD =B.STORE_CD AND S.SALE_DATE =B.SALE_DATE AND S.POS_NO =B.POS_NO AND S.BILL_NO =B.BILL_NO
-          LEFT JOIN D  ON D.STORE_CD =B.STORE_CD AND D.SALE_DATE =B.SALE_DATE AND D.POS_NO =B.POS_NO AND D.BILL_NO =B.BILL_NO
-         WHERE B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
-            OR B.TOT_SALE_AMT <> NVL(S.AMT,0)
-            OR B.TOT_SALE_AMT <> NVL(D.AMT,0)
-    ) x ON 1=1
-   GROUP BY x.RESULT_CD
+  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표 (참고)' AS 단위
+    FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
+            FROM (SELECT RESULT_CD AS 코드 FROM (
+            WITH BILLS AS (
+                SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_SALE_AMT
+                  FROM TB_SL_SALE_HDR
+                 WHERE HQ_OFFICE_CD = '{{HQ}}'
+                   AND {{OPT:datecond}}
+                   {{LINE:store:}}
+                   {{LINE:extra:}}
+            ),
+            HP AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT)  AMT FROM TB_SL_SALE_HDR_PAY WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            HD AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT)   AMT FROM TB_SL_SALE_HDR_DC  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            S  AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(PAY_AMT)  AMT FROM TB_SL_SALE_PAY_SEQ WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO),
+            D  AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(SALE_AMT) AMT FROM TB_SL_SALE_DTL     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO)
+            SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+                  ,B.TOT_SALE_AMT
+                  ,NVL(HP.AMT,0) + NVL(HD.AMT,0) AS PAY_PLUS_DC
+                  ,NVL(S.AMT,0)  AS PAY_SEQ_AMT
+                  ,NVL(D.AMT,0)  AS DTL_AMT
+                  ,'NE01' AS RESULT_CD
+              FROM BILLS B
+              LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
+              LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
+              LEFT JOIN S  ON S.STORE_CD =B.STORE_CD AND S.SALE_DATE =B.SALE_DATE AND S.POS_NO =B.POS_NO AND S.BILL_NO =B.BILL_NO
+              LEFT JOIN D  ON D.STORE_CD =B.STORE_CD AND D.SALE_DATE =B.SALE_DATE AND D.POS_NO =B.POS_NO AND D.BILL_NO =B.BILL_NO
+             WHERE B.TOT_SALE_AMT <> NVL(HP.AMT,0) + NVL(HD.AMT,0)
+                OR B.TOT_SALE_AMT <> NVL(S.AMT,0)
+                OR B.TOT_SALE_AMT <> NVL(D.AMT,0)
+                  )
+                  UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
+           GROUP BY 코드)
+   WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   )
  ORDER BY 순번, 코드;`
 },
@@ -4072,47 +4184,47 @@ SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, B.SALE_YN, B.TOT_SALE_AMT, B.TOT_DC_AMT,
 },
 
 qh2:{ tag:"H-2", kind:"SELECT", scope:"대상 본사", name:"고아 자식행 (ORPH) — 헤더 없이 자식만",
-  desc:"[판별] H-1 의 반대 방향 (ORPH). 헤더는 없는데 자식 9테이블에만 행이 남은 고아행 수. 전부 0 이어야 합니다. 원인은 헤더만 삭제된 수기 작업. [상세] 고아행의 전표 키와 행수·금액합을 테이블별로.",
+  desc:"[판별] H-1 의 반대 방향 (ORPH). 헤더는 없는데 자식 9테이블에만 행이 남은 고아행 수. 테이블 9줄이 항상 나오고 RESULT_CD 는 고아행이 있을 때만 ORPH 입니다(S-0 는 그 줄만 셉니다). 전부 0 이어야 합니다. 원인은 헤더만 삭제된 수기 작업. [상세] 고아행의 전표 키와 행수·금액합을 테이블별로.",
   sql:
 `/* ═══ [판별] 고아 자식행 (ORPH) — 헤더 없이 자식만 ═══ */
-SELECT 'ORPH' AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
+SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY_SEQ', COUNT(*) FROM TB_SL_SALE_PAY_SEQ x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY_SEQ', COUNT(*) FROM TB_SL_SALE_PAY_SEQ x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_HDR_PAY', COUNT(*) FROM TB_SL_SALE_HDR_PAY x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_HDR_PAY', COUNT(*) FROM TB_SL_SALE_HDR_PAY x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_DTL_PAY', COUNT(*) FROM TB_SL_SALE_DTL_PAY x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_DTL_PAY', COUNT(*) FROM TB_SL_SALE_DTL_PAY x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_HDR_DC', COUNT(*) FROM TB_SL_SALE_HDR_DC x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_HDR_DC', COUNT(*) FROM TB_SL_SALE_HDR_DC x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_DTL_DC', COUNT(*) FROM TB_SL_SALE_DTL_DC x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_DTL_DC', COUNT(*) FROM TB_SL_SALE_DTL_DC x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY', COUNT(*) FROM TB_SL_SALE_PAY x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY', COUNT(*) FROM TB_SL_SALE_PAY x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_PAY_COUPN', COUNT(*) FROM TB_SL_SALE_PAY_COUPN x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_PAY_COUPN', COUNT(*) FROM TB_SL_SALE_PAY_COUPN x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
-UNION ALL SELECT 'ORPH', 'TB_SL_SALE_CASH_RCP', COUNT(*) FROM TB_SL_SALE_CASH_RCP x
+UNION ALL SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END, 'TB_SL_SALE_CASH_RCP', COUNT(*) FROM TB_SL_SALE_CASH_RCP x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}} AND NOT EXISTS
   (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE
     AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO);
 
-/* ═══ [상세] 고아 자식행의 실제 키 — 어느 전표 키가 헤더 없이 남았는지 ═══ */
+/* ═══ [상세] 고아 자식행의 실제 키 — [판별] 과 같은 9개 테이블, 어느 전표 키가 헤더 없이 남았는지 ═══ */
 SELECT 'TB_SL_SALE_DTL' 테이블, x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*) 행수, SUM(x.SALE_AMT) 금액합
   FROM TB_SL_SALE_DTL x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
@@ -4133,6 +4245,36 @@ SELECT 'TB_SL_SALE_HDR_DC', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(
 UNION ALL
 SELECT 'TB_SL_SALE_PAY_COUPN', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.DC_AMT)
   FROM TB_SL_SALE_PAY_COUPN x
+ WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+ GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+UNION ALL
+SELECT 'TB_SL_SALE_HDR_PAY', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.PAY_AMT)
+  FROM TB_SL_SALE_HDR_PAY x
+ WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+ GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+UNION ALL
+SELECT 'TB_SL_SALE_DTL_PAY', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.PAY_AMT)
+  FROM TB_SL_SALE_DTL_PAY x
+ WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+ GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+UNION ALL
+SELECT 'TB_SL_SALE_DTL_DC', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.DC_AMT)
+  FROM TB_SL_SALE_DTL_DC x
+ WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+ GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+UNION ALL
+SELECT 'TB_SL_SALE_PAY', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.PAY_AMT)
+  FROM TB_SL_SALE_PAY x
+ WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
+ GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+UNION ALL
+SELECT 'TB_SL_SALE_CASH_RCP', x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, COUNT(*), SUM(x.PAY_AMT)
+  FROM TB_SL_SALE_CASH_RCP x
  WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
    AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_HDR h WHERE h.HQ_OFFICE_CD=x.HQ_OFFICE_CD AND h.STORE_CD=x.STORE_CD AND h.SALE_DATE=x.SALE_DATE AND h.POS_NO=x.POS_NO AND h.BILL_NO=x.BILL_NO)
  GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
@@ -4298,7 +4440,7 @@ D AS (
 SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
       ,B.TOT_SALE_AMT , D.SALE_AMT, B.TOT_SALE_AMT  - D.SALE_AMT AS DIFF_9001
       ,B.TOT_DC_AMT   , D.DC_AMT  , B.TOT_DC_AMT    - D.DC_AMT   AS DIFF_9002
-      ,B.VAT_AMT      , D.VAT_AMT , B.VAT_AMT       - D.VAT_AMT  AS DIFF_9003
+      ,B.VAT_AMT      , D.VAT_AMT AS DTL_VAT_AMT, B.VAT_AMT - D.VAT_AMT  AS DIFF_9003
       ,B.REAL_SALE_AMT, D.REAL_AMT, B.REAL_SALE_AMT - D.REAL_AMT AS DIFF_9004
       ,CASE WHEN B.TOT_SALE_AMT  <> D.SALE_AMT THEN '9001'
             WHEN B.TOT_DC_AMT    <> D.DC_AMT   THEN '9002'
@@ -4320,10 +4462,10 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN
       ,h.TOT_SALE_AMT, h.TOT_DC_AMT, h.VAT_AMT AS 헤더VAT, h.REAL_SALE_AMT
       ,d.BILL_DTL_NO, d.PROD_CD, d.SALE_QTY, d.SALE_AMT, d.DC_AMT, d.REAL_SALE_AMT AS 행_REAL, d.VAT_AMT AS 행_VAT
       ,d.SALE_YN AS 행_SALE_YN, NVL(d.SIDE_P_DTL_NO,'-') AS SIDE_P
-      ,SUM(d.SALE_AMT) OVER (PARTITION BY h.STORE_CD,h.POS_NO,h.BILL_NO) AS 행합_SALE
-      ,SUM(d.DC_AMT)   OVER (PARTITION BY h.STORE_CD,h.POS_NO,h.BILL_NO) AS 행합_DC
-      ,SUM(d.VAT_AMT)  OVER (PARTITION BY h.STORE_CD,h.POS_NO,h.BILL_NO) AS 행합_VAT
-      ,SUM(d.REAL_SALE_AMT) OVER (PARTITION BY h.STORE_CD,h.POS_NO,h.BILL_NO) AS 행합_REAL
+      ,SUM(d.SALE_AMT) OVER (PARTITION BY h.STORE_CD,h.SALE_DATE,h.POS_NO,h.BILL_NO) AS 행합_SALE
+      ,SUM(d.DC_AMT)   OVER (PARTITION BY h.STORE_CD,h.SALE_DATE,h.POS_NO,h.BILL_NO) AS 행합_DC
+      ,SUM(d.VAT_AMT)  OVER (PARTITION BY h.STORE_CD,h.SALE_DATE,h.POS_NO,h.BILL_NO) AS 행합_VAT
+      ,SUM(d.REAL_SALE_AMT) OVER (PARTITION BY h.STORE_CD,h.SALE_DATE,h.POS_NO,h.BILL_NO) AS 행합_REAL
   FROM TB_SL_SALE_HDR h
   JOIN TB_SL_SALE_DTL d ON d.HQ_OFFICE_CD=h.HQ_OFFICE_CD AND d.STORE_CD=h.STORE_CD AND d.SALE_DATE=h.SALE_DATE AND d.POS_NO=h.POS_NO AND d.BILL_NO=h.BILL_NO
  WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
@@ -4841,87 +4983,140 @@ SELECT s.STORE_CD, s.POS_NO, s.BILL_NO, s.PAY_SEQ, s.LINE_NO, s.PAY_CD
  ORDER BY 1, 2, 3, 4;`
 },
 
-qp4:{ tag:"P-4", kind:"SELECT", scope:"대상 본사", name:"PAY_CD 별 합계 PAY_SEQ vs HDR_PAY vs DTL_PAY (3101 · 3102 · 3201 · 3202)",
-  desc:"[판별] PAY_CD 별 합계 대사. 3101 HDR_PAY 에 PAY_CD 없음 · 3102 SUM(PAY_SEQ)≠HDR_PAY · 3201 DTL_PAY 에 없음 · 3202 ≠SUM(DTL_PAY). 원본은 3202 판정용 합계를 3102 분기 안에서만 채워 HDR_PAY 가 맞으면 DTL_PAY 불일치를 통과. [상세] 걸린 전표의 PAY_SEQ · HDR_PAY · DTL_PAY 행을 PAY_CD 별로 나란히.",
+qp4:{ tag:"P-4", kind:"SELECT", scope:"대상 본사", name:"PAY_CD 별 합계 PAY_SEQ vs HDR_PAY vs DTL_PAY · 양방향 (3101 · 3102 · 3103 · 3201 · 3202 · 3203)",
+  desc:"[판별] PAY_CD 별 합계를 PAY_SEQ · HDR_PAY · DTL_PAY 세 테이블에서 뽑아 양방향으로 대사합니다. 3101 PAY_SEQ 에 있는데 HDR_PAY 없음 · 3102 금액 불일치 · 3103 HDR_PAY 에만 있음(신규·역방향) · 3201/3202/3203 은 DTL_PAY 쪽 같은 뜻. HDR_CD / DTL_CD 두 열로 따로 보여 주고 RESULT_CD 는 둘을 '+' 로 합친 것(S-0 집계용). 원본 수정 내역: ① 05(상품권)/12(쿠폰)는 할인성 결제라 HDR_PAY/DTL_PAY 에 원래 안 들어가는데(전사 3일 실측 0%, 나머지 코드는 100%) 제외를 안 해 0902 43건이 전부 3101 오탐이었음 → 제외. ② NVL(subquery,-1) 로 '행 없음' 을 표현했는데 반품 결제합이 정확히 -1원인 조합이 실재(전사 3일 4건) → NOT EXISTS/LEFT JOIN 으로 분리. ③ PAY_SEQ 기준 단방향 → 세 테이블 키 합집합(K) 기준 양방향. ④ PAY_AMT<>0 필터 비대칭 → 행 필터 없애고 '세 값 모두 0' 조합만 제외. ⑤ BILLS 조인으로 고아 PAY_SEQ 배제. 수정 후 0902 0건. [상세] 걸린 전표의 세 테이블 행을 1.PAY_SEQ / 2.HDR_PAY / 3.DTL_PAY 순으로 나란히. 2~4원 차이는 DTL_PAY 끝의 잔액 라인, 부호 반대는 반품 처리가 덜 된 것.",
   sql:
-`/* ═══ [판별] PAY_CD 별 합계 PAY_SEQ vs HDR_PAY vs DTL_PAY (3101 · 3102 · 3201 · 3202) ═══ */
+`/* ═══ [판별] PAY_CD 별 합계 대사 PAY_SEQ vs HDR_PAY vs DTL_PAY — 양방향 (3101 · 3102 · 3103 · 3201 · 3202 · 3203) ═══ */
 WITH BILLS AS (
     SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
-      FROM TB_SL_SALE_HDR
-     WHERE HQ_OFFICE_CD = '{{HQ}}'
-       AND {{OPT:datecond}}
-       {{LINE:store:}}
-       {{LINE:extra:}}
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
 ),
-S AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-        FROM TB_SL_SALE_PAY_SEQ X, BILLS B
-       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-         AND X.PAY_AMT <> 0
-       GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD),
-HP AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-        FROM TB_SL_SALE_HDR_PAY X, BILLS B
-       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-       GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD),
-DP AS (SELECT X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD, SUM(X.PAY_AMT) AMT
-        FROM TB_SL_SALE_DTL_PAY X, BILLS B
-       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.STORE_CD=B.STORE_CD AND X.SALE_DATE=B.SALE_DATE AND X.POS_NO=B.POS_NO AND X.BILL_NO=B.BILL_NO
-       GROUP BY X.STORE_CD,X.SALE_DATE,X.POS_NO,X.BILL_NO,X.PAY_CD)
-SELECT S.STORE_CD, S.SALE_DATE, S.POS_NO, S.BILL_NO, S.PAY_CD
-      ,S.AMT AS SEQ_AMT, HP.AMT AS HDR_PAY_AMT, DP.AMT AS DTL_PAY_AMT
-      ,CASE WHEN HP.PAY_CD IS NULL   THEN '3101'
-            WHEN S.AMT <> HP.AMT     THEN '3102'
-            WHEN DP.PAY_CD IS NULL   THEN '3201'
-            WHEN S.AMT <> DP.AMT     THEN '3202' END AS RESULT_CD
-      ,CASE WHEN HP.PAY_CD IS NOT NULL AND S.AMT = HP.AMT AND DP.PAY_CD IS NOT NULL AND S.AMT <> DP.AMT
-            THEN 'N (V_SEQ_SUM_AMT 미계산)' ELSE 'Y' END AS ORIG_DETECT
-  FROM S
-  LEFT JOIN HP ON HP.STORE_CD=S.STORE_CD AND HP.SALE_DATE=S.SALE_DATE AND HP.POS_NO=S.POS_NO AND HP.BILL_NO=S.BILL_NO AND HP.PAY_CD=S.PAY_CD
-  LEFT JOIN DP ON DP.STORE_CD=S.STORE_CD AND DP.SALE_DATE=S.SALE_DATE AND DP.POS_NO=S.POS_NO AND DP.BILL_NO=S.BILL_NO AND DP.PAY_CD=S.PAY_CD
- WHERE HP.PAY_CD IS NULL OR DP.PAY_CD IS NULL
-    OR S.AMT <> HP.AMT   OR S.AMT <> DP.AMT
- ORDER BY S.SALE_DATE, S.STORE_CD, S.POS_NO, S.BILL_NO, S.PAY_CD;
+S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY_SEQ X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+         AND X.PAY_CD NOT IN ('05','12')             /* ★ 할인성 결제 제외 — HDR_PAY/DTL_PAY 에 원래 없음 */
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+HP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_HDR_PAY X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+         AND X.PAY_CD NOT IN ('05','12')
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+DP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_DTL_PAY X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+         AND X.PAY_CD NOT IN ('05','12')
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+/* 세 테이블에 등장하는 모든 (전표 + PAY_CD) 조합 — 양방향 대사의 기준 */
+K AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM S
+      UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM HP
+      UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM DP)
+SELECT K.STORE_CD, K.SALE_DATE, K.POS_NO, K.BILL_NO, K.PAY_CD
+      ,S.AMT  AS SEQ_AMT
+      ,HP.AMT AS HDR_PAY_AMT
+      ,DP.AMT AS DTL_PAY_AMT
+      ,S.AMT - HP.AMT AS DIFF_HDR
+      ,S.AMT - DP.AMT AS DIFF_DTL
+      ,CASE WHEN S.PAY_CD  IS NULL THEN '3103'
+            WHEN HP.PAY_CD IS NULL THEN '3101'
+            WHEN S.AMT <> HP.AMT   THEN '3102' END AS HDR_CD
+      ,CASE WHEN S.PAY_CD  IS NULL THEN '3203'
+            WHEN DP.PAY_CD IS NULL THEN '3201'
+            WHEN S.AMT <> DP.AMT   THEN '3202' END AS DTL_CD
+      ,TRIM('+' FROM NVL(CASE WHEN S.PAY_CD IS NULL THEN '3103' WHEN HP.PAY_CD IS NULL THEN '3101' WHEN S.AMT <> HP.AMT THEN '3102' END,'')
+                  || '+' ||
+                  NVL(CASE WHEN S.PAY_CD IS NULL THEN '3203' WHEN DP.PAY_CD IS NULL THEN '3201' WHEN S.AMT <> DP.AMT THEN '3202' END,''))
+                                                                                    AS RESULT_CD   /* HDR+DTL 합친 코드 (S-0 집계용) */
+  FROM K
+  LEFT JOIN S  ON S.STORE_CD =K.STORE_CD AND S.SALE_DATE =K.SALE_DATE AND S.POS_NO =K.POS_NO AND S.BILL_NO =K.BILL_NO AND S.PAY_CD =K.PAY_CD
+  LEFT JOIN HP ON HP.STORE_CD=K.STORE_CD AND HP.SALE_DATE=K.SALE_DATE AND HP.POS_NO=K.POS_NO AND HP.BILL_NO=K.BILL_NO AND HP.PAY_CD=K.PAY_CD
+  LEFT JOIN DP ON DP.STORE_CD=K.STORE_CD AND DP.SALE_DATE=K.SALE_DATE AND DP.POS_NO=K.POS_NO AND DP.BILL_NO=K.BILL_NO AND DP.PAY_CD=K.PAY_CD
+ WHERE (   S.PAY_CD  IS NULL
+        OR HP.PAY_CD IS NULL
+        OR DP.PAY_CD IS NULL
+        OR S.AMT <> HP.AMT
+        OR S.AMT <> DP.AMT )
+   AND (NVL(S.AMT,0) <> 0 OR NVL(HP.AMT,0) <> 0 OR NVL(DP.AMT,0) <> 0)  /* 세 값 모두 0 인 조합 제외 */
+ ORDER BY K.STORE_CD, K.SALE_DATE, K.POS_NO, K.BILL_NO, K.PAY_CD;
 
-/* ═══ [상세] 3101~3202 전표의 PAY_SEQ · HDR_PAY · DTL_PAY 행을 PAY_CD 별로 나란히 ═══ */
-WITH BAD AS (
-    SELECT DISTINCT X.HQ_OFFICE_CD, X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO
-      FROM TB_SL_SALE_PAY_SEQ X
-     WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.{{OPT:datecond}}
-       {{LINE:store:X}}
-       {{LINE:extra:X}}
-       AND X.PAY_AMT <> 0
-     GROUP BY X.HQ_OFFICE_CD, X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD
-    HAVING SUM(X.PAY_AMT) <> NVL((SELECT SUM(p.PAY_AMT) FROM TB_SL_SALE_HDR_PAY p WHERE p.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND p.STORE_CD=X.STORE_CD AND p.SALE_DATE=X.SALE_DATE AND p.POS_NO=X.POS_NO AND p.BILL_NO=X.BILL_NO AND p.PAY_CD=X.PAY_CD),-1)
-        OR SUM(X.PAY_AMT) <> NVL((SELECT SUM(p.PAY_AMT) FROM TB_SL_SALE_DTL_PAY p WHERE p.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND p.STORE_CD=X.STORE_CD AND p.SALE_DATE=X.SALE_DATE AND p.POS_NO=X.POS_NO AND p.BILL_NO=X.BILL_NO AND p.PAY_CD=X.PAY_CD),-1)
-)
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'PAY_SEQ' 테이블, s.PAY_CD, TO_CHAR(s.PAY_SEQ) 행, s.PAY_AMT 금액
-  FROM BAD B JOIN TB_SL_SALE_PAY_SEQ s ON s.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND s.STORE_CD=B.STORE_CD AND s.SALE_DATE=B.SALE_DATE AND s.POS_NO=B.POS_NO AND s.BILL_NO=B.BILL_NO
+/* ═══ [상세] 걸린 전표의 세 테이블 행을 나란히 — 1.PAY_SEQ / 2.HDR_PAY / 3.DTL_PAY 순서로 PAY_CD 안에서 정렬 ═══ */
+WITH BILLS AS (
+    SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+),
+S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY_SEQ X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.PAY_CD NOT IN ('05','12')
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+HP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_HDR_PAY X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.PAY_CD NOT IN ('05','12')
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+DP AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_DTL_PAY X
+        JOIN BILLS B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}' AND X.PAY_CD NOT IN ('05','12')
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+K AS (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM S
+      UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM HP
+      UNION SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD FROM DP),
+BAD AS (
+    SELECT DISTINCT K.STORE_CD, K.SALE_DATE, K.POS_NO, K.BILL_NO
+      FROM K
+      LEFT JOIN S  ON S.STORE_CD =K.STORE_CD AND S.SALE_DATE =K.SALE_DATE AND S.POS_NO =K.POS_NO AND S.BILL_NO =K.BILL_NO AND S.PAY_CD =K.PAY_CD
+      LEFT JOIN HP ON HP.STORE_CD=K.STORE_CD AND HP.SALE_DATE=K.SALE_DATE AND HP.POS_NO=K.POS_NO AND HP.BILL_NO=K.BILL_NO AND HP.PAY_CD=K.PAY_CD
+      LEFT JOIN DP ON DP.STORE_CD=K.STORE_CD AND DP.SALE_DATE=K.SALE_DATE AND DP.POS_NO=K.POS_NO AND DP.BILL_NO=K.BILL_NO AND DP.PAY_CD=K.PAY_CD
+     WHERE (   S.PAY_CD IS NULL OR HP.PAY_CD IS NULL OR DP.PAY_CD IS NULL
+            OR S.AMT <> HP.AMT  OR S.AMT <> DP.AMT )
+       AND (NVL(S.AMT,0) <> 0 OR NVL(HP.AMT,0) <> 0 OR NVL(DP.AMT,0) <> 0))
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+      ,'1.PAY_SEQ' AS 테이블, s.PAY_CD, TO_CHAR(s.PAY_SEQ) AS 행, s.PAY_AMT AS 금액
+  FROM BAD B
+  JOIN TB_SL_SALE_PAY_SEQ s
+    ON s.HQ_OFFICE_CD = '{{HQ}}' AND s.STORE_CD=B.STORE_CD AND s.SALE_DATE=B.SALE_DATE AND s.POS_NO=B.POS_NO AND s.BILL_NO=B.BILL_NO
 UNION ALL
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'HDR_PAY', p.PAY_CD, NULL, p.PAY_AMT
-  FROM BAD B JOIN TB_SL_SALE_HDR_PAY p ON p.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND p.STORE_CD=B.STORE_CD AND p.SALE_DATE=B.SALE_DATE AND p.POS_NO=B.POS_NO AND p.BILL_NO=B.BILL_NO
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+      ,'2.HDR_PAY', p.PAY_CD, NULL, p.PAY_AMT
+  FROM BAD B
+  JOIN TB_SL_SALE_HDR_PAY p
+    ON p.HQ_OFFICE_CD = '{{HQ}}' AND p.STORE_CD=B.STORE_CD AND p.SALE_DATE=B.SALE_DATE AND p.POS_NO=B.POS_NO AND p.BILL_NO=B.BILL_NO
 UNION ALL
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'DTL_PAY', p.PAY_CD, p.BILL_DTL_NO, p.PAY_AMT
-  FROM BAD B JOIN TB_SL_SALE_DTL_PAY p ON p.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND p.STORE_CD=B.STORE_CD AND p.SALE_DATE=B.SALE_DATE AND p.POS_NO=B.POS_NO AND p.BILL_NO=B.BILL_NO
- ORDER BY 1, 2, 3, 5, 4, 6;`
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+      ,'3.DTL_PAY', p.PAY_CD, p.BILL_DTL_NO, p.PAY_AMT
+  FROM BAD B
+  JOIN TB_SL_SALE_DTL_PAY p
+    ON p.HQ_OFFICE_CD = '{{HQ}}' AND p.STORE_CD=B.STORE_CD AND p.SALE_DATE=B.SALE_DATE AND p.POS_NO=B.POS_NO AND p.BILL_NO=B.BILL_NO
+ ORDER BY 1, 2, 3, 4, 6, 5, 7;`
 },
 
 qp5:{ tag:"P-5", kind:"SELECT", scope:"대상 본사", name:"TB_SL_SALE_PAY vs PAY_SEQ (P01 ~ P03)",
   desc:"[판별] TB_SL_SALE_PAY vs PAY_SEQ 를 PAY_CD 별 합계로 FULL OUTER JOIN. 프로시저는 TB_SL_SALE_PAY / _PAY_DTL 을 아예 보지 않습니다. P01 PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치. [상세] 두 테이블 행 전부.",
   sql:
 `/* ═══ [판별] TB_SL_SALE_PAY vs PAY_SEQ (P01 ~ P03) ═══ */
-SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.POS_NO,s.POS_NO) POS_NO
+SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.SALE_DATE,s.SALE_DATE) SALE_DATE, NVL(p.POS_NO,s.POS_NO) POS_NO
       ,NVL(p.BILL_NO,s.BILL_NO) BILL_NO, NVL(p.PAY_CD,s.PAY_CD) PAY_CD
       ,p.AMT AS PAY금액, s.AMT AS PAY_SEQ금액
       ,CASE WHEN p.PAY_CD IS NULL THEN 'P01 TB_SL_SALE_PAY 없음'
             WHEN s.PAY_CD IS NULL THEN 'P02 TB_SL_SALE_PAY_SEQ 없음'
             ELSE 'P03 금액 불일치' END AS RESULT_CD
-  FROM (SELECT STORE_CD,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
+  FROM (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
          WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD,POS_NO,BILL_NO,PAY_CD) p
+         GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) p
   FULL OUTER JOIN
-       (SELECT STORE_CD,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
+       (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
          WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD,POS_NO,BILL_NO,PAY_CD) s
-    ON s.STORE_CD=p.STORE_CD AND s.POS_NO=p.POS_NO
+         GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) s
+    ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO
    AND s.BILL_NO=p.BILL_NO   AND s.PAY_CD=p.PAY_CD
  WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
  ORDER BY 1,2,3,4;
@@ -4937,7 +5132,9 @@ WITH BAD AS (
         ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO AND s.BILL_NO=p.BILL_NO AND s.PAY_CD=p.PAY_CD
      WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
 )
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'TB_SL_SALE_PAY' 테이블, x.PAY_CD, TO_CHAR(x.PAY_SEQ) 행, x.PAY_AMT 금액
+SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'TB_SL_SALE_PAY' 테이블, x.PAY_CD
+      ,TO_CHAR(ROW_NUMBER() OVER (PARTITION BY x.STORE_CD,x.SALE_DATE,x.POS_NO,x.BILL_NO ORDER BY x.PAY_CD)) 행   /* PAY_SEQ 컬럼 없음 → 순번 */
+      ,x.PAY_AMT 금액
   FROM BAD B JOIN TB_SL_SALE_PAY x ON x.HQ_OFFICE_CD = '{{HQ}}' AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
 UNION ALL
 SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'TB_SL_SALE_PAY_SEQ', x.PAY_CD, TO_CHAR(x.PAY_SEQ), x.PAY_AMT
@@ -4967,7 +5164,7 @@ SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD
 /* ═══ [상세] D001 상세행의 DTL_PAY 행 전부 — 어느 결제수단으로 얼마가 배분됐는지 ═══ */
 SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD, d.REAL_SALE_AMT AS 행_REAL
       ,p.PAY_CD, p.PAY_AMT AS 배분금액
-      ,SUM(p.PAY_AMT) OVER (PARTITION BY d.STORE_CD,d.POS_NO,d.BILL_NO,d.BILL_DTL_NO) AS 배분합
+      ,SUM(p.PAY_AMT) OVER (PARTITION BY d.STORE_CD,d.SALE_DATE,d.POS_NO,d.BILL_NO,d.BILL_DTL_NO) AS 배분합
   FROM TB_SL_SALE_DTL d
   LEFT JOIN TB_SL_SALE_DTL_PAY p ON p.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND p.STORE_CD=d.STORE_CD AND p.SALE_DATE=d.SALE_DATE AND p.POS_NO=d.POS_NO AND p.BILL_NO=d.BILL_NO AND p.BILL_DTL_NO=d.BILL_DTL_NO
  WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
@@ -5045,7 +5242,7 @@ SELECT A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO, A.PROD_CD
 SELECT a.STORE_CD, a.POS_NO, a.BILL_NO, a.BILL_DTL_NO, a.PROD_CD
       ,a.SALE_AMT, a.DC_AMT AS DTL_DC, a.REAL_SALE_AMT
       ,c.DC_CD, c.REG_SEQ, c.DC_AMT AS DTLDC_DC, c.DC_REASON_CD, NVL(c.APP_DC_DESC,'-') AS APP_DC_DESC
-      ,SUM(c.DC_AMT) OVER (PARTITION BY a.STORE_CD,a.POS_NO,a.BILL_NO,a.BILL_DTL_NO) AS DTLDC_합
+      ,SUM(c.DC_AMT) OVER (PARTITION BY a.STORE_CD,a.SALE_DATE,a.POS_NO,a.BILL_NO,a.BILL_DTL_NO) AS DTLDC_합
   FROM TB_SL_SALE_DTL a
   LEFT JOIN TB_SL_SALE_DTL_DC c ON c.HQ_OFFICE_CD=a.HQ_OFFICE_CD AND c.STORE_CD=a.STORE_CD AND c.SALE_DATE=a.SALE_DATE AND c.POS_NO=a.POS_NO AND c.BILL_NO=a.BILL_NO AND c.BILL_DTL_NO=a.BILL_DTL_NO
  WHERE a.HQ_OFFICE_CD = '{{HQ}}' AND a.{{OPT:datecond}}
@@ -5176,7 +5373,7 @@ SELECT '5P04' RESULT_CD, A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DT
   FROM TB_SL_SALE_DTL A, BILLS B
  WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
    AND A.SALE_YN='Y'
-   AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.HQ_OFFICE_CD = '{{HQ}}' AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD)
+   AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD)
 UNION ALL
 -- 5P12 : 구성상품인데 CLASS_CD 없음   (원본 프로시저 : 한 번도 검출된 적 없음)
 SELECT '5P12', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
@@ -5194,7 +5391,7 @@ SELECT '5P33', A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO
             THEN 'Y' ELSE 'N (카운터 미초기화 → 2번째 이후 미검사)' END
   FROM TB_SL_SALE_DTL A, TB_MS_PRODUCT P, BILLS B
  WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.STORE_CD=B.STORE_CD AND A.SALE_DATE=B.SALE_DATE AND A.POS_NO=B.POS_NO AND A.BILL_NO=B.BILL_NO
-   AND P.HQ_OFFICE_CD = '{{HQ}}' AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD
+   AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD
    AND P.SDSEL_GRP_CD IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_DTL C
                     WHERE C.HQ_OFFICE_CD = '{{HQ}}' AND C.STORE_CD=A.STORE_CD AND C.SALE_DATE=A.SALE_DATE AND C.POS_NO=A.POS_NO AND C.BILL_NO=A.BILL_NO
@@ -5208,9 +5405,9 @@ WITH BAD AS (
      WHERE A.HQ_OFFICE_CD = '{{HQ}}' AND A.{{OPT:datecond}}
        {{LINE:store:A}}
        {{LINE:extra:A}}
-       AND (  (A.SALE_YN='Y' AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.HQ_OFFICE_CD=A.HQ_OFFICE_CD AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD))
+       AND (  (A.SALE_YN='Y' AND NOT EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD))
            OR (A.SIDE_P_DTL_NO IS NOT NULL AND A.SIDE_P_DTL_NO <> A.BILL_DTL_NO AND A.SDSEL_CLASS_CD IS NULL)
-           OR EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.HQ_OFFICE_CD=A.HQ_OFFICE_CD AND P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD AND P.SDSEL_GRP_CD IS NOT NULL
+           OR EXISTS (SELECT 1 FROM TB_MS_PRODUCT P WHERE P.STORE_CD=A.STORE_CD AND P.PROD_CD=A.PROD_CD AND P.SDSEL_GRP_CD IS NOT NULL
                         AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_DTL C WHERE C.HQ_OFFICE_CD=A.HQ_OFFICE_CD AND C.STORE_CD=A.STORE_CD AND C.SALE_DATE=A.SALE_DATE AND C.POS_NO=A.POS_NO AND C.BILL_NO=A.BILL_NO
                                           AND C.SIDE_P_DTL_NO=A.BILL_DTL_NO AND C.BILL_DTL_NO<>A.BILL_DTL_NO)) )
 )
@@ -5219,7 +5416,7 @@ SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, d.BILL_DTL_NO, d.PROD_CD, d.SALE_QTY, d.
       ,P.SDSEL_GRP_CD, CASE WHEN P.PROD_CD IS NULL THEN 'X 마스터없음' WHEN P.SDSEL_GRP_CD IS NOT NULL THEN '모상품' WHEN d.SIDE_P_DTL_NO IS NOT NULL AND d.SIDE_P_DTL_NO<>d.BILL_DTL_NO THEN '구성상품' ELSE '일반' END AS 구분
   FROM BAD B
   JOIN TB_SL_SALE_DTL d ON d.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND d.STORE_CD=B.STORE_CD AND d.SALE_DATE=B.SALE_DATE AND d.POS_NO=B.POS_NO AND d.BILL_NO=B.BILL_NO
-  LEFT JOIN TB_MS_PRODUCT P ON P.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND P.STORE_CD=d.STORE_CD AND P.PROD_CD=d.PROD_CD
+  LEFT JOIN TB_MS_PRODUCT P ON P.STORE_CD=d.STORE_CD AND P.PROD_CD=d.PROD_CD
  ORDER BY 1, 2, 3, 4;`
 },
 
@@ -5296,15 +5493,15 @@ qa1:{ tag:"A-1", kind:"SELECT", scope:"대상 본사", name:"헤더 vs 일별집
   desc:"[판별] 헤더 합계 vs TB_SL_DAILY_TOTAL (AGG01). 실판매·부가세·전표수. 수기 INSERT/UPDATE 뒤 트리거 집계가 어긋나면 여기서. 케이스 1~4 의 C-7/C-12 상시판. [상세] 매장·SALE_YN 별 헤더 합계와 마지막 수정시각 — 어느 쪽(매출/반품)에서 어긋났는지.",
   sql:
 `/* ═══ [판별] 헤더 vs 일별집계 TB_SL_DAILY_TOTAL (AGG01) ═══ */
-SELECT t.STORE_CD
+SELECT t.STORE_CD, t.SALE_DATE
       ,t.REAL_SALE_AMT AS 집계_실판매, x.H_REAL AS 헤더_실판매, t.REAL_SALE_AMT-x.H_REAL AS 실판매차
       ,t.VAT_AMT       AS 집계_부가세, x.H_VAT  AS 헤더_부가세, t.VAT_AMT-x.H_VAT        AS 부가세차
       ,t.BILL_CNT      AS 집계_전표수, x.H_CNT  AS 헤더_전표수, t.BILL_CNT-x.H_CNT       AS 전표수차
       ,'AGG01' AS RESULT_CD
   FROM TB_SL_DAILY_TOTAL t
-  JOIN (SELECT STORE_CD, SUM(REAL_SALE_AMT) H_REAL, SUM(VAT_AMT) H_VAT, COUNT(*) H_CNT
+  JOIN (SELECT STORE_CD, SALE_DATE, SUM(REAL_SALE_AMT) H_REAL, SUM(VAT_AMT) H_VAT, COUNT(*) H_CNT
           FROM TB_SL_SALE_HDR WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD) x ON x.STORE_CD = t.STORE_CD
+         GROUP BY STORE_CD, SALE_DATE) x ON x.STORE_CD = t.STORE_CD AND x.SALE_DATE = t.SALE_DATE
  WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
    AND (t.REAL_SALE_AMT <> x.H_REAL OR t.VAT_AMT <> x.H_VAT OR t.BILL_CNT <> x.H_CNT);
 
@@ -5362,14 +5559,14 @@ qa3:{ tag:"A-3", kind:"SELECT", scope:"대상 본사", name:"BILL_NO 결번 · �
   desc:"[판별] POS 별 BILL_NO 결번·중복 (SEQ01). SP_BENSON_DATA_DAILY_CHECK 의 CHECK_MISS_SALE_INFO(001 영수증누락) 와 같은 검사. [상세] 빠진 번호 목록과 TB_LOG_DAILY_DATA_CHECK 001 등록 여부.",
   sql:
 `/* ═══ [판별] BILL_NO 결번 · 중복 (SEQ01) ═══ */
-SELECT STORE_CD, POS_NO, COUNT(*) AS 전표수
+SELECT STORE_CD, SALE_DATE, POS_NO, COUNT(*) AS 전표수
       ,MIN(BILL_NO) AS MIN_BILL, MAX(BILL_NO) AS MAX_BILL
       ,TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 - COUNT(*) AS 결번수
       ,COUNT(*) - COUNT(DISTINCT BILL_NO) AS 중복수
       ,'SEQ01' AS RESULT_CD
   FROM TB_SL_SALE_HDR
  WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
- GROUP BY STORE_CD, POS_NO
+ GROUP BY STORE_CD, SALE_DATE, POS_NO
 HAVING TO_NUMBER(MAX(BILL_NO)) - TO_NUMBER(MIN(BILL_NO)) + 1 <> COUNT(*)
     OR COUNT(*) <> COUNT(DISTINCT BILL_NO)
  ORDER BY 1,2;
@@ -5479,6 +5676,43 @@ qe2:{ tag:"E-2", kind:"SELECT", scope:"전사 표본", name:"09 / 13 사각지�
  ORDER BY 1,2,3,4,5;`
 },
 
+qe3:{ tag:"E-3", kind:"SELECT", scope:"전사 표본", isNew:true, name:"PAY_CD 별 HDR_PAY / DTL_PAY 동반 비율 — P-4 의 05/12 제외가 맞는지 (PYR00 · PYR01 · PYR02)",
+  desc:"P-4 가 05/12 를 제외하는 근거를 직접 확인합니다. 비율이 100% 인데 제외 목록이면 사각지대(PYR01), 0% 에 가까운데 검사대상이면 오탐(PYR02). 실측 전사 0831~0902: 01/18/02/19/08/07/03/06/11/17/04/09/14/13/10 전부 100%, 12 · 05 는 0%. 전사 대상이라 HQ 를 걸지 않고 기간은 종료일 옵션으로 넓혀서 주기적으로.",
+  sql:
+`SELECT s.PAY_CD
+      ,COUNT(*) AS PAY_SEQ전표수
+      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_PAY p
+             WHERE p.STORE_CD=s.STORE_CD AND p.SALE_DATE=s.SALE_DATE
+               AND p.POS_NO=s.POS_NO AND p.BILL_NO=s.BILL_NO
+               AND p.PAY_CD=s.PAY_CD) THEN 1 ELSE 0 END)              AS HDR_PAY있음
+      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_DTL_PAY p
+             WHERE p.STORE_CD=s.STORE_CD AND p.SALE_DATE=s.SALE_DATE
+               AND p.POS_NO=s.POS_NO AND p.BILL_NO=s.BILL_NO
+               AND p.PAY_CD=s.PAY_CD) THEN 1 ELSE 0 END)              AS DTL_PAY있음
+      ,ROUND(100 * SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_PAY p
+             WHERE p.STORE_CD=s.STORE_CD AND p.SALE_DATE=s.SALE_DATE
+               AND p.POS_NO=s.POS_NO AND p.BILL_NO=s.BILL_NO
+               AND p.PAY_CD=s.PAY_CD) THEN 1 ELSE 0 END) / COUNT(*), 1) AS HDR비율
+      ,CASE WHEN s.PAY_CD IN ('05','12') THEN '제외대상' ELSE '검사대상' END AS 현재분류
+      ,CASE WHEN s.PAY_CD IN ('05','12')
+             AND SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_PAY p
+                   WHERE p.STORE_CD=s.STORE_CD AND p.SALE_DATE=s.SALE_DATE
+                     AND p.POS_NO=s.POS_NO AND p.BILL_NO=s.BILL_NO AND p.PAY_CD=s.PAY_CD) THEN 1 ELSE 0 END) > 0
+            THEN 'PYR01 제외대상인데 HDR_PAY 동반 있음'
+            WHEN s.PAY_CD NOT IN ('05','12')
+             AND SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_HDR_PAY p
+                   WHERE p.STORE_CD=s.STORE_CD AND p.SALE_DATE=s.SALE_DATE
+                     AND p.POS_NO=s.POS_NO AND p.BILL_NO=s.BILL_NO AND p.PAY_CD=s.PAY_CD) THEN 1 ELSE 0 END) < COUNT(*) * 0.5
+            THEN 'PYR02 검사대상인데 동반률 50% 미만'
+            ELSE 'PYR00' END AS RESULT_CD
+  FROM (SELECT DISTINCT STORE_CD, SALE_DATE, POS_NO, BILL_NO, PAY_CD
+          FROM TB_SL_SALE_PAY_SEQ x
+         WHERE x.{{OPT:datecond}}          /* 전사 · 기간은 종료일 옵션으로 */
+           AND PAY_AMT <> 0) s
+ GROUP BY s.PAY_CD
+ ORDER BY 2 DESC;`
+},
+
 qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출",
   desc:"실행할 게 아니라 주석입니다. 코드마다 어느 케이스로 가는지까지 적었습니다. 트랙 전체 복사 시 맨 끝에 붙어 나옵니다.",
   sql:
@@ -5556,6 +5790,9 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    3102  PAY_CD 별 금액 불일치.   SUM(PAY_SEQ) <> HDR_PAY.PAY_AMT.                                                                                        O
    3201  DTL_PAY 에 PAY_CD 없음.                                                                                                                         O
    3202  PAY_CD 별 DTL_PAY 불일치. SUM(PAY_SEQ) <> SUM(DTL_PAY).  원본은 HDR_PAY 가 맞으면 합계 변수를 안 채워 통과.                                     △
+   3103  HDR_PAY 에만 있음 (신규). PAY_SEQ 에 없는 PAY_CD 가 HDR_PAY 에 있음. 역방향.                                                                (신규)
+   3203  DTL_PAY 에만 있음 (신규). 역방향.                                                                                                             (신규)
+         ※ P-4 는 05/12 를 제외합니다. 할인성 결제라 HDR_PAY/DTL_PAY 에 원래 없음(전사 3일 실측 0%). 제외 안 하면 전부 3101 오탐. 근거 확인은 E-3.
    P01~P03 TB_SL_SALE_PAY vs PAY_SEQ [P-5].  프로시저가 안 보는 테이블. P01 PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치.                     (프로시저 없음)
    D001  상세행 결제 배분 [P-6]. DTL.REAL_SALE_AMT <> SUM(DTL_PAY).  프로시저 5002 는 주석 처리 상태.                                              (프로시저 없음)
    RCP01 현금영수증만 있음 [P-7]. CASH_RCP 행은 있는데 PAY_SEQ 02 없음.  NO_SALE_YN='Y' 면 자진발급 가능.                                          (프로시저 없음)
@@ -5586,6 +5823,7 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
 
    ■ 설계 검증  [E-1] [E-2]
    DCR00/DCR01 DC_CD 별 결제행 생성률 [E-1]. ETC(면제) 코드인데 생성률 50% 초과면 DCR01 = 면제가 잘못된 사각지대(09/13). 그 외 DCR00. 통계 카드라 오류코드가 아니라 분류표시.
+   PYR00/PYR01/PYR02 PAY_CD 별 HDR_PAY 동반 비율 [E-3]. 05/12 제외가 맞는지. PYR01 제외대상인데 동반 있음(사각지대) · PYR02 검사대상인데 동반률 50% 미만(오탐 위험). 통계 카드.
    DC09  ETC 면제 사각지대 [E-2]. 09/13 은 결제행 생성률 100% 인데 8801 의 ETC(면제) 에 들어 있어, 이 코드만 있고 결제행 없으면 통과.  전사 실측 A0001 4건(0원).
    ================================================================================================== */`
 },

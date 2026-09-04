@@ -2375,6 +2375,8 @@ const CASE_FINAL = {
     ]
   },
   options:[
+    { key:'learn_from', type:'text', label:'P-5 · 학습 시작일 (YYYYMMDD)', value:'20260821',
+      hint:'TB_SL_SALE_PAY 동반 비율을 학습할 기간의 시작. 끝은 조회일(종료일 있으면 종료일). 2주 이상 권장.' },
     { key:'to_date', type:'text', label:'직접 쿼리 · 종료일 (YYYYMMDD)', value:'',
       hint:'넣으면 SALE_DATE BETWEEN 시작일 AND 종료일. 비우면 공통 날짜 모드(= 또는 >=) 그대로.' },
     { key:'pi_index', type:'text', label:'프로시저 · PI_INDEX', value:'1', hint:'원문 값 1. 프로시저 명세 확인 후 조정.' }
@@ -2387,7 +2389,7 @@ const CASE_FINAL = {
     { group:'직접쿼리', phase:'dtl',   plabel:'상세', name:'상품 레벨 — DTL 행 · 할인 상세 · 배달할인 설명 · 세트 구성', items:['qd1','qd2','qd3','qd4','qd5'] },
     { group:'직접쿼리', phase:'return',plabel:'반품', name:'반품 ↔ 원거래', items:['qr1','qr2'] },
     { group:'직접쿼리', phase:'etc',   plabel:'대사', name:'집계 · 인원 · 결번 · BILL_DT · NE01(참고)', items:['qa1','qa2','qa3','qa4','qa5'] },
-    { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 목록 · PAY_CD 동반 비율 (전사 표본)', items:['qe1','qe2','qe3'] },
+    { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 · PAY_CD 동반 비율 · TB_SL_SALE_PAY 학습/사용 비율', items:['qe1','qe2','qe3','qe4','qe5'] },
     { group:'직접쿼리', phase:'codes', plabel:'코드', name:'결과코드 상세 설명', items:['qcodes'] },
     { group:'프로시저', glabel:'프로시저', phase:'reset', plabel:'초기화', name:'프로시저 · 로그 초기화', items:['f1'] },
     { group:'프로시저', phase:'build',  plabel:'실행',   name:'프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행', items:['f2'] },
@@ -2502,6 +2504,8 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"P01", cards:"P-5", note:"TB_SL_SALE_PAY 없음" },
     { code:"P02", cards:"P-5", note:"PAY_SEQ 없음" },
     { code:"P03", cards:"P-5", note:"TB_SL_SALE_PAY ≠ PAY_SEQ 금액" },
+    { code:"MAP01", cards:"E-4", note:"P-5 검사대상 (본사,PAY_CD) — 표본≥30 · 동반≥95%" },
+    { code:"USE01", cards:"E-5", note:"TB_SL_SALE_PAY 를 쓰는 본사 (≥95%) — P-5 성립" },
     { code:"D001", cards:"P-6", note:"상세행 REAL ≠ DTL_PAY 합" },
     { code:"RCP01", cards:"P-7", note:"현금영수증만 있고 현금결제 없음" },
     { code:"5001", cards:"D-1", note:"SALE − DC ≠ REAL (상세 행)" },
@@ -2539,7 +2543,7 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
 qs0:{ tag:"S-0", kind:"SELECT", scope:"대상 본사", isNew:true, name:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)",
   desc:"하루치를 한 번에 봅니다. 카드 30장의 [판별] 결과를 카드·코드별 건수로 요약한 한 장이라, 건수가 있는 카드로만 들어가면 됩니다. 0건 카드도 '(0건)' 으로 한 줄 나와 \"돌긴 돌았다\" 가 보입니다. S-3 는 FIXED_CD 별, R-1 은 OK 를 제외한 R01~R06 만 셉니다. 단위 열이 전표/상세행/결제행/할인행 중 무엇을 세는지 알려 줍니다. E-1/E-2(전사 표본, 무거움) 와 D-4(참고) 는 뺐고, S-1/S-2 는 이 카드에 포함되는 정보라 뺐습니다. 하루치 한 본사면 몇 초, 기간을 넓히면 P-1(16테이블) 이 가장 무겁습니다. 코드 뜻과 이동은 바로 위 [색인] 카드에서 코드를 검색하세요.",
   sql:
-`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1/E-2/E-3(전사) 와 D-4(참고) 는 제외. ANSI 조인 없이 인라인 뷰만 씁니다 (ORA-00918 회피) ═══ */
+`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 제외. ANSI 조인 없이 인라인 뷰만 씁니다 (ORA-00918 회피) ═══ */
 SELECT 카드, 코드, 건수, 단위
   FROM (
   /* ───── S-3 ───── */
@@ -3272,22 +3276,56 @@ SELECT 카드, 코드, 건수, 단위
   SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
-            SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.SALE_DATE,s.SALE_DATE) SALE_DATE, NVL(p.POS_NO,s.POS_NO) POS_NO
-                  ,NVL(p.BILL_NO,s.BILL_NO) BILL_NO, NVL(p.PAY_CD,s.PAY_CD) PAY_CD
+            WITH MAP AS (
+                SELECT k.HQ_OFFICE_CD, k.PAY_CD, COUNT(*) CNT
+                      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+                             WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+                               AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+                               AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END) OK_CNT
+                  FROM (SELECT DISTINCT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, PAY_CD
+                          FROM TB_SL_SALE_PAY_SEQ
+                         WHERE HQ_OFFICE_CD = '{{HQ}}'
+                           AND {{OPT:learncond}}                          /* ← 학습기간 (옵션) */
+                           AND PAY_AMT <> 0) k
+                 GROUP BY k.HQ_OFFICE_CD, k.PAY_CD),
+            USE_CD AS (
+                SELECT HQ_OFFICE_CD, PAY_CD FROM MAP
+                 WHERE CNT >= 30 AND OK_CNT / CNT >= 0.95),             /* 표본 30건 이상 · 95% 이상 동반한 조합만 */
+            BILLS AS (
+                SELECT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO
+                  FROM TB_SL_SALE_HDR h
+                 WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+            {{LINE:store:h}}
+            {{LINE:extra:h}}
+            ),
+            P AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+                    FROM TB_SL_SALE_PAY X
+                    JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+                    JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+                   WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+                   GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+            S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+                    FROM TB_SL_SALE_PAY_SEQ X
+                    JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+                    JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+                   WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+                   GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD)
+            SELECT NVL(p.STORE_CD,s.STORE_CD)   AS STORE_CD
+                  ,NVL(p.SALE_DATE,s.SALE_DATE) AS SALE_DATE
+                  ,NVL(p.POS_NO,s.POS_NO)       AS POS_NO
+                  ,NVL(p.BILL_NO,s.BILL_NO)     AS BILL_NO
+                  ,NVL(p.PAY_CD,s.PAY_CD)       AS PAY_CD
                   ,p.AMT AS PAY금액, s.AMT AS PAY_SEQ금액
+                  ,NVL(s.AMT,0) - NVL(p.AMT,0)  AS 차이
                   ,CASE WHEN p.PAY_CD IS NULL THEN 'P01 TB_SL_SALE_PAY 없음'
                         WHEN s.PAY_CD IS NULL THEN 'P02 TB_SL_SALE_PAY_SEQ 없음'
                         ELSE 'P03 금액 불일치' END AS RESULT_CD
-              FROM (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
-                     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                     GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) p
-              FULL OUTER JOIN
-                   (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
-                     WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-                     GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) s
-                ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO
-               AND s.BILL_NO=p.BILL_NO   AND s.PAY_CD=p.PAY_CD
-             WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
+              FROM P p
+              FULL OUTER JOIN S s
+                ON  s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE
+                AND s.POS_NO  =p.POS_NO   AND s.BILL_NO  =p.BILL_NO   AND s.PAY_CD=p.PAY_CD
+             WHERE (p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT)
+               AND (NVL(p.AMT,0) <> 0 OR NVL(s.AMT,0) <> 0)          /* 0원 조합 제외 */
                   )
                   UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
            GROUP BY 코드)
@@ -5099,47 +5137,127 @@ SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
  ORDER BY 1, 2, 3, 4, 6, 5, 7;`
 },
 
-qp5:{ tag:"P-5", kind:"SELECT", scope:"대상 본사", name:"TB_SL_SALE_PAY vs PAY_SEQ (P01 ~ P03)",
-  desc:"[판별] TB_SL_SALE_PAY vs PAY_SEQ 를 PAY_CD 별 합계로 FULL OUTER JOIN. 프로시저는 TB_SL_SALE_PAY / _PAY_DTL 을 아예 보지 않습니다. P01 PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치. [상세] 두 테이블 행 전부.",
+qp5:{ tag:"P-5", kind:"SELECT", scope:"대상 본사", name:"TB_SL_SALE_PAY vs PAY_SEQ — 학습한 (본사, PAY_CD) 만 검사 (P01 ~ P03)",
+  desc:"[판별] TB_SL_SALE_PAY 는 전 전표 필수 테이블이 아닙니다. 0902 전사 실측: H0387/H0616 100%, H0393 99.9%, H0344 80%, 00000 25%, A0001·H0268 등 0%. 본사마다 쓰는 PAY_CD 도 달라 고정 목록으로 못 가리므로, 학습기간 동안 PAY_SEQ 의 (본사,PAY_CD) 가 TB_SL_SALE_PAY 에도 있었던 비율을 세서 표본 30건 이상·95% 이상인 조합(USE_CD)만 검사합니다. P01 TB_SL_SALE_PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치. 원본 수정 내역: ① PAY_CD 를 안 가려 0903 38건이 전부 12(쿠폰) P01 오탐(H0665 는 01/18/02/08/07 이 100%, 12 만 0%) → 학습 MAP. ② [상세] BAD 에 DISTINCT 가 없어 불일치 PAY_CD 가 N 개인 전표는 상세가 N 배 복제(전사 0902 7,612전표) → DISTINCT. ③ 한쪽만 0원인 조합이 P01/P02 로 잡힘 → 양쪽 0 제외. ④ BILLS 조인으로 고아 배제. FULL OUTER JOIN 양방향은 원래 맞음. 수정 후 0903 0건, H0393 0건. 학습기간은 옵션(기본 20260821 부터 조회일까지). 짧으면 표본 30건을 못 채워 검사대상이 비니 2주 이상. 검사대상이 하나도 없으면 이 카드는 항상 0건 = 이 본사엔 성립 안 하는 대사 (E-4 로 확인). [상세] 걸린 전표의 두 테이블 행 전부. TB_SL_SALE_PAY 는 전표+PAY_CD 당 1행이라 행 번호가 없습니다.",
   sql:
-`/* ═══ [판별] TB_SL_SALE_PAY vs PAY_SEQ (P01 ~ P03) ═══ */
-SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.SALE_DATE,s.SALE_DATE) SALE_DATE, NVL(p.POS_NO,s.POS_NO) POS_NO
-      ,NVL(p.BILL_NO,s.BILL_NO) BILL_NO, NVL(p.PAY_CD,s.PAY_CD) PAY_CD
+`/* ═══ [판별] TB_SL_SALE_PAY vs PAY_SEQ — 실데이터로 학습한 (본사, PAY_CD) 만 검사 (P01 · P02 · P03) ═══ */
+WITH MAP AS (
+    SELECT k.HQ_OFFICE_CD, k.PAY_CD, COUNT(*) CNT
+          ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+                 WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+                   AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+                   AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END) OK_CNT
+      FROM (SELECT DISTINCT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, PAY_CD
+              FROM TB_SL_SALE_PAY_SEQ
+             WHERE HQ_OFFICE_CD = '{{HQ}}'
+               AND {{OPT:learncond}}                          /* ← 학습기간 (옵션) */
+               AND PAY_AMT <> 0) k
+     GROUP BY k.HQ_OFFICE_CD, k.PAY_CD),
+USE_CD AS (
+    SELECT HQ_OFFICE_CD, PAY_CD FROM MAP
+     WHERE CNT >= 30 AND OK_CNT / CNT >= 0.95),             /* 표본 30건 이상 · 95% 이상 동반한 조합만 */
+BILLS AS (
+    SELECT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+),
+P AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY X
+        JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+        JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY_SEQ X
+        JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+        JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD)
+SELECT NVL(p.STORE_CD,s.STORE_CD)   AS STORE_CD
+      ,NVL(p.SALE_DATE,s.SALE_DATE) AS SALE_DATE
+      ,NVL(p.POS_NO,s.POS_NO)       AS POS_NO
+      ,NVL(p.BILL_NO,s.BILL_NO)     AS BILL_NO
+      ,NVL(p.PAY_CD,s.PAY_CD)       AS PAY_CD
       ,p.AMT AS PAY금액, s.AMT AS PAY_SEQ금액
+      ,NVL(s.AMT,0) - NVL(p.AMT,0)  AS 차이
       ,CASE WHEN p.PAY_CD IS NULL THEN 'P01 TB_SL_SALE_PAY 없음'
             WHEN s.PAY_CD IS NULL THEN 'P02 TB_SL_SALE_PAY_SEQ 없음'
             ELSE 'P03 금액 불일치' END AS RESULT_CD
-  FROM (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) p
-  FULL OUTER JOIN
-       (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
-         WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}}
-         GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) s
-    ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO
-   AND s.BILL_NO=p.BILL_NO   AND s.PAY_CD=p.PAY_CD
- WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
- ORDER BY 1,2,3,4;
+  FROM P p
+  FULL OUTER JOIN S s
+    ON  s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE
+    AND s.POS_NO  =p.POS_NO   AND s.BILL_NO  =p.BILL_NO   AND s.PAY_CD=p.PAY_CD
+ WHERE (p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT)
+   AND (NVL(p.AMT,0) <> 0 OR NVL(s.AMT,0) <> 0)          /* 0원 조합 제외 */
+ ORDER BY 1, 2, 3, 4, 5;
 
-/* ═══ [상세] P01~P03 전표의 TB_SL_SALE_PAY 행과 PAY_SEQ 행 전부 ═══ */
-WITH BAD AS (
-    SELECT NVL(p.STORE_CD,s.STORE_CD) STORE_CD, NVL(p.SALE_DATE,s.SALE_DATE) SALE_DATE, NVL(p.POS_NO,s.POS_NO) POS_NO, NVL(p.BILL_NO,s.BILL_NO) BILL_NO
-      FROM (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY
-             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) p
-      FULL OUTER JOIN
-           (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD,SUM(PAY_AMT) AMT FROM TB_SL_SALE_PAY_SEQ
-             WHERE HQ_OFFICE_CD = '{{HQ}}' AND {{OPT:datecond}} GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO,PAY_CD) s
-        ON s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE AND s.POS_NO=p.POS_NO AND s.BILL_NO=p.BILL_NO AND s.PAY_CD=p.PAY_CD
-     WHERE p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT
-)
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'TB_SL_SALE_PAY' 테이블, x.PAY_CD
-      ,TO_CHAR(ROW_NUMBER() OVER (PARTITION BY x.STORE_CD,x.SALE_DATE,x.POS_NO,x.BILL_NO ORDER BY x.PAY_CD)) 행   /* PAY_SEQ 컬럼 없음 → 순번 */
-      ,x.PAY_AMT 금액
-  FROM BAD B JOIN TB_SL_SALE_PAY x ON x.HQ_OFFICE_CD = '{{HQ}}' AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
+/* ═══ [상세] 걸린 전표의 두 테이블 행 전부 — BAD 를 전표 단위로 DISTINCT (팬아웃 차단) ═══ */
+WITH MAP AS (
+    SELECT k.HQ_OFFICE_CD, k.PAY_CD, COUNT(*) CNT
+          ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+                 WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+                   AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+                   AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END) OK_CNT
+      FROM (SELECT DISTINCT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, PAY_CD
+              FROM TB_SL_SALE_PAY_SEQ
+             WHERE HQ_OFFICE_CD = '{{HQ}}'
+               AND {{OPT:learncond}}
+               AND PAY_AMT <> 0) k
+     GROUP BY k.HQ_OFFICE_CD, k.PAY_CD),
+USE_CD AS (SELECT HQ_OFFICE_CD, PAY_CD FROM MAP WHERE CNT >= 30 AND OK_CNT/CNT >= 0.95),
+BILLS AS (
+    SELECT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+),
+P AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY X
+        JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+        JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+S AS (SELECT X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD, SUM(X.PAY_AMT) AMT
+        FROM TB_SL_SALE_PAY_SEQ X
+        JOIN BILLS  B ON B.STORE_CD=X.STORE_CD AND B.SALE_DATE=X.SALE_DATE AND B.POS_NO=X.POS_NO AND B.BILL_NO=X.BILL_NO
+        JOIN USE_CD U ON U.HQ_OFFICE_CD=X.HQ_OFFICE_CD AND U.PAY_CD=X.PAY_CD
+       WHERE X.HQ_OFFICE_CD = '{{HQ}}'
+       GROUP BY X.STORE_CD, X.SALE_DATE, X.POS_NO, X.BILL_NO, X.PAY_CD),
+BAD AS (
+    SELECT DISTINCT                                        /* ★ 팬아웃 차단 */
+           NVL(p.STORE_CD,s.STORE_CD)   AS STORE_CD
+          ,NVL(p.SALE_DATE,s.SALE_DATE) AS SALE_DATE
+          ,NVL(p.POS_NO,s.POS_NO)       AS POS_NO
+          ,NVL(p.BILL_NO,s.BILL_NO)     AS BILL_NO
+      FROM P p
+      FULL OUTER JOIN S s
+        ON  s.STORE_CD=p.STORE_CD AND s.SALE_DATE=p.SALE_DATE
+        AND s.POS_NO  =p.POS_NO   AND s.BILL_NO  =p.BILL_NO   AND s.PAY_CD=p.PAY_CD
+     WHERE (p.PAY_CD IS NULL OR s.PAY_CD IS NULL OR p.AMT <> s.AMT)
+       AND (NVL(p.AMT,0) <> 0 OR NVL(s.AMT,0) <> 0))
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+      ,'1.TB_SL_SALE_PAY' AS 테이블
+      ,x.PAY_CD
+      ,NULL               AS 행          /* PAY_SEQ / LINE_NO 컬럼이 없다 (전표+PAY_CD 당 1행) */
+      ,x.PAY_AMT          AS 금액
+      ,x.TAX_AMT, x.VAT_AMT, x.SALE_YN
+  FROM BAD B
+  JOIN TB_SL_SALE_PAY x
+    ON x.HQ_OFFICE_CD = '{{HQ}}' AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
 UNION ALL
-SELECT B.STORE_CD, B.POS_NO, B.BILL_NO, 'TB_SL_SALE_PAY_SEQ', x.PAY_CD, TO_CHAR(x.PAY_SEQ), x.PAY_AMT
-  FROM BAD B JOIN TB_SL_SALE_PAY_SEQ x ON x.HQ_OFFICE_CD = '{{HQ}}' AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
- ORDER BY 1, 2, 3, 5, 4, 6;`
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
+      ,'2.TB_SL_SALE_PAY_SEQ'
+      ,x.PAY_CD
+      ,TO_CHAR(x.PAY_SEQ)
+      ,x.PAY_AMT
+      ,x.TAX_AMT, x.VAT_AMT, x.SALE_YN
+  FROM BAD B
+  JOIN TB_SL_SALE_PAY_SEQ x
+    ON x.HQ_OFFICE_CD = '{{HQ}}' AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
+ ORDER BY 1, 2, 3, 4, 6, 5, 7;`
 },
 
 qp6:{ tag:"P-6", kind:"SELECT", scope:"대상 본사", name:"상세행 결제 배분 (D001)",
@@ -5713,6 +5831,58 @@ qe3:{ tag:"E-3", kind:"SELECT", scope:"전사 표본", isNew:true, name:"PAY_CD 
  ORDER BY 2 DESC;`
 },
 
+qe4:{ tag:"E-4", kind:"SELECT", scope:"대상 본사", isNew:true, name:"P-5 학습 결과 — 어떤 (본사, PAY_CD) 가 검사대상인지 (MAP00 · MAP01)",
+  desc:"P-5 의 MAP 을 그대로 보여 줍니다. 표본 30건 이상 · 동반 95% 이상이면 MAP01 검사대상, 아니면 MAP00 제외. 검사대상이 하나도 없으면 P-5 는 항상 0건이고 이 본사에는 대사 자체가 성립하지 않는다는 뜻. 실측 H0665: 01 661건 100% · 18 71건 100% · 02 37건 100% · 08 12건(표본 부족) · 07 4건(표본 부족) · 12 76건 0% 제외.",
+  sql:
+`SELECT k.HQ_OFFICE_CD, k.PAY_CD
+      ,COUNT(*) AS 표본
+      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+             WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+               AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+               AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END)          AS 동반
+      ,ROUND(100 * SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+             WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+               AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+               AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END) / COUNT(*), 1) AS 비율
+      ,CASE WHEN COUNT(*) >= 30
+             AND SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+                   WHERE p.STORE_CD=k.STORE_CD AND p.SALE_DATE=k.SALE_DATE
+                     AND p.POS_NO=k.POS_NO AND p.BILL_NO=k.BILL_NO
+                     AND p.PAY_CD=k.PAY_CD) THEN 1 ELSE 0 END) / COUNT(*) >= 0.95
+            THEN 'MAP01 검사대상' ELSE 'MAP00 제외' END           AS RESULT_CD
+  FROM (SELECT DISTINCT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, PAY_CD
+          FROM TB_SL_SALE_PAY_SEQ
+         WHERE HQ_OFFICE_CD = '{{HQ}}'
+           AND {{OPT:learncond}}                              /* ← 학습기간 (옵션) */
+           AND PAY_AMT <> 0) k
+ GROUP BY k.HQ_OFFICE_CD, k.PAY_CD
+ ORDER BY 3 DESC;`
+},
+
+qe5:{ tag:"E-5", kind:"SELECT", scope:"전사 표본", isNew:true, name:"본사별 TB_SL_SALE_PAY 사용 비율 — 이 대사가 성립하는 본사인가 (USE00 · USE01)",
+  desc:"헤더 전표 중 TB_SL_SALE_PAY 행이 있는 비율을 본사별로. 95% 이상이면 USE01(대사 유효), 아니면 USE00. 0902 실측: H0387 100% · H0616 100% · H0393 99.9% · H0344 79.9% · H0168 76.8% · 00000 24.6% · H0115 6.2% · A0001/H0268/H0050/H0132/H0211/H0527/H0007 0%. 전사 대상, 100전표 초과 본사만.",
+  sql:
+`SELECT h.HQ_OFFICE_CD
+      ,COUNT(*) AS 전표수
+      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+             WHERE p.STORE_CD=h.STORE_CD AND p.SALE_DATE=h.SALE_DATE
+               AND p.POS_NO=h.POS_NO AND p.BILL_NO=h.BILL_NO)
+            THEN 1 ELSE 0 END)                                  AS PAY행있음
+      ,ROUND(100 * SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+             WHERE p.STORE_CD=h.STORE_CD AND p.SALE_DATE=h.SALE_DATE
+               AND p.POS_NO=h.POS_NO AND p.BILL_NO=h.BILL_NO)
+            THEN 1 ELSE 0 END) / COUNT(*), 1)                   AS 비율
+      ,CASE WHEN SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY p
+             WHERE p.STORE_CD=h.STORE_CD AND p.SALE_DATE=h.SALE_DATE
+               AND p.POS_NO=h.POS_NO AND p.BILL_NO=h.BILL_NO) THEN 1 ELSE 0 END) >= COUNT(*) * 0.95
+            THEN 'USE01 사용 본사' ELSE 'USE00 미사용/부분' END AS RESULT_CD
+  FROM TB_SL_SALE_HDR h
+ WHERE h.{{OPT:datecond}}                        /* 전사 · 기간은 종료일 옵션 */
+ GROUP BY h.HQ_OFFICE_CD
+HAVING COUNT(*) > 100
+ ORDER BY 2 DESC;`
+},
+
 qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출",
   desc:"실행할 게 아니라 주석입니다. 코드마다 어느 케이스로 가는지까지 적었습니다. 트랙 전체 복사 시 맨 끝에 붙어 나옵니다.",
   sql:
@@ -5793,7 +5963,10 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    3103  HDR_PAY 에만 있음 (신규). PAY_SEQ 에 없는 PAY_CD 가 HDR_PAY 에 있음. 역방향.                                                                (신규)
    3203  DTL_PAY 에만 있음 (신규). 역방향.                                                                                                             (신규)
          ※ P-4 는 05/12 를 제외합니다. 할인성 결제라 HDR_PAY/DTL_PAY 에 원래 없음(전사 3일 실측 0%). 제외 안 하면 전부 3101 오탐. 근거 확인은 E-3.
-   P01~P03 TB_SL_SALE_PAY vs PAY_SEQ [P-5].  프로시저가 안 보는 테이블. P01 PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치.                     (프로시저 없음)
+   P01~P03 TB_SL_SALE_PAY vs PAY_SEQ [P-5].  프로시저가 안 보는 테이블. P01 PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치.
+         ※ TB_SL_SALE_PAY 는 본사에 따라 0~100% 만 채워지는 조건부 테이블. 학습기간 동안 표본 30건·동반 95% 이상인 (본사,PAY_CD) 만 검사. H0665 는 12(쿠폰) 제외.  (프로시저 없음)
+   MAP00/MAP01 P-5 학습 결과 [E-4]. 검사대상/제외 (본사,PAY_CD) 목록. 검사대상 0 이면 P-5 는 항상 0건.
+   USE00/USE01 본사별 TB_SL_SALE_PAY 사용 비율 [E-5]. 95% 미만 본사는 P-5 가 성립하지 않음.                                                       (참고)
    D001  상세행 결제 배분 [P-6]. DTL.REAL_SALE_AMT <> SUM(DTL_PAY).  프로시저 5002 는 주석 처리 상태.                                              (프로시저 없음)
    RCP01 현금영수증만 있음 [P-7]. CASH_RCP 행은 있는데 PAY_SEQ 02 없음.  NO_SALE_YN='Y' 면 자진발급 가능.                                          (프로시저 없음)
 
@@ -5863,9 +6036,11 @@ f3:{ tag:"F-3", kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_
   },
   opt(p){
     const to = (p.opts.to_date || '').trim();
+    const lf = (p.opts.learn_from || '20260821').trim();
     return {
       datecond: to ? 'SALE_DATE BETWEEN ' + p.date + " AND '" + to + "'"
                    : 'SALE_DATE ' + p.dateOp + ' ' + p.date,
+      learncond: "SALE_DATE BETWEEN '" + lf + "' AND " + (to ? "'" + to + "'" : p.date),
       pi_index: (p.opts.pi_index || '1').trim()
     };
   }

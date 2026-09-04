@@ -2376,7 +2376,7 @@ const CASE_FINAL = {
   },
   options:[
     { key:'learn_from', type:'text', label:'P-5 · 학습 시작일 (YYYYMMDD)', value:'20260821',
-      hint:'TB_SL_SALE_PAY 동반 비율을 학습할 기간의 시작. 끝은 조회일(종료일 있으면 종료일). 2주 이상 권장.' },
+      hint:'TB_SL_SALE_PAY 동반 비율을 학습할 기간의 시작. 끝은 조회일 전날(조회일을 넣으면 그날의 대량 누락이 제외로 학습됨). 2주 이상 권장.' },
     { key:'to_date', type:'text', label:'직접 쿼리 · 종료일 (YYYYMMDD)', value:'',
       hint:'넣으면 SALE_DATE BETWEEN 시작일 AND 종료일. 비우면 공통 날짜 모드(= 또는 >=) 그대로.' },
     { key:'pi_index', type:'text', label:'프로시저 · PI_INDEX', value:'1', hint:'원문 값 1. 프로시저 명세 확인 후 조정.' }
@@ -2541,13 +2541,17 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
 },
 
 qs0:{ tag:"S-0", kind:"SELECT", scope:"대상 본사", isNew:true, name:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)",
-  desc:"하루치를 한 번에 봅니다. 카드 30장의 [판별] 결과를 카드·코드별 건수로 요약한 한 장이라, 건수가 있는 카드로만 들어가면 됩니다. 0건 카드도 '(0건)' 으로 한 줄 나와 \"돌긴 돌았다\" 가 보입니다. S-3 는 FIXED_CD 별, R-1 은 OK 를 제외한 R01~R06 만 셉니다. 단위 열이 전표/상세행/결제행/할인행 중 무엇을 세는지 알려 줍니다. E-1/E-2(전사 표본, 무거움) 와 D-4(참고) 는 뺐고, S-1/S-2 는 이 카드에 포함되는 정보라 뺐습니다. 하루치 한 본사면 몇 초, 기간을 넓히면 P-1(16테이블) 이 가장 무겁습니다. 코드 뜻과 이동은 바로 위 [색인] 카드에서 코드를 검색하세요.",
+  desc:"하루치를 한 번에 봅니다. 카드 29장의 [판별] 결과를 카드·코드별 건수로 요약한 한 장이라, 건수가 있는 카드로만 들어가면 됩니다. 0건 카드도 '(0건)' 으로 한 줄 나와 \"돌긴 돌았다\" 가 보입니다. 읽을 때 세 가지: ① 세로 합산 금지 — 비고 열 'S-3 안' 카드(H-1·H-3·H-6·H-7·H-8·H-9·D-1)는 S-3 가 이미 품은 룰이라 같은 전표가 두 번 잡힘. ② 단위를 같이 읽을 것 — D-3 할인행 54 는 전표 54 가 아니라 매장 1~2곳의 배달할인. ③ S-3 = 0 을 '정상' 으로 읽지 말 것 — S-3 는 전표당 첫 매칭 코드 1개만 내고(8801 과 6102 가 같이 있으면 8801 만), P-6·P-7·D-3·H-2·H-4·H-5·H-10·P-1~P-5·R·A 는 S-3 룰에 없음. 0902 실측: S-3 453건 전부 0000 인데 P-6 2 · P-7 6 · D-3 54 · A-5 37(참고). S-3/H-9 의 6102·6303·6305 는 프로시저 재현이라 헤더 SALE_YN 기준이고 H-10 은 행 기준 양방향이라 서로 다른 답을 낼 수 있습니다(전사 7일 SALE_YN 혼재 전표 15건). A-5 NE01 은 벤슨에선 프로시저가 안 돌리므로 코드가 'NE01(참고)' 로 나옵니다. S-3 는 FIXED_CD 별, R-1 은 OK 를 제외한 R01~R06 만 셉니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 뺐고, S-1/S-2 는 이 카드에 포함되는 정보라 뺐습니다. 하루치 한 본사면 몇 초, 기간을 넓히면 P-1(16테이블) 이 가장 무겁습니다. 코드 뜻과 이동은 바로 위 [색인] 카드.",
   sql:
-`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 제외. ANSI 조인 없이 인라인 뷰만 씁니다 (ORA-00918 회피) ═══ */
-SELECT 카드, 코드, 건수, 단위
+`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 제외.
+   읽는 법 ① 세로 합산 금지 — S-3 는 H-1·H-3·H-6·H-7·H-8·H-9·D-1 의 룰을 이미 품고 있어 같은 전표가 양쪽에 잡힘(비고 열 참고).
+           ② 단위를 같이 읽을 것 — 할인행 54 는 전표 54 가 아님.
+           ③ S-3 = 0 이 '정상' 은 아님 — S-3 는 전표당 코드 1개(첫 매칭)만 내고, 3xxx/5Pxx/P-6·P-7·D-3·H-2·H-4·H-5·H-10·R·A 는 S-3 룰에 없음.
+   DUAL LEFT JOIN 없이 인라인 뷰 + UNION ALL 로 감쌌습니다(ORA-00918 회피). 판별 안의 조인은 원래대로. H0393 급 대형 본사(17만 전표/일)에는 S-3·H-1 이 무거우니 매장이나 기간을 잘라서 ═══ */
+SELECT 카드, 코드, 건수, 단위, 비고
   FROM (
   /* ───── S-3 ───── */
-  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 대표판정' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT FIXED_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -2703,7 +2707,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-1 ───── */
-  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -2749,7 +2753,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-2 ───── */
-  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '테이블' AS 단위
+  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '테이블' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
@@ -2794,7 +2798,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-3 ───── */
-  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
@@ -2818,7 +2822,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-4 ───── */
-  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, SALE_YN
@@ -2834,7 +2838,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-5 ───── */
-  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
@@ -2862,7 +2866,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-6 ───── */
-  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -2904,7 +2908,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-7 ───── */
-  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -2958,7 +2962,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-8 ───── */
-  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3000,7 +3004,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-9 ───── */
-  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3046,7 +3050,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-10 ───── */
-  SELECT 11 AS 순번, 'H-10' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT 11 AS 순번, 'H-10' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT 'SIGN' AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN AS 헤더SALE_YN, h.REAL_SALE_AMT AS 헤더REAL, h.VAT_AMT AS 헤더VAT
@@ -3080,7 +3084,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-1 ───── */
-  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위
+  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3158,7 +3162,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-2 ───── */
-  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제상세행' AS 단위
+  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제상세행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH PD AS (
@@ -3192,7 +3196,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-3 ───── */
-  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위
+  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, PAY_SEQ, PAY_CD, LINE_NO
@@ -3209,7 +3213,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-4 ───── */
-  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위
+  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, 'S-3 밖 (행 단위)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3273,7 +3277,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-5 ───── */
-  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위
+  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH MAP AS (
@@ -3332,7 +3336,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-6 ───── */
-  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD
@@ -3354,7 +3358,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-7 ───── */
-  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '영수증행' AS 단위
+  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '영수증행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.PAY_SEQ, r.PAY_CD
@@ -3376,7 +3380,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-1 ───── */
-  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 안 (중복 집계)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO, A.PROD_CD
@@ -3406,7 +3410,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-2 ───── */
-  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위
+  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3457,7 +3461,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-3 ───── */
-  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위
+  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.SALE_YN, d.DC_CD, d.DC_AMT
@@ -3477,7 +3481,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-5 ───── */
-  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위
+  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3523,7 +3527,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-1 ───── */
-  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '반품전표' AS 단위
+  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '반품전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT CASE WHEN RESULT_CD<>'OK' THEN RESULT_CD END AS 코드 FROM (
             SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.SALE_YN, r.REAL_SALE_AMT, r.REG_ID, r.REG_DT
@@ -3552,7 +3556,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-2 ───── */
-  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT o.STORE_CD, o.POS_NO, o.BILL_NO, o.SALE_YN, o.REAL_SALE_AMT, o.ORG_BILL_NO
@@ -3571,7 +3575,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-1 ───── */
-  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '매장' AS 단위
+  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '매장' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT t.STORE_CD, t.SALE_DATE
@@ -3591,7 +3595,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-2 ───── */
-  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.TOT_GUEST_CNT
@@ -3614,7 +3618,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-3 ───── */
-  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 'POS' AS 단위
+  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 'POS' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, SALE_DATE, POS_NO, COUNT(*) AS 전표수
@@ -3633,7 +3637,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-4 ───── */
-  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위
+  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, SALE_DATE, BILL_DT, REG_DT, REG_ID
@@ -3652,7 +3656,7 @@ SELECT 카드, 코드, 건수, 단위
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-5 ───── */
-  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표 (참고)' AS 단위
+  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, '참고 · 벤슨 미실행' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3672,7 +3676,7 @@ SELECT 카드, 코드, 건수, 단위
                   ,NVL(HP.AMT,0) + NVL(HD.AMT,0) AS PAY_PLUS_DC
                   ,NVL(S.AMT,0)  AS PAY_SEQ_AMT
                   ,NVL(D.AMT,0)  AS DTL_AMT
-                  ,'NE01' AS RESULT_CD
+                  ,CASE WHEN '{{HQ}}' = 'A0001' THEN 'NE01' ELSE 'NE01(참고)' END AS RESULT_CD   /* 프로시저는 A0001 만 실행 */
               FROM BILLS B
               LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
               LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
@@ -5138,7 +5142,7 @@ SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
 },
 
 qp5:{ tag:"P-5", kind:"SELECT", scope:"대상 본사", name:"TB_SL_SALE_PAY vs PAY_SEQ — 학습한 (본사, PAY_CD) 만 검사 (P01 ~ P03)",
-  desc:"[판별] TB_SL_SALE_PAY 는 전 전표 필수 테이블이 아닙니다. 0902 전사 실측: H0387/H0616 100%, H0393 99.9%, H0344 80%, 00000 25%, A0001·H0268 등 0%. 본사마다 쓰는 PAY_CD 도 달라 고정 목록으로 못 가리므로, 학습기간 동안 PAY_SEQ 의 (본사,PAY_CD) 가 TB_SL_SALE_PAY 에도 있었던 비율을 세서 표본 30건 이상·95% 이상인 조합(USE_CD)만 검사합니다. P01 TB_SL_SALE_PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치. 원본 수정 내역: ① PAY_CD 를 안 가려 0903 38건이 전부 12(쿠폰) P01 오탐(H0665 는 01/18/02/08/07 이 100%, 12 만 0%) → 학습 MAP. ② [상세] BAD 에 DISTINCT 가 없어 불일치 PAY_CD 가 N 개인 전표는 상세가 N 배 복제(전사 0902 7,612전표) → DISTINCT. ③ 한쪽만 0원인 조합이 P01/P02 로 잡힘 → 양쪽 0 제외. ④ BILLS 조인으로 고아 배제. FULL OUTER JOIN 양방향은 원래 맞음. 수정 후 0903 0건, H0393 0건. 학습기간은 옵션(기본 20260821 부터 조회일까지). 짧으면 표본 30건을 못 채워 검사대상이 비니 2주 이상. 검사대상이 하나도 없으면 이 카드는 항상 0건 = 이 본사엔 성립 안 하는 대사 (E-4 로 확인). [상세] 걸린 전표의 두 테이블 행 전부. TB_SL_SALE_PAY 는 전표+PAY_CD 당 1행이라 행 번호가 없습니다.",
+  desc:"[판별] TB_SL_SALE_PAY 는 전 전표 필수 테이블이 아닙니다. 0902 전사 실측: H0387/H0616 100%, H0393 99.9%, H0344 80%, 00000 25%, A0001·H0268 등 0%. 본사마다 쓰는 PAY_CD 도 달라 고정 목록으로 못 가리므로, 학습기간 동안 PAY_SEQ 의 (본사,PAY_CD) 가 TB_SL_SALE_PAY 에도 있었던 비율을 세서 표본 30건 이상·95% 이상인 조합(USE_CD)만 검사합니다. P01 TB_SL_SALE_PAY 없음 · P02 PAY_SEQ 없음 · P03 금액 불일치. 원본 수정 내역: ① PAY_CD 를 안 가려 0903 38건이 전부 12(쿠폰) P01 오탐(H0665 는 01/18/02/08/07 이 100%, 12 만 0%) → 학습 MAP. ② [상세] BAD 에 DISTINCT 가 없어 불일치 PAY_CD 가 N 개인 전표는 상세가 N 배 복제(전사 0902 7,612전표) → DISTINCT. ③ 한쪽만 0원인 조합이 P01/P02 로 잡힘 → 양쪽 0 제외. ④ BILLS 조인으로 고아 배제. FULL OUTER JOIN 양방향은 원래 맞음. 수정 후 0903 0건, H0393 0건. 학습기간은 옵션(기본 20260821 부터 조회일 전날까지 — 조회일을 학습에 넣으면 그날 대량 누락이 난 코드가 스스로 '제외' 로 학습돼 못 잡음). 짧으면 표본 30건을 못 채워 검사대상이 비니 2주 이상. 검사대상이 하나도 없으면 이 카드는 항상 0건 = 이 본사엔 성립 안 하는 대사 (E-4 로 확인). [상세] 걸린 전표의 두 테이블 행 전부. TB_SL_SALE_PAY 는 전표+PAY_CD 당 1행이라 행 번호가 없습니다.",
   sql:
 `/* ═══ [판별] TB_SL_SALE_PAY vs PAY_SEQ — 실데이터로 학습한 (본사, PAY_CD) 만 검사 (P01 · P02 · P03) ═══ */
 WITH MAP AS (
@@ -5741,7 +5745,7 @@ SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO
       ,NVL(HP.AMT,0) + NVL(HD.AMT,0) AS PAY_PLUS_DC
       ,NVL(S.AMT,0)  AS PAY_SEQ_AMT
       ,NVL(D.AMT,0)  AS DTL_AMT
-      ,'NE01' AS RESULT_CD
+      ,CASE WHEN '{{HQ}}' = 'A0001' THEN 'NE01' ELSE 'NE01(참고)' END AS RESULT_CD   /* 프로시저는 A0001 만 실행 */
   FROM BILLS B
   LEFT JOIN HP ON HP.STORE_CD=B.STORE_CD AND HP.SALE_DATE=B.SALE_DATE AND HP.POS_NO=B.POS_NO AND HP.BILL_NO=B.BILL_NO
   LEFT JOIN HD ON HD.STORE_CD=B.STORE_CD AND HD.SALE_DATE=B.SALE_DATE AND HD.POS_NO=B.POS_NO AND HD.BILL_NO=B.BILL_NO
@@ -6040,7 +6044,7 @@ f3:{ tag:"F-3", kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_
     return {
       datecond: to ? 'SALE_DATE BETWEEN ' + p.date + " AND '" + to + "'"
                    : 'SALE_DATE ' + p.dateOp + ' ' + p.date,
-      learncond: "SALE_DATE BETWEEN '" + lf + "' AND " + (to ? "'" + to + "'" : p.date),
+      learncond: "SALE_DATE BETWEEN '" + lf + "' AND TO_CHAR(TO_DATE(" + p.date + ",'YYYYMMDD') - 1,'YYYYMMDD')",   /* 조회일 전날까지 — 조회일이 학습에 들어가면 그날 대량 누락이 '제외' 로 학습됨 */
       pi_index: (p.opts.pi_index || '1').trim()
     };
   }

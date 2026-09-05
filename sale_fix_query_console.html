@@ -1059,14 +1059,15 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { chip:"C-11", note:"4개 테이블 VAT 정합 : 헤더 = 상세합 = 가승인합 = PAY_SEQ합" },
         { chip:"C-12", note:"B-4 트리거 영향 : 집계가 변하지 않아야 정상" }
       ]},
-    { title:"케이스 5 · 최종 전체검증 (직접 쿼리 · SP 호출)", sub:"44장",
+    { title:"케이스 5 · 최종 전체검증 (직접 쿼리 · SP 호출)", sub:"47장",
       items:[
         { caseNo:5, note:"1~4 를 COMMIT 한 뒤 전표 정합성을 검증합니다. '직접 쿼리' 트랙 35장은 프로시저 SP_SALE_BILL_DATA_CHECK_S01 의 검증을 SQL 로 옮기고 결함을 제거한 것(V-*)과 리뷰에서 나온 보완 검사(X-*)를 합친 것이며, S-0 한 장으로 건수를 요약하고 [색인] 으로 코드를 찾습니다. '프로시저' 트랙은 기존 SP_BENSON_DATA_DAILY_CHECK 호출입니다. 설계 검증 E-1~E-5 는 전사 표본이라 가끔만." },
         { note:"▸ 일일 점검 — 매번 돌릴 8장과 순서 (클릭하면 해당 카드로 이동)", head:true },
-        { chip:"일일", note:"오류 확인 순서 — S-0 한 장 + 확인 7장" },
+        { chip:"일일", note:"오류 확인 순서 — S-0 · S-4 두 장 + 확인 7장" },
         { chip:"색인", note:"코드 색인 — 코드 검색 · 판별/상세로 이동" },
-        { note:"▸ 요약 — 전 카드 건수 · 2분류 · 코드별 · 전표별 대표 판정", head:true },
+        { note:"▸ 요약 — 전 카드 건수 · 케이스별 수정 대상 · 2분류 · 코드별 · 전표별 대표 판정", head:true },
         { chip:"S-0", note:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)" },
+        { chip:"S-4", note:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4)" },
         { chip:"S-1", note:"요약 · 정상/오류 2분류" },
         { chip:"S-2", note:"요약 · 코드별 건수" },
         { chip:"S-3", note:"통합 판정 — 전표별 대표 코드 (ORIG_CD vs FIXED_CD)" },
@@ -1112,6 +1113,9 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { chip:"E-5", note:"본사별 TB_SL_SALE_PAY 사용 비율 — 이 대사가 성립하는 본사인가 (USE00 · USE01)" },
         { note:"▸ 결과코드 상세 설명", head:true },
         { chip:"코드", note:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출" },
+        { note:"▸ 확인중 검증내역 — 아직 맞는 검증인지 확인되지 않은 것. 기존 카드·S-0·일일 점검에는 안 들어감", head:true },
+        { chip:"T-1", note:"[확인중] 할인 ↔ 결제행 대사 · 학습 기반 (8011)" },
+        { chip:"T-2", note:"[확인중] 원본 8001 vs 6001 대조 — 8001 오탐이 본사별로 얼마나 (CMP00 · CMP01)" },
         { note:"▸ 프로시저 · 로그 초기화", head:true },
         { chip:"F-1", note:"TB_LOG_BENSON_BILL_CHECK 비우기" },
         { note:"▸ 프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행", head:true },
@@ -2562,14 +2566,14 @@ const CASE_FINAL = {
   },
   options:[
     { key:'learn_from', type:'text', label:'P-5 · 학습 시작일 (YYYYMMDD)', value:'20260821',
-      hint:'TB_SL_SALE_PAY 동반 비율을 학습할 기간의 시작. 끝은 조회일 전날(조회일을 넣으면 그날의 대량 누락이 제외로 학습됨). 2주 이상 권장.' },
+      hint:'TB_SL_SALE_PAY 동반 비율을 학습할 기간의 시작 (확인중 T-1 도 같이 씀). 끝은 조회일 전날(조회일을 넣으면 그날의 대량 누락이 제외로 학습됨). 2주 이상 권장.' },
     { key:'to_date', type:'text', label:'직접 쿼리 · 종료일 (YYYYMMDD)', value:'',
       hint:'넣으면 SALE_DATE BETWEEN 시작일 AND 종료일. 비우면 공통 날짜 모드(= 또는 >=) 그대로.' },
     { key:'pi_index', type:'text', label:'프로시저 · PI_INDEX', value:'1', hint:'원문 값 1. 프로시저 명세 확인 후 조정.' }
   ],
   stages:[
     { group:'일일점검', glabel:'일일 점검', phase:'daily', plabel:'순서', name:'일일 점검 — 매번 돌릴 8장과 순서 (클릭하면 해당 카드로 이동)', items:['daily','codeidx'] },
-    { group:'직접쿼리', glabel:'직접 쿼리', phase:'summary', plabel:'요약', name:'요약 — 전 카드 건수 · 2분류 · 코드별 · 전표별 대표 판정', items:['qs0','qs1','qs2','qs3'] },
+    { group:'직접쿼리', glabel:'직접 쿼리', phase:'summary', plabel:'요약', name:'요약 — 전 카드 건수 · 케이스별 수정 대상 · 2분류 · 코드별 · 전표별 대표 판정', items:['qs0','qs4','qs1','qs2','qs3'] },
     { group:'직접쿼리', phase:'hdr',   plabel:'헤더', name:'헤더 레벨 — 존재 · 고아 · 항등식 · VAT 0 · 상세/결제/할인 합계 · 개별 규칙 · 부호 양방향', items:['qh1','qh2','qh3','qh4','qh5','qh6','qh7','qh8','qh9','qh10'] },
     { group:'직접쿼리', phase:'pay',   plabel:'결제', name:'결제 레벨 — 결제수단별 상세(양방향) · 행 항등식 · PAY_CD 별 합계 · TB_SL_SALE_PAY · 상세행 배분 · 현금영수증', items:['qp1','qp2','qp3','qp4','qp5','qp6','qp7'] },
     { group:'직접쿼리', phase:'dtl',   plabel:'상세', name:'상품 레벨 — DTL 행 · 할인 상세 · 배달할인 설명 · 세트 구성', items:['qd1','qd2','qd3','qd4','qd5'] },
@@ -2577,18 +2581,20 @@ const CASE_FINAL = {
     { group:'직접쿼리', phase:'etc',   plabel:'대사', name:'집계 · 인원 · 결번 · BILL_DT · NE01(참고)', items:['qa1','qa2','qa3','qa4','qa5'] },
     { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 · PAY_CD 동반 비율 · TB_SL_SALE_PAY 학습/사용 비율', items:['qe1','qe2','qe3','qe4','qe5'] },
     { group:'직접쿼리', phase:'codes', plabel:'코드', name:'결과코드 상세 설명', items:['qcodes'] },
+    { group:'확인중', glabel:'확인중 검증내역', phase:'pending', plabel:'미확정', name:'확인중 검증내역 — 아직 맞는 검증인지 확인되지 않은 것. 기존 카드·S-0·일일 점검에는 안 들어감', items:['qh11','qe6'] },
     { group:'프로시저', glabel:'프로시저', phase:'reset', plabel:'초기화', name:'프로시저 · 로그 초기화', items:['f1'] },
     { group:'프로시저', phase:'build',  plabel:'실행',   name:'프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행', items:['f2'] },
     { group:'프로시저', phase:'verify', plabel:'결과',   name:'프로시저 · 결과 확인', items:['f3'] }
   ],
   queries:{
 
-daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 한 장 + 확인 7장',
+daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 · S-4 두 장 + 확인 7장',
   desc:'항목이 많아 헷갈릴 때 보는 지도입니다. 1→2→3 순서로 여덟 장을 돌리면 "오류가 있나" 가 결정되고, 나머지는 걸렸을 때 원인 추적용입니다. 카드마다 [판별] 과 [상세] 두 쿼리가 붙어 있어 판별에서 걸리면 같은 카드의 상세를 돌리면 됩니다. 툴바의 "일일점검 트랙" 버튼이 여덟 장만 순서대로 복사합니다. 코드 뜻은 맨 아래 [코드].',
   guide:[
     { title:'1단계 · 오늘 뭐가 걸렸나', sub:'2장', note:'S-0 한 장이 카드 30장의 건수를 다 보여 줍니다. 전부 (0건) 이면 끝. 코드가 보이면 위 [색인] 에서 찾아 해당 카드로.',
       items:[
         { tag:'S-0', note:'★ 전 카드 건수 요약 — 카드 · 코드 · 건수 · 단위.' },
+        { tag:'S-4', note:'★ 케이스 1~4 수정 대상 건수 (FIX1~FIX4) — 오늘 어느 케이스로 가야 하는지.' },
         { tag:'S-1', note:'정상 / 오류 전표 수. ERR_MISSED_BY_PROC 가 프로시저가 놓친 건.' },
         { tag:'S-2', note:'코드별 건수 (S-3 코드만).', copy:false, dim:true }
       ]},
@@ -2635,6 +2641,11 @@ daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 한 
         { tag:'P-7',  note:'현금영수증만 있고 현금결제 없음', copy:false, dim:true },
         { tag:'E-1',  note:'ETC 면제 목록 검증 — 기간 넓혀 한 번이면 됨', copy:false, dim:true }
       ]},
+    { title:'확인중 검증내역', sub:'미확정 · 복사 대상 아님', note:'맞는 검증인지 아직 확인 안 됨. 결과를 기존 카드와 대조만 하고 판단 근거로 쓰지 말 것.',
+      items:[
+        { tag:'T-1', note:'8011 학습 기반 할인↔결제 대사 — H-7 과 나란히 비교', copy:false, dim:true },
+        { tag:'T-2', note:'원본 8001 vs 6001 대조 (전사)', copy:false, dim:true }
+      ]},
     { title:'안 돌려도 되는 것', sub:'참고',
       items:[
         { tag:'A-5',  note:'NE01 — 벤슨은 프로시저가 안 돌림', copy:false, dim:true },
@@ -2646,6 +2657,10 @@ daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 한 
 codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색 · 판별/상세로 이동',
   desc:'S-0 나 S-3 결과에 나온 코드를 여기서 찾으면 뜻과 카드가 나오고, [판별] [상세①] [상세②] 버튼을 누르면 그 카드의 해당 쿼리 위치로 스크롤됩니다. 검색창에 코드 일부(예: 88, VAT, R0)나 뜻의 단어를 치면 걸러집니다. 코드 뜻·비교식·원인·조치는 맨 아래 [코드] 카드에 더 자세히.',
   index:[
+    { code:"FIX1", cards:"S-4", note:"케이스 1 수정 대상 — HDR_DC 02 있는데 쿠폰행 없음" },
+    { code:"FIX2", cards:"S-4", note:"케이스 2 수정 대상 — 쿠폰행 있는데 PAY12 없음" },
+    { code:"FIX3", cards:"S-4", note:"케이스 3 수정 대상 — 판매금액 0 인데 할인 배분" },
+    { code:"FIX4", cards:"S-4", note:"케이스 4 수정 대상 — 실매출 있는데 VAT 0 (면세 제외)" },
     { code:"1404", cards:"H-1", note:"헤더 없음 (TOT_SALE_AMT NULL)" },
     { code:"4404", cards:"H-1", note:"TB_SL_SALE_DTL 없음" },
     { code:"3404", cards:"H-1", note:"TB_SL_SALE_PAY_SEQ 없음" },
@@ -2667,6 +2682,8 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"8801", cards:"H-7", note:"총할인 ≠ SEQ 할인 + ETC (벤슨) → 케이스 1·2" },
     { code:"8002", cards:"H-7", note:"VAT ≠ SEQ VAT 합 → 케이스 4 B-4" },
     { code:"8003", cards:"H-7", note:"실매출 ≠ SEQ 결제 합" },
+    { code:"8011", cards:"T-1", note:"[확인중] 학습한 검사대상 DC_CD 할인합 ≠ PAY_SEQ 05/12 합 · 본사 무관" },
+    { code:"CMP01", cards:"T-2", note:"[확인중] 원본 8001 에 오탐 있음 (전사 대조)" },
     { code:"7001", cards:"H-8", note:"실매출 ≠ HDR_PAY 합" },
     { code:"6001", cards:"H-8", note:"총할인 ≠ HDR_DC 합" },
     { code:"6002", cards:"H-8", note:"총할인 ≠ DTL_DC 합" },
@@ -2736,13 +2753,113 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
 qs0:{ tag:"S-0", kind:"SELECT", scope:"대상 본사", isNew:true, name:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)",
   desc:"하루치를 한 번에 봅니다. 카드 29장의 [판별] 결과를 카드·코드별 건수로 요약한 한 장이라, 건수가 있는 카드로만 들어가면 됩니다. 0건 카드도 '(0건)' 으로 한 줄 나와 \"돌긴 돌았다\" 가 보입니다. 읽을 때 세 가지: ① 세로 합산 금지 — 비고 열 'S-3 안' 카드(H-1·H-3·H-6·H-7·H-8·H-9·D-1)는 S-3 가 이미 품은 룰이라 같은 전표가 두 번 잡힘. ② 단위를 같이 읽을 것 — D-3 할인행 54 는 전표 54 가 아니라 매장 1~2곳의 배달할인. ③ S-3 = 0 을 '정상' 으로 읽지 말 것 — S-3 는 전표당 첫 매칭 코드 1개만 내고(8801 과 6102 가 같이 있으면 8801 만), P-6·P-7·D-3·H-2·H-4·H-5·H-10·P-1~P-5·R·A 는 S-3 룰에 없음. 0902 실측: S-3 453건 전부 0000 인데 P-6 2 · P-7 6 · D-3 54 · A-5 37(참고). S-3/H-9 의 6102·6303·6305 는 프로시저 재현이라 헤더 SALE_YN 기준이고 H-10 은 행 기준 양방향이라 서로 다른 답을 낼 수 있습니다(전사 7일 SALE_YN 혼재 전표 15건). A-5 NE01 은 벤슨에선 프로시저가 안 돌리므로 코드가 'NE01(참고)' 로 나옵니다. S-3 는 FIXED_CD 별, R-1 은 OK 를 제외한 R01~R06 만 셉니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 뺐고, S-1/S-2 는 이 카드에 포함되는 정보라 뺐습니다. 하루치 한 본사면 몇 초, 기간을 넓히면 P-1(16테이블) 이 가장 무겁습니다. 코드 뜻과 이동은 바로 위 [색인] 카드.",
   sql:
-`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1~E-5(설계·전사) 와 D-4(참고) 는 제외.
+`/* ═══ S-0 · 전 카드 건수 요약 — 카드 29장의 [판별] 을 각각 COUNT 로 감싸 UNION ALL 하고, 맨 앞에 S-4(케이스 1~4 수정 대상) 4줄. 0건 카드도 '(0건)' 한 줄로 나옵니다. E-1~E-5(설계·전사) · D-4(참고) · T-*(확인중) 는 제외.
    읽는 법 ① 세로 합산 금지 — S-3 는 H-1·H-3·H-6·H-7·H-8·H-9·D-1 의 룰을 이미 품고 있어 같은 전표가 양쪽에 잡힘(비고 열 참고).
            ② 단위를 같이 읽을 것 — 할인행 54 는 전표 54 가 아님.
            ③ S-3 = 0 이 '정상' 은 아님 — S-3 는 전표당 코드 1개(첫 매칭)만 내고, 3xxx/5Pxx/P-6·P-7·D-3·H-2·H-4·H-5·H-10·R·A 는 S-3 룰에 없음.
    DUAL LEFT JOIN 없이 인라인 뷰 + UNION ALL 로 감쌌습니다(ORA-00918 회피). 판별 안의 조인은 원래대로. H0393 급 대형 본사(17만 전표/일)에는 S-3·H-1 이 무거우니 매장이나 기간을 잘라서 ═══ */
 SELECT 카드, 코드, 건수, 단위, 비고
   FROM (
+  /* ───── S-4 ───── */
+  SELECT  0 AS 순번, 'S-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 단위, '케이스 1~4 수정 대상' AS 비고
+    FROM (SELECT RESULT_CD AS 코드, 건수, 단위 FROM (
+            SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액합
+              FROM (
+                /* 케이스 1 · HDR_DC DC_CD=02 있는데 쿠폰행(TB_SL_SALE_PAY_COUPN) 없음 → [1] 쿠폰행 생성 */
+                SELECT '케이스 1' AS 케이스, 'FIX1' AS RESULT_CD, '할인행' AS 단위, d.DC_AMT AS 금액
+                  FROM TB_SL_SALE_HDR_DC d
+                 WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+            {{LINE:store:d}}
+            {{LINE:extra:d}}
+                   AND d.DC_CD = '{{DC}}'
+                   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                                    WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+                                      AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+                                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                UNION ALL
+                /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
+                SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
+                  FROM TB_SL_SALE_PAY_COUPN c
+                 WHERE c.HQ_OFFICE_CD = '{{HQ}}' AND c.{{OPT:datecond}}
+            {{LINE:store:c}}
+            {{LINE:extra:c}}
+                   AND c.DC_CD = '{{DC}}'
+                   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                                    WHERE q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
+                                      AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+                                      AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
+                                      AND q.PAY_CD='12' AND q.LINE_NO=c.LINE_NO)
+                UNION ALL
+                /* 케이스 3 · 판매금액 0 인 상품에 할인 배분 → [A-2~A-5] 할인 이동 */
+                SELECT '케이스 3', 'FIX3', '상세행', d.DC_AMT
+                  FROM TB_SL_SALE_DTL d
+                 WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+            {{LINE:store:d}}
+            {{LINE:extra:d}}
+                   AND d.SALE_AMT = 0 AND d.DC_AMT <> 0
+                UNION ALL
+                /* 케이스 4 · 실매출 있는데 헤더 VAT 0 (전액면세 제외) → [B-1~B-4] VAT 보정 */
+                SELECT '케이스 4', 'FIX4', '전표', h.REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR h
+                 WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+            {{LINE:store:h}}
+            {{LINE:extra:h}}
+                   AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
+                   AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+              )
+             GROUP BY 케이스, RESULT_CD, 단위
+          )
+          UNION ALL SELECT NULL, 0, '-' FROM DUAL)
+   WHERE 코드 IS NOT NULL OR NOT EXISTS (SELECT 1 FROM (
+            SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액합
+              FROM (
+                /* 케이스 1 · HDR_DC DC_CD=02 있는데 쿠폰행(TB_SL_SALE_PAY_COUPN) 없음 → [1] 쿠폰행 생성 */
+                SELECT '케이스 1' AS 케이스, 'FIX1' AS RESULT_CD, '할인행' AS 단위, d.DC_AMT AS 금액
+                  FROM TB_SL_SALE_HDR_DC d
+                 WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+            {{LINE:store:d}}
+            {{LINE:extra:d}}
+                   AND d.DC_CD = '{{DC}}'
+                   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                                    WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+                                      AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+                                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                UNION ALL
+                /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
+                SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
+                  FROM TB_SL_SALE_PAY_COUPN c
+                 WHERE c.HQ_OFFICE_CD = '{{HQ}}' AND c.{{OPT:datecond}}
+            {{LINE:store:c}}
+            {{LINE:extra:c}}
+                   AND c.DC_CD = '{{DC}}'
+                   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                                    WHERE q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
+                                      AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+                                      AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
+                                      AND q.PAY_CD='12' AND q.LINE_NO=c.LINE_NO)
+                UNION ALL
+                /* 케이스 3 · 판매금액 0 인 상품에 할인 배분 → [A-2~A-5] 할인 이동 */
+                SELECT '케이스 3', 'FIX3', '상세행', d.DC_AMT
+                  FROM TB_SL_SALE_DTL d
+                 WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+            {{LINE:store:d}}
+            {{LINE:extra:d}}
+                   AND d.SALE_AMT = 0 AND d.DC_AMT <> 0
+                UNION ALL
+                /* 케이스 4 · 실매출 있는데 헤더 VAT 0 (전액면세 제외) → [B-1~B-4] VAT 보정 */
+                SELECT '케이스 4', 'FIX4', '전표', h.REAL_SALE_AMT
+                  FROM TB_SL_SALE_HDR h
+                 WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+            {{LINE:store:h}}
+            {{LINE:extra:h}}
+                   AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
+                   AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+              )
+             GROUP BY 케이스, RESULT_CD, 단위
+          ))
+  UNION ALL
   /* ───── S-3 ───── */
   SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 대표판정' AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
@@ -3886,6 +4003,96 @@ SELECT 카드, 코드, 건수, 단위, 비고
  ORDER BY 순번, 코드;`
 },
 
+qs4:{ tag:"S-4", kind:"SELECT", scope:"대상 본사", isNew:true, name:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4)",
+  desc:"[판별] 케이스 1~4 의 사전 확인 조건을 그대로 옮겨 '오늘 어느 케이스로 몇 건 가야 하나' 를 셉니다. FIX1 HDR_DC 02 있는데 쿠폰행 없음(케이스 1 [1]) · FIX2 쿠폰행 있는데 PAY12 없음(케이스 2 [C1]) · FIX3 판매금액 0 인데 할인 배분(케이스 3 [0-A]) · FIX4 실매출 있는데 VAT 0, 전액면세 제외(케이스 4 [0-B] 에 면세 제외를 더한 것). 케이스 5 의 검증 코드(8801 · 3005 · 6405 · VAT00)와 1:1 이 아닌 이유: 8801 은 케이스 1·2 대상을 합쳐서 잡고 DC 금액 0 은 못 잡음, 6405 는 |SALE|<|DC| 전부라 상위집합이고 전표 단위, VAT00 은 면세 제외라 [0-B] 보다 정확. 그래서 검증은 케이스 5 코드로, 수정 대상 확정은 이 카드(또는 각 케이스의 사전 확인 카드)로 봅니다. 할인코드는 공통 조건 DC_CD 를 따릅니다. [상세] 케이스별 수정 대상 전표 키. 이걸 들고 해당 케이스로 가면 사전 확인 카드에 같은 목록이 넣을 값과 함께 나옵니다.",
+  sql:
+`/* ═══ [판별] 케이스 1~4 수정 대상 건수 — 각 케이스의 사전 확인 조건 그대로 (FIX1 · FIX2 · FIX3 · FIX4) ═══ */
+SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액합
+  FROM (
+    /* 케이스 1 · HDR_DC DC_CD=02 있는데 쿠폰행(TB_SL_SALE_PAY_COUPN) 없음 → [1] 쿠폰행 생성 */
+    SELECT '케이스 1' AS 케이스, 'FIX1' AS RESULT_CD, '할인행' AS 단위, d.DC_AMT AS 금액
+      FROM TB_SL_SALE_HDR_DC d
+     WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+{{LINE:store:d}}
+{{LINE:extra:d}}
+       AND d.DC_CD = '{{DC}}'
+       AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                        WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
+                          AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                          AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
+                          AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+    UNION ALL
+    /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
+    SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
+      FROM TB_SL_SALE_PAY_COUPN c
+     WHERE c.HQ_OFFICE_CD = '{{HQ}}' AND c.{{OPT:datecond}}
+{{LINE:store:c}}
+{{LINE:extra:c}}
+       AND c.DC_CD = '{{DC}}'
+       AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                        WHERE q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD
+                          AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+                          AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO
+                          AND q.PAY_CD='12' AND q.LINE_NO=c.LINE_NO)
+    UNION ALL
+    /* 케이스 3 · 판매금액 0 인 상품에 할인 배분 → [A-2~A-5] 할인 이동 */
+    SELECT '케이스 3', 'FIX3', '상세행', d.DC_AMT
+      FROM TB_SL_SALE_DTL d
+     WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+{{LINE:store:d}}
+{{LINE:extra:d}}
+       AND d.SALE_AMT = 0 AND d.DC_AMT <> 0
+    UNION ALL
+    /* 케이스 4 · 실매출 있는데 헤더 VAT 0 (전액면세 제외) → [B-1~B-4] VAT 보정 */
+    SELECT '케이스 4', 'FIX4', '전표', h.REAL_SALE_AMT
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+       AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
+       AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+  )
+ GROUP BY 케이스, RESULT_CD, 단위
+ ORDER BY 케이스;
+
+/* ═══ [상세] 케이스별 수정 대상 전표 키 — 어느 케이스로 가야 하는지 ═══ */
+SELECT '케이스 1' AS 케이스, 'FIX1' AS RESULT_CD, d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, TO_CHAR(d.REG_SEQ) AS 행, d.SALE_YN, d.DC_AMT AS 금액
+  FROM TB_SL_SALE_HDR_DC d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+{{LINE:store:d}}
+{{LINE:extra:d}}
+   AND d.DC_CD = '{{DC}}'
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
+                    WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
+                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+UNION ALL
+SELECT '케이스 2', 'FIX2', c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO, c.LINE_NO, c.SALE_YN, c.DC_AMT
+  FROM TB_SL_SALE_PAY_COUPN c
+ WHERE c.HQ_OFFICE_CD = '{{HQ}}' AND c.{{OPT:datecond}}
+{{LINE:store:c}}
+{{LINE:extra:c}}
+   AND c.DC_CD = '{{DC}}'
+   AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ q
+                    WHERE q.HQ_OFFICE_CD=c.HQ_OFFICE_CD AND q.HQ_BRAND_CD=c.HQ_BRAND_CD AND q.STORE_CD=c.STORE_CD AND q.SALE_DATE=c.SALE_DATE
+                      AND q.POS_NO=c.POS_NO AND q.BILL_NO=c.BILL_NO AND q.PAY_CD='12' AND q.LINE_NO=c.LINE_NO)
+UNION ALL
+SELECT '케이스 3', 'FIX3', d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.SALE_YN, d.DC_AMT
+  FROM TB_SL_SALE_DTL d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:datecond}}
+{{LINE:store:d}}
+{{LINE:extra:d}}
+   AND d.SALE_AMT = 0 AND d.DC_AMT <> 0
+UNION ALL
+SELECT '케이스 4', 'FIX4', h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, NULL, h.SALE_YN, h.REAL_SALE_AMT
+  FROM TB_SL_SALE_HDR h
+ WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+   AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
+   AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+ ORDER BY 1, 3, 4, 5, 6, 7;`
+},
+
 qs1:{ tag:"S-1", kind:"SELECT", scope:"대상 본사", name:"요약 · 정상/오류 2분류",
   desc:"정상/오류 전표 수. ERR_CNT 가 0 이면 아래 대부분 건너뛰어도 됩니다. ERR_MISSED_BY_PROC = 프로시저는 0000 으로 통과시켰지만 결함 제거 판정에서는 오류인 전표 수(원본이 놓치던 건). SEND_DOORAY_TODAY_SUMMARY 가 만들던 요약과 같은 형태.",
   sql:
@@ -5022,6 +5229,123 @@ SELECT s.STORE_CD, s.POS_NO, s.BILL_NO, s.PAY_SEQ, s.LINE_NO, s.PAY_CD
  ORDER BY 1, 2, 3, 4;`
 },
 
+qh11:{ tag:"T-1", kind:"SELECT", scope:"확인중", isNew:true, name:"[확인중] 할인 ↔ 결제행 대사 · 학습 기반 (8011)",
+  desc:"★ 확인중 — 아직 맞는 검증인지 확인되지 않았습니다. 기존 카드·S-0·일일 점검에는 넣지 않았고, 검증이 끝나면 H-7 옆에 정식으로 올립니다. [판별] H-7 의 8001/8801 은 '02/12/05 만 결제행을 만든다' 는 고정 목록과 본사 분기(H0665 만 8801, H0393 은 검사 없음)에 묶여 있습니다. 8011 은 본사 무관으로, 학습기간 동안 각 DC_CD 가 PAY_SEQ 05/12 를 동반한 비율을 세서 표본 30·95% 이상인 DC_CD 만 '검사대상' 으로 잡고, 그 할인 합 = PAY_SEQ 05/12 합 을 비교합니다. 핵심은 OTHER_CNT=0 — 학습 비대상 DC_CD 가 섞인 전표는 부분합 비교가 되어 반드시 어긋나므로 판단 불가로 건너뜁니다. 이 방식이면 09/13 사각지대(E-1)와 H0393 구멍이 사라집니다. 학습기간은 P-5 와 같은 옵션(조회일 전날까지). 헤더 할인계 = HDR_DC 합(문서의 6011)은 H-8 6001 과 같은 식이라 별도로 두지 않았습니다. [상세①] 이 본사의 DC_CD 별 학습 결과(검사대상/제외/표본부족). [상세②] 걸린 전표의 HDR_DC 행과 PAY_SEQ 05/12 행.",
+  sql:
+`/* ═══ [판별] 8011 — 학습한 검사대상 DC_CD 의 할인합 = PAY_SEQ 05/12 합 (본사 무관 · H-7 의 고정 ETC 목록 대체) ═══ */
+WITH MAP AS (
+    SELECT d.HQ_OFFICE_CD, d.DC_CD, COUNT(*) CNT
+          ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+                 WHERE s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD AND s.SALE_DATE=d.SALE_DATE
+                   AND s.POS_NO=d.POS_NO AND s.BILL_NO=d.BILL_NO
+                   AND s.PAY_CD IN ('05','12')) THEN 1 ELSE 0 END) OK_CNT
+      FROM TB_SL_SALE_HDR_DC d
+     WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+       AND d.{{OPT:learncond}}                              /* ← 학습기간 (조회일 이전, 옵션) */
+     GROUP BY d.HQ_OFFICE_CD, d.DC_CD),
+USE_DC AS (
+    SELECT HQ_OFFICE_CD, DC_CD FROM MAP
+     WHERE CNT >= 30 AND OK_CNT / CNT >= 0.95),            /* 표본 30 · 동반 95% 이상 → 결제행을 만드는 DC_CD */
+BILLS AS (
+    SELECT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN, TOT_DC_AMT
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+),
+DC AS (
+    SELECT d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO
+          ,SUM(CASE WHEN u.DC_CD IS NOT NULL THEN d.DC_AMT ELSE 0 END) DC_EXP
+          ,SUM(CASE WHEN u.DC_CD IS NULL     THEN 1 ELSE 0 END)        OTHER_CNT
+          ,LISTAGG(d.DC_CD||':'||d.DC_AMT, ' / ') WITHIN GROUP (ORDER BY d.DC_CD) 할인내역
+      FROM TB_SL_SALE_HDR_DC d
+      JOIN BILLS b ON b.STORE_CD=d.STORE_CD AND b.SALE_DATE=d.SALE_DATE AND b.POS_NO=d.POS_NO AND b.BILL_NO=d.BILL_NO
+      LEFT JOIN USE_DC u ON u.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND u.DC_CD=d.DC_CD
+     WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+     GROUP BY d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO),
+SEQ AS (
+    SELECT s.STORE_CD, s.SALE_DATE, s.POS_NO, s.BILL_NO
+          ,SUM(DECODE(s.PAY_CD,'05',s.PAY_AMT,'12',s.PAY_AMT,0)) DC_SEQ
+      FROM TB_SL_SALE_PAY_SEQ s
+      JOIN BILLS b ON b.STORE_CD=s.STORE_CD AND b.SALE_DATE=s.SALE_DATE AND b.POS_NO=s.POS_NO AND b.BILL_NO=s.BILL_NO
+     WHERE s.HQ_OFFICE_CD = '{{HQ}}'
+     GROUP BY s.STORE_CD, s.SALE_DATE, s.POS_NO, s.BILL_NO)
+SELECT b.HQ_OFFICE_CD, b.STORE_CD, b.SALE_DATE, b.POS_NO, b.BILL_NO, b.SALE_YN
+      ,b.TOT_DC_AMT                          AS 헤더할인
+      ,d.DC_EXP                              AS 검사대상할인
+      ,NVL(q.DC_SEQ,0)                       AS 결제할인
+      ,NVL(d.DC_EXP,0) - NVL(q.DC_SEQ,0)     AS 차이
+      ,d.할인내역
+      ,'8011' AS RESULT_CD
+  FROM BILLS b
+  JOIN DC d ON d.STORE_CD=b.STORE_CD AND d.SALE_DATE=b.SALE_DATE AND d.POS_NO=b.POS_NO AND d.BILL_NO=b.BILL_NO
+  LEFT JOIN SEQ q ON q.STORE_CD=b.STORE_CD AND q.SALE_DATE=b.SALE_DATE AND q.POS_NO=b.POS_NO AND q.BILL_NO=b.BILL_NO
+ WHERE d.OTHER_CNT = 0                    /* ★ 학습 비대상 DC_CD 가 섞인 전표는 부분합이 되어 판단 불가 → 스킵 */
+   AND NVL(d.DC_EXP,0) <> NVL(q.DC_SEQ,0)
+ ORDER BY ABS(NVL(d.DC_EXP,0) - NVL(q.DC_SEQ,0)) DESC;
+
+/* ═══ [상세 ①] 학습 결과 — 이 본사에서 어떤 DC_CD 가 결제행(05/12)을 만드는지 (검사대상/제외/표본부족) ═══ */
+SELECT d.HQ_OFFICE_CD, d.DC_CD, COUNT(*) AS 표본
+      ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+             WHERE s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD AND s.SALE_DATE=d.SALE_DATE
+               AND s.POS_NO=d.POS_NO AND s.BILL_NO=d.BILL_NO AND s.PAY_CD IN ('05','12')) THEN 1 ELSE 0 END) AS 동반
+      ,ROUND(100 * SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+             WHERE s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD AND s.SALE_DATE=d.SALE_DATE
+               AND s.POS_NO=d.POS_NO AND s.BILL_NO=d.BILL_NO AND s.PAY_CD IN ('05','12')) THEN 1 ELSE 0 END) / COUNT(*), 1) AS 비율
+      ,CASE WHEN COUNT(*) < 30 THEN '표본부족'
+            WHEN SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+                   WHERE s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD AND s.SALE_DATE=d.SALE_DATE
+                     AND s.POS_NO=d.POS_NO AND s.BILL_NO=d.BILL_NO AND s.PAY_CD IN ('05','12')) THEN 1 ELSE 0 END) / COUNT(*) >= 0.95
+            THEN '검사대상' ELSE '제외' END AS 판정
+  FROM TB_SL_SALE_HDR_DC d
+ WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+   AND d.{{OPT:learncond}}
+ GROUP BY d.HQ_OFFICE_CD, d.DC_CD
+ ORDER BY 3 DESC;
+
+/* ═══ [상세 ②] 걸린 전표의 HDR_DC 행과 PAY_SEQ 05/12 행 나란히 ═══ */
+WITH MAP AS (
+    SELECT d.HQ_OFFICE_CD, d.DC_CD, COUNT(*) CNT
+          ,SUM(CASE WHEN EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_SEQ s
+                 WHERE s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD AND s.SALE_DATE=d.SALE_DATE
+                   AND s.POS_NO=d.POS_NO AND s.BILL_NO=d.BILL_NO AND s.PAY_CD IN ('05','12')) THEN 1 ELSE 0 END) OK_CNT
+      FROM TB_SL_SALE_HDR_DC d
+     WHERE d.HQ_OFFICE_CD = '{{HQ}}' AND d.{{OPT:learncond}}
+     GROUP BY d.HQ_OFFICE_CD, d.DC_CD),
+USE_DC AS (SELECT HQ_OFFICE_CD, DC_CD FROM MAP WHERE CNT >= 30 AND OK_CNT / CNT >= 0.95),
+BILLS AS (
+    SELECT HQ_OFFICE_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO, TOT_DC_AMT
+      FROM TB_SL_SALE_HDR h
+     WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
+{{LINE:store:h}}
+{{LINE:extra:h}}
+),
+BAD AS (
+    SELECT b.HQ_OFFICE_CD, b.STORE_CD, b.SALE_DATE, b.POS_NO, b.BILL_NO, b.TOT_DC_AMT
+      FROM BILLS b
+      JOIN (SELECT d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO
+                  ,SUM(CASE WHEN u.DC_CD IS NOT NULL THEN d.DC_AMT ELSE 0 END) DC_EXP
+                  ,SUM(CASE WHEN u.DC_CD IS NULL THEN 1 ELSE 0 END) OTHER_CNT
+              FROM TB_SL_SALE_HDR_DC d
+              JOIN BILLS b2 ON b2.STORE_CD=d.STORE_CD AND b2.SALE_DATE=d.SALE_DATE AND b2.POS_NO=d.POS_NO AND b2.BILL_NO=d.BILL_NO
+              LEFT JOIN USE_DC u ON u.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND u.DC_CD=d.DC_CD
+             WHERE d.HQ_OFFICE_CD = '{{HQ}}'
+             GROUP BY d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO) d
+        ON d.STORE_CD=b.STORE_CD AND d.SALE_DATE=b.SALE_DATE AND d.POS_NO=b.POS_NO AND d.BILL_NO=b.BILL_NO
+     WHERE d.OTHER_CNT = 0
+       AND NVL(d.DC_EXP,0) <> NVL((SELECT SUM(DECODE(s.PAY_CD,'05',s.PAY_AMT,'12',s.PAY_AMT,0)) FROM TB_SL_SALE_PAY_SEQ s
+                                    WHERE s.HQ_OFFICE_CD=b.HQ_OFFICE_CD AND s.STORE_CD=b.STORE_CD AND s.SALE_DATE=b.SALE_DATE AND s.POS_NO=b.POS_NO AND s.BILL_NO=b.BILL_NO),0)
+)
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.TOT_DC_AMT AS 헤더할인
+      ,'1.HDR_DC' 테이블, x.DC_CD 코드, TO_CHAR(x.REG_SEQ) 행, x.DC_AMT 금액, x.DC_REASON_CD 사유
+  FROM BAD B JOIN TB_SL_SALE_HDR_DC x ON x.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND x.STORE_CD=B.STORE_CD AND x.SALE_DATE=B.SALE_DATE AND x.POS_NO=B.POS_NO AND x.BILL_NO=B.BILL_NO
+UNION ALL
+SELECT B.STORE_CD, B.SALE_DATE, B.POS_NO, B.BILL_NO, B.TOT_DC_AMT
+      ,'2.PAY_SEQ 05/12', s.PAY_CD, TO_CHAR(s.PAY_SEQ), s.PAY_AMT, s.LINE_NO
+  FROM BAD B JOIN TB_SL_SALE_PAY_SEQ s ON s.HQ_OFFICE_CD=B.HQ_OFFICE_CD AND s.STORE_CD=B.STORE_CD AND s.SALE_DATE=B.SALE_DATE AND s.POS_NO=B.POS_NO AND s.BILL_NO=B.BILL_NO AND s.PAY_CD IN ('05','12')
+ ORDER BY 1, 2, 3, 4, 6, 7, 8;`
+},
+
 qp1:{ tag:"P-1", kind:"SELECT", scope:"대상 본사", name:"★ 결제수단별 상세 대사 (3001 · 3002 · 3003 · 3004 · 3009)",
   desc:"[판별] 가장 중요한 대사. PAY_SEQ 한 행마다 PAY_CD 에 맞는 상세 테이블(16개 UNION) 의 같은 LINE_NO 행과 비교. 05/12 는 할인금액(3001, 12 는 COUPN.DC_AMT×SALE_FG), 그 외는 SALE_AMT(3002)·VAT_AMT(3003). PAY_AMT=0 행은 프로시저처럼 제외. 3004 상세 행 없음 · 3009 미지원 PAY_CD 는 신규코드 — 원본은 여기서 ORA-20001 로 죽고 WHEN OTHERS 에 삼켜져 로그가 사라지므로(TB_LOG_BENSON_BILL_CHECK 누락 주원인) 프로시저로는 점검 불가였던 건. 케이스 1·2 가 넣은 쿠폰행·PAY12 행의 1:1 이 여기서 검증됩니다. [상세] 걸린 전표의 PAY_SEQ 전체 행(주력 결제수단 기준).",
   sql:
@@ -6080,6 +6404,30 @@ HAVING COUNT(*) > 100
  ORDER BY 2 DESC;`
 },
 
+qe6:{ tag:"T-2", kind:"SELECT", scope:"확인중 · 전사", isNew:true, name:"[확인중] 원본 8001 vs 6001 대조 — 8001 오탐이 본사별로 얼마나 (CMP00 · CMP01)",
+  desc:"★ 확인중. 원본 프로시저 조건(H0393·H0665 제외, TOT_DC ≠ SEQ 05/12 합) 으로 걸린 전표 중 헤더 할인계 = HDR_DC 합(6001) 도 어긋난 '진짜' 와 나머지 '오탐' 을 본사별로 셉니다. T-1 8011 이 맞는지 판단할 때 나란히 돌려 차이를 확인하는 용도. 실측 0902 전사 6001 진짜 62건(00000 51 · H0616 10 · H0272 1). 전사 대상.",
+  sql:
+`SELECT h.HQ_OFFICE_CD
+      ,COUNT(*)                                                    AS "원본8001_걸림"
+      ,SUM(CASE WHEN h.TOT_DC_AMT <> NVL(hd.AMT,0) THEN 1 ELSE 0 END) AS "그중_진짜(6001)"
+      ,COUNT(*) - SUM(CASE WHEN h.TOT_DC_AMT <> NVL(hd.AMT,0) THEN 1 ELSE 0 END) AS 오탐
+      ,CASE WHEN COUNT(*) - SUM(CASE WHEN h.TOT_DC_AMT <> NVL(hd.AMT,0) THEN 1 ELSE 0 END) > 0 THEN 'CMP01 원본 8001 오탐 있음' ELSE 'CMP00' END AS RESULT_CD
+  FROM TB_SL_SALE_HDR h
+  LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO,SUM(DC_AMT) AMT
+               FROM TB_SL_SALE_HDR_DC x WHERE x.{{OPT:datecond}}
+              GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO) hd
+    ON  hd.STORE_CD=h.STORE_CD AND hd.SALE_DATE=h.SALE_DATE AND hd.POS_NO=h.POS_NO AND hd.BILL_NO=h.BILL_NO
+  LEFT JOIN (SELECT STORE_CD,SALE_DATE,POS_NO,BILL_NO, SUM(DECODE(PAY_CD,'05',PAY_AMT,'12',PAY_AMT,0)) SEQ_DC
+               FROM TB_SL_SALE_PAY_SEQ x WHERE x.{{OPT:datecond}}
+              GROUP BY STORE_CD,SALE_DATE,POS_NO,BILL_NO) s
+    ON  s.STORE_CD=h.STORE_CD AND s.SALE_DATE=h.SALE_DATE AND s.POS_NO=h.POS_NO AND s.BILL_NO=h.BILL_NO
+ WHERE h.{{OPT:datecond}}                                 /* 전사 */
+   AND h.HQ_OFFICE_CD NOT IN ('H0393','H0665')             /* 원본 8001 조건 그대로 */
+   AND h.TOT_DC_AMT <> NVL(s.SEQ_DC,0)
+ GROUP BY h.HQ_OFFICE_CD
+ ORDER BY 2 DESC;`
+},
+
 qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출",
   desc:"실행할 게 아니라 주석입니다. 코드마다 어느 케이스로 가는지까지 적었습니다. 트랙 전체 복사 시 맨 끝에 붙어 나옵니다.",
   sql:
@@ -6087,6 +6435,12 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    결과코드 상세 설명   (카드 / 뜻 / 비교식 / 흔한 원인 / 조치 / 원본 프로시저 검출 : O · △ 조건부 · X · - 미실행 · 신규 = 이 콘솔에서 정의한 코드)
    코드가 없는 카드는 없습니다. S-1~S-3 는 요약(코드를 세는 쪽), D-4/E-1 은 참고·통계라 APP02/DCR00·DCR01 로 표시만 합니다.
    --------------------------------------------------------------------------------------------------
+   ■ 케이스별 수정 대상  [S-4]   케이스 1~4 사전 확인 조건 그대로. 검증 코드(8801/3005/6405/VAT00)와는 1:1 이 아니므로 수정 대상 확정은 이쪽.
+   FIX1  케이스 1 대상. HDR_DC DC_CD=02 인데 PAY_COUPN 행 없음 (REG_SEQ·DC_CD 매칭).  → 케이스 1 [1]/[2]
+   FIX2  케이스 2 대상. PAY_COUPN 행 있는데 PAY_SEQ 12 행 없음 (LINE_NO 매칭).  → 케이스 2 [C1]/[C2]
+   FIX3  케이스 3 대상. DTL SALE_AMT=0 AND DC_AMT<>0.  → 케이스 3 [0-A]/[A-1]
+   FIX4  케이스 4 대상. 헤더 REAL<>0 AND VAT=0 AND 전액면세 아님.  → 케이스 4 [0-B]/[B-1]
+
    ■ 존재 여부  [H-1]   프로시저 GET_SALE_DATA. 헤더를 읽고 하위 테이블을 차례로 읽는 단계.
    1404  헤더 없음.            TOT_SALE_AMT IS NULL.  헤더가 아예 없거나 금액 NULL.            원인: POS 전송 누락.        조치: POS 재전송/케이스 6.        O
    4404  DTL 없음.             COUNT(TB_SL_SALE_DTL)=0.  상품 상세가 하나도 없음.               원인: 상세 전송 누락.        조치: 케이스 6.                  O
@@ -6190,6 +6544,10 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    SEQ01 BILL_NO 결번·중복.    POS 별 MIN~MAX 사이 빠짐 / 중복.  SP_BENSON 001 영수증누락과 같은 검사.                                        (SP_BENSON 001)
    DT01~DT03 BILL_DT 이상.     NULL / 미래 시각 / 영업일과 2일 이상 차이.                                                                     (프로시저 없음)
    NE01  최종 4자 대사 [A-5].  TOT_SALE_AMT = HDR_PAY+HDR_DC = PAY_SEQ 합 = DTL 합.  v3 부터 본부 A0001 만 실행. 벤슨은 참고용.                 -
+
+   ■ 확인중 검증내역  [T-1] [T-2]   맞는 검증인지 아직 확인되지 않음. S-0·일일 점검에 없음.
+   8011  학습 기반 할인↔결제 대사 [T-1]. 학습기간에 PAY_SEQ 05/12 를 95% 이상 동반한 DC_CD(검사대상) 의 할인합 <> PAY_SEQ 05/12 합. 비대상 DC_CD 가 섞인 전표는 스킵.  (확인중)
+   CMP00/CMP01 원본 8001 vs 6001 대조 [T-2]. 본사별 원본 8001 검출 중 진짜(6001)/오탐.                                                                (확인중)
 
    ■ 설계 검증  [E-1] [E-2]
    DCR00/DCR01 DC_CD 별 결제행 생성률 [E-1]. ETC(면제) 코드인데 생성률 50% 초과면 DCR01 = 면제가 잘못된 사각지대(09/13). 그 외 DCR00. 통계 카드라 오류코드가 아니라 분류표시.

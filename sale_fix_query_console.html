@@ -157,6 +157,9 @@
   .guide li .go:hover{background:var(--accent-soft);border-color:var(--accent)}
   .guide li .go.dim{color:var(--text-3)}
   .guide .note{font-size:12px;color:var(--text-3);margin:2px 0 10px}
+  .guide li.head{font-weight:700;color:var(--text);padding-top:8px}
+  .guide .chip{font-family:var(--mono);font-size:11.5px;color:var(--text-3);min-width:64px;display:inline-block}
+  .guide .only{line-height:1.55}
   .guide .go.sub{font-weight:600;color:var(--text-2);min-width:0;padding:2px 6px}
   .guide .go.sub:hover{color:var(--accent)}
   .idx-search{width:100%;box-sizing:border-box;margin:0 0 10px;padding:6px 9px;font:inherit;font-size:12.5px;
@@ -938,6 +941,188 @@ r33:{ tag:'R3-3', kind:'SELECT', scope:'대상 본사', name:'외부승인 연�
                             AND y.SALE_YN      = 'Y'))`
     };
   }
+};
+
+/* ── 안내 ───────────────────────────────────────────────── */
+const CASE_INTRO = {
+  id:'intro', no:0, title:'안내 · 전체 구조 · 순서 · 카드 목록', status:'ready',
+  lead:'처음 열면 여기부터 읽으세요. 이 콘솔이 무엇을 하고 어떤 순서로 쓰는지, 케이스 1~5 의 카드가 각각 무엇인지 한 곳에 모았습니다. [케이스 N] 버튼을 누르면 그 케이스로 이동합니다. 각 카드의 자세한 판정 기준과 실측 근거는 그 카드의 desc 에, 결과코드 뜻은 케이스 5 [코드] 카드에 있습니다.',
+  options:[],
+  stages:[
+    { phase:'intro', plabel:'전체', name:'전체 안내 — 목적 · 순서 · 부호 규칙 · 트리거 · 검증 흐름 · 열린 문제', items:['ov'] }
+  ],
+  queries:{
+ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드 목록',
+  desc:'위에서부터 전체 안내 8항목, 그 아래 케이스 1~5 의 모든 카드가 단계별로 나열됩니다. 회색 칩이 카드 번호, 오른쪽이 카드 이름입니다.',
+  guide:[
+    { title:"전체 안내",
+      items:[
+        { note:"목적 — 벤슨(H0665) 매출 데이터에서 발견된 누락·오류를 케이스별로 보정(INSERT/UPDATE)하고, 보정 뒤 전표 정합성을 검증하는 SQL 콘솔입니다. 오른쪽 공통 조건(본사·매장·날짜·할인코드·추가조건)을 바꾸면 모든 카드의 쿼리가 함께 바뀝니다. 카드의 SQL 은 복사해서 SQL Developer/DBeaver 에서 실행합니다. 콘솔은 DB 에 접속하지 않습니다." },
+        { note:"실행 순서 — 케이스 1 → 2 → 3 → 4 → 5 순서로 갑니다. 1(쿠폰행 PAY_COUPN) 이 있어야 2(결제행 PAY_SEQ 12) 를 만들 수 있고, 3(할인 이동) 이 REAL_SALE_AMT 를 바꾸므로 4(VAT) 보다 먼저, 5 는 1~4 를 COMMIT 한 뒤 전체 검증입니다. 케이스마다 사전 확인 → 생성/보정 → 사후 검증 3단계이고, COMMIT 은 붙어 있지 않아 사후 검증을 보고 직접 합니다." },
+        { note:"카드 읽는 법 — 카드 머리의 [태그] 는 카드 번호, 배지는 SELECT/INSERT/MERGE 구분(쓰기는 붉은색), 범위는 대상 본사/전사 표본/집계 대조. desc 가 판정 기준과 실측 근거입니다. 케이스 5 의 카드는 SQL 하나에 [판별](어느 전표가 걸리나) 과 [상세](그 전표의 원인 행) 두 쿼리가 붙어 있습니다. 툴바의 '전체 복사 / SELECT 만 / 트랙별' 버튼으로 묶어 복사합니다." },
+        { note:"부호 규칙 (핵심) — 반품(SALE_YN='N') 금액 부호가 테이블마다 다릅니다. TB_SL_SALE_HDR_DC.DC_AMT 음수 · TB_SL_SALE_PAY_COUPN.DC_AMT 양수 그대로(SALE_FG/RATE/DCAMT 만 반전) · TB_SL_SALE_PAY_SEQ.PAY_AMT 음수. 케이스 1 은 쿠폰행을 양수로 만들고 케이스 2 가 그걸 읽어 반품만 -1 을 곱해 결제행을 만듭니다(실측 482/482). 케이스 5 H-10 이 이 규칙을 행 단위로 검사합니다." },
+        { note:"트리거 주의 — TB_SL_SALE_DTL · TB_SL_SALE_DTL_DC · TB_SL_SALE_HDR · TB_SL_SALE_PAY_SEQ 에 트리거가 있어 INSERT/UPDATE 마다 TB_SL_DAILY_* 집계가 자동 증감합니다. 케이스 2 는 집계가 실제로 늘어야 정상, 케이스 3 은 총액 불변이라 집계 순증감 0, 케이스 4 는 집계 VAT 가 늘어야 정상, 케이스 4 B-4 는 트리거가 VAT/TAX 를 안 읽어 델타 0. 각 케이스 마지막 카드(C-7 / C-12 / C3-3 / [3-3])가 집계 대조입니다. 롤백하면 트리거 변경도 함께 되돌아갑니다." },
+        { note:"검증 흐름 (케이스 5) — S-0 한 장으로 카드 29장의 건수를 보고 → 코드가 보이면 [색인] 에서 검색해 [판별]/[상세] 로 이동 → 원인 행을 보고 → 해당 케이스(1~4) 로 가서 보정 → 다시 S-0. 케이스 1~4 의 사전 확인이 케이스 5 어디에 걸리는지는 [일일] 카드의 '케이스 1~4 ↔ 케이스 5' 단계에 있습니다. S-3(프로시저 재현) 이 0 이어도 정상은 아니고, S-3 안/밖 카드는 세로 합산하지 않습니다." },
+        { note:"아직 열린 것 — ① 케이스 4 의 VAT 계산식(TRUNC vs ROUND) 미확정 — 담당자 확인 후 옵션에서 선택. ② 케이스 5 H-9 6102 의 새 유형(실매출 양수·VAT 음수, T0000776) 은 케이스 4 로 안 잡힘. ③ H0393 은 할인-결제 대사(8001/8801) 에서 통째로 빠져 있음(프로시저 구조). ④ 케이스 3 세트 메인 해석(SIDE_P_DTL_NO = BILL_DTL_NO) 확인 필요. ⑤ 케이스 5 F-2 프로시저의 COMMIT 여부·PI_INDEX 의미 미확인." },
+        { note:"공통 조건 · 옵션 — SALE_DATE 는 '날짜 지정' 이 기본(오늘 / 지정일 이후 >= 도 가능). 케이스 1~4 는 = 만 쓰고 케이스 5 는 >= 와 종료일 옵션(BETWEEN) 을 씁니다. STORE_CD 에 쉼표로 여러 매장을 넣으면 IN (...) 이 됩니다. 케이스별 옵션(할인 이동 방식, VAT 식, B-1b 적용, 반품 포함, APPR_PROC_FG, 학습 시작일, 종료일 등)은 오른쪽 아래 패널에 있고 바꾸면 SQL 이 즉시 바뀝니다. 초기화 버튼은 공통 조건을 기본값으로 되돌립니다." }
+      ]},
+    { title:"케이스 1 · 쿠폰 할인 누락 (PAY_COUPN)", sub:"15장",
+      items:[
+        { caseNo:1, note:"쿠폰 할인이 헤더(HDR_DC DC_CD=02)에는 있는데 쿠폰행(TB_SL_SALE_PAY_COUPN)이 없는 전표를 채웁니다. A 매출건은 DC_REASON_CD 로 쿠폰 마스터(TB_MS_COUPON)를 찾아 새로 만들고, B 반품건은 원거래 쿠폰행을 복사해 SALE_FG/RATE/DCAMT/APPR_AMT 만 뒤집습니다(DC_AMT 는 양수 유지). 트리거 없음. 사후 검증 [3-1] 은 매출/반품/합계로 갈라 차액 0 을 봅니다." },
+        { note:"▸ A · 매출건 — 사전 검증 (정상 데이터에서 규칙 뽑기)", head:true },
+        { chip:"0-1", note:"고정값 분포" },
+        { chip:"0-2", note:"마스터 대조" },
+        { chip:"0-3", note:"쿠폰 마스터 중복 확인" },
+        { chip:"0-4", note:"전표당 쿠폰 행수 분포" },
+        { note:"▸ A · 매출건 — 대상 확인", head:true },
+        { chip:"1", note:"대상 전표 목록" },
+        { note:"▸ A · 매출건 — 생성", head:true },
+        { chip:"2", note:"쿠폰 결제행 생성 (전표당 1행)" },
+        { note:"▸ A · 매출건 — 사후 검증", head:true },
+        { chip:"3-1", note:"매장별 금액 정합 (매출 / 반품 분리 · 부호 맞춤)" },
+        { chip:"3-2", note:"생성분과 정상 표본의 고정값 패턴 대조" },
+        { chip:"3-3", note:"할인율 재검증" },
+        { note:"▸ B · 반품건 — 규칙 재확인", head:true },
+        { chip:"R0", note:"반품 쿠폰 부호 규칙 재확인" },
+        { note:"▸ B · 반품건 — 대상 확인", head:true },
+        { chip:"R1", note:"반품 대상 확인 (부분 반품 · 외부승인 표시)" },
+        { note:"▸ B · 반품건 — 생성", head:true },
+        { chip:"R2", note:"반품 쿠폰행 생성 (원거래 복사 · 부호 반전)" },
+        { note:"▸ B · 반품건 — 사후 검증", head:true },
+        { chip:"R3-1", note:"반품 헤더 할인액 = 쿠폰 합계" },
+        { chip:"R3-2", note:"생성분 부호 규칙 재대조" },
+        { chip:"R3-3", note:"외부승인 연동 반품행 목록" }
+      ]},
+    { title:"케이스 2 · 쿠폰 결제행 누락 (PAY_SEQ · PAY_CD='12')", sub:"10장",
+      items:[
+        { caseNo:2, note:"쿠폰행은 있는데 결제행(TB_SL_SALE_PAY_SEQ PAY_CD=12)이 없는 전표를 매출·반품 구분 없이 채웁니다. 반품은 PAY_AMT = -1 × 쿠폰 DC_AMT. PAY_SEQ 에 트리거가 있어 일계 집계 9개 테이블이 같이 바뀌므로 [C0-3] 에서 집계와 실데이터가 이미 맞는지 보고 넣습니다. 사전 확인 [C0-0]/[C0-2] 가 부호 규칙 실측(반품 488건 전부 음수)입니다." },
+        { note:"▸ 사전 확인 — 부호 규칙 · 1:1 규칙 · 대상 확인 · 집계 대조", head:true },
+        { chip:"C0-0", note:"★ 실행 전 필수 · PAY_CD='12' 반품행의 실제 부호" },
+        { chip:"C0-1", note:"PAY_CD='12' ↔ 쿠폰행 1:1 규칙 재확인 (부호 포함)" },
+        { chip:"C0-2", note:"반품 쿠폰행 vs PAY12 부호 대조 (전표별)" },
+        { chip:"C1", note:"대상 확인 : 쿠폰행은 있는데 PAY_CD='12' 가 없는 건" },
+        { chip:"C0-3", note:"★ 실행 직전 필수 · 집계(DAILY_PAY) vs 실데이터(PAY_SEQ)" },
+        { note:"▸ 생성 — PAY_CD='12' 결제행 (매출 +, 반품 - · 트리거 있음)", head:true },
+        { chip:"C2", note:"PAY_CD='12' 결제행 생성 (매출 +, 반품 - · 트리거로 집계 자동 반영)" },
+        { note:"▸ 사후 검증 (COMMIT 전)", head:true },
+        { chip:"C3-1", note:"쿠폰행 ↔ PAY_CD='12' 1:1 생성 · 부호 확인" },
+        { chip:"C3-4", note:"결제 총액 정합 : PAY_SEQ 합계 = 헤더 TOT_SALE_AMT" },
+        { chip:"C3-2", note:"★ 트리거가 갱신한 집계 확인 (C0-3 재실행)" },
+        { chip:"C3-3", note:"매출 헤더 총액 vs DAILY_TOTAL" }
+      ]},
+    { title:"케이스 3 · 0원 상품 할인 이동 (이슈4 · DTL / DTL_DC)", sub:"10장",
+      items:[
+        { caseNo:3, note:"판매금액 0 인 상품(사이드)에 배분된 할인을 같은 전표의 유효 상품(MAX BILL_DTL_NO)으로 옮깁니다. A-2 → A-3 → A-4 → A-5 순서를 지켜야 하며(A-3 가 DTL_DC 를 읽음), 전표 총액이 안 변하니 집계 순증감 0. 세트 메인 해석은 확인 대상. 사후 검증 C-1~C-3·C-7." },
+        { note:"▸ 사전 확인 — 대상 확정", head:true },
+        { chip:"0-A", note:"대상 라인 : 판매금액 0 인데 할인이 있는 라인" },
+        { chip:"A-1", note:"이동 내역 미리보기" },
+        { note:"▸ 보정 — 할인 이동 (A-2 → A-5 순서)", head:true },
+        { chip:"A-2", note:"TB_SL_SALE_DTL : 잘못 배분된 라인의 할인 제거" },
+        { chip:"A-3", note:"TB_SL_SALE_DTL : 유효 상품으로 할인 이동" },
+        { chip:"A-4", note:"TB_SL_SALE_DTL_DC : 유효 상품 행으로 할인 이동" },
+        { chip:"A-5", note:"TB_SL_SALE_DTL_DC : 0원 상품에 붙은 할인행 정리" },
+        { note:"▸ 사후 검증 (COMMIT 전)", head:true },
+        { chip:"C-1", note:"이슈4 잔여 : 0 건이어야 함" },
+        { chip:"C-2", note:"할인 총액 보존 : 헤더 할인 = 상세 할인 합계" },
+        { chip:"C-3", note:"상세 금액식 검증 : REAL_SALE_AMT = SALE_AMT - DC_AMT (+TIP +ETC)" },
+        { chip:"C-7", note:"트리거가 갱신한 집계 대조 : 헤더 합계 = TB_SL_DAILY_TOTAL" }
+      ]},
+    { title:"케이스 4 · 헤더 부가세 0 보정 (이슈5 · VAT)", sub:"23장",
+      items:[
+        { caseNo:4, note:"헤더 REAL 은 있는데 VAT 가 0 인 전표(배달)를 상세→헤더→가승인→결제행(PAY_SEQ 18) 순으로 채웁니다(B-1 → B-1b 선택 → B-2 → B-3 → B-4). VAT 계산식은 미확정이라 옵션. 앞의 '분석' 트랙(X-1~X-5)은 읽기 전용으로 VAT 0 건과 절사 차이를 구분하고, X-5(헤더 ≠ 라인합) 는 0 건이어야 합니다. 사후 검증 C-4~C-12." },
+        { note:"▸ 분석 · 헤더 레벨 — 계산값 vs 실제값 · 요약 · 차이 분포", head:true },
+        { chip:"X-1", note:"헤더 레벨 불일치 : 계산값 <> 실제값 (구분 ①②③)" },
+        { chip:"X-2", note:"요약 : 구분별 건수와 후보식 일치율" },
+        { chip:"X-3", note:"차이 크기 분포 : 절사 누적이 얼마나 벌어지나" },
+        { note:"▸ 분석 · 라인 레벨 — 원인 라인 · 진짜 이상", head:true },
+        { chip:"X-4", note:"상세 라인 레벨 불일치 : 어느 라인에서 어긋나는지" },
+        { chip:"X-5", note:"★ 진짜 이상 : 헤더 VAT <> 상세 VAT 합계" },
+        { note:"▸ 보정 · 사전 확인 — 헤더 대상 · PAY_SEQ 대상 · 규칙", head:true },
+        { chip:"0-B", note:"대상 전표 : 실판매액은 있는데 헤더 부가세가 0" },
+        { chip:"0-C", note:"PAY_SEQ 대상 : PAY_CD='18' 인데 VAT_AMT = 0 인 행 + 넣을 값" },
+        { chip:"0-D", note:"다른 테이블은 정상인지 재확인 : 헤더 · 상세 · 가승인 VAT 0 전표 수" },
+        { chip:"0-E", note:"정상 본사 규칙 재확인 : PAY_SEQ VAT합 = 가승인 VAT합 (PAY_CD='18' 단독결제)" },
+        { note:"▸ 보정 · 부가세 (B-1 → B-1b → B-2 → B-3 → B-4 순서)", head:true },
+        { chip:"B-1", note:"TB_SL_SALE_DTL : 라인별 부가세 계산" },
+        { chip:"B-1b", note:"(선택) 라인별 절사 잔액 보정" },
+        { chip:"B-2", note:"TB_SL_SALE_HDR : 상세 합계로 부가세 / 과세 / 순매출 갱신" },
+        { chip:"B-3", note:"TB_SL_SALE_PAY_TEMPORARY : 부가세 / 과세금액 갱신" },
+        { chip:"B-4", note:"TB_SL_SALE_PAY_SEQ (PAY_CD='18') : VAT_AMT = 가승인 VAT , TAX_AMT = PAY_AMT" },
+        { note:"▸ 보정 · 사후 검증 (COMMIT 전)", head:true },
+        { chip:"C-4", note:"이슈5 잔여 : 0 건이어야 함" },
+        { chip:"C-5", note:"헤더 VAT = 상세 VAT 합계 / 순매출식 / 부호" },
+        { chip:"C-6", note:"가승인 검증 : TAX_AMT = SALE_AMT, VAT 합 = 헤더 VAT" },
+        { chip:"C-7", note:"트리거가 갱신한 집계 대조 : 헤더 합계 = TB_SL_DAILY_TOTAL" },
+        { chip:"C-8", note:"절사 잔액 점검 : 라인 VAT 합 vs 헤더 REAL 기준" },
+        { chip:"C-9", note:"PAY_SEQ 잔여 : PAY_CD='18' 인데 VAT_AMT = 0 인 행. 0 건이어야 함" },
+        { chip:"C-10", note:"헤더 vs PAY_SEQ 합계 요약 (8001 / 8002 / 8003 건수)" },
+        { chip:"C-11", note:"4개 테이블 VAT 정합 : 헤더 = 상세합 = 가승인합 = PAY_SEQ합" },
+        { chip:"C-12", note:"B-4 트리거 영향 : 집계가 변하지 않아야 정상" }
+      ]},
+    { title:"케이스 5 · 최종 전체검증 (직접 쿼리 · SP 호출)", sub:"44장",
+      items:[
+        { caseNo:5, note:"1~4 를 COMMIT 한 뒤 전표 정합성을 검증합니다. '직접 쿼리' 트랙 35장은 프로시저 SP_SALE_BILL_DATA_CHECK_S01 의 검증을 SQL 로 옮기고 결함을 제거한 것(V-*)과 리뷰에서 나온 보완 검사(X-*)를 합친 것이며, S-0 한 장으로 건수를 요약하고 [색인] 으로 코드를 찾습니다. '프로시저' 트랙은 기존 SP_BENSON_DATA_DAILY_CHECK 호출입니다. 설계 검증 E-1~E-5 는 전사 표본이라 가끔만." },
+        { note:"▸ 일일 점검 — 매번 돌릴 8장과 순서 (클릭하면 해당 카드로 이동)", head:true },
+        { chip:"일일", note:"오류 확인 순서 — S-0 한 장 + 확인 7장" },
+        { chip:"색인", note:"코드 색인 — 코드 검색 · 판별/상세로 이동" },
+        { note:"▸ 요약 — 전 카드 건수 · 2분류 · 코드별 · 전표별 대표 판정", head:true },
+        { chip:"S-0", note:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)" },
+        { chip:"S-1", note:"요약 · 정상/오류 2분류" },
+        { chip:"S-2", note:"요약 · 코드별 건수" },
+        { chip:"S-3", note:"통합 판정 — 전표별 대표 코드 (ORIG_CD vs FIXED_CD)" },
+        { note:"▸ 헤더 레벨 — 존재 · 고아 · 항등식 · VAT 0 · 상세/결제/할인 합계 · 개별 규칙 · 부호 양방향", head:true },
+        { chip:"H-1", note:"존재 여부 (1404 · 4404 · 3404 · 4414 · 5404 · 6404 · 7404)" },
+        { chip:"H-2", note:"고아 자식행 (ORPH) — 헤더 없이 자식만" },
+        { chip:"H-3", note:"헤더 항등식 (9211 · 9212 · 9023)" },
+        { chip:"H-4", note:"헤더 과세+면세 = 실매출 (9024)" },
+        { chip:"H-5", note:"★ 세 곳 모두 VAT 0 (VAT00) — 상호대사가 못 잡는 유형" },
+        { chip:"H-6", note:"헤더 vs 상세 합계 (9001 ~ 9004)" },
+        { chip:"H-7", note:"헤더 vs 결제시퀀스 (8001 · 8801 · 8002 · 8003) + 8801 재분류" },
+        { chip:"H-8", note:"헤더 vs HDR_PAY · HDR_DC · DTL_DC (7001 · 6001 · 6002)" },
+        { chip:"H-9", note:"개별 금액 규칙 (6103 · 6102 · 6303 · 6305 · 6405 · 6505)" },
+        { chip:"H-10", note:"부호 규칙 양방향 — 상세행·결제행 자신의 SALE_YN 기준 (6102 · 6112 · 6303 · 6313 · 3211 · 3212)" },
+        { note:"▸ 결제 레벨 — 결제수단별 상세(양방향) · 행 항등식 · PAY_CD 별 합계 · TB_SL_SALE_PAY · 상세행 배분 · 현금영수증", head:true },
+        { chip:"P-1", note:"★ 결제수단별 상세 대사 (3001 · 3002 · 3003 · 3004 · 3009)" },
+        { chip:"P-2", note:"결제상세 → PAY_SEQ 역방향 누락 (3005)" },
+        { chip:"P-3", note:"PAY_SEQ 행 항등식 PAY_AMT = TAX + NO_TAX (PAY01)" },
+        { chip:"P-4", note:"PAY_CD 별 합계 PAY_SEQ vs HDR_PAY vs DTL_PAY · 양방향 (3101 · 3102 · 3103 · 3201 · 3202 · 3203)" },
+        { chip:"P-5", note:"TB_SL_SALE_PAY vs PAY_SEQ — 학습한 (본사, PAY_CD) 만 검사 (P01 ~ P03)" },
+        { chip:"P-6", note:"상세행 결제 배분 (D001)" },
+        { chip:"P-7", note:"현금영수증만 있고 현금결제 없음 (RCP01)" },
+        { note:"▸ 상품 레벨 — DTL 행 · 할인 상세 · 배달할인 설명 · 세트 구성", head:true },
+        { chip:"D-1", note:"상세 행 항등식 · 할인 근거 (5001 · 5003)" },
+        { chip:"D-2", note:"할인 상세 정합 (2404 · 2504 · 2405 · 2406)" },
+        { chip:"D-3", note:"배달할인 APP_DC_DESC 누락 (APP01)" },
+        { chip:"D-4", note:"참고 · APP_DC_DESC 정상값 형태" },
+        { chip:"D-5", note:"상품 마스터 · 세트 구성 (5P04 · 5P12 · 5P33)" },
+        { note:"▸ 반품 ↔ 원거래", head:true },
+        { chip:"R-1", note:"반품 ↔ 원거래 (R01 ~ R06)" },
+        { chip:"R-2", note:"고아 역링크 (R07)" },
+        { note:"▸ 집계 · 인원 · 결번 · BILL_DT · NE01(참고)", head:true },
+        { chip:"A-1", note:"헤더 vs 일별집계 TB_SL_DAILY_TOTAL (AGG01)" },
+        { chip:"A-2", note:"헤더 인원수 vs HDR_GUEST (GST01)" },
+        { chip:"A-3", note:"BILL_NO 결번 · 중복 (SEQ01)" },
+        { chip:"A-4", note:"BILL_DT 이상 (DT01 ~ DT03)" },
+        { chip:"A-5", note:"최종 4자 대사 (NE01) — 벤슨 미실행 · 참고" },
+        { note:"▸ 설계 검증 — ETC 면제 · PAY_CD 동반 비율 · TB_SL_SALE_PAY 학습/사용 비율", head:true },
+        { chip:"E-1", note:"ETC 면제 목록 검증 — DC_CD 별 결제행 생성률 (전사)" },
+        { chip:"E-2", note:"09 / 13 사각지대 검출 (DC09 · 전사)" },
+        { chip:"E-3", note:"PAY_CD 별 HDR_PAY / DTL_PAY 동반 비율 — P-4 의 05/12 제외가 맞는지 (PYR00 · PYR01 · PYR02)" },
+        { chip:"E-4", note:"P-5 학습 결과 — 어떤 (본사, PAY_CD) 가 검사대상인지 (MAP00 · MAP01)" },
+        { chip:"E-5", note:"본사별 TB_SL_SALE_PAY 사용 비율 — 이 대사가 성립하는 본사인가 (USE00 · USE01)" },
+        { note:"▸ 결과코드 상세 설명", head:true },
+        { chip:"코드", note:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출" },
+        { note:"▸ 프로시저 · 로그 초기화", head:true },
+        { chip:"F-1", note:"TB_LOG_BENSON_BILL_CHECK 비우기" },
+        { note:"▸ 프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행", head:true },
+        { chip:"F-2", note:"SP_BENSON_DATA_DAILY_CHECK_IUD01 실행" },
+        { note:"▸ 프로시저 · 결과 확인", head:true },
+        { chip:"F-3", note:"실패 건 조회 : RESULT_CD <> 0000" }
+      ]}
+  ]
+}
+  },
+  opt(p){ return {}; }
 };
 
 /* ── 케이스 2 ──────────────────────────────────────────── */
@@ -2370,6 +2555,7 @@ const CASE_FINAL = {
       "0903 실행 결과(180전표 = 매출 176 · 반품 4, 2매장): 0000 146 · 6102 2 · 8801 32. 8801 32건은 전부 BSC0001, DC_CD 02 33건 169,800원이 PAY_SEQ 도 쿠폰테이블도 없는 진짜 누락 → 케이스 1·2. 06/17 은 ETC 로 정상. 6102 2건은 T0000776 실매출 양수·VAT 음수 = 케이스 4 로 안 잡히는 새 유형. 보완 검사에서 H-5 5건(배달, 케이스 4) · P-3 5건 · D-3 34건 · P-7 1건.",
       '원본 결함 요약(각 카드 ORIG_DETECT 열): HDR_PAY/DTL_PAY 없음은 SUM→NULL 로 미검출(4414·5404 신규코드) · 헤더 할인 0 이면 6001/6002 와 D-2 블록을 아예 안 봄 · 5003 은 DTL_DC 없으면 NULL 통과 · 8801 은 ETC SUM NULL 이면 통과 · 미지원 PAY_CD 나 상세 행 없음은 ORA-20001 로 죽고 WHEN OTHERS 에 삼켜짐(3009·3004 신규코드) · 3202 는 HDR_PAY 일치 시 미검출 · 5P12 는 항상 0건 · 5P33 은 2번째 이후 세트 미검사 · 원문 V-G 는 조인 오류로 실행 불가(수정).',
       'v3 (2026/09/03 재업로드 소스): 벤슨은 8001 대신 8801(ETC 보정) · 6303/6305 신설 · NE01 은 A0001 만 · 2404 는 도달 불가. 모든 테이블 접근에 HQ_OFFICE_CD 필터(TB_MS_PRODUCT 는 이 컬럼이 없어 STORE_CD+PROD_CD 만). 매장 필터는 [판별] 대부분과 [상세] 에 붙고, E-1/E-2 는 설계 검증이라 전사 대상.',
+      '케이스 1~4 의 사전 확인은 케이스 5 에서 이렇게 잡힙니다 — 케이스 1: H-7 8801(H0665)/8001(그 외), DC 02 금액 0원이면 미검출 · 케이스 2: P-2 3005 + H-7(H0665 는 8801, 다른 본사는 8001) · 케이스 3: H-9/S-3 6303→6405(REAL 음수면 6303 먼저), 반품 라인은 H-10 전용 · 케이스 4: H-5 VAT00, TAX=0 인 건은 H-4 9024 와 중복. "PAY12 만 있고 쿠폰행 없음"(P-1 3004) 은 이론상 가능하나 실측 0건. H0393 은 할인-결제 대사(8001/8801)에서 통째로 빠져 있어 별개로 확인 필요.',
       'P-1 은 16개 결제상세 테이블을 UNION ALL 로 펼칩니다. 기간을 넓게 잡으면 무겁습니다. 종료일 옵션으로 범위를 자르세요. 오라클 12c 미만이면 H-1/A-3 [상세] 의 CROSS JOIN LATERAL 이 안 되니 그때는 [판별] 결과로 대신하세요.',
       '프로시저 트랙: [F-1] 은 WHERE 없이 TB_LOG_BENSON_BILL_CHECK 전체를 지웁니다. 프로시저 안에서 COMMIT 을 하는지 확인되지 않았고, PI_INDEX 의미는 문서에 없습니다(원문 값 1). 프로시저는 하루만 받으니 여러 날이면 반복 실행하세요.'
     ]
@@ -2417,6 +2603,13 @@ daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 한 
         { tag:'P-3', note:'PAY_SEQ 행 안의 PAY_AMT = TAX + NO_TAX. 케이스 4 B-4 검증.' },
         { tag:'P-2', note:'결제상세는 있는데 PAY_SEQ 없음. 케이스 2 유형.' },
         { tag:'H-7', note:'[상세②] 8801 을 DC_CD 별로. 진짜 누락(02)인지 ETC(06/17)인지.' }
+      ]},
+    { title:'케이스 1~4 사전 확인 ↔ 케이스 5', sub:'대응', note:'케이스 카드의 사전 확인이 걸리는 자리. 실측(전사 0902/7일)으로 확인됨.',
+      items:[
+        { tag:'H-7',  note:'케이스 1 (HDR_DC 02 있는데 쿠폰행 없음) → 8801(H0665) / 8001(그 외). DC 02 금액 0원이면 미검출.', copy:false, dim:true },
+        { tag:'P-2',  note:'케이스 2 (쿠폰행 있는데 PAY12 없음) → 3005, H-7 에도 같이.', copy:false, dim:true },
+        { tag:'H-9',  note:'케이스 3 (SALE 0 인데 DC≠0) → 6303(REAL 음수) 또는 6405. 반품 라인은 H-10 전용.', copy:false, dim:true },
+        { tag:'H-5',  note:'케이스 4 (REAL≠0 인데 VAT 0) → VAT00. TAX=0 인 건은 H-4 9024 와 중복.', copy:false, dim:true }
       ]},
     { title:'걸렸을 때만 · 코드 → 카드', sub:'원인 추적', note:'복사 대상 아님. S-3 코드에 따라 들어가서 [상세] 를 돌립니다.',
       items:[
@@ -2858,8 +3051,8 @@ SELECT 카드, 코드, 건수, 단위, 비고
               FROM TB_SL_SALE_HDR h
              WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
                AND h.REAL_SALE_AMT <> 0
-               AND NVL(h.TAX_SALE_AMT,0) <> 0          /* 과세매출이 있는데 */
-               AND NVL(h.VAT_AMT,0) = 0                /* 부가세가 0        */
+               AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT   /* 전액 면세 전표가 아닌데 (TAX_SALE_AMT 가 0 이어도 잡음) */
+               AND NVL(h.VAT_AMT,0) = 0                          /* 부가세가 0 */
                   )
                   UNION ALL SELECT NULL FROM DUAL)          /* 0건이어도 한 줄 나오게 */
            GROUP BY 코드)
@@ -4405,7 +4598,7 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN
 },
 
 qh5:{ tag:"H-5", kind:"SELECT", scope:"대상 본사", name:"★ 세 곳 모두 VAT 0 (VAT00) — 상호대사가 못 잡는 유형",
-  desc:"[판별] 실매출≠0 · 과세매출≠0 인데 헤더 VAT 0 (VAT00). 헤더·상세·결제 세 곳이 모두 0 이면 9003 도 8002 도 전부 통과하므로 상호대사로는 절대 못 잡는 유형입니다. 0903 5건 전부 배달(가승인 18) = 케이스 4 대상. [상세] 그 전표의 상세 행(기대 VAT 포함)·PAY_SEQ 행·가승인 행을 한 번에.",
+  desc:"[판별] 실매출≠0 · 전액 면세 전표가 아닌데(NO_TAX_SALE_AMT ≠ REAL) 헤더 VAT 0 (VAT00). 전사 0902 실측: 옛 조건(TAX_SALE_AMT≠0) 310건 + 새로 209건(TAX=0·NO_TAX=0·REAL≠0, 과세도 면세도 아닌 이상) = 519건, 전액면세 3,304건 제외, 옛 조건이 잡던 걸 놓치는 건 0. 새로 잡힌 209건은 H-4 9024 에도 같이 걸립니다(중복 집계, S-0 비고 참고). 헤더·상세·결제 세 곳이 모두 0 이면 9003 도 8002 도 전부 통과하므로 상호대사로는 절대 못 잡는 유형입니다. 0903 5건 전부 배달(가승인 18) = 케이스 4 대상. [상세] 그 전표의 상세 행(기대 VAT 포함)·PAY_SEQ 행·가승인 행을 한 번에.",
   sql:
 `/* ═══ [판별] ★ 세 곳 모두 VAT 0 (VAT00) — 상호대사가 못 잡는 유형 ═══ */
 SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
@@ -4425,8 +4618,8 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
   FROM TB_SL_SALE_HDR h
  WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
    AND h.REAL_SALE_AMT <> 0
-   AND NVL(h.TAX_SALE_AMT,0) <> 0          /* 과세매출이 있는데 */
-   AND NVL(h.VAT_AMT,0) = 0                /* 부가세가 0        */
+   AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT   /* 전액 면세 전표가 아닌데 (TAX_SALE_AMT 가 0 이어도 잡음) */
+   AND NVL(h.VAT_AMT,0) = 0                          /* 부가세가 0 */
  ORDER BY h.STORE_CD, h.POS_NO, h.BILL_NO;
 
 /* ═══ [상세] VAT 0 전표의 상세 행 · 결제 행 · 가승인 행 — 케이스 4 대상 확정용 ═══ */
@@ -4438,7 +4631,7 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.DLVR_YN, h.REAL_SALE_AMT AS 헤더_REA
  WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
    {{LINE:store:h}}
    {{LINE:extra:h}}
-   AND h.REAL_SALE_AMT <> 0 AND NVL(h.TAX_SALE_AMT,0) <> 0 AND NVL(h.VAT_AMT,0) = 0
+   AND h.REAL_SALE_AMT <> 0 AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT AND NVL(h.VAT_AMT,0) = 0
 UNION ALL
 SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.DLVR_YN, h.REAL_SALE_AMT, h.VAT_AMT
       ,'PAY_SEQ', TO_CHAR(s.PAY_SEQ), s.PAY_CD, s.PAY_AMT, s.VAT_AMT, NULL
@@ -4447,7 +4640,7 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.DLVR_YN, h.REAL_SALE_AMT, h.VAT_AMT
  WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
    {{LINE:store:h}}
    {{LINE:extra:h}}
-   AND h.REAL_SALE_AMT <> 0 AND NVL(h.TAX_SALE_AMT,0) <> 0 AND NVL(h.VAT_AMT,0) = 0
+   AND h.REAL_SALE_AMT <> 0 AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT AND NVL(h.VAT_AMT,0) = 0
 UNION ALL
 SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.DLVR_YN, h.REAL_SALE_AMT, h.VAT_AMT
       ,'가승인', t.LINE_NO, t.TEMPORARY_PAY_CD, t.SALE_AMT, t.VAT_AMT, NULL
@@ -4456,7 +4649,7 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.DLVR_YN, h.REAL_SALE_AMT, h.VAT_AMT
  WHERE h.HQ_OFFICE_CD = '{{HQ}}' AND h.{{OPT:datecond}}
    {{LINE:store:h}}
    {{LINE:extra:h}}
-   AND h.REAL_SALE_AMT <> 0 AND NVL(h.TAX_SALE_AMT,0) <> 0 AND NVL(h.VAT_AMT,0) = 0
+   AND h.REAL_SALE_AMT <> 0 AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT AND NVL(h.VAT_AMT,0) = 0
  ORDER BY 1, 2, 3, 7, 8;`
 },
 
@@ -4524,7 +4717,7 @@ SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN
 },
 
 qh7:{ tag:"H-7", kind:"SELECT", scope:"대상 본사", name:"헤더 vs 결제시퀀스 (8001 · 8801 · 8002 · 8003) + 8801 재분류",
-  desc:"[판별] 헤더 vs TB_SL_SALE_PAY_SEQ. PAY_CD 05/12 는 할인, 나머지는 결제로 나눠 합칩니다. 8801(벤슨) = TOT_DC ≠ SEQ_DC + ETC, ETC 는 HDR_DC 에서 DC_CD 02/12/05 외 할인 합(쿠폰류만 결제행을 만드는 벤슨 관행). 8002 VAT, 8003 실매출. 원본 결함: ETC 를 SUM 으로 구해 02/12/05 외 행이 없으면 NULL 이라 8801 통과 → NVL 로 잡음. 0903 8801 32건 전부 DC_CD 02 진짜 누락(케이스 1→2), 0902 8002 39건은 케이스 4 B-4. [상세①] 걸린 전표의 PAY_SEQ 행 전부. [상세②] 8801 재분류 — 검사대상 DC_CD 인데 PAY_SEQ 05/12 가 없는 할인행을 DC_CD 별로, 쿠폰테이블 행 유무까지.",
+  desc:"[판별] 헤더 vs TB_SL_SALE_PAY_SEQ. PAY_CD 05/12 는 할인, 나머지는 결제로 나눠 합칩니다. 8801(벤슨) = TOT_DC ≠ SEQ_DC + ETC, ETC 는 HDR_DC 에서 DC_CD 02/12/05 외 할인 합(쿠폰류만 결제행을 만드는 벤슨 관행). 8002 VAT, 8003 실매출. 원본 결함: ETC 를 SUM 으로 구해 02/12/05 외 행이 없으면 NULL 이라 8801 통과 → NVL 로 잡음. 0903 8801 32건 전부 DC_CD 02 진짜 누락(케이스 1→2), 0902 8002 39건은 케이스 4 B-4. 코드는 본사에 따라 다릅니다 — 8801 은 H0665 전용이고 그 외 본사는 8001(전사 7일 '쿠폰행 있는데 PAY12 없음' 2,413건 중 H0616 2,409건은 8001). ★ 구조적 구멍: H0393 은 8001 에서 제외되고 8801 대상도 아니라 할인-결제 대사를 아예 안 합니다(프로시저가 V_SEQ_DC_AMT := TOT_DC 로 강제 통과). 하루 17만 전표 최대 본사라 별도로 봐야 합니다. DC_CD 02 금액이 0원이면 8801 에 안 걸립니다(전사 0902 732건 중 22건, 실질 오류 아님). [상세①] 걸린 전표의 PAY_SEQ 행 전부. [상세②] 8801 재분류 — 검사대상 DC_CD 인데 PAY_SEQ 05/12 가 없는 할인행을 DC_CD 별로, 쿠폰테이블 행 유무까지.",
   sql:
 `/* ═══ [판별] 헤더 vs 결제시퀀스 (8001 · 8801 · 8002 · 8003) + 8801 재분류 ═══ */
 WITH BILLS AS (
@@ -5909,7 +6102,7 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    9212  반품인데 실매출 양수.  SALE_YN='N' AND REAL_SALE_AMT>0.   원인: 반품 부호 반전 누락.  조치: 케이스 2 부호 규칙 참고.                                  O
    9023  공급가+부가세≠실매출.  NET_SALE_AMT + VAT_AMT <> REAL_SALE_AMT.  원인: VAT 만 고치고 NET 안 고침(또는 반대).  조치: 케이스 4 B-2 (NET=REAL-VAT).  O
    9024  과세+면세≠실매출 [H-4]. TAX_SALE_AMT + NO_TAX_SALE_AMT <> REAL_SALE_AMT.  9023 이 안 보는 분해.  원인: 면세 상품 분류/집계 오류.    (프로시저 없음)
-   VAT00 세 곳 모두 VAT 0 [H-5]. REAL<>0 AND TAX_SALE_AMT<>0 AND VAT_AMT=0.  헤더·상세·결제가 다 0 이면 9003/8002 가 전부 통과하는 유형.
+   VAT00 세 곳 모두 VAT 0 [H-5]. REAL<>0 AND NO_TAX_SALE_AMT<>REAL AND VAT_AMT=0 (전액 면세 아님). TAX=0·NO_TAX=0 인 건은 H-4 9024 와 중복.  헤더·상세·결제가 다 0 이면 9003/8002 가 전부 통과하는 유형.
          원인: 배달(가승인 18) 전표 VAT 미계산.  조치: 케이스 4 (B-1~B-4).  0903 5건.                                                                   (프로시저 없음)
 
    ■ 헤더 vs 상세 합계  [H-6]   프로시저 CHECK_SUM_DATA.
@@ -5919,7 +6112,7 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    9004  실매출≠상세 실매출합.  REAL_SALE_AMT <> SUM(DTL.REAL_SALE_AMT).  원인: 할인 이동 시 REAL 미갱신.  조치: 케이스 3 A-2/A-3 확인.                    O
 
    ■ 헤더 vs 결제시퀀스  [H-7]   PAY_SEQ 를 할인(05/12) 과 결제(그 외) 로 나눠 합침.
-   8001  총할인≠SEQ 할인 (벤슨 외 본부).  TOT_DC_AMT <> SUM(PAY_SEQ 05/12).  벤슨은 이 코드 대신 8801.                                                    O
+   8001  총할인≠SEQ 할인 (벤슨·H0393 외 본부).  TOT_DC_AMT <> SUM(PAY_SEQ 05/12).  벤슨은 이 코드 대신 8801.  ★ H0393 은 8001 도 8801 도 아니라 할인-결제 대사 자체가 없음(구조적 구멍).   O
    8801  총할인≠SEQ 할인+ETC (벤슨).  TOT_DC_AMT <> SUM(PAY_SEQ 05/12) + SUM(HDR_DC DC_CD∉02/12/05).
          쿠폰류(02/12/05) 만 결제행을 만들고 그 외 할인(06/17 등) 은 안 만드는 벤슨 관행을 반영한 판정.
          원인: DC_CD 02 쿠폰이 있는데 PAY_SEQ 12 행도 PAY_COUPN 행도 없음.  조치: 케이스 1 → 케이스 2.  [상세②] 가 DC_CD 별로 갈라 줌.
@@ -6051,7 +6244,7 @@ f3:{ tag:"F-3", kind:'SELECT', scope:'로그', name:'실패 건 조회 : RESULT_
 };
 
 /* ── 케이스 목록 ───────────────────────────────────────── */
-const CASES = [ CASE_COUPN, CASE_PAYSEQ, CASE_DCMOVE, CASE_VAT, CASE_FINAL,
+const CASES = [ CASE_INTRO, CASE_COUPN, CASE_PAYSEQ, CASE_DCMOVE, CASE_VAT, CASE_FINAL,
   { id:'dtl',  no:6, title:'TB_SL_SALE_DTL 누락', status:'pending', pending:'dtl' }
 ];
 for(let i = 7; i <= 20; i++){
@@ -6265,10 +6458,22 @@ function guideEl(q, c, host){
     const ul = mk('ul');
     step.items.forEach(it => {
       const li = mk('li');
-      const b = mk('button','go' + (it.dim ? ' dim' : ''), '[' + it.tag + ']'); b.type = 'button';
-      b.title = it.tag + ' 로 이동';
-      b.addEventListener('click', () => jumpTo(it.tag, null));
-      li.append(b, mk('span', null, it.note));
+      if(it.head){ li.className = 'head'; li.append(mk('span', null, it.note)); ul.append(li); return; }
+      if(it.caseNo !== undefined){
+        const target = CASES.find(x => x.no === it.caseNo);
+        const b = mk('button','go','[케이스 ' + it.caseNo + ']'); b.type = 'button'; b.title = '케이스 ' + it.caseNo + ' 로 이동';
+        b.addEventListener('click', () => { if(!target) return; current = target; optState = initOpts(target); renderNav(); renderOptions(); renderCase(); window.scrollTo(0,0); });
+        li.append(b, mk('span', null, it.note));
+      } else if(it.chip){
+        li.append(mk('span','chip', '[' + it.chip + ']'), mk('span', null, it.note));
+      } else if(it.tag){
+        const b = mk('button','go' + (it.dim ? ' dim' : ''), '[' + it.tag + ']'); b.type = 'button';
+        b.title = it.tag + ' 로 이동';
+        b.addEventListener('click', () => jumpTo(it.tag, null));
+        li.append(b, mk('span', null, it.note));
+      } else {
+        li.append(mk('span','only', it.note));
+      }
       ul.append(li);
     });
     sec.append(ul);

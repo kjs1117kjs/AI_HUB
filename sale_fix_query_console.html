@@ -461,7 +461,7 @@ q1:{ tag:'1', kind:'SELECT', scope:'대상 본사', name:'대상 전표 목록',
                     WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
                       AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                       AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                      AND c.REG_SEQ=d.REG_SEQ)
  ORDER BY d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO;`
 },
 
@@ -549,7 +549,7 @@ SELECT t.HQ_OFFICE_CD,
                             WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
                               AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                               AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-                              AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                              AND c.REG_SEQ=d.REG_SEQ)
        ) t;
 
 -- COMMIT;   /* [3] 검증 후 직접 */`
@@ -576,16 +576,16 @@ q31:{ tag:'3-1', kind:'SELECT', scope:'대상 본사', name:'매장별 금액 �
   LEFT JOIN TB_MS_STORE s
     ON  s.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND s.STORE_CD=d.STORE_CD
   LEFT JOIN (SELECT HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
-                    REG_SEQ, DC_CD, COUNT(*) AS CNT, SUM(DC_AMT) AS SUM_AMT
+                    REG_SEQ, COUNT(*) AS CNT, SUM(DC_AMT) AS SUM_AMT
                FROM TB_SL_SALE_PAY_COUPN
               WHERE HQ_OFFICE_CD = '{{HQ}}'
                 AND SALE_DATE    = {{DATE}}
               GROUP BY HQ_OFFICE_CD, HQ_BRAND_CD, STORE_CD, SALE_DATE, POS_NO, BILL_NO,
-                       REG_SEQ, DC_CD) c
+                       REG_SEQ) c
     ON  c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
     AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
     AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-    AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD
+    AND c.REG_SEQ=d.REG_SEQ
  WHERE d.HQ_OFFICE_CD = '{{HQ}}'
    AND d.SALE_DATE    = {{DATE}}
    AND d.DC_CD        = '{{DC}}'
@@ -1027,7 +1027,7 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { chip:"C-3", note:"상세 금액식 검증 : REAL_SALE_AMT = SALE_AMT - DC_AMT (+TIP +ETC)" },
         { chip:"C-7", note:"트리거가 갱신한 집계 대조 : 헤더 합계 = TB_SL_DAILY_TOTAL" }
       ]},
-    { title:"케이스 4 · 헤더 부가세 0 보정 (이슈5 · VAT)", sub:"23장",
+    { title:"케이스 4 · 헤더 부가세 0 보정 (이슈5 · VAT)", sub:"24장",
       items:[
         { caseNo:4, note:"헤더 REAL 은 있는데 VAT 가 0 인 전표(배달)를 상세→헤더→가승인→결제행(PAY_SEQ 18) 순으로 채웁니다(B-1 → B-1b 선택 → B-2 → B-3 → B-4). VAT 계산식은 미확정이라 옵션. 앞의 '분석' 트랙(X-1~X-5)은 읽기 전용으로 VAT 0 건과 절사 차이를 구분하고, X-5(헤더 ≠ 라인합) 는 0 건이어야 합니다. 사후 검증 C-4~C-12." },
         { note:"▸ 분석 · 헤더 레벨 — 계산값 vs 실제값 · 요약 · 차이 분포", head:true },
@@ -1042,6 +1042,7 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { chip:"0-C", note:"PAY_SEQ 대상 : PAY_CD='18' 인데 VAT_AMT = 0 인 행 + 넣을 값" },
         { chip:"0-D", note:"다른 테이블은 정상인지 재확인 : 헤더 · 상세 · 가승인 VAT 0 전표 수" },
         { chip:"0-E", note:"정상 본사 규칙 재확인 : PAY_SEQ VAT합 = 가승인 VAT합 (PAY_CD='18' 단독결제)" },
+        { chip:"0-F", note:"가승인 대상 : SALE_AMT 는 있는데 VAT_AMT 가 0 인 행 (가승인 기준)" },
         { note:"▸ 보정 · 부가세 (B-1 → B-1b → B-2 → B-3 → B-4 순서)", head:true },
         { chip:"B-1", note:"TB_SL_SALE_DTL : 라인별 부가세 계산" },
         { chip:"B-1b", note:"(선택) 라인별 절사 잔액 보정" },
@@ -1067,7 +1068,7 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { chip:"색인", note:"코드 색인 — 코드 검색 · 판별/상세로 이동" },
         { note:"▸ 요약 — 전 카드 건수 · 케이스별 수정 대상 · 2분류 · 코드별 · 전표별 대표 판정", head:true },
         { chip:"S-0", note:"★ 전 카드 건수 요약 — 오늘 뭐가 걸렸나 (30장 한 번에)" },
-        { chip:"S-4", note:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4)" },
+        { chip:"S-4", note:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4 · FIX4T)" },
         { chip:"S-1", note:"요약 · 정상/오류 2분류" },
         { chip:"S-2", note:"요약 · 코드별 건수" },
         { chip:"S-3", note:"통합 판정 — 전표별 대표 코드 (ORIG_CD vs FIXED_CD)" },
@@ -1872,7 +1873,7 @@ const CASE_VAT = {
   stages:[
     { group:'분석', glabel:'분석 (읽기 전용)', phase:'hdr',  plabel:'헤더', name:'분석 · 헤더 레벨 — 계산값 vs 실제값 · 요약 · 차이 분포', items:['x1','x2','x3'] },
     { group:'분석', glabel:'분석 (읽기 전용)', phase:'line', plabel:'라인', name:'분석 · 라인 레벨 — 원인 라인 · 진짜 이상', items:['x4','x5'] },
-    { group:'보정', glabel:'보정', phase:'compare', name:'보정 · 사전 확인 — 헤더 대상 · PAY_SEQ 대상 · 규칙', items:['q0','p1','p2','p3'] },
+    { group:'보정', glabel:'보정', phase:'compare', name:'보정 · 사전 확인 — 헤더 대상 · PAY_SEQ 대상 · 규칙', items:['q0','p1','p2','p3','p4'] },
     { group:'보정', glabel:'보정', phase:'build',   name:'보정 · 부가세 (B-1 → B-1b → B-2 → B-3 → B-4 순서)', items:['b1','b1b','b2','b3','b4'] },
     { group:'보정', glabel:'보정', phase:'verify',  name:'보정 · 사후 검증 (COMMIT 전)', items:['c4','c5','c6','c7','c8','c9','c10','c11','c12'] }
   ],
@@ -1960,6 +1961,41 @@ p3:{ tag:'0-E', kind:'SELECT', scope:'전사 표본', isNew:true, name:"정상 �
  WHERE h.HQ_OFFICE_CD = '{{OPT:ref_hq}}'
 {{LINE:date:h}}
 ;`
+},
+
+p4:{ tag:'0-F', kind:'SELECT', scope:'대상 본사', isNew:true, name:'가승인 대상 : SALE_AMT 는 있는데 VAT_AMT 가 0 인 행 (가승인 기준)',
+  desc:'가승인(TB_SL_SALE_PAY_TEMPORARY) 자체를 출발점으로 봅니다. [0-C]/[0-D] 는 헤더·PAY_SEQ 가 먼저 걸려야 가승인을 보므로, 헤더·PAY_SEQ 는 정상인데 가승인만 VAT 0 인 행은 여기서만 잡힙니다. 헤더 VAT · PAY_SEQ VAT 를 옆에 붙여 어느 쪽이 원본인지 판정합니다. 헤더도 0 이면 [0-B] → B-3 대상, 헤더에 값이 있으면 가승인만 채우면 됩니다.',
+  sql:
+`SELECT t.STORE_CD, t.SALE_DATE, t.POS_NO, t.BILL_NO, t.LINE_NO,
+       t.TEMPORARY_PAY_CD,
+       t.SALE_AMT, t.TAX_AMT, t.VAT_AMT,
+       h.SALE_YN, h.REAL_SALE_AMT              AS 헤더_REAL,
+       h.VAT_AMT                               AS 헤더_VAT,
+       h.NO_TAX_SALE_AMT                       AS 헤더_면세,
+       q.PAY_SEQ, q.PAY_AMT                    AS PAYSEQ_PAY_AMT,
+       q.VAT_AMT                               AS PAYSEQ_VAT,
+       SIGN(t.SALE_AMT)*TRUNC(ABS(t.SALE_AMT)/11) AS 기대_VAT,
+       CASE WHEN NVL(h.NO_TAX_SALE_AMT,0) = h.REAL_SALE_AMT THEN '- 전액 면세'
+            WHEN NVL(h.VAT_AMT,0) = 0                     THEN 'X 헤더도 VAT 0 → 0-B / B-3'
+            WHEN NVL(q.VAT_AMT,0) <> 0                    THEN 'O 가승인만 0 (PAY_SEQ 값 있음)'
+            ELSE 'O 가승인 · PAY_SEQ 둘 다 0' END        AS 판정
+  FROM TB_SL_SALE_PAY_TEMPORARY t
+  LEFT JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD = t.HQ_OFFICE_CD AND h.STORE_CD = t.STORE_CD
+    AND h.SALE_DATE    = t.SALE_DATE    AND h.POS_NO   = t.POS_NO
+    AND h.BILL_NO      = t.BILL_NO
+  LEFT JOIN TB_SL_SALE_PAY_SEQ q
+    ON  q.HQ_OFFICE_CD = t.HQ_OFFICE_CD AND q.STORE_CD = t.STORE_CD
+    AND q.SALE_DATE    = t.SALE_DATE    AND q.POS_NO   = t.POS_NO
+    AND q.BILL_NO      = t.BILL_NO      AND q.LINE_NO  = t.LINE_NO
+    AND q.PAY_CD       = '18'
+ WHERE t.HQ_OFFICE_CD = '{{HQ}}'
+{{LINE:store:t}}
+{{LINE:date:t}}
+{{LINE:extra:t}}
+   AND t.SALE_AMT <> 0
+   AND NVL(t.VAT_AMT,0) = 0
+ ORDER BY 판정, t.STORE_CD, t.SALE_DATE, t.POS_NO, t.BILL_NO, t.LINE_NO;`
 },
 
 b4:{ tag:'B-4', kind:'MERGE', scope:'대상 본사', isNew:true, name:"TB_SL_SALE_PAY_SEQ (PAY_CD='18') : VAT_AMT = 가승인 VAT , TAX_AMT = PAY_AMT",
@@ -2559,7 +2595,7 @@ const CASE_FINAL = {
       "0903 실행 결과(180전표 = 매출 176 · 반품 4, 2매장): 0000 146 · 6102 2 · 8801 32. 8801 32건은 전부 BSC0001, DC_CD 02 33건 169,800원이 PAY_SEQ 도 쿠폰테이블도 없는 진짜 누락 → 케이스 1·2. 06/17 은 ETC 로 정상. 6102 2건은 T0000776 실매출 양수·VAT 음수 = 케이스 4 로 안 잡히는 새 유형. 보완 검사에서 H-5 5건(배달, 케이스 4) · P-3 5건 · D-3 34건 · P-7 1건.",
       '원본 결함 요약(각 카드 ORIG_DETECT 열): HDR_PAY/DTL_PAY 없음은 SUM→NULL 로 미검출(4414·5404 신규코드) · 헤더 할인 0 이면 6001/6002 와 D-2 블록을 아예 안 봄 · 5003 은 DTL_DC 없으면 NULL 통과 · 8801 은 ETC SUM NULL 이면 통과 · 미지원 PAY_CD 나 상세 행 없음은 ORA-20001 로 죽고 WHEN OTHERS 에 삼켜짐(3009·3004 신규코드) · 3202 는 HDR_PAY 일치 시 미검출 · 5P12 는 항상 0건 · 5P33 은 2번째 이후 세트 미검사 · 원문 V-G 는 조인 오류로 실행 불가(수정).',
       'v3 (2026/09/03 재업로드 소스): 벤슨은 8001 대신 8801(ETC 보정) · 6303/6305 신설 · NE01 은 A0001 만 · 2404 는 도달 불가. 모든 테이블 접근에 HQ_OFFICE_CD 필터(TB_MS_PRODUCT 는 이 컬럼이 없어 STORE_CD+PROD_CD 만). 매장 필터는 [판별] 대부분과 [상세] 에 붙고, E-1/E-2 는 설계 검증이라 전사 대상.',
-      '케이스 1~4 의 사전 확인은 케이스 5 에서 이렇게 잡힙니다 — 케이스 1: H-7 8801(H0665)/8001(그 외), DC 02 금액 0원이면 미검출 · 케이스 2: P-2 3005 + H-7(H0665 는 8801, 다른 본사는 8001) · 케이스 3: H-9/S-3 6303→6405(REAL 음수면 6303 먼저), 반품 라인은 H-10 전용 · 케이스 4: H-5 VAT00, TAX=0 인 건은 H-4 9024 와 중복. "PAY12 만 있고 쿠폰행 없음"(P-1 3004) 은 이론상 가능하나 실측 0건. H0393 은 할인-결제 대사(8001/8801)에서 통째로 빠져 있어 별개로 확인 필요.',
+      '케이스 1~4 의 사전 확인은 케이스 5 에서 이렇게 잡힙니다 — 케이스 1: H-7 8801(H0665)/8001(그 외), DC 02 금액 0원이면 미검출 · 케이스 2: P-2 3005 + H-7(H0665 는 8801, 다른 본사는 8001) · 케이스 3: H-9/S-3 6303→6405(REAL 음수면 6303 먼저), 반품 라인은 H-10 전용 · 케이스 4: H-5 VAT00, TAX=0 인 건은 H-4 9024 와 중복. 가승인만 VAT 0 인 행([0-F])은 헤더 기준 코드로는 안 잡히므로 S-4 FIX4T 로만 봅니다. "PAY12 만 있고 쿠폰행 없음"(P-1 3004) 은 이론상 가능하나 실측 0건. H0393 은 할인-결제 대사(8001/8801)에서 통째로 빠져 있어 별개로 확인 필요.',
       'P-1 은 16개 결제상세 테이블을 UNION ALL 로 펼칩니다. 기간을 넓게 잡으면 무겁습니다. 종료일 옵션으로 범위를 자르세요. 오라클 12c 미만이면 H-1/A-3 [상세] 의 CROSS JOIN LATERAL 이 안 되니 그때는 [판별] 결과로 대신하세요.',
       '프로시저 트랙: [F-1] 은 WHERE 없이 TB_LOG_BENSON_BILL_CHECK 전체를 지웁니다. 프로시저 안에서 COMMIT 을 하는지 확인되지 않았고, PI_INDEX 의미는 문서에 없습니다(원문 값 1). 프로시저는 하루만 받으니 여러 날이면 반복 실행하세요.'
     ]
@@ -2594,7 +2630,7 @@ daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 · S
     { title:'1단계 · 오늘 뭐가 걸렸나', sub:'2장', note:'S-0 한 장이 카드 30장의 건수를 다 보여 줍니다. 전부 (0건) 이면 끝. 코드가 보이면 위 [색인] 에서 찾아 해당 카드로.',
       items:[
         { tag:'S-0', note:'★ 전 카드 건수 요약 — 카드 · 코드 · 건수 · 단위.' },
-        { tag:'S-4', note:'★ 케이스 1~4 수정 대상 건수 (FIX1~FIX4) — 오늘 어느 케이스로 가야 하는지.' },
+        { tag:'S-4', note:'★ 케이스 1~4 수정 대상 건수 (FIX1~FIX4 · FIX4T) — 오늘 어느 케이스로 가야 하는지.' },
         { tag:'S-1', note:'정상 / 오류 전표 수. ERR_MISSED_BY_PROC 가 프로시저가 놓친 건.' },
         { tag:'S-2', note:'코드별 건수 (S-3 코드만).', copy:false, dim:true }
       ]},
@@ -2661,6 +2697,7 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"FIX2", cards:"S-4", note:"케이스 2 수정 대상 — 쿠폰행 있는데 PAY12 없음" },
     { code:"FIX3", cards:"S-4", note:"케이스 3 수정 대상 — 판매금액 0 인데 할인 배분" },
     { code:"FIX4", cards:"S-4", note:"케이스 4 수정 대상 — 실매출 있는데 VAT 0 (면세 제외)" },
+    { code:"FIX4T", cards:"S-4", note:"케이스 4 수정 대상 — 가승인 SALE_AMT 있는데 VAT 0 (면세 제외) → [0-F]/[B-3]" },
     { code:"1404", cards:"H-1", note:"헤더 없음 (TOT_SALE_AMT NULL)" },
     { code:"4404", cards:"H-1", note:"TB_SL_SALE_DTL 없음" },
     { code:"3404", cards:"H-1", note:"TB_SL_SALE_PAY_SEQ 없음" },
@@ -2761,7 +2798,13 @@ qs0:{ tag:"S-0", kind:"SELECT", scope:"대상 본사", isNew:true, name:"★ 전
 SELECT 카드, 코드, 건수, 단위, 비고
   FROM (
   /* ───── S-4 ───── */
-  SELECT  0 AS 순번, 'S-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 단위, '케이스 1~4 수정 대상' AS 비고
+  SELECT  0 AS 순번, 'S-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 단위,
+          CASE NVL(코드,'(0건)') WHEN 'FIX1'  THEN '케이스 1 · HDR_DC 02 있는데 쿠폰행 없음 → [1]/[2]'
+                    WHEN 'FIX2'  THEN '케이스 2 · 쿠폰행 있는데 PAY12 없음 → [C1]/[C2]'
+                    WHEN 'FIX3'  THEN '케이스 3 · 판매금액 0 인데 할인 배분 → [0-A]/[A-1]'
+                    WHEN 'FIX4'  THEN '케이스 4 · 헤더 실매출 있는데 VAT 0 → [0-B]/[B-1]'
+                    WHEN 'FIX4T' THEN '케이스 4 · 가승인 SALE_AMT 있는데 VAT 0 (헤더 정상이어도) → [0-F]/[B-3]'
+                    ELSE '케이스 1~4 수정 대상 없음' END AS 비고
     FROM (SELECT RESULT_CD AS 코드, 건수, 단위 FROM (
             SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액합
               FROM (
@@ -2776,7 +2819,7 @@ SELECT 카드, 코드, 건수, 단위, 비고
                                     WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
                                       AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                                       AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-                                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                                      AND c.REG_SEQ=d.REG_SEQ)
                 UNION ALL
                 /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
                 SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
@@ -2807,6 +2850,18 @@ SELECT 카드, 코드, 건수, 단위, 비고
             {{LINE:extra:h}}
                    AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
                    AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+                UNION ALL
+                /* 케이스 4 · 가승인 SALE_AMT 있는데 VAT 0 (전액면세 제외) → [0-F]/[B-3] 가승인 보정 */
+                SELECT '케이스 4', 'FIX4T', '가승인행', t.SALE_AMT
+                  FROM TB_SL_SALE_PAY_TEMPORARY t
+                  LEFT JOIN TB_SL_SALE_HDR h
+                    ON  h.HQ_OFFICE_CD=t.HQ_OFFICE_CD AND h.STORE_CD=t.STORE_CD AND h.SALE_DATE=t.SALE_DATE
+                    AND h.POS_NO=t.POS_NO AND h.BILL_NO=t.BILL_NO
+                 WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
+            {{LINE:store:t}}
+            {{LINE:extra:t}}
+                   AND t.SALE_AMT <> 0 AND NVL(t.VAT_AMT,0) = 0
+                   AND NVL(h.NO_TAX_SALE_AMT,0) <> NVL(h.REAL_SALE_AMT,-1)
               )
              GROUP BY 케이스, RESULT_CD, 단위
           )
@@ -2825,7 +2880,7 @@ SELECT 카드, 코드, 건수, 단위, 비고
                                     WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
                                       AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                                       AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-                                      AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                                      AND c.REG_SEQ=d.REG_SEQ)
                 UNION ALL
                 /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
                 SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
@@ -2856,12 +2911,56 @@ SELECT 카드, 코드, 건수, 단위, 비고
             {{LINE:extra:h}}
                    AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
                    AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+                UNION ALL
+                /* 케이스 4 · 가승인 SALE_AMT 있는데 VAT 0 (전액면세 제외) → [0-F]/[B-3] 가승인 보정 */
+                SELECT '케이스 4', 'FIX4T', '가승인행', t.SALE_AMT
+                  FROM TB_SL_SALE_PAY_TEMPORARY t
+                  LEFT JOIN TB_SL_SALE_HDR h
+                    ON  h.HQ_OFFICE_CD=t.HQ_OFFICE_CD AND h.STORE_CD=t.STORE_CD AND h.SALE_DATE=t.SALE_DATE
+                    AND h.POS_NO=t.POS_NO AND h.BILL_NO=t.BILL_NO
+                 WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
+            {{LINE:store:t}}
+            {{LINE:extra:t}}
+                   AND t.SALE_AMT <> 0 AND NVL(t.VAT_AMT,0) = 0
+                   AND NVL(h.NO_TAX_SALE_AMT,0) <> NVL(h.REAL_SALE_AMT,-1)
               )
              GROUP BY 케이스, RESULT_CD, 단위
           ))
   UNION ALL
   /* ───── S-3 ───── */
-  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 대표판정' AS 비고
+  SELECT  1 AS 순번, 'S-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '0000' THEN 'S-3 대표판정 · 정상 (프로시저 통과)'
+                    WHEN '1404' THEN 'S-3 대표판정 · 헤더 없음 → H-1'
+                    WHEN '4404' THEN 'S-3 대표판정 · DTL 없음 → H-1'
+                    WHEN '3404' THEN 'S-3 대표판정 · PAY_SEQ 없음 → H-1'
+                    WHEN '4414' THEN 'S-3 대표판정 · HDR_PAY 없음 → H-1'
+                    WHEN '5404' THEN 'S-3 대표판정 · DTL_PAY 없음 → H-1'
+                    WHEN '6404' THEN 'S-3 대표판정 · 할인 있는데 HDR_DC 없음 → H-1'
+                    WHEN '7404' THEN 'S-3 대표판정 · 할인 있는데 DTL_DC 없음 → H-1'
+                    WHEN '9211' THEN 'S-3 대표판정 · 매출인데 실매출 음수 → H-3'
+                    WHEN '9212' THEN 'S-3 대표판정 · 반품인데 실매출 양수 → H-3'
+                    WHEN '9023' THEN 'S-3 대표판정 · NET+VAT≠REAL → H-3 · 케이스 4'
+                    WHEN '9001' THEN 'S-3 대표판정 · 총매출≠상세합 → H-6'
+                    WHEN '9002' THEN 'S-3 대표판정 · 총할인≠상세할인합 → H-6'
+                    WHEN '9003' THEN 'S-3 대표판정 · VAT≠상세VAT합 → H-6'
+                    WHEN '9004' THEN 'S-3 대표판정 · 실매출≠상세실매출합 → H-6'
+                    WHEN '8001' THEN 'S-3 대표판정 · 총할인≠SEQ 할인 → H-7'
+                    WHEN '8801' THEN 'S-3 대표판정 · 총할인≠SEQ 할인+ETC → H-7 · 케이스 1·2'
+                    WHEN '8002' THEN 'S-3 대표판정 · VAT≠SEQ VAT합 → H-7 · 케이스 4 B-4'
+                    WHEN '8003' THEN 'S-3 대표판정 · 실매출≠SEQ 결제합 → H-7'
+                    WHEN '7001' THEN 'S-3 대표판정 · 실매출≠HDR_PAY 합 → H-8'
+                    WHEN '6001' THEN 'S-3 대표판정 · 총할인≠HDR_DC 합 → H-8'
+                    WHEN '6002' THEN 'S-3 대표판정 · 총할인≠DTL_DC 합 → H-8'
+                    WHEN '6103' THEN 'S-3 대표판정 · 포인트(04) VAT≠0 → H-9'
+                    WHEN '6102' THEN 'S-3 대표판정 · 매출인데 상세 VAT 음수 → H-9/H-10'
+                    WHEN '6303' THEN 'S-3 대표판정 · 매출인데 상세 실매출 음수 → H-9/H-10'
+                    WHEN '6305' THEN 'S-3 대표판정 · 매출인데 상세 할인 음수 → H-9'
+                    WHEN '6405' THEN 'S-3 대표판정 · 상품금액<할인 → H-9 · 케이스 3'
+                    WHEN '6505' THEN 'S-3 대표판정 · 총매출≠ERP 전송금액 → H-9'
+                    WHEN '5001' THEN 'S-3 대표판정 · SALE−DC≠REAL (상세행) → D-1'
+                    WHEN '5003' THEN 'S-3 대표판정 · 상세 할인≠DTL_DC 합 → D-1 · 케이스 3'
+                    WHEN 'NE01(참고)' THEN 'S-3 대표판정 · 최종 4자 대사 · 벤슨 미실행 참고'
+                    WHEN '(0건)' THEN 'S-3 대표판정 · 전표당 대표 코드 1개 · 0000 이어도 정상 아님 · 걸린 것 없음'
+                    ELSE 'S-3 대표판정 · 전표당 대표 코드 1개 · 0000 이어도 정상 아님' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT FIXED_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3017,7 +3116,15 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-1 ───── */
-  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT  2 AS 순번, 'H-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '1404' THEN 'S-3 안 (중복 집계) · 헤더 없음'
+                    WHEN '4404' THEN 'S-3 안 (중복 집계) · TB_SL_SALE_DTL 없음'
+                    WHEN '3404' THEN 'S-3 안 (중복 집계) · TB_SL_SALE_PAY_SEQ 없음'
+                    WHEN '4414' THEN 'S-3 안 (중복 집계) · TB_SL_SALE_HDR_PAY 없음 · 신규'
+                    WHEN '5404' THEN 'S-3 안 (중복 집계) · TB_SL_SALE_DTL_PAY 없음'
+                    WHEN '6404' THEN 'S-3 안 (중복 집계) · 헤더 할인≠0 인데 HDR_DC 없음'
+                    WHEN '7404' THEN 'S-3 안 (중복 집계) · 헤더 할인≠0 인데 DTL_DC 없음'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 존재 여부 · 헤더→하위 테이블 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 존재 여부 · 헤더→하위 테이블' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3063,7 +3170,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-2 ───── */
-  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '테이블' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT  3 AS 순번, 'H-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '테이블' AS 단위, CASE NVL(코드,'(0건)') WHEN 'ORPH' THEN 'S-3 밖 (추가 검사) · 헤더 없이 자식 테이블만 남은 고아행 (단위=테이블)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 고아 자식행 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 고아 자식행' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT CASE WHEN COUNT(*) > 0 THEN 'ORPH' END AS RESULT_CD, 'TB_SL_SALE_DTL' AS 테이블, COUNT(*) AS 고아행 FROM TB_SL_SALE_DTL x
@@ -3108,7 +3217,11 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-3 ───── */
-  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT  4 AS 순번, 'H-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '9211' THEN 'S-3 안 (중복 집계) · 매출인데 실매출 음수'
+                    WHEN '9212' THEN 'S-3 안 (중복 집계) · 반품인데 실매출 양수'
+                    WHEN '9023' THEN 'S-3 안 (중복 집계) · NET+VAT≠REAL → 케이스 4'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 헤더 항등식 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 헤더 항등식' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, SALE_DATE, POS_NO, BILL_NO, SALE_YN
@@ -3132,7 +3245,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-4 ───── */
-  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT  5 AS 순번, 'H-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '9024' THEN 'S-3 밖 (추가 검사) · 과세+면세≠REAL (TAX=0·NO_TAX=0 이면 H-5 VAT00 과 중복)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 헤더 과세/면세 항등식 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 헤더 과세/면세 항등식' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, SALE_YN
@@ -3148,7 +3263,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-5 ───── */
-  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT  6 AS 순번, 'H-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'VAT00' THEN 'S-3 밖 (추가 검사) · 헤더·상세·결제 세 곳 모두 VAT 0 → 케이스 4 [0-B]/[B-1] · 상호대사로 못 잡음'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 세 곳 모두 VAT 0 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 세 곳 모두 VAT 0' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN, h.DLVR_YN
@@ -3176,7 +3293,12 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-6 ───── */
-  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT  7 AS 순번, 'H-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '9001' THEN 'S-3 안 (중복 집계) · 총매출≠상세 합'
+                    WHEN '9002' THEN 'S-3 안 (중복 집계) · 총할인≠상세 할인 합'
+                    WHEN '9003' THEN 'S-3 안 (중복 집계) · VAT≠상세 VAT 합'
+                    WHEN '9004' THEN 'S-3 안 (중복 집계) · 실매출≠상세 실매출 합'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 헤더 vs 상세 합 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 헤더 vs 상세 합' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3218,7 +3340,12 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-7 ───── */
-  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT  8 AS 순번, 'H-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '8001' THEN 'S-3 안 (중복 집계) · 총할인≠SEQ 할인 (벤슨 외)'
+                    WHEN '8801' THEN 'S-3 안 (중복 집계) · 총할인≠SEQ 할인+ETC (벤슨) → 케이스 1·2'
+                    WHEN '8002' THEN 'S-3 안 (중복 집계) · VAT≠SEQ VAT 합 → 케이스 4 B-4'
+                    WHEN '8003' THEN 'S-3 안 (중복 집계) · 실매출≠SEQ 결제 합'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 헤더 vs PAY_SEQ 합 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 헤더 vs PAY_SEQ 합' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3272,7 +3399,11 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-8 ───── */
-  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT  9 AS 순번, 'H-8' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '7001' THEN 'S-3 안 (중복 집계) · 실매출≠HDR_PAY 합'
+                    WHEN '6001' THEN 'S-3 안 (중복 집계) · 총할인≠HDR_DC 합'
+                    WHEN '6002' THEN 'S-3 안 (중복 집계) · 총할인≠DTL_DC 합'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 헤더 vs HDR_PAY/HDR_DC/DTL_DC 합 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 헤더 vs HDR_PAY/HDR_DC/DTL_DC 합' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3314,7 +3445,14 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-9 ───── */
-  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT 10 AS 순번, 'H-9' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '6103' THEN 'S-3 안 (중복 집계) · 포인트(04) VAT≠0'
+                    WHEN '6102' THEN 'S-3 안 (중복 집계) · 매출인데 상세 VAT 음수 (헤더 SALE_YN 기준)'
+                    WHEN '6303' THEN 'S-3 안 (중복 집계) · 매출인데 상세 실매출 음수'
+                    WHEN '6305' THEN 'S-3 안 (중복 집계) · 매출인데 상세 할인 음수'
+                    WHEN '6405' THEN 'S-3 안 (중복 집계) · 상품금액<할인 → 케이스 3'
+                    WHEN '6505' THEN 'S-3 안 (중복 집계) · 총매출≠ERP 전송금액'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 상세 부호/할인/ERP · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 상세 부호/할인/ERP' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3360,7 +3498,15 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── H-10 ───── */
-  SELECT 11 AS 순번, 'H-10' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 11 AS 순번, 'H-10' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN '6102' THEN 'S-3 밖 (추가 검사) · 매출행인데 VAT 음수 (행 기준)'
+                    WHEN '6303' THEN 'S-3 밖 (추가 검사) · 매출행인데 실매출 음수 (행 기준)'
+                    WHEN '6112' THEN 'S-3 밖 (추가 검사) · 반품행인데 VAT 양수 · 신규'
+                    WHEN '6313' THEN 'S-3 밖 (추가 검사) · 반품행인데 실매출 양수 · 신규'
+                    WHEN '3211' THEN 'S-3 밖 (추가 검사) · 매출 결제행인데 PAY_AMT 음수 · 신규'
+                    WHEN '3212' THEN 'S-3 밖 (추가 검사) · 반품 결제행인데 PAY_AMT 양수 → 케이스 2 부호 · 신규'
+                    WHEN 'MIX' THEN 'S-3 밖 (추가 검사) · 헤더/상세 SALE_YN 불일치 · 신규'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 행 단위 양방향 부호 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 행 단위 양방향 부호' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT 'SIGN' AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.SALE_YN AS 헤더SALE_YN, h.REAL_SALE_AMT AS 헤더REAL, h.VAT_AMT AS 헤더VAT
@@ -3394,7 +3540,13 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-1 ───── */
-  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
+  SELECT 12 AS 순번, 'P-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, CASE NVL(코드,'(0건)') WHEN '3001' THEN 'S-3 밖 (행 단위) · 할인 결제(05/12) 금액≠상세'
+                    WHEN '3002' THEN 'S-3 밖 (행 단위) · 결제 금액≠상세 SALE_AMT'
+                    WHEN '3003' THEN 'S-3 밖 (행 단위) · 결제 VAT≠상세 VAT'
+                    WHEN '3004' THEN 'S-3 밖 (행 단위) · 결제상세 테이블 행 없음 · 신규'
+                    WHEN '3009' THEN 'S-3 밖 (행 단위) · 미지원 PAY_CD · 신규'
+                    WHEN '(0건)' THEN 'S-3 밖 (행 단위) · PAY_SEQ → 결제수단별 상세 대사 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (행 단위) · PAY_SEQ → 결제수단별 상세 대사' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3472,7 +3624,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-2 ───── */
-  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제상세행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 13 AS 순번, 'P-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제상세행' AS 단위, CASE NVL(코드,'(0건)') WHEN '3005' THEN 'S-3 밖 (추가 검사) · 결제상세는 있는데 PAY_SEQ 없음 → 케이스 2'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 결제상세 → PAY_SEQ 역방향 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 결제상세 → PAY_SEQ 역방향' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH PD AS (
@@ -3506,7 +3660,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-3 ───── */
-  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 14 AS 순번, 'P-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '결제행' AS 단위, CASE NVL(코드,'(0건)') WHEN 'PAY01' THEN 'S-3 밖 (추가 검사) · PAY_AMT≠TAX+NO_TAX → 케이스 4 B-4 (PAY_CD 18)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · PAY_SEQ 행 항등식 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · PAY_SEQ 행 항등식' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, PAY_SEQ, PAY_CD, LINE_NO
@@ -3523,7 +3679,14 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-4 ───── */
-  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, 'S-3 밖 (행 단위)' AS 비고
+  SELECT 15 AS 순번, 'P-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, CASE NVL(코드,'(0건)') WHEN '3101' THEN 'S-3 밖 (행 단위) · HDR_PAY 에 PAY_CD 없음'
+                    WHEN '3102' THEN 'S-3 밖 (행 단위) · PAY_CD 별 SUM(PAY_SEQ)≠HDR_PAY'
+                    WHEN '3201' THEN 'S-3 밖 (행 단위) · DTL_PAY 에 PAY_CD 없음'
+                    WHEN '3202' THEN 'S-3 밖 (행 단위) · PAY_CD 별 SUM(PAY_SEQ)≠SUM(DTL_PAY)'
+                    WHEN '3103' THEN 'S-3 밖 (행 단위) · HDR_PAY 에만 있고 PAY_SEQ 없음 · 역방향'
+                    WHEN '3203' THEN 'S-3 밖 (행 단위) · DTL_PAY 에만 있고 PAY_SEQ 없음 · 역방향'
+                    WHEN '(0건)' THEN 'S-3 밖 (행 단위) · PAY_CD 별 합계 대사 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (행 단위) · PAY_CD 별 합계 대사' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3587,7 +3750,11 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-5 ───── */
-  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 16 AS 순번, 'P-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표·PAY_CD' AS 단위, CASE NVL(코드,'(0건)') WHEN 'P01' THEN 'S-3 밖 (추가 검사) · TB_SL_SALE_PAY 없음'
+                    WHEN 'P02' THEN 'S-3 밖 (추가 검사) · PAY_SEQ 없음'
+                    WHEN 'P03' THEN 'S-3 밖 (추가 검사) · TB_SL_SALE_PAY≠PAY_SEQ 금액'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · TB_SL_SALE_PAY 대사 (검사대상 본사·PAY_CD 만) · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · TB_SL_SALE_PAY 대사 (검사대상 본사·PAY_CD 만)' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH MAP AS (
@@ -3646,7 +3813,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-6 ───── */
-  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 17 AS 순번, 'P-6' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, CASE NVL(코드,'(0건)') WHEN 'D001' THEN 'S-3 밖 (추가 검사) · 상세행 REAL≠DTL_PAY 합'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 상세행 결제 배분 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 상세행 결제 배분' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.BILL_DTL_NO, d.PROD_CD
@@ -3668,7 +3837,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── P-7 ───── */
-  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '영수증행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 18 AS 순번, 'P-7' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '영수증행' AS 단위, CASE NVL(코드,'(0건)') WHEN 'RCP01' THEN 'S-3 밖 (추가 검사) · 현금영수증만 있고 현금결제 없음'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 현금영수증 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 현금영수증' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.PAY_SEQ, r.PAY_CD
@@ -3690,7 +3861,10 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-1 ───── */
-  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 안 (중복 집계)' AS 비고
+  SELECT 19 AS 순번, 'D-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, CASE NVL(코드,'(0건)') WHEN '5001' THEN 'S-3 안 (중복 집계) · SALE−DC≠REAL (상세 행)'
+                    WHEN '5003' THEN 'S-3 안 (중복 집계) · 상세 할인≠DTL_DC 합 → 케이스 3'
+                    WHEN '(0건)' THEN 'S-3 안 (중복 집계) · 상세행 항등식 · 걸린 것 없음'
+                    ELSE 'S-3 안 (중복 집계) · 상세행 항등식' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT A.STORE_CD, A.SALE_DATE, A.POS_NO, A.BILL_NO, A.BILL_DTL_NO, A.PROD_CD
@@ -3720,7 +3894,12 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-2 ───── */
-  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
+  SELECT 20 AS 순번, 'D-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, CASE NVL(코드,'(0건)') WHEN '2404' THEN 'S-3 밖 (행 단위) · DTL 마이너스 (6303/6305 가 선점)'
+                    WHEN '2504' THEN 'S-3 밖 (행 단위) · DTL_DC 할인>상품금액'
+                    WHEN '2405' THEN 'S-3 밖 (행 단위) · 고아 할인행'
+                    WHEN '2406' THEN 'S-3 밖 (행 단위) · BILL_DTL_NO 별 할인 불일치'
+                    WHEN '(0건)' THEN 'S-3 밖 (행 단위) · DTL_DC 할인행 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (행 단위) · DTL_DC 할인행' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3771,7 +3950,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-3 ───── */
-  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 21 AS 순번, 'D-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '할인행' AS 단위, CASE NVL(코드,'(0건)') WHEN 'APP01' THEN 'S-3 밖 (추가 검사) · 배달할인 APP_DC_DESC 누락 (매장 1~2곳 몰림 · 전표 수 아님)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 배달할인 설명 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 배달할인 설명' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT d.STORE_CD, d.POS_NO, d.BILL_NO, d.SALE_YN, d.DC_CD, d.DC_AMT
@@ -3791,7 +3972,11 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── D-5 ───── */
-  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, 'S-3 밖 (행 단위)' AS 비고
+  SELECT 22 AS 순번, 'D-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '상세행' AS 단위, CASE NVL(코드,'(0건)') WHEN '5P04' THEN 'S-3 밖 (행 단위) · 상품마스터 없음'
+                    WHEN '5P12' THEN 'S-3 밖 (행 단위) · 구성상품 CLASS_CD NULL'
+                    WHEN '5P33' THEN 'S-3 밖 (행 단위) · 모상품에 구성상품 없음'
+                    WHEN '(0건)' THEN 'S-3 밖 (행 단위) · 상품/세트 마스터 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (행 단위) · 상품/세트 마스터' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -3837,7 +4022,14 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-1 ───── */
-  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '반품전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 23 AS 순번, 'R-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '반품전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'R01' THEN 'S-3 밖 (추가 검사) · 원거래키 없음'
+                    WHEN 'R02' THEN 'S-3 밖 (추가 검사) · 원거래 실재하지 않음'
+                    WHEN 'R03' THEN 'S-3 밖 (추가 검사) · 원거래도 반품'
+                    WHEN 'R04' THEN 'S-3 밖 (추가 검사) · 원거래 역링크 미설정'
+                    WHEN 'R05' THEN 'S-3 밖 (추가 검사) · 역링크 불일치'
+                    WHEN 'R06' THEN 'S-3 밖 (추가 검사) · 금액 부호/크기 불일치'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 반품 → 원거래 링크 (OK 제외) · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 반품 → 원거래 링크 (OK 제외)' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT CASE WHEN RESULT_CD<>'OK' THEN RESULT_CD END AS 코드 FROM (
             SELECT r.STORE_CD, r.POS_NO, r.BILL_NO, r.SALE_YN, r.REAL_SALE_AMT, r.REG_ID, r.REG_DT
@@ -3866,7 +4058,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── R-2 ───── */
-  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 24 AS 순번, 'R-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'R07' THEN 'S-3 밖 (추가 검사) · 매출인데 가리키는 반품 없음'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 매출 → 반품 역링크 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 매출 → 반품 역링크' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT o.STORE_CD, o.POS_NO, o.BILL_NO, o.SALE_YN, o.REAL_SALE_AMT, o.ORG_BILL_NO
@@ -3885,7 +4079,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-1 ───── */
-  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '매장' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 25 AS 순번, 'A-1' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '매장' AS 단위, CASE NVL(코드,'(0건)') WHEN 'AGG01' THEN 'S-3 밖 (추가 검사) · 헤더 합≠TB_SL_DAILY_TOTAL (단위=매장)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 일계 집계 대사 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 일계 집계 대사' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT t.STORE_CD, t.SALE_DATE
@@ -3905,7 +4101,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-2 ───── */
-  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 26 AS 순번, 'A-2' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'GST01' THEN 'S-3 밖 (추가 검사) · 인원수≠HDR_GUEST'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 객수 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 객수' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT h.STORE_CD, h.POS_NO, h.BILL_NO, h.TOT_GUEST_CNT
@@ -3928,7 +4126,9 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-3 ───── */
-  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 'POS' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 27 AS 순번, 'A-3' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, 'POS' AS 단위, CASE NVL(코드,'(0건)') WHEN 'SEQ01' THEN 'S-3 밖 (추가 검사) · BILL_NO 결번·중복 (단위=POS)'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 전표번호 연속성 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 전표번호 연속성' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, SALE_DATE, POS_NO, COUNT(*) AS 전표수
@@ -3947,7 +4147,11 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-4 ───── */
-  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, 'S-3 밖 (추가 검사)' AS 비고
+  SELECT 28 AS 순번, 'A-4' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'DT01' THEN 'S-3 밖 (추가 검사) · BILL_DT NULL'
+                    WHEN 'DT02' THEN 'S-3 밖 (추가 검사) · BILL_DT 미래 시각'
+                    WHEN 'DT03' THEN 'S-3 밖 (추가 검사) · BILL_DT 영업일과 2일 이상 차이'
+                    WHEN '(0건)' THEN 'S-3 밖 (추가 검사) · 전표 시각 · 걸린 것 없음'
+                    ELSE 'S-3 밖 (추가 검사) · 전표 시각' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             SELECT STORE_CD, POS_NO, BILL_NO, SALE_DATE, BILL_DT, REG_DT, REG_ID
@@ -3966,7 +4170,10 @@ SELECT 카드, 코드, 건수, 단위, 비고
    WHERE 코드 IS NOT NULL OR 카드총건수 = 0
   UNION ALL
   /* ───── A-5 ───── */
-  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, '참고 · 벤슨 미실행' AS 비고
+  SELECT 29 AS 순번, 'A-5' AS 카드, NVL(코드,'(0건)') AS 코드, 건수, '전표' AS 단위, CASE NVL(코드,'(0건)') WHEN 'NE01' THEN '참고 · 벤슨 미실행 · 최종 4자 대사 불일치 (참고)'
+                    WHEN 'NE01(참고)' THEN '참고 · 벤슨 미실행 · 최종 4자 대사 불일치 (참고)'
+                    WHEN '(0건)' THEN '참고 · 벤슨 미실행 · 최종 4자 대사 · 걸린 것 없음'
+                    ELSE '참고 · 벤슨 미실행 · 최종 4자 대사' END AS 비고
     FROM (SELECT 코드, COUNT(코드) AS 건수, SUM(COUNT(코드)) OVER () AS 카드총건수
             FROM (SELECT RESULT_CD AS 코드 FROM (
             WITH BILLS AS (
@@ -4003,8 +4210,8 @@ SELECT 카드, 코드, 건수, 단위, 비고
  ORDER BY 순번, 코드;`
 },
 
-qs4:{ tag:"S-4", kind:"SELECT", scope:"대상 본사", isNew:true, name:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4)",
-  desc:"[판별] 케이스 1~4 의 사전 확인 조건을 그대로 옮겨 '오늘 어느 케이스로 몇 건 가야 하나' 를 셉니다. FIX1 HDR_DC 02 있는데 쿠폰행 없음(케이스 1 [1]) · FIX2 쿠폰행 있는데 PAY12 없음(케이스 2 [C1]) · FIX3 판매금액 0 인데 할인 배분(케이스 3 [0-A]) · FIX4 실매출 있는데 VAT 0, 전액면세 제외(케이스 4 [0-B] 에 면세 제외를 더한 것). 케이스 5 의 검증 코드(8801 · 3005 · 6405 · VAT00)와 1:1 이 아닌 이유: 8801 은 케이스 1·2 대상을 합쳐서 잡고 DC 금액 0 은 못 잡음, 6405 는 |SALE|<|DC| 전부라 상위집합이고 전표 단위, VAT00 은 면세 제외라 [0-B] 보다 정확. 그래서 검증은 케이스 5 코드로, 수정 대상 확정은 이 카드(또는 각 케이스의 사전 확인 카드)로 봅니다. 할인코드는 공통 조건 DC_CD 를 따릅니다. [상세] 케이스별 수정 대상 전표 키. 이걸 들고 해당 케이스로 가면 사전 확인 카드에 같은 목록이 넣을 값과 함께 나옵니다.",
+qs4:{ tag:"S-4", kind:"SELECT", scope:"대상 본사", isNew:true, name:"케이스 1~4 수정 대상 건수 — 오늘 어느 케이스로 몇 건 (FIX1 ~ FIX4 · FIX4T)",
+  desc:"[판별] 케이스 1~4 의 사전 확인 조건을 그대로 옮겨 '오늘 어느 케이스로 몇 건 가야 하나' 를 셉니다. FIX1 HDR_DC 02 있는데 쿠폰행 없음(케이스 1 [1]) · FIX2 쿠폰행 있는데 PAY12 없음(케이스 2 [C1]) · FIX3 판매금액 0 인데 할인 배분(케이스 3 [0-A]) · FIX4 실매출 있는데 VAT 0, 전액면세 제외(케이스 4 [0-B] 에 면세 제외를 더한 것) · FIX4T 가승인(TB_SL_SALE_PAY_TEMPORARY) SALE_AMT 있는데 VAT 0, 전액면세 제외(케이스 4 [0-F]). FIX4T 는 헤더·PAY_SEQ 가 정상이어도 가승인만 0 이면 잡히므로 FIX4/VAT00 과 겹치지 않는 건이 나올 수 있습니다. 케이스 5 의 검증 코드(8801 · 3005 · 6405 · VAT00)와 1:1 이 아닌 이유: 8801 은 케이스 1·2 대상을 합쳐서 잡고 DC 금액 0 은 못 잡음, 6405 는 |SALE|<|DC| 전부라 상위집합이고 전표 단위, VAT00 은 면세 제외라 [0-B] 보다 정확. 그래서 검증은 케이스 5 코드로, 수정 대상 확정은 이 카드(또는 각 케이스의 사전 확인 카드)로 봅니다. 할인코드는 공통 조건 DC_CD 를 따릅니다. [상세] 케이스별 수정 대상 전표 키. 이걸 들고 해당 케이스로 가면 사전 확인 카드에 같은 목록이 넣을 값과 함께 나옵니다.",
   sql:
 `/* ═══ [판별] 케이스 1~4 수정 대상 건수 — 각 케이스의 사전 확인 조건 그대로 (FIX1 · FIX2 · FIX3 · FIX4) ═══ */
 SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액합
@@ -4020,7 +4227,7 @@ SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액�
                         WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD
                           AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                           AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
-                          AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                          AND c.REG_SEQ=d.REG_SEQ)
     UNION ALL
     /* 케이스 2 · 쿠폰행 있는데 PAY_SEQ PAY_CD=12 없음 → [C2] 결제행 생성 */
     SELECT '케이스 2', 'FIX2', '쿠폰행', c.DC_AMT
@@ -4051,6 +4258,18 @@ SELECT 케이스, RESULT_CD, COUNT(*) AS 건수, 단위, SUM(금액) AS 금액�
 {{LINE:extra:h}}
        AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
        AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+    UNION ALL
+    /* 케이스 4 · 가승인 SALE_AMT 있는데 VAT 0 (전액면세 제외) → [0-F]/[B-3] 가승인 보정. 헤더·PAY_SEQ 가 정상이어도 잡힘 */
+    SELECT '케이스 4', 'FIX4T', '가승인행', t.SALE_AMT
+      FROM TB_SL_SALE_PAY_TEMPORARY t
+      LEFT JOIN TB_SL_SALE_HDR h
+        ON  h.HQ_OFFICE_CD=t.HQ_OFFICE_CD AND h.STORE_CD=t.STORE_CD AND h.SALE_DATE=t.SALE_DATE
+        AND h.POS_NO=t.POS_NO AND h.BILL_NO=t.BILL_NO
+     WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
+{{LINE:store:t}}
+{{LINE:extra:t}}
+       AND t.SALE_AMT <> 0 AND NVL(t.VAT_AMT,0) = 0
+       AND NVL(h.NO_TAX_SALE_AMT,0) <> NVL(h.REAL_SALE_AMT,-1)
   )
  GROUP BY 케이스, RESULT_CD, 단위
  ORDER BY 케이스;
@@ -4064,7 +4283,7 @@ SELECT '케이스 1' AS 케이스, 'FIX1' AS RESULT_CD, d.STORE_CD, d.SALE_DATE,
    AND d.DC_CD = '{{DC}}'
    AND NOT EXISTS (SELECT 1 FROM TB_SL_SALE_PAY_COUPN c
                     WHERE c.HQ_OFFICE_CD=d.HQ_OFFICE_CD AND c.HQ_BRAND_CD=d.HQ_BRAND_CD AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
-                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
+                      AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO AND c.REG_SEQ=d.REG_SEQ)
 UNION ALL
 SELECT '케이스 2', 'FIX2', c.STORE_CD, c.SALE_DATE, c.POS_NO, c.BILL_NO, c.LINE_NO, c.SALE_YN, c.DC_AMT
   FROM TB_SL_SALE_PAY_COUPN c
@@ -4090,6 +4309,17 @@ SELECT '케이스 4', 'FIX4', h.STORE_CD, h.SALE_DATE, h.POS_NO, h.BILL_NO, NULL
 {{LINE:extra:h}}
    AND h.REAL_SALE_AMT <> 0 AND NVL(h.VAT_AMT,0) = 0
    AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT
+UNION ALL
+SELECT '케이스 4', 'FIX4T', t.STORE_CD, t.SALE_DATE, t.POS_NO, t.BILL_NO, TO_CHAR(t.LINE_NO), h.SALE_YN, t.SALE_AMT
+  FROM TB_SL_SALE_PAY_TEMPORARY t
+  LEFT JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD=t.HQ_OFFICE_CD AND h.STORE_CD=t.STORE_CD AND h.SALE_DATE=t.SALE_DATE
+    AND h.POS_NO=t.POS_NO AND h.BILL_NO=t.BILL_NO
+ WHERE t.HQ_OFFICE_CD = '{{HQ}}' AND t.{{OPT:datecond}}
+{{LINE:store:t}}
+{{LINE:extra:t}}
+   AND t.SALE_AMT <> 0 AND NVL(t.VAT_AMT,0) = 0
+   AND NVL(h.NO_TAX_SALE_AMT,0) <> NVL(h.REAL_SALE_AMT,-1)
  ORDER BY 1, 3, 4, 5, 6, 7;`
 },
 
@@ -6440,6 +6670,7 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    FIX2  케이스 2 대상. PAY_COUPN 행 있는데 PAY_SEQ 12 행 없음 (LINE_NO 매칭).  → 케이스 2 [C1]/[C2]
    FIX3  케이스 3 대상. DTL SALE_AMT=0 AND DC_AMT<>0.  → 케이스 3 [0-A]/[A-1]
    FIX4  케이스 4 대상. 헤더 REAL<>0 AND VAT=0 AND 전액면세 아님.  → 케이스 4 [0-B]/[B-1]
+   FIX4T 케이스 4 대상. 가승인 SALE_AMT<>0 AND VAT=0 AND 전액면세 아님 (헤더·PAY_SEQ 정상이어도 잡힘).  → 케이스 4 [0-F]/[B-3]
 
    ■ 존재 여부  [H-1]   프로시저 GET_SALE_DATA. 헤더를 읽고 하위 테이블을 차례로 읽는 단계.
    1404  헤더 없음.            TOT_SALE_AMT IS NULL.  헤더가 아예 없거나 금액 NULL.            원인: POS 전송 누락.        조치: POS 재전송/케이스 6.        O

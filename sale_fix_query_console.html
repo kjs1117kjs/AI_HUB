@@ -436,7 +436,7 @@ q04:{ tag:'0-4', kind:'SELECT', scope:'전사 표본', isNew:true, name:'전표�
 q1:{ tag:'1', kind:'SELECT', scope:'대상 본사', name:'대상 전표 목록',
   desc:'HDR_DC 에는 있는데 PAY_COUPN 에는 없는 전표. COUPN_NM 이 NULL 이면 마스터에 없는 코드라 [2] 에서도 빠집니다.',
   sql:
-`SELECT d.STORE_CD, s.STORE_NM, d.POS_NO, d.BILL_NO, d.REG_SEQ,
+`SELECT d.STORE_CD, s.STORE_NM, d.SALE_DATE, d.POS_NO, d.BILL_NO, d.REG_SEQ,
        d.SALE_YN, d.SALE_FG,
        d.DC_AMT                       AS HDR_DC_AMT,
        d.DC_REASON_CD,
@@ -462,7 +462,7 @@ q1:{ tag:'1', kind:'SELECT', scope:'대상 본사', name:'대상 전표 목록',
                       AND c.STORE_CD=d.STORE_CD AND c.SALE_DATE=d.SALE_DATE
                       AND c.POS_NO=d.POS_NO AND c.BILL_NO=d.BILL_NO
                       AND c.REG_SEQ=d.REG_SEQ AND c.DC_CD=d.DC_CD)
- ORDER BY d.STORE_CD, d.POS_NO, d.BILL_NO;`
+ ORDER BY d.STORE_CD, d.SALE_DATE, d.POS_NO, d.BILL_NO;`
 },
 
 q2:{ tag:'2', kind:'INSERT', scope:'대상 본사', name:'쿠폰 결제행 생성 (전표당 1행)',

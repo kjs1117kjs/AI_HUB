@@ -240,6 +240,10 @@ table.inv tr:hover td{background:var(--surface-1)}
       <input type="checkbox" id="prodFilter" checked>
       <label for="prodFilter">매장 지정 상품만 내리기<em>TB_HQ_PRODUCT_STORE 에 매핑된 상품만 복사</em></label>
     </div>
+    <div class="chk danger">
+      <input type="checkbox" id="allowDiffHq">
+      <label for="allowDiffHq">본사 달라도 매장 복사 허용<em>매장 → 매장 전용. HQ_OFFICE_CD 컬럼은 대상 매장의 본사코드로 바꿔 넣습니다. 브랜드 등 본사 코드값은 별도 확인</em></label>
+    </div>
   </fieldset>
 
   <fieldset>
@@ -279,8 +283,8 @@ table.inv tr:hover td{background:var(--surface-1)}
         <p>백트레이스를 남기고 기본값으로 즉시 중단합니다. 기존 두 패키지 모두 WHEN OTHERS로 오류를 뭉갰고, PKG_MS_STORE_COPY 는 RAISE_APPLICATION_ERROR 다음 줄에 ROLLBACK 을 둬서 그 줄이 실행되지 않았습니다.</p>
       </div></div>
       <div class="row"><span class="n">05</span><div>
-        <strong>트랜잭션은 호출자가 결정</strong>
-        <p>프로시저 안에서 COMMIT / ROLLBACK 하지 않습니다. 나눠담기 모드만 예외입니다.</p>
+        <strong>트랜잭션은 G_COMMIT_YN 하나로 결정</strong>
+        <p>테이블마다 COMMIT 하지 않습니다. 한 방향 복사가 끝난 자리에서 G_COMMIT_YN 이 Y 면 COMMIT, 아니면 ROLLBACK 합니다. 오류로 중단돼도 ROLLBACK 하고 요약을 남깁니다. 나눠담기 모드만 묶음마다 COMMIT 합니다.</p>
       </div></div>
       <div class="row"><span class="n">06</span><div>
         <strong>세 가지 모드</strong>
@@ -296,7 +300,7 @@ table.inv tr:hover td{background:var(--surface-1)}
       </div></div>
       <div class="row"><span class="n">09</span><div>
         <strong>세 방향이 한 줄</strong>
-        <p>SP_HQ2HQ · SP_HQ2MS · SP_MS2MS 가 복사 순서와 사전검증을 들고 있습니다. 본사·매장 소속 검증, 상품 필터, 확정 여부까지 안에서 처리합니다. 일부만 하고 싶으면 테이블 목록을 넘기면 됩니다.</p>
+        <p>SP_HQ2HQ · SP_HQ2MS · SP_MS2MS 가 복사 순서와 사전검증을 들고 있습니다. 본사·매장 소속 검증, 상품 필터, 확정 여부까지 안에서 처리합니다. 매장 → 매장은 G_ALLOW_DIFF_HQ 로 다른 본사끼리도 허용할 수 있습니다. 일부만 하고 싶으면 테이블 목록을 넘기면 됩니다.</p>
       </div></div>
       <div class="row"><span class="n">10</span><div>
         <strong>POS 번호 매핑</strong>
@@ -440,7 +444,7 @@ table.inv tr:hover td{background:var(--surface-1)}
 
   <!-- ============ 매장 → 매장 ============ -->
   <section class="pane" id="pane-m2m">
-    <p class="lead">원본 매장의 기준정보와 환경을 <b>대상 매장</b>으로 복사합니다. 두 매장은 같은 본사 소속이어야 하고, 엔진이 이를 검사한 뒤 아니면 멈춥니다. POS 번호가 들어가는 표는 대상 매장의 POS 구성에 맞춰 번호를 바꿔 옮깁니다.</p>
+    <p class="lead">원본 매장의 기준정보와 환경을 <b>대상 매장</b>으로 복사합니다. 두 매장은 기본으로 같은 본사 소속이어야 하고, 엔진이 이를 검사한 뒤 아니면 멈춥니다. 왼쪽 <b>본사 달라도 매장 복사 허용</b>을 켜면 계속 진행하되 <span class="mono">HQ_OFFICE_CD</span> 컬럼은 대상 매장의 본사코드로 바꿔 넣습니다. POS 번호가 들어가는 표는 대상 매장의 POS 구성에 맞춰 번호를 바꿔 옮깁니다.</p>
     <div class="note">
       <b>기존 PKG_MS_STORE_COPY 에서 확인된 문제</b>
       같은 일을 하는 기존 패키지가 있습니다. 그대로 쓰려면 아래를 먼저 고치세요.
@@ -487,6 +491,10 @@ table.inv tr:hover td{background:var(--surface-1)}
 
    기본값이 G_EXEC_YN='N' 이라 위 호출은 SQL 을 출력만 합니다.
    반영하려면 G_EXEC_YN='Y', 확정하려면 G_COMMIT_YN='Y' 로 둡니다.
+
+   매장->매장은 기본으로 같은 본사끼리만 허용합니다.
+   본사가 달라도 복사하려면 G_ALLOW_DIFF_HQ='Y' 로 둡니다. 이때 HQ_OFFICE_CD
+   컬럼이 있는 표는 대상 매장의 본사코드로 바꿔 넣습니다.
 
    [기존 PKG_CM_COPY_GEN 에서 고친 것]
    1. 감사컬럼 타입 자동 판별. VARCHAR2 면 TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
@@ -618,6 +626,7 @@ CREATE OR REPLACE PACKAGE PKG_CM_COPY_V2 AS
     G_STOP_ON_ERR CHAR(1)       := 'Y';        /* 오류 시 즉시 중단         */
     G_PRINT_SQL   CHAR(1)       := 'Y';        /* 조립한 SQL 출력           */
     G_PROD_FILTER CHAR(1)       := 'Y';        /* 본사->매장 상품 매핑 필터 */
+    G_ALLOW_DIFF_HQ CHAR(1)     := 'N';        /* 매장->매장 본사 달라도 허용 */
     G_DT_FMT      VARCHAR2(30)  := 'YYYYMMDDHH24MISS';
     G_PREVIEW_YN  CHAR(1)       := 'N';        /* Y = 건수만 세고 끝냄       */
     G_LOG_YN      CHAR(1)       := 'Y';        /* 출력을 메모리에도 보관     */
@@ -1254,10 +1263,15 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
     PROCEDURE SP_SLEEP IS
     BEGIN
         IF G_SLEEP_SEC > 0 THEN
-            EXECUTE IMMEDIATE 'BEGIN DBMS_LOCK.SLEEP(:1); END;' USING G_SLEEP_SEC;
+            BEGIN
+                EXECUTE IMMEDIATE 'BEGIN DBMS_SESSION.SLEEP(:1); END;' USING G_SLEEP_SEC;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    EXECUTE IMMEDIATE 'BEGIN DBMS_LOCK.SLEEP(:1); END;' USING G_SLEEP_SEC;
+            END;
         END IF;
     EXCEPTION
-        WHEN OTHERS THEN NULL;   /* DBMS_LOCK 권한이 없으면 대기 없이 진행 */
+        WHEN OTHERS THEN NULL;   /* 둘 다 없으면 대기 없이 진행 */
     END SP_SLEEP;
 
 
@@ -1683,6 +1697,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
             P('--           (기존 구현은 여기서 대상 설정만 지웠습니다)');
             P(' ');
             G_TOT_SKIP := G_TOT_SKIP + 1;
+            SP_MAP_CLEAR;
             RETURN;
         END IF;
 
@@ -2165,8 +2180,9 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
           , 'TB_MS_PROMO_H', 'TB_MS_PROMO_CONDI', 'TB_MS_PROMO_CONDI_PROD'
           , 'TB_MS_PROMO_BENE'
           , 'TB_MS_NEOE_PROMO', 'TB_MS_NEOE_PROMO_BENE_PROD'
-          , 'TB_MS_POS_ADVER_FILE'
-          , 'TB_WB_STORE_CONFG_XML', 'TB_WB_POS_CONFG_XML' );
+          , 'TB_MS_POS_ADVER_FILE' );
+        /* TB_WB_STORE_CONFG_XML / TB_WB_POS_CONFG_XML 은 XML 안에 POS 번호가
+           얽혀 있어 기본 목록에서 뺐습니다. 필요하면 목록으로 직접 넘기십시오. */
     END FN_LIST_M2M;
 
 
@@ -2202,6 +2218,19 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         END IF;
         P(' ');
     END SP_FINISH;
+
+
+    /* 오류로 중단될 때 : 요약을 남기고 되돌립니다 (나눠담기로 이미 COMMIT 된 것은 예외) */
+    PROCEDURE SP_ABORT IS
+    BEGIN
+        P('-- !! 오류로 중단합니다.');
+        SP_SUMMARY;
+        IF G_EXEC_YN = 'Y' THEN
+            ROLLBACK;
+            P('-- 확정되지 않은 변경은 ROLLBACK 했습니다.');
+        END IF;
+        P(' ');
+    END SP_ABORT;
 
 
     /* ==================================================================
@@ -2241,6 +2270,10 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         END LOOP;
 
         SP_FINISH;
+    EXCEPTION
+        WHEN OTHERS THEN
+            SP_ABORT;
+            RAISE;
     END SP_HQ2HQ;
 
 
@@ -2312,6 +2345,10 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         P(' ');
 
         SP_FINISH;
+    EXCEPTION
+        WHEN OTHERS THEN
+            SP_ABORT;
+            RAISE;
     END SP_HQ2MS;
 
 
@@ -2325,6 +2362,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         V_LIST   SYS.ODCIVARCHAR2LIST;
         V_SRC_HQ VARCHAR2(30);
         V_TGT_HQ VARCHAR2(30);
+        V_DIFF   BOOLEAN := FALSE;
     BEGIN
         IF PI_TABLES IS NULL THEN
             V_LIST := FN_LIST_M2M;
@@ -2353,12 +2391,28 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         END;
 
         IF V_SRC_HQ <> V_TGT_HQ THEN
-            RAISE_APPLICATION_ERROR(-20005,
-                '본사가 다릅니다. ' || PI_SRC_STORE || '=' || V_SRC_HQ ||
-                ' / ' || PI_TGT_STORE || '=' || V_TGT_HQ || ' -> 복사 금지.');
+            IF G_ALLOW_DIFF_HQ = 'Y' THEN
+                V_DIFF := TRUE;
+                P('-- !! WARN : 본사가 다릅니다. ' || PI_SRC_STORE || '=' || V_SRC_HQ
+                  || ' / ' || PI_TGT_STORE || '=' || V_TGT_HQ);
+                P('--           G_ALLOW_DIFF_HQ = Y 라 계속합니다.');
+                P('--           HQ_OFFICE_CD 컬럼이 있는 표는 ' || V_TGT_HQ || ' 로 바꿔 넣습니다.');
+                P('--           MS_BRAND_CD 등 본사 코드값은 대상 본사에 있는지 따로 확인하십시오.');
+                P(' ');
+            ELSE
+                RAISE_APPLICATION_ERROR(-20005,
+                    '본사가 다릅니다. ' || PI_SRC_STORE || '=' || V_SRC_HQ ||
+                    ' / ' || PI_TGT_STORE || '=' || V_TGT_HQ ||
+                    ' -> 복사 금지. 허용하려면 G_ALLOW_DIFF_HQ := ''Y''.');
+            END IF;
         END IF;
 
         FOR I IN 1 .. V_LIST.COUNT LOOP
+            /* 본사가 다르면 HQ_OFFICE_CD 는 대상 본사코드로 */
+            IF V_DIFF AND FN_HAS_COL(V_LIST(I), 'HQ_OFFICE_CD') THEN
+                SP_MAP_ADD('HQ_OFFICE_CD', FN_Q(V_TGT_HQ));
+            END IF;
+
             IF G_POSTAB.EXISTS(V_LIST(I)) THEN
                 SP_COPY_POS(V_LIST(I), PI_SRC_STORE, PI_TGT_STORE);
             ELSE
@@ -2367,6 +2421,10 @@ CREATE OR REPLACE PACKAGE BODY PKG_CM_COPY_V2 AS
         END LOOP;
 
         SP_FINISH;
+    EXCEPTION
+        WHEN OTHERS THEN
+            SP_ABORT;
+            RAISE;
     END SP_MS2MS;
 
 
@@ -2431,8 +2489,7 @@ const H2H = [
 
 const H2M = [
   ['환경 / 코드', [
-    ['TB_HQ_ENVST','TB_MS_STORE_ENVST',false],
-    ['TB_HQ_NMCODE','TB_MS_STORE_NMCODE',false,'USE_TARGET_FG 규칙 다름']
+    ['TB_HQ_ENVST','TB_MS_STORE_ENVST',false]
   ]],
   ['상품', [
     ['TB_HQ_PRODUCT','TB_MS_PRODUCT',true,'REG_FG 를 H 로 지정'],
@@ -2590,8 +2647,8 @@ const INV = [
   ['TB_MS_KIOSK_M_CLS','〃 + M_CLS_CD',''],
   ['TB_MS_KIOSK_CLS','〃 + CLS_CD',''],
   ['TB_MS_KIOSK_KEY','〃 + CLS_CD + KEY_NO',''],
-  ['TB_WB_STORE_CONFG_XML','STORE_CD + CONFG_FG + GRP_CD','판매터치키 XML. 별도 이관',1],
-  ['TB_WB_POS_CONFG_XML','STORE_CD + POS_NO + CONFG_FG','포스기능키 XML. 별도 이관',1],
+  ['TB_WB_STORE_CONFG_XML','STORE_CD + CONFG_FG + GRP_CD','판매터치키 XML. 기본 목록 제외, 별도 이관',1],
+  ['TB_WB_POS_CONFG_XML','STORE_CD + POS_NO + CONFG_FG','포스기능키 XML. 기본 목록 제외, 별도 이관',1],
   ['TB_MS_TABLE','STORE_CD + TABLE_NO',''],
   ['TB_MS_TABLE_GROUP','STORE_CD + TABLE_GRP_CD',''],
   ['TB_MS_TABLE_ATTR','STORE_CD + TABLE_NO','']
@@ -2639,6 +2696,7 @@ function cfg(){
     srcHq: q('srcHq'), tgtHq: q('tgtHq'),
     srcStore: q('srcStore'), tgtStore: q('tgtStore'),
     prodFilter: $('#prodFilter').checked,
+    allowDiffHq: $('#allowDiffHq').checked,
     bkTail: '_' + (q('bkDate')||'00000000') + '_' + (q('bkSeq')||'001')
   };
 }
@@ -2673,19 +2731,21 @@ function engineSetup(c, indent){
            + (c.exec === 'N' ? '   /* 출력만 */' : '   /* ★ 실제로 반영됩니다 */'));
   L.push(p + "PKG_CM_COPY_V2.G_COMMIT_YN   := '" + (c.commit ? 'Y' : 'N') + "';");
   L.push(p + "PKG_CM_COPY_V2.G_STOP_ON_ERR := '" + c.stopErr + "';");
-  if (c.preview){
-    L.push(p + "PKG_CM_COPY_V2.G_PREVIEW_YN  := 'Y';   /* 세어만 봅니다 */");
-  }
-  if (c.batch){
-    L.push(p + 'PKG_CM_COPY_V2.G_BATCH_SIZE  := ' + c.batchSize + ';   /* 묶음마다 COMMIT */');
-    L.push(p + 'PKG_CM_COPY_V2.G_SLEEP_SEC   := ' + c.sleepSec + ';');
-  }
+  /* 패키지 변수는 세션 동안 남으므로 항상 명시해 이전 값이 새지 않게 합니다 */
+  L.push(p + "PKG_CM_COPY_V2.G_PREVIEW_YN  := '" + (c.preview ? 'Y' : 'N') + "';"
+           + (c.preview ? '   /* 세어만 봅니다 */' : ''));
+  L.push(p + 'PKG_CM_COPY_V2.G_BATCH_SIZE  := ' + (c.batch ? c.batchSize : '0') + ';'
+           + (c.batch ? '   /* 묶음마다 COMMIT */' : ''));
+  L.push(p + 'PKG_CM_COPY_V2.G_SLEEP_SEC   := ' + (c.batch ? c.sleepSec : '0') + ';');
   return L.join('\n');
 }
 
 /* 선택한 테이블이 기본 목록과 같으면 생략, 다르면 명시적으로 넘긴다 */
 function tableArg(list, full, indent){
-  if (list.length === full.length) return '';
+  const same = Array.isArray(full)
+    ? (list.length === full.length && list.every((t,i) => t === full[i]))
+    : (list.length === full.length);
+  if (same) return '';
   const p = ' '.repeat(indent);
   const head = ', SYS.ODCIVARCHAR2LIST( ';
   const cont = ' '.repeat(head.length - 2) + ', ';
@@ -2926,6 +2986,14 @@ function genEng(c){
      '/',
      '',
      '',
+     '/* 본사가 다른 매장끼리 (HQ_OFFICE_CD 는 대상 본사로 바뀝니다) */',
+     'BEGIN',
+     "    PKG_CM_COPY_V2.G_ALLOW_DIFF_HQ := 'Y';",
+     "    PKG_CM_COPY_V2.SP_MS2MS('" + c.srcStore + "', '" + c.tgtStore + "');",
+     'END;',
+     '/',
+     '',
+     '',
      '/* 일부 테이블만 */',
      'BEGIN',
      "    PKG_CM_COPY_V2.SP_HQ2HQ('" + c.srcHq + "', '" + c.tgtHq + "'",
@@ -2980,28 +3048,10 @@ function genH2H(c){
         {from:c.schema+t, wh:"HQ_OFFICE_CD = '"+c.tgtHq+"'", as:'TGT_CNT'}
       ]})), '복사 전 건수')});
 
-  out.push({t:'백업', s:'대상 본사 ' + c.tgtHq + ' 의 현재 상태', b:'b1',
-    sql: bkBlock(c, tabs, 'HQ_OFFICE_CD', c.tgtHq, '대상 본사 ' + c.tgtHq)});
-
-  const flatAll = H2H.reduce((a,[,it])=>a+it.length,0);
-  const L = [];
-  L.push('/* [1] 복사 실행 — 순서 · 검증 · 확정까지 엔진이 합니다 */');
-  L.push('SET SERVEROUTPUT ON SIZE UNLIMITED');
-  L.push('BEGIN');
-  L.push(engineSetup(c, 4));
-  L.push('');
-  L.push("    PKG_CM_COPY_V2.SP_HQ2HQ( '" + c.srcHq + "', '" + c.tgtHq + "'"
-         + tableArg(tabs, {length:flatAll}, 4) + " );");
-  L.push('END;');
-  L.push('/');
-  if (tabs.length !== flatAll){
-    L.push('');
-    L.push('-- 목록을 넘기지 않으면 엔진 기본 순서(FN_LIST_H2H) 전체가 돕니다.');
-  }
   out.push({t:'참조 점검', s:'원본이 쓰는 코드값이 대상 본사에 있는지', b:'b3', sql:
     ['/* [0-3] FK 를 읽어 자동으로 검사합니다. SELECT 만 합니다.',
      '   예) TB_HQ_PRODUCT 의 HQ_BRAND_CD 가 가리키는 브랜드가',
-     '       대상 본사 " + c.tgtHq + " 에 없으면 여기서 잡힙니다. */',
+     '       대상 본사 ' + c.tgtHq + ' 에 없으면 여기서 잡힙니다. */',
      'SET SERVEROUTPUT ON SIZE UNLIMITED',
      'BEGIN',
      "    PKG_CM_COPY_V2.G_OWNER := '" + c.schemaRaw + "';",
@@ -3016,26 +3066,24 @@ function genH2H(c){
      '-- 문제가 나오면 그 부모 테이블을 먼저 복사하거나 값을 만들어 두세요.',
      '-- 확인용 SELECT 문이 함께 출력되니 어떤 값이 없는지 바로 볼 수 있습니다.'].join('\n')});
 
-  out.push({t:'컬럼 · 타입 점검', s:'대상이 더 좁아 잘릴 컬럼을 찾습니다', sql:
-    ['/* [0-4] 같은 이름인데 타입이 다르거나 대상이 좁은 컬럼.',
-     '   그대로 두면 실행 중 ORA-12899 로 죽습니다. */',
-     'SELECT S.TABLE_NAME, S.COLUMN_NAME',
-     '     , S.DATA_TYPE || \'(\' || S.CHAR_LENGTH || \')\' AS SRC_TYPE',
-     '     , T.DATA_TYPE || \'(\' || T.CHAR_LENGTH || \')\' AS TGT_TYPE',
-     '  FROM ALL_TAB_COLUMNS S',
-     '     , ALL_TAB_COLUMNS T',
-     " WHERE S.OWNER       = '" + c.schemaRaw + "'",
-     " AND   T.OWNER       = '" + c.schemaRaw + "'",
-     "   AND S.TABLE_NAME LIKE 'TB_HQ%'",
-     "   AND T.TABLE_NAME  = REPLACE(S.TABLE_NAME, 'TB_HQ_', 'TB_MS_')",
-     '   AND T.COLUMN_NAME = S.COLUMN_NAME',
-     '   AND ( S.DATA_TYPE <> T.DATA_TYPE',
-     "      OR ( S.DATA_TYPE IN ('CHAR','VARCHAR2')",
-     '           AND NVL(T.CHAR_LENGTH,0) < NVL(S.CHAR_LENGTH,0) ) )',
-     ' ORDER BY 1, 2;',
-     '',
-     '-- 엔진도 복사할 때마다 같은 검사를 하고 -- !! 타입 : 으로 경고합니다.'].join('\n')});
+  out.push({t:'백업', s:'대상 본사 ' + c.tgtHq + ' 의 현재 상태', b:'b1',
+    sql: bkBlock(c, tabs, 'HQ_OFFICE_CD', c.tgtHq, '대상 본사 ' + c.tgtHq)});
 
+  const flatAll = H2H.reduce((a,it)=>a.concat(it[1].map(x=>x[0])),[]);
+  const L = [];
+  L.push('/* [1] 복사 실행 — 순서 · 검증 · 확정까지 엔진이 합니다 */');
+  L.push('SET SERVEROUTPUT ON SIZE UNLIMITED');
+  L.push('BEGIN');
+  L.push(engineSetup(c, 4));
+  L.push('');
+  L.push("    PKG_CM_COPY_V2.SP_HQ2HQ( '" + c.srcHq + "', '" + c.tgtHq + "'"
+         + tableArg(tabs, flatAll, 4) + " );");
+  L.push('END;');
+  L.push('/');
+  if (tabs.length !== flatAll.length){
+    L.push('');
+    L.push('-- 목록을 넘기지 않으면 엔진 기본 순서(FN_LIST_H2H) 전체가 돕니다.');
+  }
   out.push({t: c.preview ? '예상 건수 보기' : '복사 실행 블록',
     s:tabs.length + '개 · ' + MODE_TXT[c.mode] + (c.preview ? ' · 세어만 봄' : ' · G_EXEC_YN = ' + c.exec)
       + (c.batch && !c.preview ? ' · 나눠담기 ' + c.batchSize : ''),
@@ -3091,10 +3139,30 @@ function genH2M(c){
       pairs.map(p => "    PKG_CM_COPY_V2.SP_DIFF('" + pad(p[0]+"'", 32) + ", '" + p[1] + "');")
      ).concat(['','END;','/']).join('\n')});
 
+  out.push({t:'컬럼 · 타입 점검', s:'대상이 더 좁아 잘릴 컬럼을 찾습니다', sql:
+    ['/* [0-2b] 같은 이름인데 타입이 다르거나 대상이 좁은 컬럼.',
+     '   그대로 두면 실행 중 ORA-12899 로 죽습니다. */',
+     'SELECT S.TABLE_NAME, S.COLUMN_NAME',
+     '     , S.DATA_TYPE || \'(\' || S.CHAR_LENGTH || \')\' AS SRC_TYPE',
+     '     , T.DATA_TYPE || \'(\' || T.CHAR_LENGTH || \')\' AS TGT_TYPE',
+     '  FROM ALL_TAB_COLUMNS S',
+     '     , ALL_TAB_COLUMNS T',
+     " WHERE S.OWNER       = '" + c.schemaRaw + "'",
+     " AND   T.OWNER       = '" + c.schemaRaw + "'",
+     "   AND S.TABLE_NAME LIKE 'TB_HQ%'",
+     "   AND T.TABLE_NAME  = REPLACE(S.TABLE_NAME, 'TB_HQ_', 'TB_MS_')",
+     '   AND T.COLUMN_NAME = S.COLUMN_NAME',
+     '   AND ( S.DATA_TYPE <> T.DATA_TYPE',
+     "      OR ( S.DATA_TYPE IN ('CHAR','VARCHAR2')",
+     '           AND NVL(T.CHAR_LENGTH,0) < NVL(S.CHAR_LENGTH,0) ) )',
+     ' ORDER BY 1, 2;',
+     '',
+     '-- 엔진도 복사할 때마다 같은 검사를 하고 -- !! 타입 : 으로 경고합니다.'].join('\n')});
+
   out.push({t:'백업', s:'대상 매장 ' + c.tgtStore + ' 의 현재 상태', b:'b1',
     sql: bkBlock(c, msTabs, 'STORE_CD', c.tgtStore, '대상 매장 ' + c.tgtStore)});
 
-  const flatAll = H2M.reduce((a,[,it])=>a+it.length,0);
+  const flatAll = H2M.reduce((a,it)=>a.concat(it[1].map(x=>x[0])),[]);
   const hqTabs = pairs.map(p=>p[0]);
   const L = [];
   L.push('/* [1] 복사 실행 — 소속 검증 · 상품필터 · 확정까지 엔진이 합니다 */');
@@ -3105,7 +3173,7 @@ function genH2M(c){
          + (c.prodFilter ? '   /* 매장 지정 상품만 */' : '   /* 본사 상품 전체 */'));
   L.push('');
   L.push("    PKG_CM_COPY_V2.SP_HQ2MS( '" + c.srcHq + "', '" + c.tgtStore + "'"
-         + tableArg(hqTabs, {length:flatAll}, 4) + ' );');
+         + tableArg(hqTabs, flatAll, 4) + ' );');
   L.push('END;');
   L.push('/');
   L.push('');
@@ -3120,27 +3188,22 @@ function genH2M(c){
     ['/* [2-1] 매장 공통코드는 USE_TARGET_FG 규칙이 본사와 다릅니다.',
      "          본사 = ('C','H')   매장 = ('C','S')",
      '   본사 코드를 그대로 내리지 말고 TB_CM_NMCODE 기준으로 매장용만 만드세요.',
-     '   기존 SP_STORE_NMCODE_I 프로시저가 있으면 그쪽이 우선입니다. */',
+     '   엔진의 SP_NMCODE_STORE 가 이 일을 합니다. 기존 SP_STORE_NMCODE_I 가 있으면 그쪽이 우선입니다. */',
      '',
-     'INSERT INTO ' + c.schema + 'TB_MS_STORE_NMCODE',
-     '       ( STORE_CD, NMCODE_GRP_CD, NMCODE_CD, PARENT_CD, NMCODE_NM',
-     '       , NMCODE_ITEM_1, USE_YN, SORT_SEQ',
-     '       , REG_ID, REG_DT, MOD_ID, MOD_DT )',
-     "SELECT '" + c.tgtStore + "', c.NMCODE_GRP_CD, c.NMCODE_CD, c.PARENT_CD, c.NMCODE_NM",
-     "     , c.NMCODE_ITEM_1, NVL(c.USE_YN,'Y'), c.SORT_SEQ",
-     "     , '" + c.userId + "', TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')",
-     "     , '" + c.userId + "', TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')",
-     '  FROM ' + c.schema + 'TB_CM_NMCODE c',
-     " WHERE c.USE_TARGET_FG IN ( 'C', 'S' )",
-     '   AND NOT EXISTS ( SELECT 1',
-     '                      FROM ' + c.schema + 'TB_MS_STORE_NMCODE x',
-     "                     WHERE x.STORE_CD      = '" + c.tgtStore + "'",
-     '                       AND x.NMCODE_GRP_CD = c.NMCODE_GRP_CD',
-     '                       AND x.NMCODE_CD     = c.NMCODE_CD );',
+     'SET SERVEROUTPUT ON SIZE UNLIMITED',
+     'BEGIN',
+     "    PKG_CM_COPY_V2.G_OWNER   := '" + c.schemaRaw + "';",
+     "    PKG_CM_COPY_V2.G_USER_ID := '" + c.userId + "';",
+     "    PKG_CM_COPY_V2.G_EXEC_YN := '" + c.exec + "';",
+     "    PKG_CM_COPY_V2.SP_NMCODE_STORE('" + c.tgtStore + "');",
+     "    " + (c.commit ? 'COMMIT;' : 'ROLLBACK;   -- 확정하려면 COMMIT 으로'),
+     'END;',
+     '/',
      '',
-     '-- 감사컬럼이 DATE 면 위 TO_CHAR 를 SYSDATE 로 바꾸세요.',
-     '-- 기존 PKG_MS_STORE_COPY 는 PARENT_CD 자리에 NMCODE_GRP_CD 를 넣습니다.',
-     '-- 어느 쪽이 맞는지 확인하고 위 c.PARENT_CD 를 조정하세요.',
+     '-- TB_CM_NMCODE 의 같은 이름 컬럼을 그대로 옮기고, 없는 컬럼은 NULL 로 둡니다.',
+     '-- 기존 PKG_MS_STORE_COPY 는 PARENT_CD 자리에 NMCODE_GRP_CD 를 넣었습니다.',
+     '-- 그 규칙이 맞다면 SP_NMCODE_STORE 호출 앞에 아래 한 줄을 넣으세요.',
+     "--   PKG_CM_COPY_V2.SP_MAP_ADD('PARENT_CD', 's.\"NMCODE_GRP_CD\"');",
      '',
      '',
      '/* [2-2] 본사 통제 터치키 : NMCODE 그룹 228 은 매장 수정 허용분류입니다.',
@@ -3177,8 +3240,9 @@ function genM2M(c){
   const tabs = flat('m2m', M2M).map(x=>x[0]);
   const out = [];
 
-  out.push({t:'사전확인', s:'두 매장이 같은 본사인지부터 봅니다', b:'b3', sql:
-    header('매장 -> 매장 복사   ' + c.srcStore + ' -> ' + c.tgtStore,
+  out.push({t:'사전확인', s: c.allowDiffHq ? '본사가 달라도 진행합니다. 바뀌는 표를 먼저 봅니다' : '두 매장이 같은 본사인지부터 봅니다', b:'b3', sql:
+    header('매장 -> 매장 복사   ' + c.srcStore + ' -> ' + c.tgtStore
+      + (c.allowDiffHq ? '   (본사 달라도 허용)' : ''),
       ['[0] 사전확인 — SELECT 만 합니다.',
        '대상 매장행(TB_MS_STORE)이 이미 있어야 합니다.',
        '기존 구현 PKG_MS_STORE_COPY 도 함께 확인하세요.'])
@@ -3188,6 +3252,24 @@ function genM2M(c){
     + '  FROM ' + c.schema + 'TB_MS_STORE\n'
     + " WHERE STORE_CD IN ( '" + c.srcStore + "', '" + c.tgtStore + "' )\n"
     + ' ORDER BY ROLE DESC;\n\n'
+    + '/* 본사 일치 여부 */\n'
+    + 'SELECT s.HQ_OFFICE_CD AS SRC_HQ, t.HQ_OFFICE_CD AS TGT_HQ,\n'
+    + "       CASE WHEN s.HQ_OFFICE_CD = t.HQ_OFFICE_CD THEN 'O 같은 본사'\n"
+    + (c.allowDiffHq
+        ? "            ELSE 'X 다른 본사 - 허용 옵션 켜짐. HQ_OFFICE_CD 는 ' || t.HQ_OFFICE_CD || ' 로 바뀜' END AS CHK\n"
+        : "            ELSE 'X 다른 본사 - 엔진이 멈춤. 계속하려면 허용 옵션' END AS CHK\n")
+    + '  FROM ' + c.schema + 'TB_MS_STORE s, ' + c.schema + 'TB_MS_STORE t\n'
+    + " WHERE s.STORE_CD = '" + c.srcStore + "'\n"
+    + "   AND t.STORE_CD = '" + c.tgtStore + "';\n\n"
+    + (c.allowDiffHq
+        ? '/* 본사가 다를 때 값이 바뀌는 표 — HQ_OFFICE_CD 컬럼을 가진 복사 대상 */\n'
+        + 'SELECT TABLE_NAME, NULLABLE\n'
+        + '  FROM ALL_TAB_COLUMNS\n'
+        + " WHERE OWNER = '" + c.schemaRaw + "'\n"
+        + "   AND COLUMN_NAME = 'HQ_OFFICE_CD'\n"
+        + "   AND TABLE_NAME IN ( " + tabs.map(t => "'" + t + "'").join(', ') + ' )\n'
+        + ' ORDER BY 1;\n\n'
+        : '')
     + '/* POS 대수 — 원본에 POS 가 없으면 POS 관련 복사는 의미가 없습니다 */\n'
     + 'SELECT STORE_CD, COUNT(*) AS POS_CNT, MIN(POS_NO) AS MIN_NO, MAX(POS_NO) AS MAX_NO\n'
     + '  FROM ' + c.schema + 'TB_MS_POS\n'
@@ -3198,23 +3280,6 @@ function genM2M(c){
         {from:c.schema+t, wh:"STORE_CD = '"+c.tgtStore+"'", as:'TGT_CNT'}
       ]})), '복사 전 건수')});
 
-  out.push({t:'백업', s:'대상 매장 ' + c.tgtStore + ' 의 현재 상태', b:'b1',
-    sql: bkBlock(c, tabs, 'STORE_CD', c.tgtStore, '대상 매장 ' + c.tgtStore)});
-
-  const flatAll = M2M.reduce((a,[,it])=>a+it.length,0);
-  const L = [];
-  L.push('/* [1] 복사 실행 — 같은 본사 검증 · POS 매핑 · 확정까지 엔진이 합니다 */');
-  L.push('SET SERVEROUTPUT ON SIZE UNLIMITED');
-  L.push('BEGIN');
-  L.push(engineSetup(c, 4));
-  L.push('');
-  L.push("    PKG_CM_COPY_V2.SP_MS2MS( '" + c.srcStore + "', '" + c.tgtStore + "'"
-         + tableArg(tabs, {length:flatAll}, 4) + ' );');
-  L.push('END;');
-  L.push('/');
-  L.push('');
-  L.push('-- POS 번호가 들어가는 표(POS_ENVST · POS_FNKEY · POS_TERMNL · POS_CONFG_XML)는');
-  L.push('-- 대상 매장의 POS 번호에 맞춰 매핑합니다. 원본에 POS 가 없으면 건드리지 않습니다.');
   out.push({t:'참조 점검', s:'원본 매장이 쓰는 값이 대상 매장에 있는지', b:'b3', sql:
     ['/* [0-3] FK 를 읽어 자동으로 검사합니다. SELECT 만 합니다. */',
      'SET SERVEROUTPUT ON SIZE UNLIMITED',
@@ -3231,8 +3296,28 @@ function genM2M(c){
      '-- 매장 복사는 분류 · 코너 · 옵션그룹처럼 매장 안에서 서로 참조하는 것이 많습니다.',
      '-- 복사 순서가 맞으면 대부분 해결되지만, 원본에만 있는 코드가 있으면 여기서 잡힙니다.'].join('\n')});
 
+  out.push({t:'백업', s:'대상 매장 ' + c.tgtStore + ' 의 현재 상태', b:'b1',
+    sql: bkBlock(c, tabs, 'STORE_CD', c.tgtStore, '대상 매장 ' + c.tgtStore)});
+
+  const flatAll = M2M.reduce((a,it)=>a.concat(it[1].map(x=>x[0])),[]);
+  const L = [];
+  L.push('/* [1] 복사 실행 — 본사 검증 · POS 매핑 · 확정까지 엔진이 합니다 */');
+  L.push('SET SERVEROUTPUT ON SIZE UNLIMITED');
+  L.push('BEGIN');
+  L.push(engineSetup(c, 4));
+  L.push("    PKG_CM_COPY_V2.G_ALLOW_DIFF_HQ := '" + (c.allowDiffHq ? 'Y' : 'N') + "';"
+         + (c.allowDiffHq ? '   /* ★ 본사 달라도 진행. HQ_OFFICE_CD 는 대상 본사로 */' : '   /* 같은 본사만 */'));
+  L.push('');
+  L.push("    PKG_CM_COPY_V2.SP_MS2MS( '" + c.srcStore + "', '" + c.tgtStore + "'"
+         + tableArg(tabs, flatAll, 4) + ' );');
+  L.push('END;');
+  L.push('/');
+  L.push('');
+  L.push('-- POS 번호가 들어가는 표(POS_ENVST · POS_FNKEY · POS_TERMNL · POS_CONFG_XML)는');
+  L.push('-- 대상 매장의 POS 번호에 맞춰 매핑합니다. 원본에 POS 가 없으면 건드리지 않습니다.');
   out.push({t: c.preview ? '예상 건수 보기' : '복사 실행 블록',
-    s:tabs.length + '개 · ' + MODE_TXT[c.mode] + (c.preview ? ' · 세어만 봄' : ' · G_EXEC_YN = ' + c.exec),
+    s:tabs.length + '개 · ' + MODE_TXT[c.mode] + (c.allowDiffHq ? ' · 본사 달라도 허용' : '')
+      + (c.preview ? ' · 세어만 봄' : ' · G_EXEC_YN = ' + c.exec),
     b: c.preview ? 'b1' : (c.exec==='Y' ? 'b2' : ''), warn: !c.preview && c.exec==='Y', sql:L.join('\n')});
 
   out.push({t:'XML 설정 이관', s:'테이블 복사로는 넘어가지 않는 부분', b:'b2', sql:
@@ -3429,9 +3514,10 @@ $$('#tabs button').forEach(b=>{
     b.classList.add('on');
     $$('.pane').forEach(p=>p.classList.remove('on'));
     $('#pane-'+b.dataset.tab).classList.add('on');
-    if (b.dataset.tab === 'h2h') $('#userId').value = 'HQCOPY';
-    if (b.dataset.tab === 'h2m') $('#userId').value = 'HQ2MS';
-    if (b.dataset.tab === 'm2m') $('#userId').value = 'MSCOPY';
+    const DEF = {h2h:'HQCOPY', h2m:'HQ2MS', m2m:'MSCOPY'};
+    if (DEF[b.dataset.tab] && Object.values(DEF).includes($('#userId').value.trim())){
+      $('#userId').value = DEF[b.dataset.tab];
+    }
     render();
   });
 });

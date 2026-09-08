@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매장 기준정보 비교 SQL 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E8ECED;
+  --panel:#F6F8F8;
+  --ink:#17262E;
+  --ink-soft:#4C6069;
+  --line:#C6D0D3;
+  --teal:#0B6B64;
+  --teal-soft:#D7E8E6;
+  --amber:#B4700F;
+  --code-bg:#122127;
+  --code-ink:#D9E6E4;
+  --code-key:#7FD1C5;
+  --code-str:#E8C88A;
+  --code-com:#6E8890;
+  --radius:6px;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans KR',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.55;
+}
+a{color:var(--teal)}
+.wrap{max-width:1480px;margin:0 auto;padding:22px 24px 60px}
+
+header.top{
+  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  border-bottom:2px solid var(--ink);
+  padding-bottom:14px;margin-bottom:20px;
+}
+header.top h1{font-size:21px;font-weight:700;letter-spacing:-.01em}
+header.top .sub{color:var(--ink-soft);font-size:13px}
+header.top .safety{
+  margin-left:auto;font-size:12.5px;color:var(--teal);
+  background:var(--teal-soft);border:1px solid var(--teal);
+  padding:3px 10px;border-radius:99px;white-space:nowrap;
+}
+
+.grid{display:grid;grid-template-columns:430px 1fr;gap:22px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+
+/* ---------- 왼쪽 : 입력 ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.panel + .panel{margin-top:14px}
+.panel h2{
+  font-size:13.5px;font-weight:600;
+  padding:10px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;
+}
+.panel h2 .n{
+  font-family:var(--mono);font-size:11.5px;font-weight:600;
+  color:var(--panel);background:var(--ink);
+  min-width:20px;height:20px;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.panel .body{padding:12px 14px 14px}
+.field{margin-bottom:11px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px}
+.field .hint{font-weight:400;color:var(--ink-soft);font-size:12px;margin-left:6px}
+input[type=text],textarea,select{
+  width:100%;font-family:var(--mono);font-size:13px;
+  border:1px solid var(--line);border-radius:4px;
+  padding:7px 9px;background:#fff;color:var(--ink);
+}
+textarea{resize:vertical;min-height:64px;line-height:1.5}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--teal);outline-offset:0;border-color:var(--teal)}
+.inline2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.store-preview{
+  margin-top:6px;font-size:12px;color:var(--ink-soft);
+  font-family:var(--mono);word-break:break-all;
+  max-height:72px;overflow:auto;
+  background:#fff;border:1px dashed var(--line);border-radius:4px;padding:5px 8px;
+}
+.store-preview b{color:var(--teal);font-weight:600}
+.store-preview.err{color:var(--amber);border-color:var(--amber)}
+
+/* 테이블 선택 */
+.tbl-tools{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.btn{
+  font-family:var(--sans);font-size:12.5px;font-weight:600;
+  border:1px solid var(--ink);background:#fff;color:var(--ink);
+  border-radius:4px;padding:5px 11px;cursor:pointer;
+}
+.btn:hover{background:var(--ink);color:#fff}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-size:14px;padding:9px 16px}
+.btn.primary:hover{background:#08554f}
+.btn.ghost{border-color:var(--line);color:var(--ink-soft)}
+.btn.ghost:hover{background:var(--paper);color:var(--ink)}
+
+.tgroup{border:1px solid var(--line);border-radius:4px;margin-bottom:8px;background:#fff;overflow:hidden}
+.tgroup summary{
+  cursor:pointer;list-style:none;user-select:none;
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;font-size:12.5px;font-weight:600;
+  background:var(--paper);
+}
+.tgroup summary::before{content:'▸';font-size:11px;color:var(--ink-soft);transition:transform .12s}
+.tgroup[open] summary::before{transform:rotate(90deg)}
+.tgroup summary .cnt{
+  margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:500;
+  color:var(--teal);background:var(--teal-soft);border-radius:99px;padding:1px 8px;
+}
+.tgroup summary .gsel{font-size:11.5px;font-weight:500;color:var(--teal);text-decoration:underline;cursor:pointer}
+.tgroup .items{padding:6px 10px 8px;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
+@media(max-width:520px){.tgroup .items{grid-template-columns:1fr}}
+.titem{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.8px;padding:2px 0;cursor:pointer}
+.titem input{accent-color:var(--teal);cursor:pointer}
+.titem span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.gen-row{display:flex;align-items:center;gap:12px;margin-top:14px}
+.gen-row .stat{font-size:12.5px;color:var(--ink-soft)}
+.gen-row .stat b{color:var(--teal)}
+
+/* ---------- 오른쪽 : 출력 ---------- */
+.out{position:sticky;top:16px}
+@media(max-width:1050px){.out{position:static}}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.step-btn{
+  font-family:var(--sans);font-size:12.5px;font-weight:600;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);
+  border-radius:99px;padding:5px 13px;cursor:pointer;
+}
+.step-btn:hover{border-color:var(--ink);color:var(--ink)}
+.step-btn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.codecard{background:var(--code-bg);border-radius:var(--radius);overflow:hidden;border:1px solid #0b171b}
+.codebar{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+}
+.codebar .t{color:var(--code-ink);font-size:13px;font-weight:600}
+.codebar .d{color:var(--code-com);font-size:12px}
+.codebar .cp{
+  margin-left:auto;font-family:var(--sans);font-size:12.5px;font-weight:600;
+  background:var(--code-key);color:var(--code-bg);border:none;border-radius:4px;
+  padding:5px 13px;cursor:pointer;
+}
+.codebar .cp:hover{background:#a9e6dc}
+.codebar .cp.done{background:#8FCB6B}
+pre.code{
+  font-family:var(--mono);font-size:12.3px;line-height:1.58;
+  color:var(--code-ink);
+  padding:14px 16px 18px;overflow:auto;
+  max-height:66vh;white-space:pre;
+  tab-size:4;
+}
+pre.code .c{color:var(--code-com)}
+.note{
+  margin-top:10px;font-size:12.5px;color:var(--ink-soft);
+  border-left:3px solid var(--amber);padding:2px 0 2px 10px;
+}
+.note b{color:var(--amber)}
+.gen6{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.gen6 .f{flex:1;min-width:180px}
+.gen6 label{display:block;font-size:12px;font-weight:600;margin-bottom:3px;color:var(--ink)}
+.empty{
+  border:1px dashed var(--line);border-radius:var(--radius);
+  padding:60px 20px;text-align:center;color:var(--ink-soft);font-size:13.5px;background:var(--panel);
+}
+:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>매장 기준정보 비교 SQL 생성기</h1>
+  <span class="sub">기준매장 1개 ↔ 대상매장 N개 · TB_MS_* 키/건수 비교 스크립트 생성</span>
+  <span class="safety">대상 테이블은 SELECT만 · 적재는 작업테이블에만</span>
+</header>
+
+<div class="grid">
+
+<!-- ============ 입력 ============ -->
+<div>
+  <div class="panel">
+    <h2><span class="n">1</span>기본 설정</h2>
+    <div class="body">
+      <div class="inline2">
+        <div class="field">
+          <label for="schema">스키마</label>
+          <input type="text" id="schema" value="SBPORA">
+        </div>
+        <div class="field">
+          <label for="worktbl">작업테이블명</label>
+          <input type="text" id="worktbl" value="TMP_STORE_CMP">
+        </div>
+      </div>
+      <div class="field">
+        <label for="base">기준매장 <span class="hint">1개</span></label>
+        <input type="text" id="base" value="S615806">
+      </div>
+      <div class="field">
+        <label for="targets">대상매장 <span class="hint">쉼표/공백/줄바꿈 구분 · 범위 BSC0001~BSC0026 지원</span></label>
+        <textarea id="targets">BSC0001~BSC0026</textarea>
+      </div>
+      <div class="field">
+        <label for="excl">제외매장 <span class="hint">선택 · 같은 형식</span></label>
+        <input type="text" id="excl" value="BSC0006">
+      </div>
+      <div class="store-preview" id="storePreview"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">2</span>비교할 테이블</h2>
+    <div class="body">
+      <div class="tbl-tools">
+        <button class="btn ghost" id="selAll" type="button">전체 선택</button>
+        <button class="btn ghost" id="selNone" type="button">전체 해제</button>
+      </div>
+      <div id="tblGroups"></div>
+      <div class="field" style="margin-top:10px">
+        <label for="custom">추가 테이블 <span class="hint">목록에 없는 것 · 쉼표/줄바꿈 구분</span></label>
+        <textarea id="custom" style="min-height:44px" placeholder="TB_MS_PRINTER_GROUP_PROD"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="gen-row">
+    <button class="btn primary" id="genBtn" type="button">쿼리 생성</button>
+    <span class="stat" id="stat"></span>
+  </div>
+</div>
+
+<!-- ============ 출력 ============ -->
+<div class="out">
+  <div class="steps" id="steps" hidden></div>
+  <div id="outArea">
+    <div class="empty">왼쪽에서 매장과 테이블을 지정하고 <b>쿼리 생성</b>을 누르면<br>단계별 SQL이 여기 표시됩니다. 복사해서 SQL 툴에서 실행하세요.</div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+</div><!-- /wrap -->
+
+<script>
+/* =========================================================
+   테이블 카탈로그
+========================================================= */
+const CATALOG = [
+  ['매장환경', ['TB_MS_STORE_ENVST','TB_MS_STORE_NMCODE','TB_MS_POS_ENVST','TB_MS_STORE_FNKEY','TB_MS_POS_FNKEY']],
+  ['출력물', ['TB_MS_PRINTER','TB_MS_PRINT','TB_MS_PRINT_TEMPL','TB_MS_PRINT_TEXT','TB_MS_PRINTER_PROD']],
+  ['상품마스터', ['TB_MS_PRODUCT_LCLASS','TB_MS_PRODUCT_MCLASS','TB_MS_PRODUCT_SCLASS','TB_MS_PRODUCT_CLASS','TB_MS_PRODUCT','TB_MS_PRODUCT_INFO','TB_MS_PRODUCT_IMAGE','TB_MS_PRODUCT_BARCD','TB_MS_PRODUCT_SALE_PRICE','TB_MS_PRODUCT_SALE_TIME']],
+  ['사이드', ['TB_MS_PRODUCT_SDSEL_CLASS','TB_MS_PRODUCT_SDSEL_GROUP','TB_MS_PRODUCT_SDSEL_PROD']],
+  ['채널매핑', ['TB_MS_PRODUCT_DLVR_PROD_NM']],
+  ['포스터치키', ['TB_MS_TOUCH_KEY_GROUP','TB_MS_TOUCH_KEY_CLASS','TB_MS_TOUCH_KEY']],
+  ['키오스크', ['TB_MS_KIOSK_GROUP','TB_MS_KIOSK_M_CLS','TB_MS_KIOSK_CLS','TB_MS_KIOSK_KEY']],
+  ['쿠폰', ['TB_MS_COUPON','TB_MS_COUPON_PROD']],
+  ['프로모션', ['TB_MS_PROMO_H','TB_MS_PROMO_CONDI','TB_MS_PROMO_CONDI_PROD','TB_MS_PROMO_BENE','TB_MS_PROMO_BENE_PROD']],
+  ['기타', ['TB_MS_POS_ADVER_FILE','TB_MS_KITCHEN_MEMO']],
+];
+
+/* =========================================================
+   유틸
+========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function sanitizeId(s){ return String(s).trim().toUpperCase().replace(/[^A-Z0-9_$#]/g,''); }
+
+/* 매장 파싱: 쉼표/공백/줄바꿈 + 범위(PREFIX0001~PREFIX0026 / PREFIX0001~0026) */
+function parseStores(text){
+  const out = [], errs = [];
+  const tokens = String(text).split(/[\s,;]+/).filter(Boolean);
+  for (const raw of tokens){
+    const t = raw.trim().toUpperCase();
+    const m = t.match(/^([A-Z0-9_$#]*?)(\d+)\s*~\s*(?:([A-Z0-9_$#]*?))?(\d+)$/);
+    if (m){
+      const pre = m[1], p2 = m[3] || pre;
+      if (p2 !== pre){ errs.push(raw); continue; }
+      const a = parseInt(m[2],10), b = parseInt(m[4],10);
+      const w = m[2].length;
+      if (isNaN(a)||isNaN(b)||b<a||b-a>2000){ errs.push(raw); continue; }
+      for(let n=a;n<=b;n++) out.push(pre + String(n).padStart(w,'0'));
+    } else {
+      const id = sanitizeId(t);
+      if (id) out.push(id); else if (t) errs.push(raw);
+    }
+  }
+  return { list:[...new Set(out)], errs };
+}
+
+function chunk(arr, n){
+  const r=[]; for(let i=0;i<arr.length;i+=n) r.push(arr.slice(i,i+n)); return r;
+}
+/* 'A','B',... 를 줄 단위로 */
+function quotedLines(stores, per, indent){
+  return chunk(stores.map(s=>`'${s}'`), per).map(l=>indent+l.join(',')).join(',\n');
+}
+/* PL/SQL 문자열 상수용: '''A'',''B'',...' 조각을 '||'로 연결 */
+function plsqlStoresConst(stores, indent){
+  const parts = chunk(stores, 6).map(g => "'" + g.map(s=>`''${s}''`).join(',') + "'");
+  return parts.map((p,i)=> indent + p + (i<parts.length-1 ? "||','||" : '')).join('\n');
+}
+function pivotInLines(stores, indent){
+  return chunk(stores.map(s=>`'${s}' AS ${s}`), 4).map(l=>indent+l.join(',')).join(',\n');
+}
+function tabListLines(tabs, per, indent){
+  return chunk(tabs.map(t=>`'${t}'`), per).map(l=>indent+l.join(',')).join(',\n');
+}
+
+/* =========================================================
+   테이블 선택 UI
+========================================================= */
+(function buildGroups(){
+  const host = $('#tblGroups');
+  CATALOG.forEach(([g, tabs], gi) => {
+    const d = document.createElement('details');
+    d.className = 'tgroup'; d.open = gi < 1;
+    d.innerHTML =
+      `<summary>${esc(g)}
+         <span class="gsel" data-g="${gi}" data-mode="all" role="button" tabindex="0">모두</span>
+         <span class="gsel" data-g="${gi}" data-mode="none" role="button" tabindex="0">해제</span>
+         <span class="cnt" data-cnt="${gi}"></span>
+       </summary>
+       <div class="items">` +
+      tabs.map(t=>`<label class="titem"><input type="checkbox" class="tchk" data-g="${gi}" value="${t}" checked><span title="${t}">${t}</span></label>`).join('') +
+      `</div>`;
+    host.appendChild(d);
+  });
+  host.addEventListener('click', e => {
+    const gs = e.target.closest('.gsel');
+    if (gs){
+      e.preventDefault();
+      document.querySelectorAll(`.tchk[data-g="${gs.dataset.g}"]`)
+        .forEach(c => c.checked = gs.dataset.mode==='all');
+      refreshCounts();
+    }
+  });
+  host.addEventListener('change', refreshCounts);
+  $('#selAll').onclick = ()=>{ document.querySelectorAll('.tchk').forEach(c=>c.checked=true); refreshCounts(); };
+  $('#selNone').onclick = ()=>{ document.querySelectorAll('.tchk').forEach(c=>c.checked=false); refreshCounts(); };
+  refreshCounts();
+})();
+
+function refreshCounts(){
+  CATALOG.forEach((_,gi)=>{
+    const all = document.querySelectorAll(`.tchk[data-g="${gi}"]`);
+    const on = [...all].filter(c=>c.checked).length;
+    document.querySelector(`[data-cnt="${gi}"]`).textContent = `${on}/${all.length}`;
+  });
+  updateStat();
+}
+
+function selectedTables(){
+  const tabs = [...document.querySelectorAll('.tchk:checked')].map(c=>c.value);
+  parseStores($('#custom').value).list.forEach(t=>{ if(!tabs.includes(t)) tabs.push(t); });
+  return tabs;
+}
+
+/* =========================================================
+   매장 미리보기 / 상태줄
+========================================================= */
+function resolvedStores(){
+  const { list, errs } = parseStores($('#targets').value);
+  const ex = new Set(parseStores($('#excl').value).list);
+  const base = sanitizeId($('#base').value);
+  const finalList = list.filter(s => !ex.has(s) && s !== base);
+  return { finalList, excluded: list.filter(s=>ex.has(s)), errs, base };
+}
+function renderPreview(){
+  const { finalList, excluded, errs } = resolvedStores();
+  const el = $('#storePreview');
+  let html = `대상 <b>${finalList.length}개</b> : ` + (finalList.join(', ') || '(없음)');
+  if (excluded.length) html += `<br>제외됨 : ${excluded.join(', ')}`;
+  if (errs.length) html += `<br>해석 불가 : ${errs.map(esc).join(', ')}`;
+  el.classList.toggle('err', errs.length>0 || finalList.length===0);
+  el.innerHTML = html;
+  updateStat();
+}
+function updateStat(){
+  const t = selectedTables().length;
+  const s = resolvedStores().finalList.length;
+  $('#stat').innerHTML = `테이블 <b>${t}</b>개 · 대상매장 <b>${s}</b>개`;
+}
+['targets','excl','base','custom'].forEach(id => $('#'+id).addEventListener('input', renderPreview));
+renderPreview();
+
+/* =========================================================
+   SQL 생성부
+========================================================= */
+function ctx(){
+  return {
+    owner: sanitizeId($('#schema').value) || 'SBPORA',
+    base:  sanitizeId($('#base').value),
+    work:  sanitizeId($('#worktbl').value) || 'TMP_STORE_CMP',
+    stores: resolvedStores().finalList,
+    tabs: selectedTables(),
+  };
+}
+
+function sql1(c){
+  return `/* [1] 대상 테이블 존재 여부 / STORE_CD·POS_NO 보유 / 통계건수  (조회 전용)
+   '★테이블없음' 이 나오면 이름부터 확인 */
+WITH TGT AS (
+  SELECT COLUMN_VALUE AS TABLE_NAME
+    FROM TABLE(SYS.ODCIVARCHAR2LIST(
+${tabListLines(c.tabs, 3, '      ')}
+    ))
+)
+SELECT g.TABLE_NAME,
+       CASE WHEN t.TABLE_NAME IS NULL THEN '★테이블없음' ELSE 'OK' END      AS EXIST_YN,
+       (SELECT COUNT(*) FROM ALL_TAB_COLUMNS c
+         WHERE c.OWNER='${c.owner}' AND c.TABLE_NAME=g.TABLE_NAME)          AS COL_CNT,
+       (SELECT MAX('Y') FROM ALL_TAB_COLUMNS c
+         WHERE c.OWNER='${c.owner}' AND c.TABLE_NAME=g.TABLE_NAME
+           AND c.COLUMN_NAME='STORE_CD')                                    AS HAS_STORE_CD,
+       (SELECT MAX('Y') FROM ALL_TAB_COLUMNS c
+         WHERE c.OWNER='${c.owner}' AND c.TABLE_NAME=g.TABLE_NAME
+           AND c.COLUMN_NAME='POS_NO')                                      AS HAS_POS_NO,
+       t.NUM_ROWS                                                           AS STAT_ROWS
+  FROM TGT g
+  LEFT JOIN ALL_TABLES t
+    ON t.OWNER='${c.owner}' AND t.TABLE_NAME = g.TABLE_NAME
+ ORDER BY EXIST_YN DESC, g.TABLE_NAME;`;
+}
+
+function sql2(c){
+  return `/* [2] PK / UNIQUE 인덱스 키 구성  (조회 전용)
+   KEY_FOR_CMP = PK에서 STORE_CD 뺀 것. 비어 있으면 건수만 비교됨 */
+SELECT x.TABLE_NAME, x.KIND, x.OBJ_NAME, x.ALL_COLS, x.CMP_COLS AS KEY_FOR_CMP
+  FROM (
+        SELECT c.TABLE_NAME, 'PK' AS KIND, c.CONSTRAINT_NAME AS OBJ_NAME,
+               LISTAGG(cc.COLUMN_NAME, ',') WITHIN GROUP (ORDER BY cc.POSITION) AS ALL_COLS,
+               LISTAGG(CASE WHEN cc.COLUMN_NAME <> 'STORE_CD' THEN cc.COLUMN_NAME END, ',')
+                 WITHIN GROUP (ORDER BY cc.POSITION) AS CMP_COLS
+          FROM ALL_CONSTRAINTS c
+          JOIN ALL_CONS_COLUMNS cc
+            ON cc.OWNER = c.OWNER AND cc.CONSTRAINT_NAME = c.CONSTRAINT_NAME
+         WHERE c.OWNER = '${c.owner}' AND c.CONSTRAINT_TYPE = 'P'
+         GROUP BY c.TABLE_NAME, c.CONSTRAINT_NAME
+        UNION ALL
+        SELECT i.TABLE_NAME, 'UK', i.INDEX_NAME,
+               LISTAGG(ic.COLUMN_NAME, ',') WITHIN GROUP (ORDER BY ic.COLUMN_POSITION),
+               LISTAGG(CASE WHEN ic.COLUMN_NAME <> 'STORE_CD' THEN ic.COLUMN_NAME END, ',')
+                 WITHIN GROUP (ORDER BY ic.COLUMN_POSITION)
+          FROM ALL_INDEXES i
+          JOIN ALL_IND_COLUMNS ic
+            ON ic.INDEX_OWNER = i.OWNER AND ic.INDEX_NAME = i.INDEX_NAME
+         WHERE i.TABLE_OWNER = '${c.owner}' AND i.UNIQUENESS = 'UNIQUE'
+         GROUP BY i.TABLE_NAME, i.INDEX_NAME
+       ) x
+ WHERE x.TABLE_NAME IN (
+${tabListLines(c.tabs, 3, '      ')})
+ ORDER BY x.TABLE_NAME, x.KIND, x.OBJ_NAME;`;
+}
+
+function sql3(c){
+  return `/* [3] 결과 적재용 작업테이블 (내 스키마, 최초 1회만)
+   이미 있으면 CREATE 는 건너뛰고 TRUNCATE 만 실행 (ORA-00955 방지) */
+CREATE TABLE ${c.work} (
+    TBL_NM      VARCHAR2(60),
+    KEY_SRC     VARCHAR2(10),      /* PK / UK / NONE */
+    KEY_COLS    VARCHAR2(2000),    /* 비교에 쓴 키 (STORE_CD 제외) */
+    STORE_CD    VARCHAR2(20),
+    BASE_CNT    NUMBER,            /* 기준매장 ${c.base} 건수 */
+    TGT_CNT     NUMBER,            /* 비교매장 건수 */
+    ONLY_BASE   NUMBER,            /* 기준에만 있는 키 = 비교매장 누락 */
+    ONLY_TGT    NUMBER,            /* 비교매장에만 있는 키 = 잉여 */
+    NOTE        VARCHAR2(200),
+    CHK_DT      DATE DEFAULT SYSDATE
+);
+
+TRUNCATE TABLE ${c.work};`;
+}
+
+function sql4(c){
+  return `/* [4] 비교 실행  (대상 테이블은 SELECT 만, INSERT 는 ${c.work} 에만) */
+DECLARE
+    G_OWNER   CONSTANT VARCHAR2(30)    := '${c.owner}';
+    G_BASE    CONSTANT VARCHAR2(30)    := '${c.base}';
+    /* 비교 대상 매장 ${c.stores.length}개 */
+    G_STORES  CONSTANT VARCHAR2(32767) :=
+${plsqlStoresConst(c.stores, '        ')};
+
+    TYPE T_LIST IS TABLE OF VARCHAR2(60);
+    V_TABS T_LIST := T_LIST(
+${tabListLines(c.tabs, 3, '      ')});
+
+    V_TAB      VARCHAR2(60);
+    V_CNT      PLS_INTEGER;
+    V_KEY      VARCHAR2(4000);
+    V_SRC      VARCHAR2(10);
+    V_IDX      VARCHAR2(60);
+    V_BASECNT  NUMBER;
+    V_SQL      VARCHAR2(32767);
+    V_ST_SRC   VARCHAR2(32767);
+    V_ERR      VARCHAR2(200);
+BEGIN
+    V_ST_SRC := 'SELECT COLUMN_VALUE STORE_CD FROM TABLE(SYS.ODCIVARCHAR2LIST('||G_STORES||'))';
+
+    FOR i IN 1 .. V_TABS.COUNT LOOP
+        V_TAB := V_TABS(i);
+        V_KEY := NULL;  V_SRC := NULL;
+
+        /* --- 테이블 존재 --- */
+        SELECT COUNT(*) INTO V_CNT
+          FROM ALL_TABLES WHERE OWNER = G_OWNER AND TABLE_NAME = V_TAB;
+        IF V_CNT = 0 THEN
+            INSERT INTO ${c.work} (TBL_NM, KEY_SRC, NOTE)
+                 VALUES (V_TAB, 'NONE', '★테이블 없음 - 이름 확인 필요');
+            DBMS_OUTPUT.PUT_LINE(RPAD(V_TAB,32)||' 건너뜀 : 테이블 없음');
+            CONTINUE;
+        END IF;
+
+        /* --- STORE_CD 보유 --- */
+        SELECT COUNT(*) INTO V_CNT
+          FROM ALL_TAB_COLUMNS
+         WHERE OWNER = G_OWNER AND TABLE_NAME = V_TAB AND COLUMN_NAME = 'STORE_CD';
+        IF V_CNT = 0 THEN
+            INSERT INTO ${c.work} (TBL_NM, KEY_SRC, NOTE)
+                 VALUES (V_TAB, 'NONE', '★STORE_CD 컬럼 없음 - 매장단위 비교 불가');
+            DBMS_OUTPUT.PUT_LINE(RPAD(V_TAB,32)||' 건너뜀 : STORE_CD 없음');
+            CONTINUE;
+        END IF;
+
+        /* --- 비교키 결정 : PK 우선, 없으면 컬럼수 최소 UNIQUE 인덱스 --- */
+        SELECT LISTAGG(CASE WHEN cc.COLUMN_NAME <> 'STORE_CD' THEN cc.COLUMN_NAME END, ',')
+                 WITHIN GROUP (ORDER BY cc.POSITION)
+          INTO V_KEY
+          FROM ALL_CONSTRAINTS c
+          JOIN ALL_CONS_COLUMNS cc
+            ON cc.OWNER = c.OWNER AND cc.CONSTRAINT_NAME = c.CONSTRAINT_NAME
+         WHERE c.OWNER = G_OWNER AND c.TABLE_NAME = V_TAB AND c.CONSTRAINT_TYPE = 'P';
+
+        IF V_KEY IS NOT NULL THEN
+            V_SRC := 'PK';
+        ELSE
+            BEGIN
+                SELECT INDEX_NAME INTO V_IDX FROM (
+                    SELECT i.INDEX_NAME
+                      FROM ALL_INDEXES i
+                     WHERE i.TABLE_OWNER = G_OWNER AND i.TABLE_NAME = V_TAB
+                       AND i.UNIQUENESS = 'UNIQUE'
+                     ORDER BY (SELECT COUNT(*) FROM ALL_IND_COLUMNS ic
+                                WHERE ic.INDEX_OWNER = i.OWNER AND ic.INDEX_NAME = i.INDEX_NAME),
+                              i.INDEX_NAME
+                ) WHERE ROWNUM = 1;
+
+                SELECT LISTAGG(CASE WHEN ic.COLUMN_NAME <> 'STORE_CD' THEN ic.COLUMN_NAME END, ',')
+                         WITHIN GROUP (ORDER BY ic.COLUMN_POSITION)
+                  INTO V_KEY
+                  FROM ALL_IND_COLUMNS ic
+                 WHERE ic.INDEX_OWNER = G_OWNER AND ic.INDEX_NAME = V_IDX;
+
+                IF V_KEY IS NOT NULL THEN V_SRC := 'UK'; END IF;
+            EXCEPTION WHEN NO_DATA_FOUND THEN V_KEY := NULL;
+            END;
+        END IF;
+
+        /* --- 기준매장 건수 --- */
+        EXECUTE IMMEDIATE
+            'SELECT COUNT(*) FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = :b'
+            INTO V_BASECNT USING G_BASE;
+
+        IF V_KEY IS NULL THEN
+            /* ---- 키비교 불가 : 건수만 ---- */
+            V_SQL :=
+            'INSERT INTO ${c.work} (TBL_NM,KEY_SRC,KEY_COLS,STORE_CD,BASE_CNT,TGT_CNT,ONLY_BASE,ONLY_TGT,NOTE) '||
+            'SELECT '''||V_TAB||''', '''||NVL(V_SRC,'NONE')||''', NULL, s.STORE_CD, '||V_BASECNT||', '||
+            '       NVL(tc.C,0), NULL, NULL, ''건수만 비교(키 없음/STORE_CD 단일키)'' '||
+            '  FROM ('||V_ST_SRC||') s '||
+            '  LEFT JOIN (SELECT STORE_CD, COUNT(*) C FROM '||G_OWNER||'.'||V_TAB||
+            '              WHERE STORE_CD IN ('||G_STORES||') GROUP BY STORE_CD) tc '||
+            '    ON tc.STORE_CD = s.STORE_CD';
+        ELSE
+            /* ---- 키 비교 : 기준키집합 vs 매장키집합 양방향 MINUS ---- */
+            V_SQL :=
+            'INSERT INTO ${c.work} (TBL_NM,KEY_SRC,KEY_COLS,STORE_CD,BASE_CNT,TGT_CNT,ONLY_BASE,ONLY_TGT,NOTE) '||
+            'WITH ST AS ('||V_ST_SRC||') '||
+            '   , B  AS (SELECT '||V_KEY||' FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = '''||G_BASE||''') '||
+            '   , BX AS (SELECT s.STORE_CD, '||V_KEY||' FROM B CROSS JOIN ST s) '||
+            '   , T  AS (SELECT STORE_CD, '||V_KEY||' FROM '||G_OWNER||'.'||V_TAB||
+            '             WHERE STORE_CD IN ('||G_STORES||')) '||
+            '   , OB AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM BX MINUS SELECT * FROM T) GROUP BY STORE_CD) '||
+            '   , OT AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM T MINUS SELECT * FROM BX) GROUP BY STORE_CD) '||
+            '   , TC AS (SELECT STORE_CD, COUNT(*) C FROM '||G_OWNER||'.'||V_TAB||
+            '             WHERE STORE_CD IN ('||G_STORES||') GROUP BY STORE_CD) '||
+            'SELECT '''||V_TAB||''', '''||V_SRC||''', '''||SUBSTR(V_KEY,1,2000)||''', s.STORE_CD, '||V_BASECNT||', '||
+            '       NVL(tc.C,0), NVL(ob.C,0), NVL(ot.C,0), NULL '||
+            '  FROM ST s '||
+            '  LEFT JOIN TC tc ON tc.STORE_CD = s.STORE_CD '||
+            '  LEFT JOIN OB ob ON ob.STORE_CD = s.STORE_CD '||
+            '  LEFT JOIN OT ot ON ot.STORE_CD = s.STORE_CD';
+        END IF;
+
+        BEGIN
+            EXECUTE IMMEDIATE V_SQL;
+            DBMS_OUTPUT.PUT_LINE(RPAD(V_TAB,32)||' '||RPAD(NVL(V_SRC,'NONE'),4)||
+                                 ' base='||LPAD(V_BASECNT,7)||'  key='||SUBSTR(NVL(V_KEY,'-'),1,80));
+        EXCEPTION WHEN OTHERS THEN
+            V_ERR := '★오류 '||SUBSTR(SQLERRM,1,150);   /* SQLERRM은 SQL문에 직접 못 씀 */
+            INSERT INTO ${c.work} (TBL_NM, KEY_SRC, KEY_COLS, BASE_CNT, NOTE)
+                 VALUES (V_TAB, NVL(V_SRC,'NONE'), SUBSTR(V_KEY,1,2000), V_BASECNT, V_ERR);
+            DBMS_OUTPUT.PUT_LINE(RPAD(V_TAB,32)||' '||V_ERR);
+        END;
+    END LOOP;
+
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('--- 완료. ${c.work} 조회하세요 ---');
+END;
+/`;
+}
+
+function sql5(c){
+  return `/* [5-1] 테이블 요약 — DIFF_STORES = 0 이면 전 매장이 기준매장과 동일 */
+SELECT TBL_NM,
+       MAX(KEY_SRC)                                             AS KEY_SRC,
+       MAX(BASE_CNT)                                            AS BASE_CNT,
+       MIN(TGT_CNT)                                             AS MIN_CNT,
+       MAX(TGT_CNT)                                             AS MAX_CNT,
+       SUM(CASE WHEN NVL(TGT_CNT,0) = 0 THEN 1 ELSE 0 END)      AS ZERO_STORES,
+       SUM(CASE WHEN NVL(ONLY_BASE,0) > 0 THEN 1 ELSE 0 END)    AS MISS_STORES,
+       SUM(CASE WHEN NVL(ONLY_TGT,0)  > 0 THEN 1 ELSE 0 END)    AS EXTRA_STORES,
+       SUM(CASE WHEN NVL(ONLY_BASE,0) + NVL(ONLY_TGT,0) > 0
+                  OR  NVL(TGT_CNT,0) <> NVL(BASE_CNT,0)
+                THEN 1 ELSE 0 END)                              AS DIFF_STORES,
+       MAX(NOTE)                                                AS NOTE
+  FROM ${c.work}
+ GROUP BY TBL_NM
+ ORDER BY DIFF_STORES DESC, TBL_NM;
+
+/* [5-2] 차이 나는 것만 상세 — 실제로 손봐야 할 목록 */
+SELECT TBL_NM, STORE_CD, KEY_SRC,
+       BASE_CNT, TGT_CNT, NVL(TGT_CNT,0) - NVL(BASE_CNT,0) AS DIFF,
+       ONLY_BASE   AS MISSING_IN_STORE,
+       ONLY_TGT    AS EXTRA_IN_STORE,
+       KEY_COLS, NOTE
+  FROM ${c.work}
+ WHERE NOTE IS NOT NULL
+    OR NVL(ONLY_BASE,0) > 0
+    OR NVL(ONLY_TGT,0)  > 0
+    OR NVL(TGT_CNT,0)  <> NVL(BASE_CNT,0)
+ ORDER BY TBL_NM, STORE_CD;
+
+/* [5-3] 매장별 총평 — 어느 매장이 제일 덜 깔렸나 */
+SELECT STORE_CD,
+       COUNT(*)                                                  AS TBL_CNT,
+       SUM(CASE WHEN NVL(TGT_CNT,0) = 0 THEN 1 ELSE 0 END)       AS EMPTY_TBL,
+       SUM(CASE WHEN NVL(ONLY_BASE,0) > 0 THEN 1 ELSE 0 END)     AS MISS_TBL,
+       SUM(NVL(ONLY_BASE,0))                                     AS MISS_KEY_TOT,
+       SUM(NVL(ONLY_TGT,0))                                      AS EXTRA_KEY_TOT,
+       SUM(NVL(TGT_CNT,0) - NVL(BASE_CNT,0))                     AS ROW_DIFF_TOT
+  FROM ${c.work}
+ WHERE STORE_CD IS NOT NULL
+ GROUP BY STORE_CD
+ ORDER BY MISS_KEY_TOT DESC, STORE_CD;
+
+/* [5-4] 건수 매트릭스 (행=테이블, 열=매장) */
+SELECT * FROM (
+    SELECT TBL_NM, BASE_CNT, STORE_CD, TGT_CNT
+      FROM ${c.work}
+     WHERE STORE_CD IS NOT NULL
+) PIVOT (
+    MAX(TGT_CNT) FOR STORE_CD IN (
+${pivotInLines(c.stores, '      ')})
+) ORDER BY TBL_NM;
+
+/* [5-5] 누락 키 매트릭스 (전부 0 이면 정상) */
+SELECT * FROM (
+    SELECT TBL_NM, STORE_CD, ONLY_BASE
+      FROM ${c.work}
+     WHERE STORE_CD IS NOT NULL
+) PIVOT (
+    MAX(ONLY_BASE) FOR STORE_CD IN (
+${pivotInLines(c.stores, '      ')})
+) ORDER BY TBL_NM;`;
+}
+
+function sql6(c, table, store){
+  return `/* [6] '실제로 어떤 키가 빠졌는지' 목록 SQL 생성기
+   실행하면 DBMS_OUTPUT 으로 MINUS 쿼리가 출력된다. 그걸 복사해 따로 실행. */
+DECLARE
+    G_OWNER  CONSTANT VARCHAR2(30) := '${c.owner}';
+    G_BASE   CONSTANT VARCHAR2(30) := '${c.base}';
+    P_TABLE  CONSTANT VARCHAR2(60) := '${table}';
+    P_STORE  CONSTANT VARCHAR2(30) := '${store}';
+    V_KEY    VARCHAR2(4000);
+BEGIN
+    SELECT LISTAGG(CASE WHEN cc.COLUMN_NAME <> 'STORE_CD' THEN cc.COLUMN_NAME END, ',')
+             WITHIN GROUP (ORDER BY cc.POSITION)
+      INTO V_KEY
+      FROM ALL_CONSTRAINTS c
+      JOIN ALL_CONS_COLUMNS cc
+        ON cc.OWNER = c.OWNER AND cc.CONSTRAINT_NAME = c.CONSTRAINT_NAME
+     WHERE c.OWNER = G_OWNER AND c.TABLE_NAME = P_TABLE AND c.CONSTRAINT_TYPE = 'P';
+
+    DBMS_OUTPUT.PUT_LINE('/* '||P_TABLE||' : '||G_BASE||' 에는 있고 '||P_STORE||' 에는 없는 키 */');
+    DBMS_OUTPUT.PUT_LINE('SELECT '||V_KEY||' FROM '||G_OWNER||'.'||P_TABLE||' WHERE STORE_CD = '''||G_BASE||'''');
+    DBMS_OUTPUT.PUT_LINE('MINUS');
+    DBMS_OUTPUT.PUT_LINE('SELECT '||V_KEY||' FROM '||G_OWNER||'.'||P_TABLE||' WHERE STORE_CD = '''||P_STORE||''';');
+    DBMS_OUTPUT.PUT_LINE(' ');
+    DBMS_OUTPUT.PUT_LINE('/* 반대로 '||P_STORE||' 에만 있는 키 */');
+    DBMS_OUTPUT.PUT_LINE('SELECT '||V_KEY||' FROM '||G_OWNER||'.'||P_TABLE||' WHERE STORE_CD = '''||P_STORE||'''');
+    DBMS_OUTPUT.PUT_LINE('MINUS');
+    DBMS_OUTPUT.PUT_LINE('SELECT '||V_KEY||' FROM '||G_OWNER||'.'||P_TABLE||' WHERE STORE_CD = '''||G_BASE||''';');
+END;
+/`;
+}
+
+function sqlA(c){
+  const all = [c.base, ...c.stores];
+  const unions = c.tabs.map((t,i) =>
+`     ${i===0?'':'UNION ALL\n     '}SELECT '${t}'${i===0?' TBL':''}, STORE_CD${i===0?'':''}, COUNT(*)${i===0?' C':''}
+       FROM ${c.owner}.${t}
+      WHERE STORE_CD IN (SELECT STORE_CD FROM ST) GROUP BY STORE_CD`).join('\n');
+  return `/* [부록 A] 작업테이블 없이 — 건수만 보는 단일 쿼리 (CREATE 권한 불필요) */
+WITH ST AS (SELECT COLUMN_VALUE STORE_CD FROM TABLE(SYS.ODCIVARCHAR2LIST(
+${quotedLines(all, 6, '       ')})))
+   , D AS (
+${unions}
+   )
+SELECT t.TBL, s.STORE_CD, NVL(d.C,0) AS CNT,
+       (SELECT NVL(MAX(b.C),0) FROM D b WHERE b.TBL = t.TBL AND b.STORE_CD = '${c.base}') AS BASE_CNT
+  FROM (SELECT DISTINCT TBL FROM D) t
+ CROSS JOIN ST s
+  LEFT JOIN D d ON d.TBL = t.TBL AND d.STORE_CD = s.STORE_CD
+ ORDER BY t.TBL, s.STORE_CD;`;
+}
+
+/* =========================================================
+   출력 렌더
+========================================================= */
+const STEPS = [
+  { id:'s1', label:'[1] 테이블 확인', title:'[1] 테이블 존재/컬럼 확인', desc:'조회 전용 — 아무것도 안 바꿈', build:c=>sql1(c) },
+  { id:'s2', label:'[2] 키 확인',    title:'[2] PK / UNIQUE 키 확인',   desc:'조회 전용 — 비교키 미리보기', build:c=>sql2(c) },
+  { id:'s3', label:'[3] 작업테이블', title:'[3] 작업테이블 생성/초기화', desc:'내 스키마에만 생성', build:c=>sql3(c),
+    note:'이미 만들어져 있으면 <b>CREATE 는 건너뛰고 TRUNCATE 만</b> 실행하세요.' },
+  { id:'s4', label:'[4] 비교 실행',  title:'[4] 비교 실행 (PL/SQL)',    desc:'대상 테이블 SELECT만 · 결과는 작업테이블에 적재', build:c=>sql4(c),
+    note:'실행 전 <b>SET SERVEROUTPUT ON</b> 을 켜면 진행 로그가 보입니다.' },
+  { id:'s5', label:'[5] 결과 조회',  title:'[5] 결과 조회 (5종)',       desc:'요약 → 차이 상세 → 매장별 총평 → 매트릭스', build:c=>sql5(c) },
+  { id:'s6', label:'[6] 누락키 상세', title:'[6] 누락 키 목록 SQL 생성기', desc:'테이블·매장 하나 골라서 실행', build:null },
+  { id:'sa', label:'부록A 건수만',   title:'[부록 A] 건수만 단일 쿼리',  desc:'작업테이블을 못 만드는 환경용', build:c=>sqlA(c) },
+  { id:'s7', label:'[7] 정리',       title:'[7] 정리',                  desc:'다 끝나면 작업테이블 삭제',
+    build:c=>`/* [7] 정리 — 확인 후 실행 */\nDROP TABLE ${c.work} PURGE;` },
+];
+
+let CTX = null, cur = 's1';
+
+$('#genBtn').addEventListener('click', () => {
+  const c = ctx();
+  const problems = [];
+  if (!c.base) problems.push('기준매장을 입력하세요.');
+  if (!c.stores.length) problems.push('대상매장이 없습니다.');
+  if (!c.tabs.length) problems.push('테이블을 1개 이상 선택하세요.');
+  if (problems.length){
+    $('#outArea').innerHTML = `<div class="empty">${problems.map(esc).join('<br>')}</div>`;
+    $('#steps').hidden = true;
+    return;
+  }
+  CTX = c;
+  renderSteps();
+  showStep(cur);
+});
+
+function renderSteps(){
+  const host = $('#steps');
+  host.hidden = false;
+  host.innerHTML = STEPS.map(s =>
+    `<button type="button" class="step-btn${s.id===cur?' on':''}" data-s="${s.id}">${s.label}</button>`).join('');
+  host.querySelectorAll('.step-btn').forEach(b =>
+    b.onclick = () => { cur = b.dataset.s; renderSteps(); showStep(cur); });
+}
+
+function codeCard(title, desc, sqlText, note){
+  const noteHtml = note ? `<div class="note"><b>참고</b> · ${note}</div>` : '';
+  return `
+  <div class="codecard">
+    <div class="codebar">
+      <span class="t">${esc(title)}</span>
+      <span class="d">${esc(desc)}</span>
+      <button type="button" class="cp">복사</button>
+    </div>
+    <pre class="code">${highlight(sqlText)}</pre>
+  </div>${noteHtml}`;
+}
+
+function highlight(sql){
+  /* 주석만 옅게 (과한 하이라이트는 복사 정확성엔 영향 없지만 시각 소음) */
+  return esc(sql).replace(/(\/\*[\s\S]*?\*\/|--[^\n]*)/g, '<span class="c">$1</span>');
+}
+
+function showStep(id){
+  const s = STEPS.find(x=>x.id===id);
+  const host = $('#outArea');
+  if (id === 's6'){
+    const tabs = CTX.tabs.map(t=>`<option>${t}</option>`).join('');
+    const sts  = CTX.stores.map(t=>`<option>${t}</option>`).join('');
+    host.innerHTML = `
+      <div class="gen6">
+        <div class="f"><label for="g6t">테이블</label><select id="g6t">${tabs}</select></div>
+        <div class="f"><label for="g6s">매장</label><select id="g6s">${sts}</select></div>
+      </div>
+      <div id="g6out"></div>`;
+    const render6 = () => {
+      $('#g6out').innerHTML = codeCard(s.title, s.desc,
+        sql6(CTX, $('#g6t').value, $('#g6s').value),
+        '[5-2] 에서 걸린 (테이블, 매장) 조합을 골라 실행하세요.');
+      bindCopy($('#g6out'));
+    };
+    $('#g6t').onchange = render6;
+    $('#g6s').onchange = render6;
+    render6();
+    return;
+  }
+  host.innerHTML = codeCard(s.title, s.desc, s.build(CTX), s.note);
+  bindCopy(host);
+}
+
+function bindCopy(scope){
+  scope.querySelectorAll('.codecard').forEach(card => {
+    const btn = card.querySelector('.cp');
+    btn.onclick = async () => {
+      const text = card.querySelector('pre').textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch(e){
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      btn.textContent = '복사됨 ✓'; btn.classList.add('done');
+      setTimeout(()=>{ btn.textContent='복사'; btn.classList.remove('done'); }, 1400);
+    };
+  });
+}
+</script>
+</body>
+</html>

@@ -459,7 +459,108 @@ SELECT x.TABLE_NAME, x.KIND, x.OBJ_NAME, x.ALL_COLS, x.CMP_COLS AS KEY_FOR_CMP
        ) x
  WHERE x.TABLE_NAME IN (
 ${tabListLines(c.tabs, 3, '      ')})
- ORDER BY x.TABLE_NAME, x.KIND, x.OBJ_NAME;`;
+ ORDER BY x.TABLE_NAME, x.KIND, x.OBJ_NAME;
+
+/* [2-2] 테이블별 전체 컬럼 + [T] 탭 매핑 한 줄 자동 생성
+   KEY_SRC      : PK, 없으면 UK(컬럼수 최소 UNIQUE 인덱스)로 자동 대체
+   MAPPING_NEXT : 값컬럼 = 키 바로 다음 컬럼 1개   ← 기본 권장
+   MAPPING_FULL : 값컬럼 = 전체 - 키 - STORE_CD
+   원하는 쪽 컬럼을 통째로 복사해 [T] 탭 매핑칸에 붙여넣으세요 */
+WITH PKC AS (
+  SELECT cc.TABLE_NAME, cc.COLUMN_NAME, cc.POSITION
+    FROM ALL_CONSTRAINTS k
+    JOIN ALL_CONS_COLUMNS cc
+      ON cc.OWNER = k.OWNER AND cc.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+   WHERE k.OWNER = '${c.owner}' AND k.CONSTRAINT_TYPE = 'P'
+)
+   , UKX AS (      /* PK 없는 테이블 : 컬럼수 최소 UNIQUE 인덱스 1개 선택 */
+  SELECT TABLE_NAME, INDEX_NAME
+    FROM (SELECT i.TABLE_NAME, i.INDEX_NAME,
+                 ROW_NUMBER() OVER (PARTITION BY i.TABLE_NAME
+                   ORDER BY (SELECT COUNT(*) FROM ALL_IND_COLUMNS ic
+                              WHERE ic.INDEX_OWNER = '${c.owner}'
+                                AND ic.INDEX_NAME  = i.INDEX_NAME),
+                            i.INDEX_NAME) AS RN
+            FROM ALL_INDEXES i
+           WHERE i.TABLE_OWNER = '${c.owner}' AND i.UNIQUENESS = 'UNIQUE'
+             AND NOT EXISTS (SELECT 1 FROM PKC p WHERE p.TABLE_NAME = i.TABLE_NAME))
+   WHERE RN = 1
+)
+   , KEYC AS (     /* 비교키 : PK 우선, 없으면 UK */
+  SELECT TABLE_NAME, COLUMN_NAME, POSITION, 'PK' AS SRC FROM PKC
+  UNION ALL
+  SELECT ic.TABLE_NAME, ic.COLUMN_NAME, ic.COLUMN_POSITION, 'UK'
+    FROM UKX u
+    JOIN ALL_IND_COLUMNS ic
+      ON ic.INDEX_OWNER = '${c.owner}' AND ic.INDEX_NAME = u.INDEX_NAME
+)
+   , KL AS (
+  SELECT TABLE_NAME,
+         MAX(SRC) AS KEY_SRC,
+         LISTAGG(CASE WHEN COLUMN_NAME <> 'STORE_CD' THEN COLUMN_NAME END, ',')
+           WITHIN GROUP (ORDER BY POSITION) AS KEYS
+    FROM KEYC GROUP BY TABLE_NAME
+)
+   , KX AS (       /* 키 컬럼들 중 마지막 COLUMN_ID (다음 컬럼 찾기용) */
+  SELECT k.TABLE_NAME, MAX(tc.COLUMN_ID) AS MAX_KEY_ID
+    FROM KEYC k
+    JOIN ALL_TAB_COLUMNS tc
+      ON tc.OWNER = '${c.owner}' AND tc.TABLE_NAME = k.TABLE_NAME
+     AND tc.COLUMN_NAME = k.COLUMN_NAME
+   GROUP BY k.TABLE_NAME
+)
+SELECT c.TABLE_NAME,
+       MIN(kl.KEY_SRC)                                                       AS KEY_SRC,
+       COUNT(*)                                                              AS COL_CNT,
+       LISTAGG(c.COLUMN_NAME, ',') WITHIN GROUP (ORDER BY c.COLUMN_ID)       AS ALL_COLUMNS,
+       MIN(kl.KEYS)                                                          AS KEY_FOR_CMP,
+       c.TABLE_NAME||': '||MIN(kl.KEYS)||' | '||
+         SUBSTR(MIN(CASE WHEN k.COLUMN_NAME IS NULL
+                          AND c.COLUMN_NAME <> 'STORE_CD'
+                          AND c.COLUMN_ID > NVL(kx.MAX_KEY_ID, 0)
+                         THEN LPAD(c.COLUMN_ID, 4, '0')||'|'||c.COLUMN_NAME END), 6)
+                                                                             AS MAPPING_NEXT,
+       c.TABLE_NAME||': '||MIN(kl.KEYS)||' | '||
+         LISTAGG(CASE WHEN c.COLUMN_NAME <> 'STORE_CD' AND k.COLUMN_NAME IS NULL
+                      THEN c.COLUMN_NAME END, ',')
+           WITHIN GROUP (ORDER BY c.COLUMN_ID)                               AS MAPPING_FULL
+  FROM ALL_TAB_COLUMNS c
+  LEFT JOIN KEYC k
+    ON k.TABLE_NAME = c.TABLE_NAME AND k.COLUMN_NAME = c.COLUMN_NAME
+  LEFT JOIN KL kl
+    ON kl.TABLE_NAME = c.TABLE_NAME
+  LEFT JOIN KX kx
+    ON kx.TABLE_NAME = c.TABLE_NAME
+ WHERE c.OWNER = '${c.owner}'
+   AND c.TABLE_NAME IN (
+${tabListLines(c.tabs, 3, '      ')})
+ GROUP BY c.TABLE_NAME
+ ORDER BY c.TABLE_NAME;
+
+/* [2-3] 컬럼 상세 (순서/타입/NULL 허용/PK 여부) */
+SELECT c.TABLE_NAME,
+       c.COLUMN_ID                                          AS NO,
+       c.COLUMN_NAME,
+       c.DATA_TYPE ||
+         CASE WHEN c.DATA_TYPE LIKE '%CHAR%' THEN '('||c.CHAR_LENGTH||')'
+              WHEN c.DATA_TYPE = 'NUMBER' AND c.DATA_PRECISION IS NOT NULL
+                   THEN '('||c.DATA_PRECISION||
+                        DECODE(NVL(c.DATA_SCALE,0), 0, '', ','||c.DATA_SCALE)||')'
+              ELSE '' END                                   AS DATA_TYPE,
+       c.NULLABLE,
+       NVL2(pk.COLUMN_NAME, 'PK'||pk.POSITION, NULL)        AS PK,
+       c.DATA_DEFAULT                                       AS DEFAULT_VAL
+  FROM ALL_TAB_COLUMNS c
+  LEFT JOIN (SELECT cc.TABLE_NAME, cc.COLUMN_NAME, cc.POSITION
+               FROM ALL_CONSTRAINTS k
+               JOIN ALL_CONS_COLUMNS cc
+                 ON cc.OWNER = k.OWNER AND cc.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+              WHERE k.OWNER = '${c.owner}' AND k.CONSTRAINT_TYPE = 'P') pk
+    ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME
+ WHERE c.OWNER = '${c.owner}'
+   AND c.TABLE_NAME IN (
+${tabListLines(c.tabs, 3, '      ')})
+ ORDER BY c.TABLE_NAME, c.COLUMN_ID;`;
 }
 
 function sql3(c){
@@ -715,6 +816,241 @@ END;
 /`;
 }
 
+/* ---- [T] 테이블별 개별 쿼리 ---- */
+/* 매핑 파싱:
+   "TB_MS_PRODUCT: PROD_CD | PROD_NM,USE_YN"
+     → 키 = PROD_CD, 값비교 컬럼 = PROD_NM,USE_YN
+   "| 값컬럼" 생략 가능. [2] 결과 그리드(TABLE_NAME ... KEY_FOR_CMP)를
+   그대로 붙여넣으면 첫 토큰=테이블, 마지막 토큰=키 로 해석한다 */
+function parseKeyMap(text){
+  const map = {};
+  String(text).split(/\n/).forEach(line => {
+    let t = line.trim();
+    if (!t || t.startsWith('--') || t.startsWith('/*')) return;
+    let vals = null;
+    const bar = t.indexOf('|');
+    if (bar >= 0){
+      vals = t.slice(bar+1).split(',').map(sanitizeId)
+              .filter(v => v && v !== 'STORE_CD');   /* STORE_CD 는 값비교 대상 아님 */
+      t = t.slice(0, bar).trim();
+      if (!vals.length) vals = null;
+    }
+    const parts = t.split(/[:\t]+|\s+/).filter(Boolean);
+    if (parts.length < 2) return;
+    const tbl = sanitizeId(parts[0]);
+    const keys = parts[parts.length-1].split(',').map(sanitizeId)
+                  .filter(k => k && k !== 'STORE_CD');   /* 키는 STORE_CD 제외분만 */
+    if (tbl && keys.length) map[tbl] = { keys, vals };
+  });
+  return map;
+}
+
+function stCTE(c){
+  return `WITH ST AS (SELECT COLUMN_VALUE STORE_CD FROM TABLE(SYS.ODCIVARCHAR2LIST(
+${quotedLines(c.stores, 6, '       ')})))`;
+}
+
+/* ① 총건수 비교 — 키 없이도 실행 가능 */
+function sqlT1(c, table){
+  return `/* ① ${table} — 총건수 비교 (BASE_CNT ≠ TGT_CNT 인 매장을 찾는다) */
+${stCTE(c)}
+SELECT s.STORE_CD,
+       (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}') AS BASE_CNT,
+       NVL(tc.C,0)                                                    AS TGT_CNT,
+       NVL(tc.C,0)
+       - (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}') AS DIFF
+  FROM ST s
+  LEFT JOIN (SELECT STORE_CD, COUNT(*) C
+               FROM ${c.owner}.${table}
+              WHERE STORE_CD IN (SELECT STORE_CD FROM ST)
+              GROUP BY STORE_CD) tc
+    ON tc.STORE_CD = s.STORE_CD
+ ORDER BY s.STORE_CD;`;
+}
+
+/* ② 키 기준 누락/잉여 — 건수 요약 + 실제 행 리스트 */
+function sqlT2(c, table, keys){
+  const K  = keys.join(', ');
+  const bK = keys.map(k => 'b.'+k).join(', ');
+  const body =
+`   , B  AS (SELECT ${K} FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}')
+   , T  AS (SELECT STORE_CD, ${K} FROM ${c.owner}.${table}
+             WHERE STORE_CD IN (SELECT STORE_CD FROM ST))`;
+  return `/* ②-1 ${table} — 매장별 누락/잉여 건수 (키: ${K}) */
+${stCTE(c)}
+${body}
+   , BX AS (SELECT s.STORE_CD, ${bK} FROM B b CROSS JOIN ST s)
+   , OB AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM BX MINUS SELECT * FROM T) GROUP BY STORE_CD)
+   , OT AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM T MINUS SELECT * FROM BX) GROUP BY STORE_CD)
+   , TC AS (SELECT STORE_CD, COUNT(*) C FROM T GROUP BY STORE_CD)
+SELECT s.STORE_CD,
+       (SELECT COUNT(*) FROM B)  AS BASE_CNT,
+       NVL(tc.C,0)               AS TGT_CNT,
+       NVL(ob.C,0)               AS MISSING_IN_STORE,   /* 기준에만 있음 = 누락 */
+       NVL(ot.C,0)               AS EXTRA_IN_STORE      /* 매장에만 있음 = 잉여 */
+  FROM ST s
+  LEFT JOIN TC tc ON tc.STORE_CD = s.STORE_CD
+  LEFT JOIN OB ob ON ob.STORE_CD = s.STORE_CD
+  LEFT JOIN OT ot ON ot.STORE_CD = s.STORE_CD
+ ORDER BY s.STORE_CD;
+
+/* ②-2 ${table} — 누락 키 리스트 (기준 ${c.base} 에는 있고 매장에 없는 행) */
+${stCTE(c)}
+${body}
+SELECT * FROM (SELECT s.STORE_CD, ${bK} FROM B b CROSS JOIN ST s
+               MINUS
+               SELECT * FROM T)
+ ORDER BY 1, 2;
+
+/* ②-3 ${table} — 잉여 키 리스트 (매장에만 있는 행) */
+${stCTE(c)}
+${body}
+SELECT * FROM (SELECT * FROM T
+               MINUS
+               SELECT s.STORE_CD, ${bK} FROM B b CROSS JOIN ST s)
+ ORDER BY 1, 2;`;
+}
+
+/* ③-a 값 비교 — 비교할 컬럼을 직접 지정한 경우 */
+function sqlT3(c, table, keys, vals){
+  const jn = keys.map(k => `b.${k} = t.${k}`).join(' AND ');
+  const tK = keys.map(k => 't.'+k).join(', ');
+  const diffCase = vals.map(v =>
+    `         CASE WHEN DECODE(b.${v}, t.${v}, 0, 1) = 1 THEN '${v},' END ||`).join('\n');
+  const selPairs = vals.map(v => {
+    const a = v.slice(0,28);
+    return `       b.${v} AS B_${a}, t.${v} AS T_${a}`;
+  }).join(',\n');
+  const whereOr = vals.map(v =>
+    `    OR DECODE(b.${v}, t.${v}, 0, 1) = 1`).join('\n');
+  return `/* ③ ${table} — 값이 다른 행 (키는 양쪽에 있는데 ${vals.join(',')} 값이 다른 것)
+   DECODE 비교라 NULL=NULL 은 같다고 본다. DIFF_COLS 에 다른 컬럼명이 표시됨 */
+SELECT t.STORE_CD, ${tK},
+       RTRIM(
+${diffCase}
+         NULL, ',') AS DIFF_COLS,
+${selPairs}
+  FROM ${c.owner}.${table} t
+  JOIN ${c.owner}.${table} b
+    ON b.STORE_CD = '${c.base}' AND ${jn}
+ WHERE t.STORE_CD IN (
+${quotedLines(c.stores, 6, '       ')})
+   AND ( 1 = 0
+${whereOr} )
+ ORDER BY t.STORE_CD, ${tK};`;
+}
+
+/* ③-b 값 비교 생성기 — 컬럼 미지정 시 딕셔너리에서 키 외 전체 컬럼을 읽어
+       비교 SELECT 를 DBMS_OUTPUT 으로 출력해 준다 */
+function sqlT3gen(c, table, keys, excl){
+  return `/* ③ ${table} — 값비교 쿼리 생성기 (키 외 전체 컬럼 자동)
+   SET SERVEROUTPUT ON 켜고 실행 → 출력된 SELECT 를 복사해서 실행.
+   컬럼이 아주 많아 32767자를 넘으면 제외 컬럼을 늘려서 줄이세요 */
+DECLARE
+    G_OWNER  CONSTANT VARCHAR2(30)    := '${c.owner}';
+    G_BASE   CONSTANT VARCHAR2(30)    := '${c.base}';
+    P_TABLE  CONSTANT VARCHAR2(60)    := '${table}';
+    P_KEYS   CONSTANT VARCHAR2(1000)  := '${keys.join(',')}';
+    P_EXCL   CONSTANT VARCHAR2(1000)  := '${excl}';   /* 값비교 제외 컬럼 */
+    G_STORES CONSTANT VARCHAR2(32767) :=
+${plsqlStoresConst(c.stores, '        ')};
+    V_JOIN   VARCHAR2(4000);
+    V_TKEY   VARCHAR2(1000);
+    V_DIFF   VARCHAR2(32767);
+    V_SEL    VARCHAR2(32767);
+    V_OR     VARCHAR2(32767);
+    V_SQL    VARCHAR2(32767);
+    V_I      PLS_INTEGER;
+BEGIN
+    SELECT LISTAGG('b.'||COLUMN_NAME||' = t.'||COLUMN_NAME, ' AND ')
+             WITHIN GROUP (ORDER BY COLUMN_ID)
+      INTO V_JOIN
+      FROM ALL_TAB_COLUMNS
+     WHERE OWNER = G_OWNER AND TABLE_NAME = P_TABLE
+       AND ','||P_KEYS||',' LIKE '%,'||COLUMN_NAME||',%';
+
+    IF V_JOIN IS NULL THEN
+        DBMS_OUTPUT.PUT_LINE('/* 키 컬럼('||P_KEYS||')을 테이블에서 못 찾았습니다 */');
+        RETURN;
+    END IF;
+
+    V_TKEY := 't.'||REPLACE(P_KEYS, ',', ', t.');
+
+    FOR r IN (SELECT COLUMN_NAME
+                FROM ALL_TAB_COLUMNS
+               WHERE OWNER = G_OWNER AND TABLE_NAME = P_TABLE
+                 AND COLUMN_NAME <> 'STORE_CD'
+                 AND ','||P_KEYS||',' NOT LIKE '%,'||COLUMN_NAME||',%'
+                 AND ','||P_EXCL||',' NOT LIKE '%,'||COLUMN_NAME||',%'
+               ORDER BY COLUMN_ID) LOOP
+        V_DIFF := V_DIFF||'         CASE WHEN DECODE(b.'||r.COLUMN_NAME||', t.'||r.COLUMN_NAME||
+                  ', 0, 1) = 1 THEN '||CHR(39)||r.COLUMN_NAME||','||CHR(39)||' END ||'||CHR(10);
+        V_SEL  := V_SEL ||'       b.'||r.COLUMN_NAME||' AS B_'||SUBSTR(r.COLUMN_NAME,1,28)||
+                  ', t.'||r.COLUMN_NAME||' AS T_'||SUBSTR(r.COLUMN_NAME,1,28)||','||CHR(10);
+        V_OR   := V_OR  ||'    OR DECODE(b.'||r.COLUMN_NAME||', t.'||r.COLUMN_NAME||', 0, 1) = 1'||CHR(10);
+    END LOOP;
+
+    IF V_DIFF IS NULL THEN
+        DBMS_OUTPUT.PUT_LINE('/* 비교할 값 컬럼이 없습니다 (전부 키/제외 컬럼) */');
+        RETURN;
+    END IF;
+
+    V_SQL := '/* '||P_TABLE||' 값 비교 : 키 '||P_KEYS||' , 제외 '||P_EXCL||' */'||CHR(10)||
+             'SELECT t.STORE_CD, '||V_TKEY||','||CHR(10)||
+             '       RTRIM('||CHR(10)||
+             V_DIFF||
+             '         NULL, '||CHR(39)||','||CHR(39)||') AS DIFF_COLS,'||CHR(10)||
+             RTRIM(V_SEL, ','||CHR(10))||CHR(10)||
+             '  FROM '||G_OWNER||'.'||P_TABLE||' t'||CHR(10)||
+             '  JOIN '||G_OWNER||'.'||P_TABLE||' b'||CHR(10)||
+             '    ON b.STORE_CD = '||CHR(39)||G_BASE||CHR(39)||' AND '||V_JOIN||CHR(10)||
+             ' WHERE t.STORE_CD IN ('||G_STORES||')'||CHR(10)||
+             '   AND ( 1 = 0'||CHR(10)||
+             V_OR||
+             '       )'||CHR(10)||
+             ' ORDER BY t.STORE_CD, '||V_TKEY||';';
+
+    LOOP
+        V_I := INSTR(V_SQL, CHR(10));
+        IF V_I = 0 THEN
+            IF V_SQL IS NOT NULL THEN DBMS_OUTPUT.PUT_LINE(V_SQL); END IF;
+            EXIT;
+        END IF;
+        DBMS_OUTPUT.PUT_LINE(SUBSTR(V_SQL, 1, V_I-1));
+        V_SQL := SUBSTR(V_SQL, V_I+1);
+    END LOOP;
+END;
+/`;
+}
+
+/* 테이블 하나 → 카드 1~3장. 제외 컬럼은 직접 값비교/생성기 양쪽에 적용 */
+function tableCards(c, t, ent, excl){
+  const exSet = new Set(String(excl||'').split(',').map(sanitizeId).filter(Boolean));
+  const keys = ent && ent.keys && ent.keys.length ? ent.keys : null;
+  let vals = ent && ent.vals && ent.vals.length
+           ? ent.vals.filter(v => !exSet.has(v)) : null;
+  if (vals && !vals.length) vals = null;   /* 전부 제외됐으면 생성기로 */
+  const cards = [];
+  cards.push({ title:'① '+t+' · 총건수',
+               desc: keys ? '매장별 건수 비교' : '건수 비교 (키 미지정 → ②③ 생략)',
+               sql: sqlT1(c, t) });
+  if (keys){
+    cards.push({ title:'② '+t+' · 누락/잉여',
+                 desc:'키: '+keys.join(','),
+                 sql: sqlT2(c, t, keys) });
+    if (vals){
+      cards.push({ title:'③ '+t+' · 값 비교',
+                   desc:'컬럼: '+vals.join(','),
+                   sql: sqlT3(c, t, keys, vals) });
+    } else {
+      cards.push({ title:'③ '+t+' · 값 비교 생성기',
+                   desc:'키 외 전체 컬럼 자동 · SERVEROUTPUT 필요',
+                   sql: sqlT3gen(c, t, keys, excl) });
+    }
+  }
+  return cards;
+}
+
 function sqlA(c){
   const all = [c.base, ...c.stores];
   const unions = c.tabs.map((t,i) =>
@@ -740,19 +1076,69 @@ SELECT t.TBL, s.STORE_CD, NVL(d.C,0) AS CNT,
 ========================================================= */
 const STEPS = [
   { id:'s1', label:'[1] 테이블 확인', title:'[1] 테이블 존재/컬럼 확인', desc:'조회 전용 — 아무것도 안 바꿈', build:c=>sql1(c) },
-  { id:'s2', label:'[2] 키 확인',    title:'[2] PK / UNIQUE 키 확인',   desc:'조회 전용 — 비교키 미리보기', build:c=>sql2(c) },
+  { id:'s2', label:'[2] 키·컬럼',    title:'[2] 키 / 전체 컬럼 확인',   desc:'PK·UK → 전체 컬럼·매핑라인 → 컬럼 상세', build:c=>sql2(c),
+    note:'[2-2] 는 PK 가 없으면 <b>UNIQUE 인덱스로 키를 자동 대체</b>합니다(KEY_SRC=UK). <b>MAPPING_NEXT</b>(값=키 다음 컬럼 1개) 또는 <b>MAPPING_FULL</b>(값=전체) 컬럼을 복사해 [T] 탭 매핑칸에 붙여넣으세요.' },
   { id:'s3', label:'[3] 작업테이블', title:'[3] 작업테이블 생성/초기화', desc:'내 스키마에만 생성', build:c=>sql3(c),
     note:'이미 만들어져 있으면 <b>CREATE 는 건너뛰고 TRUNCATE 만</b> 실행하세요.' },
   { id:'s4', label:'[4] 비교 실행',  title:'[4] 비교 실행 (PL/SQL)',    desc:'대상 테이블 SELECT만 · 결과는 작업테이블에 적재', build:c=>sql4(c),
     note:'실행 전 <b>SET SERVEROUTPUT ON</b> 을 켜면 진행 로그가 보입니다.' },
   { id:'s5', label:'[5] 결과 조회',  title:'[5] 결과 조회 (5종)',       desc:'요약 → 차이 상세 → 매장별 총평 → 매트릭스', build:c=>sql5(c) },
+  { id:'st', label:'[T] 테이블별',   title:'[T] 테이블별 개별 쿼리',    desc:'① 총건수 → ② 누락/잉여 리스트 → ③ 값 비교, 테이블별 직접 실행', build:null },
   { id:'s6', label:'[6] 누락키 상세', title:'[6] 누락 키 목록 SQL 생성기', desc:'테이블·매장 하나 골라서 실행', build:null },
   { id:'sa', label:'부록A 건수만',   title:'[부록 A] 건수만 단일 쿼리',  desc:'작업테이블을 못 만드는 환경용', build:c=>sqlA(c) },
   { id:'s7', label:'[7] 정리',       title:'[7] 정리',                  desc:'다 끝나면 작업테이블 삭제',
     build:c=>`/* [7] 정리 — 확인 후 실행 */\nDROP TABLE ${c.work} PURGE;` },
 ];
 
-let CTX = null, cur = 's1';
+/* [T] 키/값컬럼 매핑 기본값.
+   [2-2] 를 실행해서 MAPPING_NEXT 컬럼을 복사한 뒤 아래 백틱 사이에
+   붙여넣어 두면, 쿼리 생성 시 매핑칸에 자동으로 채워진다.
+   형식: 테이블명: 키1,키2 | 값컬럼  (한 줄에 하나) */
+/* 키/값 기본값 — [2-2] 실제 결과 기반.
+   키 = PK(없으면 UK), 값 = 키 다음 컬럼 1개(REG_DT 등 감사컬럼이면 그 다음 유효 컬럼).
+   값이 없는 순수 매핑 테이블은 키만(③은 생성기로 동작). 자유롭게 수정해서 쓰세요 */
+const DEFAULT_KMAP = `TB_MS_STORE_ENVST: ENVST_CD | ENVST_VAL
+TB_MS_STORE_NMCODE: NMCODE_GRP_CD,NMCODE_CD,PARENT_CD | NMCODE_NM
+TB_MS_POS_ENVST: POS_NO,ENVST_CD | ENVST_VAL
+TB_MS_STORE_FNKEY: FNKEY_NO | FNKEY_NM
+TB_MS_POS_FNKEY: POS_NO,FNKEY_NO | FNKEY_FG
+TB_MS_PRINTER: PRTER_NO | PRTER_NM
+TB_MS_PRINT: PRT_CLASS_CD | TEMPLT_REG_FG
+TB_MS_PRINT_TEMPL: PRT_CLASS_CD,TEMPLT_REG_FG,TEMPLT_CD | TEMPLT_NM
+TB_MS_PRINT_TEXT: PRT_CD | ORIGIN_CD
+TB_MS_PRINTER_PROD: PRTER_NO,PROD_CD
+TB_MS_PRODUCT_LCLASS: L_CLASS_CD | L_CLASS_NM
+TB_MS_PRODUCT_MCLASS: M_CLASS_CD | M_CLASS_NM
+TB_MS_PRODUCT_SCLASS: S_CLASS_CD | S_CLASS_NM
+TB_MS_PRODUCT_CLASS: PROD_CLASS_CD | PROD_CLASS_NM
+TB_MS_PRODUCT: PROD_CD | PROD_NM
+TB_MS_PRODUCT_INFO: PROD_CD | PROD_INFO
+TB_MS_PRODUCT_IMAGE: PROD_CD,IMG_FG | IMG_URL
+TB_MS_PRODUCT_BARCD: PROD_CD,BARCD_CD | BARCD_NM
+TB_MS_PRODUCT_SALE_PRICE: PROD_CD,SALE_PRC_FG,START_DATE | END_DATE
+TB_MS_PRODUCT_SALE_TIME: PROD_CD,TIME_SEQ | INCLUDE_FG
+TB_MS_PRODUCT_SDSEL_CLASS: SDSEL_CLASS_CD | SDSEL_CLASS_NM
+TB_MS_PRODUCT_SDSEL_GROUP: SDSEL_GRP_CD | SDSEL_GRP_NM
+TB_MS_PRODUCT_SDSEL_PROD: SDSEL_CLASS_CD,PROD_CD | ADD_PROD_UPRC
+TB_MS_PRODUCT_DLVR_PROD_NM: DLVR_NAME_CD,PROD_CD | DLVR_PROD_NM
+TB_MS_TOUCH_KEY_GROUP: TUKEY_GRP_CD | TUKEY_GRP_NM
+TB_MS_TOUCH_KEY_CLASS: TUKEY_GRP_CD,TUKEY_CLASS_CD | TUKEY_CLASS_NM
+TB_MS_TOUCH_KEY: TUKEY_GRP_CD,TUKEY_CLASS_CD,TUKEY_CD,TUKEY_FG | PROD_CD
+TB_MS_KIOSK_GROUP: POS_NO,TU_CLS_TYPE | TU_CLS_TYPE_NM
+TB_MS_KIOSK_M_CLS: POS_NO,TU_M_CLS_CD,TU_CLS_TYPE | TU_M_CLS_EN_NM
+TB_MS_KIOSK_CLS: POS_NO,TU_CLS_CD,TU_CLS_TYPE | TU_CLS_NM
+TB_MS_KIOSK_KEY: POS_NO,TU_CLS_TYPE,TU_CLS_CD,TU_KEY_CD | PROD_CD
+TB_MS_COUPON: COUPN_REG_FG,PAY_CLASS_CD,COUPN_CD | COUPN_NM
+TB_MS_COUPON_PROD: COUPN_REG_FG,PAY_CLASS_CD,COUPN_CD,PROD_CD
+TB_MS_PROMO_H: PROMOTION_CD | PROMOTION_NM
+TB_MS_PROMO_CONDI: PROMOTION_CD | DATE_YN
+TB_MS_PROMO_CONDI_PROD: PROMOTION_CD,CONDI_PROD_SEQ | GUBUN_DS
+TB_MS_PROMO_BENE: PROMOTION_CD,BENE_SEQ | TYPE_CD
+TB_MS_PROMO_BENE_PROD: PROMOTION_CD,PROD_CD | GIFT_QTY
+TB_MS_POS_ADVER_FILE: ADVER_FILE_NO | FILE_USE_TYPE
+TB_MS_KITCHEN_MEMO: HQ_OFFICE_CD,KITCHN_MEMO_CD | MEMO_FG`;
+
+let CTX = null, cur = 's1', KMAP_TEXT = DEFAULT_KMAP, VEXCL_TEXT = 'REG_DT,REG_ID,MOD_DT,MOD_ID';
 
 $('#genBtn').addEventListener('click', () => {
   const c = ctx();
@@ -800,6 +1186,53 @@ function highlight(sql){
 function showStep(id){
   const s = STEPS.find(x=>x.id===id);
   const host = $('#outArea');
+  if (id === 'st'){
+    const opts = ['<option value="__ALL__">— 전체 테이블 일괄 생성 —</option>']
+      .concat(CTX.tabs.map(t=>`<option>${t}</option>`)).join('');
+    host.innerHTML = `
+      <div class="field" style="margin-bottom:8px">
+        <label for="kmap">키/값컬럼 매핑 <span class="hint">"테이블: 키1,키2 | 값컬럼1,값컬럼2" · 값컬럼 생략 시 ③은 전체컬럼 생성기로 · [2] 결과 붙여넣기 가능</span></label>
+        <textarea id="kmap" style="min-height:70px" placeholder="TB_MS_PRODUCT: PROD_CD | PROD_NM,USE_YN
+TB_MS_PRODUCT_SALE_PRICE: PROD_CD,SALE_UNIT_CD | SALE_PRC">${esc(KMAP_TEXT)}</textarea>
+      </div>
+      <div class="gen6">
+        <div class="f"><label for="tsel">테이블</label><select id="tsel">${opts}</select></div>
+        <div class="f"><label for="vexcl">값비교 제외 컬럼 <span class="hint">③ 공통 적용 · STORE_CD 는 항상 자동 제외</span></label><input type="text" id="vexcl" value="${esc(VEXCL_TEXT)}"></div>
+        <div class="f" style="flex:0;align-self:flex-end"><button type="button" class="btn" id="copyAllT" hidden>전체 복사</button></div>
+      </div>
+      <div id="tout"></div>`;
+    const getExcl = () => $('#vexcl').value.split(',').map(sanitizeId).filter(Boolean).join(',');
+    const renderT = () => {
+      KMAP_TEXT = $('#kmap').value;
+      VEXCL_TEXT = $('#vexcl').value;
+      const kmap = parseKeyMap(KMAP_TEXT);
+      const excl = getExcl();
+      const sel = $('#tsel').value;
+      const list = sel === '__ALL__' ? CTX.tabs : [sel];
+      $('#copyAllT').hidden = sel !== '__ALL__';
+      $('#tout').innerHTML = list.flatMap(t =>
+        tableCards(CTX, t, kmap[t], excl).map(cd => codeCard(cd.title, cd.desc, cd.sql))).join('');
+      bindCopy($('#tout'));
+    };
+    const deb = () => { clearTimeout(window.__kt); window.__kt = setTimeout(renderT, 350); };
+    $('#tsel').onchange = renderT;
+    $('#kmap').addEventListener('input', deb);
+    $('#vexcl').addEventListener('input', deb);
+    $('#copyAllT').onclick = async () => {
+      const kmap = parseKeyMap($('#kmap').value);
+      const excl = getExcl();
+      const all = CTX.tabs.flatMap(t => tableCards(CTX, t, kmap[t], excl).map(cd => cd.sql)).join('\n\n\n');
+      try { await navigator.clipboard.writeText(all); } catch(e){
+        const ta = document.createElement('textarea');
+        ta.value = all; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      const b = $('#copyAllT'); b.textContent = '복사됨 ✓';
+      setTimeout(()=>b.textContent='전체 복사', 1400);
+    };
+    renderT();
+    return;
+  }
   if (id === 's6'){
     const tabs = CTX.tabs.map(t=>`<option>${t}</option>`).join('');
     const sts  = CTX.stores.map(t=>`<option>${t}</option>`).join('');

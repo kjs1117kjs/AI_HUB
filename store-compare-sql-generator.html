@@ -214,6 +214,10 @@ pre.code .c{color:var(--code-com)}
         <label for="excl">제외매장 <span class="hint">선택 · 같은 형식</span></label>
         <input type="text" id="excl" value="BSC0006">
       </div>
+      <div class="field">
+        <label for="posno">POS 번호 <span class="hint">선택 · 쉼표 구분 · 입력 시 POS_NO 있는 테이블만 해당 POS로 한정, 비우면 전체 · 저장값 그대로(01 등)</span></label>
+        <input type="text" id="posno" value="">
+      </div>
       <div class="store-preview" id="storePreview"></div>
     </div>
   </div>
@@ -381,6 +385,8 @@ function renderPreview(){
   let html = `대상 <b>${finalList.length}개</b> : ` + (finalList.join(', ') || '(없음)');
   if (excluded.length) html += `<br>제외됨 : ${excluded.join(', ')}`;
   if (errs.length) html += `<br>해석 불가 : ${errs.map(esc).join(', ')}`;
+  const pos = parseStores($('#posno').value).list;
+  if (pos.length) html += `<br>POS 한정 : <b>${pos.join(', ')}</b>`;
   el.classList.toggle('err', errs.length>0 || finalList.length===0);
   el.innerHTML = html;
   updateStat();
@@ -390,7 +396,7 @@ function updateStat(){
   const s = resolvedStores().finalList.length;
   $('#stat').innerHTML = `테이블 <b>${t}</b>개 · 대상매장 <b>${s}</b>개`;
 }
-['targets','excl','base','custom'].forEach(id => $('#'+id).addEventListener('input', renderPreview));
+['targets','excl','base','custom','posno'].forEach(id => $('#'+id).addEventListener('input', renderPreview));
 renderPreview();
 
 /* =========================================================
@@ -403,6 +409,7 @@ function ctx(){
     work:  sanitizeId($('#worktbl').value) || 'TMP_STORE_CMP',
     stores: resolvedStores().finalList,
     tabs: selectedTables(),
+    poses: parseStores($('#posno').value).list,
   };
 }
 
@@ -591,6 +598,9 @@ DECLARE
     G_STORES  CONSTANT VARCHAR2(32767) :=
 ${plsqlStoresConst(c.stores, '        ')};
 
+    /* POS 한정 (NULL 이면 전체). POS_NO 컬럼 있는 테이블에만 자동 적용 */
+    G_POS     CONSTANT VARCHAR2(4000)  := ${c.poses.length ? "'" + c.poses.map(p=>"''"+p+"''").join(',') + "'" : 'NULL'};
+
     TYPE T_LIST IS TABLE OF VARCHAR2(60);
     V_TABS T_LIST := T_LIST(
 ${tabListLines(c.tabs, 3, '      ')});
@@ -604,6 +614,7 @@ ${tabListLines(c.tabs, 3, '      ')});
     V_SQL      VARCHAR2(32767);
     V_ST_SRC   VARCHAR2(32767);
     V_ERR      VARCHAR2(200);
+    V_PF       VARCHAR2(400);
 BEGIN
     V_ST_SRC := 'SELECT COLUMN_VALUE STORE_CD FROM TABLE(SYS.ODCIVARCHAR2LIST('||G_STORES||'))';
 
@@ -630,6 +641,17 @@ BEGIN
                  VALUES (V_TAB, 'NONE', '★STORE_CD 컬럼 없음 - 매장단위 비교 불가');
             DBMS_OUTPUT.PUT_LINE(RPAD(V_TAB,32)||' 건너뜀 : STORE_CD 없음');
             CONTINUE;
+        END IF;
+
+        /* --- POS 한정 여부 (POS_NO 컬럼 있는 테이블만) --- */
+        V_PF := NULL;
+        IF G_POS IS NOT NULL THEN
+            SELECT COUNT(*) INTO V_CNT
+              FROM ALL_TAB_COLUMNS
+             WHERE OWNER = G_OWNER AND TABLE_NAME = V_TAB AND COLUMN_NAME = 'POS_NO';
+            IF V_CNT > 0 THEN
+                V_PF := ' AND POS_NO IN ('||G_POS||')';
+            END IF;
         END IF;
 
         /* --- 비교키 결정 : PK 우선, 없으면 컬럼수 최소 UNIQUE 인덱스 --- */
@@ -668,7 +690,7 @@ BEGIN
 
         /* --- 기준매장 건수 --- */
         EXECUTE IMMEDIATE
-            'SELECT COUNT(*) FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = :b'
+            'SELECT COUNT(*) FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = :b'||V_PF
             INTO V_BASECNT USING G_BASE;
 
         IF V_KEY IS NULL THEN
@@ -679,21 +701,21 @@ BEGIN
             '       NVL(tc.C,0), NULL, NULL, ''건수만 비교(키 없음/STORE_CD 단일키)'' '||
             '  FROM ('||V_ST_SRC||') s '||
             '  LEFT JOIN (SELECT STORE_CD, COUNT(*) C FROM '||G_OWNER||'.'||V_TAB||
-            '              WHERE STORE_CD IN ('||G_STORES||') GROUP BY STORE_CD) tc '||
+            '              WHERE STORE_CD IN ('||G_STORES||')'||V_PF||' GROUP BY STORE_CD) tc '||
             '    ON tc.STORE_CD = s.STORE_CD';
         ELSE
             /* ---- 키 비교 : 기준키집합 vs 매장키집합 양방향 MINUS ---- */
             V_SQL :=
             'INSERT INTO ${c.work} (TBL_NM,KEY_SRC,KEY_COLS,STORE_CD,BASE_CNT,TGT_CNT,ONLY_BASE,ONLY_TGT,NOTE) '||
             'WITH ST AS ('||V_ST_SRC||') '||
-            '   , B  AS (SELECT '||V_KEY||' FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = '''||G_BASE||''') '||
+            '   , B  AS (SELECT '||V_KEY||' FROM '||G_OWNER||'.'||V_TAB||' WHERE STORE_CD = '''||G_BASE||''''||V_PF||') '||
             '   , BX AS (SELECT s.STORE_CD, '||V_KEY||' FROM B CROSS JOIN ST s) '||
             '   , T  AS (SELECT STORE_CD, '||V_KEY||' FROM '||G_OWNER||'.'||V_TAB||
-            '             WHERE STORE_CD IN ('||G_STORES||')) '||
+            '             WHERE STORE_CD IN ('||G_STORES||')'||V_PF||') '||
             '   , OB AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM BX MINUS SELECT * FROM T) GROUP BY STORE_CD) '||
             '   , OT AS (SELECT STORE_CD, COUNT(*) C FROM (SELECT * FROM T MINUS SELECT * FROM BX) GROUP BY STORE_CD) '||
             '   , TC AS (SELECT STORE_CD, COUNT(*) C FROM '||G_OWNER||'.'||V_TAB||
-            '             WHERE STORE_CD IN ('||G_STORES||') GROUP BY STORE_CD) '||
+            '             WHERE STORE_CD IN ('||G_STORES||')'||V_PF||' GROUP BY STORE_CD) '||
             'SELECT '''||V_TAB||''', '''||V_SRC||''', '''||SUBSTR(V_KEY,1,2000)||''', s.STORE_CD, '||V_BASECNT||', '||
             '       NVL(tc.C,0), NVL(ob.C,0), NVL(ot.C,0), NULL '||
             '  FROM ST s '||
@@ -850,32 +872,42 @@ function stCTE(c){
 ${quotedLines(c.stores, 6, '       ')})))`;
 }
 
+/* POS_NO 한정 필터 (POS 입력 있고 해당 테이블 키에 POS_NO 있을 때만) */
+function posOn(c, hasPos){ return !!(hasPos && c.poses && c.poses.length); }
+function posList(c){ return c.poses.map(p => `'${p}'`).join(','); }
+function posFilter(c, hasPos, prefix){
+  return posOn(c, hasPos) ? ` AND ${prefix}POS_NO IN (${posList(c)})` : '';
+}
+
 /* ① 총건수 비교 — 키 없이도 실행 가능 */
-function sqlT1(c, table){
-  return `/* ① ${table} — 총건수 비교 (BASE_CNT ≠ TGT_CNT 인 매장을 찾는다) */
+function sqlT1(c, table, hasPos){
+  const pf = posFilter(c, hasPos, '');
+  const posNote = posOn(c, hasPos) ? ` · POS ${c.poses.join(',')} 한정` : '';
+  return `/* ① ${table} — 총건수 비교 (BASE_CNT ≠ TGT_CNT 인 매장을 찾는다)${posNote} */
 ${stCTE(c)}
 SELECT s.STORE_CD,
-       (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}') AS BASE_CNT,
+       (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}'${pf}) AS BASE_CNT,
        NVL(tc.C,0)                                                    AS TGT_CNT,
        NVL(tc.C,0)
-       - (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}') AS DIFF
+       - (SELECT COUNT(*) FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}'${pf}) AS DIFF
   FROM ST s
   LEFT JOIN (SELECT STORE_CD, COUNT(*) C
                FROM ${c.owner}.${table}
-              WHERE STORE_CD IN (SELECT STORE_CD FROM ST)
+              WHERE STORE_CD IN (SELECT STORE_CD FROM ST)${pf}
               GROUP BY STORE_CD) tc
     ON tc.STORE_CD = s.STORE_CD
  ORDER BY s.STORE_CD;`;
 }
 
 /* ② 키 기준 누락/잉여 — 건수 요약 + 실제 행 리스트 */
-function sqlT2(c, table, keys){
+function sqlT2(c, table, keys, hasPos){
   const K  = keys.join(', ');
   const bK = keys.map(k => 'b.'+k).join(', ');
+  const pf = posFilter(c, hasPos, '');
   const body =
-`   , B  AS (SELECT ${K} FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}')
+`   , B  AS (SELECT ${K} FROM ${c.owner}.${table} WHERE STORE_CD = '${c.base}'${pf})
    , T  AS (SELECT STORE_CD, ${K} FROM ${c.owner}.${table}
-             WHERE STORE_CD IN (SELECT STORE_CD FROM ST))`;
+             WHERE STORE_CD IN (SELECT STORE_CD FROM ST)${pf})`;
   return `/* ②-1 ${table} — 매장별 누락/잉여 건수 (키: ${K}) */
 ${stCTE(c)}
 ${body}
@@ -912,7 +944,9 @@ SELECT * FROM (SELECT * FROM T
 }
 
 /* ③-a 값 비교 — 비교할 컬럼을 직접 지정한 경우 */
-function sqlT3(c, table, keys, vals){
+function sqlT3(c, table, keys, vals, hasPos){
+  const pfT = posOn(c, hasPos) ? `
+   AND t.POS_NO IN (${posList(c)})` : '';
   const jn = keys.map(k => `b.${k} = t.${k}`).join(' AND ');
   const tK = keys.map(k => 't.'+k).join(', ');
   const diffCase = vals.map(v =>
@@ -934,7 +968,7 @@ ${selPairs}
   JOIN ${c.owner}.${table} b
     ON b.STORE_CD = '${c.base}' AND ${jn}
  WHERE t.STORE_CD IN (
-${quotedLines(c.stores, 6, '       ')})
+${quotedLines(c.stores, 6, '       ')})${pfT}
    AND ( 1 = 0
 ${whereOr} )
  ORDER BY t.STORE_CD, ${tK};`;
@@ -942,7 +976,10 @@ ${whereOr} )
 
 /* ③-b 값 비교 생성기 — 컬럼 미지정 시 딕셔너리에서 키 외 전체 컬럼을 읽어
        비교 SELECT 를 DBMS_OUTPUT 으로 출력해 준다 */
-function sqlT3gen(c, table, keys, excl){
+function sqlT3gen(c, table, keys, excl, hasPos){
+  const posLine = posOn(c, hasPos)
+    ? `\n             '   AND t.POS_NO IN (${c.poses.map(p=>"''"+p+"''").join(',')})'||CHR(10)||`
+    : '';
   return `/* ③ ${table} — 값비교 쿼리 생성기 (키 외 전체 컬럼 자동)
    SET SERVEROUTPUT ON 켜고 실행 → 출력된 SELECT 를 복사해서 실행.
    컬럼이 아주 많아 32767자를 넘으면 제외 컬럼을 늘려서 줄이세요 */
@@ -1004,7 +1041,7 @@ BEGIN
              '  FROM '||G_OWNER||'.'||P_TABLE||' t'||CHR(10)||
              '  JOIN '||G_OWNER||'.'||P_TABLE||' b'||CHR(10)||
              '    ON b.STORE_CD = '||CHR(39)||G_BASE||CHR(39)||' AND '||V_JOIN||CHR(10)||
-             ' WHERE t.STORE_CD IN ('||G_STORES||')'||CHR(10)||
+             ' WHERE t.STORE_CD IN ('||G_STORES||')'||CHR(10)||${posLine}
              '   AND ( 1 = 0'||CHR(10)||
              V_OR||
              '       )'||CHR(10)||
@@ -1030,22 +1067,24 @@ function tableCards(c, t, ent, excl){
   let vals = ent && ent.vals && ent.vals.length
            ? ent.vals.filter(v => !exSet.has(v)) : null;
   if (vals && !vals.length) vals = null;   /* 전부 제외됐으면 생성기로 */
+  const hasPos = !!(keys && keys.includes('POS_NO'));
+  const posTag = posOn(c, hasPos) ? ' · POS '+c.poses.join(',') : '';
   const cards = [];
   cards.push({ title:'① '+t+' · 총건수',
-               desc: keys ? '매장별 건수 비교' : '건수 비교 (키 미지정 → ②③ 생략)',
-               sql: sqlT1(c, t) });
+               desc: (keys ? '매장별 건수 비교' : '건수 비교 (키 미지정 → ②③ 생략)') + posTag,
+               sql: sqlT1(c, t, hasPos) });
   if (keys){
     cards.push({ title:'② '+t+' · 누락/잉여',
-                 desc:'키: '+keys.join(','),
-                 sql: sqlT2(c, t, keys) });
+                 desc:'키: '+keys.join(',') + posTag,
+                 sql: sqlT2(c, t, keys, hasPos) });
     if (vals){
       cards.push({ title:'③ '+t+' · 값 비교',
-                   desc:'컬럼: '+vals.join(','),
-                   sql: sqlT3(c, t, keys, vals) });
+                   desc:'컬럼: '+vals.join(',') + posTag,
+                   sql: sqlT3(c, t, keys, vals, hasPos) });
     } else {
       cards.push({ title:'③ '+t+' · 값 비교 생성기',
-                   desc:'키 외 전체 컬럼 자동 · SERVEROUTPUT 필요',
-                   sql: sqlT3gen(c, t, keys, excl) });
+                   desc:'키 외 전체 컬럼 자동 · SERVEROUTPUT 필요' + posTag,
+                   sql: sqlT3gen(c, t, keys, excl, hasPos) });
     }
   }
   return cards;
@@ -1080,7 +1119,7 @@ const STEPS = [
     note:'[2-2] 는 PK 가 없으면 <b>UNIQUE 인덱스로 키를 자동 대체</b>합니다(KEY_SRC=UK). <b>MAPPING_NEXT</b>(값=키 다음 컬럼 1개) 또는 <b>MAPPING_FULL</b>(값=전체) 컬럼을 복사해 [T] 탭 매핑칸에 붙여넣으세요.' },
   { id:'s3', label:'[3] 작업테이블', title:'[3] 작업테이블 생성/초기화', desc:'내 스키마에만 생성', build:c=>sql3(c),
     note:'이미 만들어져 있으면 <b>CREATE 는 건너뛰고 TRUNCATE 만</b> 실행하세요.' },
-  { id:'s4', label:'[4] 비교 실행',  title:'[4] 비교 실행 (PL/SQL)',    desc:'대상 테이블 SELECT만 · 결과는 작업테이블에 적재', build:c=>sql4(c),
+  { id:'s4', label:'[4] 비교 실행',  title:'[4] 비교 실행 (PL/SQL)',    desc:'대상 테이블 SELECT만 · 결과는 작업테이블에 적재 · POS 입력 시 POS_NO 테이블 자동 한정', build:c=>sql4(c),
     note:'실행 전 <b>SET SERVEROUTPUT ON</b> 을 켜면 진행 로그가 보입니다.' },
   { id:'s5', label:'[5] 결과 조회',  title:'[5] 결과 조회 (5종)',       desc:'요약 → 차이 상세 → 매장별 총평 → 매트릭스', build:c=>sql5(c) },
   { id:'st', label:'[T] 테이블별',   title:'[T] 테이블별 개별 쿼리',    desc:'① 총건수 → ② 누락/잉여 리스트 → ③ 값 비교, 테이블별 직접 실행', build:null },

@@ -1117,6 +1117,7 @@ ov:{ tag:'안내', scope:'가이드', name:'전체 구조와 케이스별 카드
         { note:"▸ 확인중 검증내역 — 아직 맞는 검증인지 확인되지 않은 것. 기존 카드·S-0·일일 점검에는 안 들어감", head:true },
         { chip:"T-1", note:"[확인중] 할인 ↔ 결제행 대사 · 학습 기반 (8011)" },
         { chip:"T-2", note:"[확인중] 원본 8001 vs 6001 대조 — 8001 오탐이 본사별로 얼마나 (CMP00 · CMP01)" },
+        { chip:"T-3", note:"[확인중] PAY_SEQ 행 단위 VAT 0 — PAY_AMT 는 있는데 VAT 0 (3301 ~ 3304)" },
         { note:"▸ 프로시저 · 로그 초기화", head:true },
         { chip:"F-1", note:"TB_LOG_BENSON_BILL_CHECK 비우기" },
         { note:"▸ 프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행", head:true },
@@ -2042,7 +2043,7 @@ WHEN MATCHED THEN UPDATE SET
 },
 
 c9:{ tag:'C-9', kind:'SELECT', scope:'대상 본사', isNew:true, name:"PAY_SEQ 잔여 : PAY_CD='18' 인데 VAT_AMT = 0 인 행. 0 건이어야 함",
-  desc:'B-4 뒤 남은 행. 남으면 [0-C] 판정에서 X 였던 건입니다.',
+  desc:'B-4 뒤 남은 행. 남으면 [0-C] 판정에서 X 였던 건입니다. 이 카드는 PAY_CD 18 만 봅니다 — 결제수단 불문 행 단위 전수 검사는 케이스 5 확인중 [T-3](3301~3304) 참고.',
   sql:
 `SELECT COUNT(*) AS 남은_VAT0행, SUM(q.PAY_AMT) AS 금액
   FROM TB_SL_SALE_PAY_SEQ q
@@ -2617,7 +2618,7 @@ const CASE_FINAL = {
     { group:'직접쿼리', phase:'etc',   plabel:'대사', name:'집계 · 인원 · 결번 · BILL_DT · NE01(참고)', items:['qa1','qa2','qa3','qa4','qa5'] },
     { group:'직접쿼리', phase:'design',plabel:'설계', name:'설계 검증 — ETC 면제 · PAY_CD 동반 비율 · TB_SL_SALE_PAY 학습/사용 비율', items:['qe1','qe2','qe3','qe4','qe5'] },
     { group:'직접쿼리', phase:'codes', plabel:'코드', name:'결과코드 상세 설명', items:['qcodes'] },
-    { group:'확인중', glabel:'확인중 검증내역', phase:'pending', plabel:'미확정', name:'확인중 검증내역 — 아직 맞는 검증인지 확인되지 않은 것. 기존 카드·S-0·일일 점검에는 안 들어감', items:['qh11','qe6'] },
+    { group:'확인중', glabel:'확인중 검증내역', phase:'pending', plabel:'미확정', name:'확인중 검증내역 — 아직 맞는 검증인지 확인되지 않은 것. 기존 카드·S-0·일일 점검에는 안 들어감', items:['qh11','qe6','qp8'] },
     { group:'프로시저', glabel:'프로시저', phase:'reset', plabel:'초기화', name:'프로시저 · 로그 초기화', items:['f1'] },
     { group:'프로시저', phase:'build',  plabel:'실행',   name:'프로시저 · SP_BENSON_DATA_DAILY_CHECK 실행', items:['f2'] },
     { group:'프로시저', phase:'verify', plabel:'결과',   name:'프로시저 · 결과 확인', items:['f3'] }
@@ -2680,7 +2681,8 @@ daily:{ tag:'일일', scope:'가이드', name:'오류 확인 순서 — S-0 · S
     { title:'확인중 검증내역', sub:'미확정 · 복사 대상 아님', note:'맞는 검증인지 아직 확인 안 됨. 결과를 기존 카드와 대조만 하고 판단 근거로 쓰지 말 것.',
       items:[
         { tag:'T-1', note:'8011 학습 기반 할인↔결제 대사 — H-7 과 나란히 비교', copy:false, dim:true },
-        { tag:'T-2', note:'원본 8001 vs 6001 대조 (전사)', copy:false, dim:true }
+        { tag:'T-2', note:'원본 8001 vs 6001 대조 (전사)', copy:false, dim:true },
+        { tag:'T-3', note:'PAY_SEQ 행 단위 VAT 0 (3301~3304) — C-9·H-7·P-1 이 못 보는 행 배분 문제(3303) 검출. 면세·봉사료 제외 조건 실측 전', copy:false, dim:true }
       ]},
     { title:'안 돌려도 되는 것', sub:'참고',
       items:[
@@ -2721,6 +2723,10 @@ codeidx:{ tag:'색인', scope:'가이드', name:'코드 색인 — 코드 검색
     { code:"8003", cards:"H-7", note:"실매출 ≠ SEQ 결제 합" },
     { code:"8011", cards:"T-1", note:"[확인중] 학습한 검사대상 DC_CD 할인합 ≠ PAY_SEQ 05/12 합 · 본사 무관" },
     { code:"CMP01", cards:"T-2", note:"[확인중] 원본 8001 에 오탐 있음 (전사 대조)" },
+    { code:"3301", cards:"T-3", note:"[확인중] PAY_AMT 있는데 행 VAT 0 · 헤더도 VAT 0 → 케이스 4 (H-5 VAT00 과 중복)" },
+    { code:"3302", cards:"T-3", note:"[확인중] PAY_AMT 있는데 행 VAT 0 · 가승인행(18) → 케이스 4 [0-C]/[B-4] (C-9 와 중복)" },
+    { code:"3303", cards:"T-3", note:"[확인중] PAY_AMT 있는데 행 VAT 0 · 전표 VAT합은 정상, 행 배분만 0 — 기존 카드가 전부 통과하는 유형" },
+    { code:"3304", cards:"T-3", note:"[확인중] PAY_AMT 있는데 행 VAT 0 · 전표합도 불일치 (H-7 8002 와 중복)" },
     { code:"7001", cards:"H-8", note:"실매출 ≠ HDR_PAY 합" },
     { code:"6001", cards:"H-8", note:"총할인 ≠ HDR_DC 합" },
     { code:"6002", cards:"H-8", note:"총할인 ≠ DTL_DC 합" },
@@ -6658,6 +6664,91 @@ qe6:{ tag:"T-2", kind:"SELECT", scope:"확인중 · 전사", isNew:true, name:"[
  ORDER BY 2 DESC;`
 },
 
+qp8:{ tag:"T-3", kind:"SELECT", scope:"확인중", isNew:true, name:"[확인중] PAY_SEQ 행 단위 VAT 0 — PAY_AMT 는 있는데 VAT_AMT = 0 (3301 ~ 3304)",
+  desc:"★ 확인중 — 오탐 제외 조건 중 ③행 면세 · ④봉사료가 실측으로 확인되지 않았습니다. 기존 카드·S-0·일일 점검에는 넣지 않았고, 아래 검증 절차를 통과하면 P 트랙에 정식으로 올립니다. [무엇을 보나] PAY_AMT <> 0 인데 VAT_AMT = 0 인 결제행을 결제수단 불문 행 단위로 직접 봅니다. 기존 카드의 사각 세 곳을 메웁니다 — [C-9] 는 PAY_CD='18' 행만 보고, [H-7] 8002 는 전표 합계 대사라 '합은 맞는데 특정 행만 0' 인 배분 문제를 못 잡고, [P-1] 3003 은 결제상세 테이블과의 대사라 양쪽 다 0 이면 통과합니다. [오탐 제외 4가지] ① 할인성 결제 PAY_CD 05/12 — VAT 0 이 정상 (실측 전건 0 · 케이스 2 INSERT 도 0 으로 넣음) ② 전액면세 전표 — 헤더 NO_TAX_SALE_AMT = REAL_SALE_AMT ③ 행 전체가 면세분 — NO_TAX_AMT = PAY_AMT ④ 행 전체가 봉사료 — TIP_AMT = PAY_AMT. ③④ 는 데이터로 확인 안 된 가정이니 정상 본사(케이스 4 옵션의 0-E 기준 본사, 실측 H0393)에서 먼저 돌려 0건인지, 걸리면 전부 면세·봉사료 성격인지 보고 조건을 조정하세요. [판정 코드] 3301 헤더도 VAT 0 → 케이스 4 [B-1~B-4] 대상 (H-5 VAT00 과 중복) · 3302 가승인행 PAY_CD 18 → 케이스 4 [0-C]/[B-4] 대상 (C-9 와 중복 · B-4 전 실측 40행/39전표, B-4 후 0 이어야 함) · 3303 전표 SEQ VAT합은 헤더와 일치하는데 이 행만 0 = 행 배분 문제. 8002 도 3003 도 C-9 도 전부 통과하는, 이 카드만의 고유 검출 · 3304 전표합도 불일치 → H-7 8002 와 중복 (교차 확인용). 3303 이 다수면 특정 결제수단이 VAT 를 다른 행에 몰아 받는 배분 로직 문제일 수 있으니 PAY_CD 별 분포를 보세요. [주의] 헤더 없는 고아 PAY_SEQ 는 헤더 조인에서 빠지므로 [H-2] ORPH 로 따로 봅니다. 기간을 넓히면 SEQ_SUM 집계가 무거우니 종료일 옵션으로 자르세요. [판별] 판정별 요약 (행수 · 전표수 · 금액). [상세] 걸린 행 전체 + 헤더 VAT · 전표 SEQ VAT합.",
+  sql:
+`/* ═══ [판별] 3301~3304 — PAY_AMT 는 있는데 VAT_AMT = 0 인 결제행 · 판정별 요약 ═══ */
+WITH SEQ_SUM AS (                                          /* 전표별 PAY_SEQ VAT 합 — 3303/3304 판정용 */
+    SELECT x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, SUM(x.VAT_AMT) AS SEQ_VAT
+      FROM TB_SL_SALE_PAY_SEQ x
+     WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+{{LINE:store:x}}
+{{LINE:extra:x}}
+     GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+)
+SELECT 판정,
+       COUNT(*)                                                            AS 행수,
+       COUNT(DISTINCT STORE_CD||'|'||SALE_DATE||'|'||POS_NO||'|'||BILL_NO) AS 전표수,
+       SUM(PAY_AMT)                                                        AS PAY_AMT합
+  FROM (
+    SELECT q.STORE_CD, q.SALE_DATE, q.POS_NO, q.BILL_NO, q.PAY_AMT,
+           CASE WHEN NVL(h.VAT_AMT,0) = 0   THEN '3301 헤더도 VAT 0 → 케이스 4'
+                WHEN q.PAY_CD = '18'        THEN '3302 가승인행 → [0-C]/[B-4]'
+                WHEN m.SEQ_VAT = h.VAT_AMT  THEN '3303 전표합 정상 · 행 배분만 0'
+                ELSE                             '3304 전표합도 불일치 → H-7 8002'
+           END AS 판정
+      FROM TB_SL_SALE_PAY_SEQ q
+      JOIN TB_SL_SALE_HDR h
+        ON  h.HQ_OFFICE_CD = q.HQ_OFFICE_CD AND h.HQ_BRAND_CD = q.HQ_BRAND_CD
+        AND h.STORE_CD     = q.STORE_CD     AND h.SALE_DATE   = q.SALE_DATE
+        AND h.POS_NO       = q.POS_NO       AND h.BILL_NO     = q.BILL_NO
+      JOIN SEQ_SUM m
+        ON  m.STORE_CD = q.STORE_CD AND m.SALE_DATE = q.SALE_DATE
+        AND m.POS_NO   = q.POS_NO   AND m.BILL_NO   = q.BILL_NO
+     WHERE q.HQ_OFFICE_CD = '{{HQ}}' AND q.{{OPT:datecond}}
+{{LINE:store:q}}
+{{LINE:extra:q}}
+       AND q.PAY_AMT <> 0
+       AND NVL(q.VAT_AMT,0) = 0
+       AND q.PAY_CD NOT IN ('05','12')                     /* 오탐① 할인성 결제 — VAT 0 이 정상 */
+       AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT     /* 오탐② 전액면세 전표 */
+       AND NVL(q.NO_TAX_AMT,0) <> q.PAY_AMT                /* 오탐③ 행 전체가 면세분 — 가정, 실측 미확인 */
+       AND NVL(q.TIP_AMT,0)    <> q.PAY_AMT                /* 오탐④ 행 전체가 봉사료 — 가정, 실측 미확인 */
+  )
+ GROUP BY 판정
+ ORDER BY 판정;
+
+
+/* ═══ [상세] 걸린 행 전체 — 행 값 · 헤더 VAT · 전표 SEQ VAT합 · 판정 ═══ */
+WITH SEQ_SUM AS (
+    SELECT x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO, SUM(x.VAT_AMT) AS SEQ_VAT
+      FROM TB_SL_SALE_PAY_SEQ x
+     WHERE x.HQ_OFFICE_CD = '{{HQ}}' AND x.{{OPT:datecond}}
+{{LINE:store:x}}
+{{LINE:extra:x}}
+     GROUP BY x.STORE_CD, x.SALE_DATE, x.POS_NO, x.BILL_NO
+)
+SELECT q.STORE_CD, q.SALE_DATE, q.POS_NO, q.BILL_NO, q.PAY_SEQ, q.LINE_NO,
+       q.PAY_CD, q.SALE_YN, q.PAY_AMT,
+       q.TAX_AMT, q.NO_TAX_AMT, q.TIP_AMT,
+       h.VAT_AMT              AS 헤더VAT,
+       m.SEQ_VAT              AS 전표SEQ_VAT합,
+       h.VAT_AMT - m.SEQ_VAT  AS 전표VAT차이,
+       CASE WHEN NVL(h.VAT_AMT,0) = 0   THEN '3301 헤더도 VAT 0 → 케이스 4'
+            WHEN q.PAY_CD = '18'        THEN '3302 가승인행 → [0-C]/[B-4]'
+            WHEN m.SEQ_VAT = h.VAT_AMT  THEN '3303 전표합 정상 · 행 배분만 0'
+            ELSE                             '3304 전표합도 불일치 → H-7 8002'
+       END AS 판정
+  FROM TB_SL_SALE_PAY_SEQ q
+  JOIN TB_SL_SALE_HDR h
+    ON  h.HQ_OFFICE_CD = q.HQ_OFFICE_CD AND h.HQ_BRAND_CD = q.HQ_BRAND_CD
+    AND h.STORE_CD     = q.STORE_CD     AND h.SALE_DATE   = q.SALE_DATE
+    AND h.POS_NO       = q.POS_NO       AND h.BILL_NO     = q.BILL_NO
+  JOIN SEQ_SUM m
+    ON  m.STORE_CD = q.STORE_CD AND m.SALE_DATE = q.SALE_DATE
+    AND m.POS_NO   = q.POS_NO   AND m.BILL_NO   = q.BILL_NO
+ WHERE q.HQ_OFFICE_CD = '{{HQ}}' AND q.{{OPT:datecond}}
+{{LINE:store:q}}
+{{LINE:extra:q}}
+   AND q.PAY_AMT <> 0
+   AND NVL(q.VAT_AMT,0) = 0
+   AND q.PAY_CD NOT IN ('05','12')                     /* 오탐① 할인성 결제 — VAT 0 이 정상 */
+   AND NVL(h.NO_TAX_SALE_AMT,0) <> h.REAL_SALE_AMT     /* 오탐② 전액면세 전표 */
+   AND NVL(q.NO_TAX_AMT,0) <> q.PAY_AMT                /* 오탐③ 행 전체가 면세분 — 가정, 실측 미확인 */
+   AND NVL(q.TIP_AMT,0)    <> q.PAY_AMT                /* 오탐④ 행 전체가 봉사료 — 가정, 실측 미확인 */
+ ORDER BY 판정, q.STORE_CD, q.SALE_DATE, q.POS_NO, q.BILL_NO, q.PAY_SEQ;`
+},
+
 qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 설명 — 뜻 · 비교식 · 원인 · 조치 · 원본 검출",
   desc:"실행할 게 아니라 주석입니다. 코드마다 어느 케이스로 가는지까지 적었습니다. 트랙 전체 복사 시 맨 끝에 붙어 나옵니다.",
   sql:
@@ -6776,9 +6867,11 @@ qcodes:{ tag:"코드", kind:"MEMO", scope:"참고", name:"결과코드 상세 �
    DT01~DT03 BILL_DT 이상.     NULL / 미래 시각 / 영업일과 2일 이상 차이.                                                                     (프로시저 없음)
    NE01  최종 4자 대사 [A-5].  TOT_SALE_AMT = HDR_PAY+HDR_DC = PAY_SEQ 합 = DTL 합.  v3 부터 본부 A0001 만 실행. 벤슨은 참고용.                 -
 
-   ■ 확인중 검증내역  [T-1] [T-2]   맞는 검증인지 아직 확인되지 않음. S-0·일일 점검에 없음.
+   ■ 확인중 검증내역  [T-1] [T-2] [T-3]   맞는 검증인지 아직 확인되지 않음. S-0·일일 점검에 없음.
    8011  학습 기반 할인↔결제 대사 [T-1]. 학습기간에 PAY_SEQ 05/12 를 95% 이상 동반한 DC_CD(검사대상) 의 할인합 <> PAY_SEQ 05/12 합. 비대상 DC_CD 가 섞인 전표는 스킵.  (확인중)
    CMP00/CMP01 원본 8001 vs 6001 대조 [T-2]. 본사별 원본 8001 검출 중 진짜(6001)/오탐.                                                                (확인중)
+   3301~3304 PAY_SEQ 행 단위 VAT 0 [T-3]. PAY_AMT<>0 AND VAT_AMT=0 행 (05/12 · 전액면세 전표 · 행 면세 · 봉사료 제외 — 뒤 둘은 가정).
+         3301 헤더도 0(케이스 4, H-5 중복) · 3302 가승인행(0-C/B-4, C-9 중복) · 3303 전표합 정상·행 배분만 0(고유 검출) · 3304 전표합 불일치(8002 중복).  (확인중)
 
    ■ 설계 검증  [E-1] [E-2]
    DCR00/DCR01 DC_CD 별 결제행 생성률 [E-1]. ETC(면제) 코드인데 생성률 50% 초과면 DCR01 = 면제가 잘못된 사각지대(09/13). 그 외 DCR00. 통계 카드라 오류코드가 아니라 분류표시.

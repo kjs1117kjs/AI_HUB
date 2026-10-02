@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMS 인증 함수 — FN_GET_TB_CM_SMS_VFC_CODE</title>
+<style>
+  :root {
+    --ink:#1f2933; --sub:#52606d; --muted:#8a96a3; --line:#e4e7eb; --bg:#f5f7fa; --card:#fff;
+    --blue:#2563eb; --blue-soft:#eaf1ff; --red:#c0392b; --red-soft:#fdecea;
+    --amber:#b45309; --amber-soft:#fff4e0; --green:#15803d; --green-soft:#e7f6ec; --gray-soft:#eef1f4;
+    --purple:#6d28d9; --purple-soft:#f1ebff;
+    --mono:"D2Coding","Consolas","Menlo",monospace;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif; color:var(--ink); background:var(--bg); line-height:1.65; font-size:14px; }
+  .layout { display:flex; min-height:100vh; }
+
+  nav.toc { width:250px; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto; background:#111827; color:#cbd2d9; padding:28px 16px; }
+  nav.toc .brand { color:#fff; font-weight:800; font-size:15px; margin-bottom:4px; word-break:break-all; }
+  nav.toc .ver { color:#7b8794; font-size:12px; margin-bottom:20px; }
+  nav.toc .grp { color:#7b8794; font-size:11px; font-weight:700; letter-spacing:1px; margin:16px 10px 4px; }
+  nav.toc a { display:block; color:#cbd2d9; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:13px; }
+  nav.toc a:hover { background:#1f2937; color:#fff; }
+  nav.toc a .n { display:inline-block; width:24px; color:#60a5fa; font-weight:700; }
+
+  main { flex:1; padding:40px 48px 80px; max-width:1200px; }
+
+  .hero { background:linear-gradient(135deg,#065f46 0%,#059669 55%,#10b981 100%); color:#fff; border-radius:14px; padding:34px 36px; margin-bottom:30px; box-shadow:0 12px 30px rgba(5,150,105,.25); }
+  .hero h1 { margin:0 0 8px; font-size:24px; letter-spacing:-.5px; word-break:break-all; }
+  .hero p { margin:0; opacity:.92; }
+  .hero .meta { margin-top:18px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero .meta span { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.25); padding:4px 10px; border-radius:999px; font-size:12px; }
+
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:28px 30px; margin-bottom:22px; }
+  section h2 { margin:0 0 18px; font-size:19px; display:flex; align-items:center; gap:10px; }
+  section h2 .num { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:28px; padding:0 6px; border-radius:8px; background:#059669; color:#fff; font-size:14px; }
+  section h3 { font-size:15px; margin:26px 0 10px; color:#065f46; }
+  section h3:first-of-type { margin-top:6px; }
+  p { margin:8px 0; }
+  .sub { color:var(--sub); }
+
+  .grid { display:grid; gap:14px; }
+  .g2 { grid-template-columns:repeat(2,1fr); } .g3 { grid-template-columns:repeat(3,1fr); } .g4 { grid-template-columns:repeat(4,1fr); }
+  .box { border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px; background:#fff; }
+  .box .t { font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .box .d { color:var(--sub); font-size:13px; }
+  .box.blue { background:var(--blue-soft); border-color:#c7d8ff; } .box.red { background:var(--red-soft); border-color:#f5c6c0; }
+  .box.amber { background:var(--amber-soft); border-color:#f8d9a8; } .box.green { background:var(--green-soft); border-color:#bfe5cc; }
+  .box.purple { background:var(--purple-soft); border-color:#d9c8ff; }
+
+  table { width:100%; border-collapse:collapse; margin:10px 0 4px; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:7px 10px; vertical-align:top; text-align:left; }
+  th { background:#f1f4f8; font-weight:700; color:#334e68; white-space:nowrap; }
+  tr:nth-child(even) td { background:#fbfcfd; }
+  td.c, th.c { text-align:center; } td.nw { white-space:nowrap; }
+
+  code, .code { font-family:var(--mono); font-size:12.5px; background:var(--gray-soft); border:1px solid #e1e5ea; border-radius:4px; padding:1px 5px; }
+  pre { font-family:var(--mono); font-size:12.5px; line-height:1.55; background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; overflow-x:auto; margin:10px 0; }
+  pre .cm { color:#7dd3fc; }
+
+  .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid transparent; white-space:nowrap; }
+  .b-blue { background:var(--blue-soft); color:var(--blue); border-color:#c7d8ff; }
+  .b-red { background:var(--red-soft); color:var(--red); border-color:#f5c6c0; }
+  .b-amber { background:var(--amber-soft); color:var(--amber); border-color:#f8d9a8; }
+  .b-green { background:var(--green-soft); color:var(--green); border-color:#bfe5cc; }
+  .b-gray { background:var(--gray-soft); color:#52606d; border-color:#dde2e7; }
+  .b-purple { background:var(--purple-soft); color:var(--purple); border-color:#d9c8ff; }
+
+  .note { border-left:4px solid var(--blue); background:var(--blue-soft); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0; font-size:13px; }
+  .note.warn { border-color:var(--amber); background:var(--amber-soft); }
+  .note.danger { border-color:var(--red); background:var(--red-soft); }
+
+  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:10px 0; }
+  .step { border:1px solid var(--line); background:#fff; border-radius:8px; padding:8px 12px; font-size:12.5px; line-height:1.4; min-width:110px; text-align:center; }
+  .step b { display:block; font-size:13px; } .step small { color:var(--muted); }
+  .step.red { background:var(--red-soft); border-color:#f5c6c0; } .step.green { background:var(--green-soft); border-color:#bfe5cc; }
+  .step.amber { background:var(--amber-soft); border-color:#f8d9a8; } .step.blue { background:var(--blue-soft); border-color:#c7d8ff; }
+  .arrow { color:var(--muted); font-weight:700; font-size:16px; padding:0 2px; }
+
+  .sig { font-family:var(--mono); font-size:13px; background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; line-height:1.7; }
+  .sig .k { color:#93c5fd; } .sig .t { color:#86efac; } .sig .c { color:#7dd3fc; }
+
+  ul.clean { margin:6px 0; padding-left:20px; } ul.clean li { margin:3px 0; }
+  .msg { font-family:var(--mono); font-size:12.5px; white-space:pre-line; }
+
+  footer { color:var(--muted); font-size:12px; text-align:center; margin-top:30px; }
+
+  @media (max-width:980px) { nav.toc { display:none; } main { padding:20px; } .g3,.g4 { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:640px) { .g2,.g3,.g4 { grid-template-columns:1fr; } }
+  @media print { nav.toc { display:none; } body { background:#fff; } main { padding:0; max-width:none; } section { break-inside:auto; border-color:#ccc; } .hero { box-shadow:none; } pre { white-space:pre-wrap; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="toc">
+    <div class="brand">FN_GET_TB_CM_SMS_VFC_CODE</div>
+    <div class="ver">SMS 인증 함수 정리 · 2026.10.02</div>
+    <div class="grp">개요</div>
+    <a href="#s1"><span class="n">1</span>개요 · 시그니처</a>
+    <a href="#s2"><span class="n">2</span>처리 구분</a>
+    <a href="#s3"><span class="n">3</span>정책 상수</a>
+    <div class="grp">처리 상세</div>
+    <a href="#s4"><span class="n">4</span>공통 — 국외 IP 차단</a>
+    <a href="#s5"><span class="n">5</span>CHK · CDI</a>
+    <a href="#s6"><span class="n">6</span>C10 · C20 발급</a>
+    <a href="#s7"><span class="n">7</span>C11 · C21 검증</a>
+    <a href="#s8"><span class="n">8</span>잠금 · 제한 규칙</a>
+    <a href="#s9"><span class="n">9</span>결과 코드 전체</a>
+    <div class="grp">연계</div>
+    <a href="#s10"><span class="n">10</span>테스트 계정</a>
+    <a href="#s11"><span class="n">11</span>사용 객체</a>
+    <a href="#s12"><span class="n">12</span>애플리케이션 호출부</a>
+    <a href="#s13"><span class="n">13</span>호출 예시 · 점검 쿼리</a>
+    <a href="#s14"><span class="n">14</span>확인 · 개선 사항</a>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <h1>SMS 인증 함수 — FN_GET_TB_CM_SMS_VFC_CODE</h1>
+      <p>SMS 사용 등록 확인, 로그인·추가 인증번호 발급과 검증, 국외 IP 차단을 하나의 함수로 처리합니다. 결과는 <b>"코드(2자리)|메시지"</b> 문자열로 돌려줍니다.</p>
+      <div class="meta">
+        <span>스키마 SBPORA</span>
+        <span>AUTONOMOUS_TRANSACTION</span>
+        <span>CHK · CDI · C10 · C11 · C20 · C21</span>
+        <span>작성일 2026-10-02</span>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section id="s1">
+      <h2><span class="num">1</span>개요 · 시그니처</h2>
+<div class="sig"><span class="k">FUNCTION</span> SBPORA.FN_GET_TB_CM_SMS_VFC_CODE
+(
+    S_USER_ID   <span class="t">VARCHAR2</span>   <span class="c">-- 대상 아이디</span>
+,   OP_FG1      <span class="t">VARCHAR2</span>   <span class="c">-- CHK / CDI / C10 / C11 / C20 / C21</span>
+,   OP_FG2      <span class="t">VARCHAR2</span>   <span class="c">-- 검증 시: 입력 인증번호 / CDI 시: DI 값</span>
+,   OP_FG3      <span class="t">VARCHAR2</span>   <span class="c">-- 사용자 IP (XFF 체인 원본) — 국외 IP 차단 판정</span>
+)
+<span class="k">RETURN</span> <span class="t">VARCHAR</span>      <span class="c">-- '코드|메시지'  예) 00|인증되었습니다.</span>
+<span class="k">PRAGMA AUTONOMOUS_TRANSACTION</span>;</div>
+
+      <div class="grid g3" style="margin-top:16px;">
+        <div class="box green"><div class="t">반환 형식</div><div class="d"><code>숫자 2자리 + '|' + 메시지</code>. 메시지 안 줄바꿈은 <code>CHR(10)</code></div></div>
+        <div class="box blue"><div class="t">독립 트랜잭션</div><div class="d">SELECT 안에서 호출해도 INSERT·UPDATE·COMMIT 가능. 호출부 트랜잭션과 분리</div></div>
+        <div class="box amber"><div class="t">보안 저장</div><div class="d">인증번호·휴대폰번호는 <code>SBPENC.E / D</code>로 암호화 저장·복호화</div></div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section id="s2">
+      <h2><span class="num">2</span>처리 구분 (OP_FG1)</h2>
+      <table>
+        <tr><th class="c">구분</th><th>내용</th><th>OP_FG2</th><th>인증 구분<br>(VFC_DIV_CD)</th><th class="c">국외 IP 판정</th><th>주 사용처</th></tr>
+        <tr><td class="c"><span class="badge b-gray">CHK</span></td><td>SMS 사용 등록 아이디 확인</td><td>–</td><td>–</td><td class="c">✕</td><td>로그인 화면 사전 확인, POS 로그인</td></tr>
+        <tr><td class="c"><span class="badge b-gray">CDI</span></td><td>SMS 사용 등록자 DI(본인확인값) 일치 확인</td><td>DI 값</td><td>–</td><td class="c">✕</td><td>본인확인(KCP) 연계</td></tr>
+        <tr><td class="c"><span class="badge b-blue">C10</span></td><td>로그인 인증번호 발급 + SMS 발송</td><td>–</td><td><code>01</code></td><td class="c">○</td><td>일반 로그인, POS 자동로그인</td></tr>
+        <tr><td class="c"><span class="badge b-green">C11</span></td><td>로그인 인증번호 검증</td><td>입력 인증번호</td><td><code>01</code></td><td class="c">○</td><td>일반 로그인, POS 자동로그인</td></tr>
+        <tr><td class="c"><span class="badge b-purple">C20</span></td><td>추가 인증번호 발급 + SMS 발송</td><td>–</td><td><code>02</code></td><td class="c">○</td><td>마케팅 SMS 전송 전 추가 인증</td></tr>
+        <tr><td class="c"><span class="badge b-green">C21</span></td><td>추가 인증번호 검증</td><td>입력 인증번호</td><td><code>02</code></td><td class="c">○</td><td>마케팅 SMS 전송 전 추가 인증</td></tr>
+      </table>
+      <p class="sub">로그인(01)과 추가(02) 인증은 <b>잠금·횟수 제한이 서로 독립</b>입니다.</p>
+    </section>
+
+    <!-- 3 -->
+    <section id="s3">
+      <h2><span class="num">3</span>정책 상수</h2>
+      <table>
+        <tr><th>상수</th><th class="c">값</th><th>적용</th><th>내용</th></tr>
+        <tr><td><code>C_VALID_SEC</code></td><td class="c">180초</td><td>C11 · C21</td><td>인증번호 유효시간 3분</td></tr>
+        <tr><td><code>C_COOL_SEC_LOGIN</code></td><td class="c">30초</td><td>C10</td><td>재전송 쿨다운</td></tr>
+        <tr><td><code>C_COOL_SEC_ADD</code></td><td class="c">60초</td><td>C20</td><td>재전송 쿨다운</td></tr>
+        <tr><td><code>C_HOUR_LIMIT</code></td><td class="c">5회</td><td>C10</td><td>최근 1시간 발급 한도</td></tr>
+        <tr><td><code>C_DAY_LIMIT</code></td><td class="c">15회</td><td>C10</td><td>당일(00시 기준) 발급 한도</td></tr>
+        <tr><td><code>C_ADD_WARN_CNT</code></td><td class="c">5회</td><td>C20</td><td>10분 내 발급(이번 포함) 경고</td></tr>
+        <tr><td><code>C_ADD_LOCK_CNT</code></td><td class="c">8회</td><td>C20</td><td>30분 내 발급 시 잠금</td></tr>
+        <tr><td><code>C_ADD_LOCK_MIN</code></td><td class="c">30분</td><td>C20</td><td>잠금 판단 윈도우 = 잠금 시간</td></tr>
+        <tr><td><code>C_FAIL_LIMIT</code></td><td class="c">5회</td><td>C10 · C11 · C20 · C21</td><td>검증 실패 잠금 기준</td></tr>
+        <tr><td><code>C_FAIL_LOCK_MIN</code></td><td class="c">60분</td><td>C10 · C11 · C20 · C21</td><td>실패 잠금 시간 (재발급도 차단)</td></tr>
+      </table>
+    </section>
+
+    <!-- 4 -->
+    <section id="s4">
+      <h2><span class="num">4</span>공통 — 국외 IP 차단</h2>
+      <p><b>C10 · C11 · C20 · C21</b>에서 <code>OP_FG3</code>(사용자 IP)가 있으면 맨 먼저 <code>FN_CHK_LOGIN_BLOCK</code>으로 판정합니다. 차단이면 발급·검증을 하지 않고 즉시 돌려줍니다.</p>
+      <div class="flow">
+        <div class="step"><b>OP_FG1</b><small>C10·C11·C20·C21</small></div><span class="arrow">→</span>
+        <div class="step"><b>OP_FG3 있음?</b><small>없으면 판정 생략</small></div><span class="arrow">→</span>
+        <div class="step amber"><b>FN_CHK_LOGIN_BLOCK</b><small>p_proc_fg='C', p_log_yn='N'</small></div><span class="arrow">→</span>
+        <div class="step red"><b>'N' 차단</b><small>05| 리턴</small></div>
+        <div class="step green"><b>'Y' 허용 / 'M' 관찰</b><small>계속 진행</small></div>
+      </div>
+      <table>
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>판정 기준</td><td>SMS 사용등록 계정 + 비한국 IP + 허용테이블(<code>TB_CM_IP_ALLOW</code>) 미등재 → 차단</td></tr>
+        <tr><td>차단 활성화</td><td><code>FN_CHK_LOGIN_BLOCK</code>의 <code>C_BLOCK_MODE</code>로 일괄 제어 (이 함수 수정 불필요)</td></tr>
+        <tr><td>이력</td><td><code>p_log_yn='N'</code> — 판정만 수행. 로그인 시점 이력은 로그인 트리거가 기록</td></tr>
+        <tr><td>이력 식별값</td><td><code>p_brwsr_info = 'SMS_VFC_' || OP_FG1</code></td></tr>
+        <tr><td>같은 기준</td><td>로그인 트리거, <code>FN_GET_MENU_CHK_YN2</code> STEP 7</td></tr>
+        <tr><td>제외</td><td>CHK · CDI (단순 조회)</td></tr>
+      </table>
+      <div class="note warn"><b>OP_FG3가 비어 있으면 판정을 건너뜁니다.</b> 호출부는 반드시 IP를 넘겨야 합니다. 웹은 <code>AuthServiceImpl.callSmsVfcCode</code>가 클라이언트 IP를 넣고, 요청 컨텍스트가 없으면(배치 등) 빈 값이 됩니다.</div>
+    </section>
+
+    <!-- 5 -->
+    <section id="s5">
+      <h2><span class="num">5</span>CHK · CDI — 등록 확인</h2>
+      <div class="grid g2">
+        <div class="box">
+          <div class="t"><span class="badge b-gray">CHK</span> SMS 사용 등록 아이디 확인</div>
+          <div class="d"><code>TB_CM_SMS_USER_REGIST</code>에 USER_ID가 있는지 확인</div>
+          <table>
+            <tr><th class="c">코드</th><th>메시지</th></tr>
+            <tr><td class="c">00</td><td>SMS 인증 사용 등록된 아이디입니다.</td></tr>
+            <tr><td class="c">01</td><td>SMS 인증 사용 등록되지 않은 아이디입니다.</td></tr>
+          </table>
+        </div>
+        <div class="box">
+          <div class="t"><span class="badge b-gray">CDI</span> 본인확인 DI 일치</div>
+          <div class="d"><code>TB_CM_SMS_USER_REGIST</code>에서 USER_ID + DI 일치 확인</div>
+          <table>
+            <tr><th class="c">코드</th><th>메시지</th></tr>
+            <tr><td class="c">00</td><td>본인 확인 정보(DI)가 일치합니다.</td></tr>
+            <tr><td class="c">01</td><td>DI 없음 / 일치하지 않습니다.</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="s6">
+      <h2><span class="num">6</span>C10 · C20 — 인증번호 발급</h2>
+      <div class="flow">
+        <div class="step"><b>0) 휴대폰번호</b><small>등록·번호 확인</small></div><span class="arrow">→</span>
+        <div class="step red"><b>0-1) 실패 잠금</b><small>1시간</small></div><span class="arrow">→</span>
+        <div class="step amber"><b>1) 쿨다운</b><small>30초 / 1분</small></div><span class="arrow">→</span>
+        <div class="step amber"><b>2) 횟수 제한</b><small>C10 시간·일 / C20 잠금·경고</small></div><span class="arrow">→</span>
+        <div class="step blue"><b>3) 생성·암호화 저장</b><small>6자리</small></div><span class="arrow">→</span>
+        <div class="step blue"><b>4) SMS 발송</b><small>테스트 계정 제외</small></div><span class="arrow">→</span>
+        <div class="step green"><b>5) 결과</b><small>COMMIT</small></div>
+      </div>
+
+      <table>
+        <tr><th class="c">단계</th><th>처리</th><th>실패 시 결과</th></tr>
+        <tr><td class="c">0</td><td><code>TB_CM_SMS_USER_REGIST.TEL_NO</code> 복호화 조회</td><td><code>04</code> 미등록 아이디 / 등록된 핸드폰번호 없음</td></tr>
+        <tr><td class="c">0-1</td><td>같은 구분에서 실패 5회 도달 건이 최근 1시간 내 수정됐으면 잠금 (재발급으로 잠금 우회 방지)</td><td><code>03</code> 실패 횟수 초과 잠금 — 1시간 후</td></tr>
+        <tr><td class="c">1</td><td>최근 발급 후 C10 30초 / C20 1분 이내</td><td><code>01</code> 재전송 불가</td></tr>
+        <tr><td class="c">2 (C10)</td><td>최근 1시간 5회 이상 / 당일 15회 이상</td><td><code>02</code> 시간당 한도 (다음 가능 시각 안내) / <code>03</code> 일 한도</td></tr>
+        <tr><td class="c">2 (C20)</td><td>최근 30분 8회 이상 잠금 / 최근 10분 건수는 경고용으로 집계</td><td><code>03</code> 요청 과다 잠금 — 30분 후</td></tr>
+        <tr><td class="c">3</td><td><code>DBMS_RANDOM</code> 6자리 생성 → <code>SBPENC.E</code> 암호화 → <code>TB_CM_SMS_VFC_CODE</code> INSERT (SEQ_TB_CM_SMS_VFC_CODE)</td><td>–</td></tr>
+        <tr><td class="c">4</td><td><code>PKG_SDK_SMS_SYSTEM_SEND.SP_SDK_SMS_SEND_ENC_S01</code> 호출 (테스트 계정은 생략)</td><td>예외 → ROLLBACK + <code>-20001</code></td></tr>
+        <tr><td class="c">5</td><td>COMMIT 후 결과 리턴</td><td>–</td></tr>
+      </table>
+
+      <h3>발송 결과 · SMS 문구</h3>
+      <table>
+        <tr><th>구분</th><th class="c">코드</th><th>결과 메시지</th><th>SMS 제목 / 내용</th></tr>
+        <tr><td>C10</td><td class="c">00</td><td>인증번호를 전송하였습니다. 3분 이내에 입력하여 주십시오.</td><td>[로그인 인증번호] / <span class="msg">[로그인] 인증번호 [123456] (3분 내 입력, 공유금지)</span></td></tr>
+        <tr><td>C20</td><td class="c">00</td><td>추가 인증번호를 전송하였습니다. 3분 이내에 입력하여 주십시오.</td><td rowspan="2">[추가 인증번호] / <span class="msg">[추가인증] 인증번호 [123456] (3분 내 입력, 공유금지)</span></td></tr>
+        <tr><td>C20</td><td class="c">02</td><td>인증번호를 전송하였습니다. … 계속 요청 시 잠금 처리될 수 있습니다. <span class="sub">(10분 내 이번 포함 5회 이상)</span></td></tr>
+      </table>
+
+      <h3>SMS 발송 프로시저 인자</h3>
+      <table>
+        <tr><th class="c">#</th><th>값</th><th class="c">#</th><th>값</th></tr>
+        <tr><td class="c">1</td><td><code>'0'</code></td><td class="c">7</td><td>예약일시 <code>SYSDATE</code></td></tr>
+        <tr><td class="c">2</td><td><code>'00001'</code></td><td class="c">8</td><td>발신번호 <code>'16445195'</code></td></tr>
+        <tr><td class="c">3</td><td><code>'0'</code></td><td class="c">9</td><td><code>1</code> (수신 건수)</td></tr>
+        <tr><td class="c">4</td><td>제목 (<code>SUBSTRB</code> 48바이트)</td><td class="c">10</td><td>수신 휴대폰번호 (복호화)</td></tr>
+        <tr><td class="c">5</td><td>내용</td><td class="c">11</td><td><code>'S163_010'</code></td></tr>
+        <tr><td class="c">6</td><td>요청일시 <code>SYSDATE</code></td><td colspan="2"></td></tr>
+      </table>
+    </section>
+
+    <!-- 7 -->
+    <section id="s7">
+      <h2><span class="num">7</span>C11 · C21 — 인증번호 검증</h2>
+      <div class="flow">
+        <div class="step"><b>0) 입력값</b></div><span class="arrow">→</span>
+        <div class="step"><b>1) 최신 건 조회</b><small>생성일시·SEQ 역순 1건</small></div><span class="arrow">→</span>
+        <div class="step red"><b>2) 실패 잠금</b><small>구분 내 전체 건</small></div><span class="arrow">→</span>
+        <div class="step amber"><b>3) 유효성</b><small>사용됨·실패초과·3분</small></div><span class="arrow">→</span>
+        <div class="step blue"><b>4) 비교</b><small>SBPENC.D</small></div><span class="arrow">→</span>
+        <div class="step green"><b>성공 → 즉시 폐기</b></div>
+        <div class="step red"><b>실패 → 실패건수 +1</b></div>
+      </div>
+
+      <table>
+        <tr><th class="c">단계</th><th>처리</th><th>결과</th></tr>
+        <tr><td class="c">0</td><td>입력 인증번호(OP_FG2) 빈 값</td><td><code>01</code> 인증번호를 입력하여 주십시오.</td></tr>
+        <tr><td class="c">1</td><td>같은 구분의 최신 발급 건 조회</td><td><code>04</code> 인증번호 요청 이력이 없습니다.</td></tr>
+        <tr><td class="c">2</td><td><b>구분 내 어떤 건이든</b> 실패 5회 도달 + 1시간 이내 → 잠금 (최신 건만 보면 재발급으로 우회 가능)</td><td><code>03</code> 실패 횟수 초과 잠금</td></tr>
+        <tr><td class="c">3</td><td>이미 성공(사용됨) / 실패 5회 / 생성 후 3분 초과</td><td><code>04</code> 인증번호가 유효하지 않습니다.</td></tr>
+        <tr><td class="c">4 성공</td><td><code>VFC_SUCC_DT</code> 저장 = <b>즉시 폐기(재사용 불가)</b>, COMMIT</td><td><code>00</code> 인증되었습니다.</td></tr>
+        <tr><td class="c">4 실패</td><td><code>VFC_FAIL_CNT + 1</code>, COMMIT</td><td><code>01</code> 일치하지 않습니다 (n/5) / 5회째 <code>03</code> 잠금</td></tr>
+      </table>
+    </section>
+
+    <!-- 8 -->
+    <section id="s8">
+      <h2><span class="num">8</span>잠금 · 제한 규칙</h2>
+      <p>규칙은 모두 <b>"무엇을 세는가 → 언제 막히는가 → 언제 풀리는가"</b> 세 가지로 보면 이해하기 쉽습니다. 모든 잠금은 <b>시간이 지나면 자동으로 풀리며</b>, 관리자가 푸는 기능은 없습니다.</p>
+
+      <h3>한눈에 보기</h3>
+      <table>
+        <tr><th>규칙</th><th>로그인 (C10 · C11)</th><th>추가 (C20 · C21)</th></tr>
+        <tr><td>① 유효시간</td><td colspan="2" class="c">발급 후 <b>3분</b></td></tr>
+        <tr><td>② 1회용 · 최신 1건</td><td colspan="2" class="c">성공하면 즉시 폐기, <b>가장 최근에 받은 번호만</b> 유효</td></tr>
+        <tr><td>③ 재전송 쿨다운</td><td>30초</td><td>1분</td></tr>
+        <tr><td>④ 발급 한도</td><td>최근 1시간 5회 · 오늘 15회</td><td>최근 10분 5회 경고 · 최근 30분 8회 잠금</td></tr>
+        <tr><td>⑤ 검증 실패 잠금</td><td colspan="2" class="c">번호 1건에서 <b>5회 틀리면 1시간 잠금</b> (발급도 막힘)</td></tr>
+        <tr><td>⑥ 국외 IP</td><td colspan="2" class="c">발급·검증 모두 차단 (<code>05</code>)</td></tr>
+      </table>
+
+      <h3>규칙별 상세</h3>
+      <table>
+        <tr><th>규칙</th><th>무엇을 세나 (기준 컬럼)</th><th>언제 막히나</th><th>언제 풀리나</th><th>결과</th></tr>
+        <tr>
+          <td><b>① 유효시간</b></td>
+          <td>최신 번호의 발급일시<br><code>VFC_NO_CRT_DT</code></td>
+          <td>발급 후 3분(180초)이 지나서 검증</td>
+          <td>새 번호를 받으면 됨</td>
+          <td><code>04</code> 유효하지 않음</td>
+        </tr>
+        <tr>
+          <td><b>② 1회용 · 최신 1건</b></td>
+          <td>최신 번호의 성공일시<br><code>VFC_SUCC_DT</code></td>
+          <td>· 이미 한 번 성공한 번호를 다시 입력<br>· 새 번호를 받은 뒤 <b>이전 번호</b>를 입력 (최신 건과만 비교하므로 불일치)</td>
+          <td>새 번호를 받으면 됨</td>
+          <td><code>04</code> 유효하지 않음 / <code>01</code> 불일치</td>
+        </tr>
+        <tr>
+          <td><b>③ 재전송 쿨다운</b></td>
+          <td>같은 구분의 발급일시<br><code>VFC_NO_CRT_DT</code></td>
+          <td>마지막 발급 후 C10 30초 / C20 1분 이내에 다시 요청</td>
+          <td>30초 / 1분 경과</td>
+          <td><code>01</code> 재전송 불가</td>
+        </tr>
+        <tr>
+          <td><b>④-1 시간당 한도</b><br><span class="sub">C10</span></td>
+          <td>지금부터 <b>거꾸로 1시간</b> 안의 발급 건수 (이동 구간)</td>
+          <td>최근 1시간에 이미 5회 발급</td>
+          <td><b>그중 가장 오래된 발급 + 1시간</b> 시각 (문구에 시각 안내)</td>
+          <td><code>02</code> "HH:MI 이후 다시 시도"</td>
+        </tr>
+        <tr>
+          <td><b>④-2 일 한도</b><br><span class="sub">C10</span></td>
+          <td><b>오늘 00:00</b>부터의 발급 건수</td>
+          <td>오늘 이미 15회 발급</td>
+          <td>다음 날 00:00</td>
+          <td><code>03</code> "내일 다시 시도"</td>
+        </tr>
+        <tr>
+          <td><b>④-3 과다 경고</b><br><span class="sub">C20</span></td>
+          <td>최근 10분 발급 건수 + 이번 1건</td>
+          <td><b>막히지 않음</b> — 5회째부터 발송은 되고 경고만 붙음</td>
+          <td>–</td>
+          <td><code>02</code> 발송 + 경고 문구</td>
+        </tr>
+        <tr>
+          <td><b>④-4 과다 잠금</b><br><span class="sub">C20</span></td>
+          <td>최근 30분 발급 건수 (이동 구간)</td>
+          <td>최근 30분에 이미 8회 발급</td>
+          <td>30분 구간에서 가장 오래된 발급이 빠지는 시점</td>
+          <td><code>03</code> "30분 후 다시 시도"</td>
+        </tr>
+        <tr>
+          <td><b>⑤ 검증 실패 잠금</b></td>
+          <td>번호 1건의 실패 횟수<br><code>VFC_FAIL_CNT</code><br>기준 시각 <code>MOD_DT</code>(마지막 실패)</td>
+          <td>같은 구분의 <b>어느 번호든</b> 실패 5회에 도달한 뒤 1시간 이내 → <b>검증과 발급 모두</b> 차단</td>
+          <td>5번째 실패 시각 + 1시간</td>
+          <td><code>03</code> "1시간 후 다시 시도"</td>
+        </tr>
+        <tr>
+          <td><b>⑥ 국외 IP</b></td>
+          <td>요청 IP (<code>OP_FG3</code>) → <code>FN_CHK_LOGIN_BLOCK</code></td>
+          <td>SMS 등록 계정 + 비한국 IP + 허용 미등재 (차단 모드일 때)</td>
+          <td><code>TB_CM_IP_ALLOW</code> 등록 또는 국내 IP에서 요청</td>
+          <td><code>05</code> 허용되지 않은 국가(IP)</td>
+        </tr>
+      </table>
+
+      <div class="note warn">
+        <b>실패 횟수는 "번호 1건" 기준입니다.</b> 3번 틀린 뒤 새 번호를 받으면 새 번호는 0회부터 셉니다. 대신 발급이 시간당 5회로 묶여 있어서, 잠금에 걸리지 않고 시도할 수 있는 횟수는 <b>1시간에 최대 약 20회</b>(번호 5건 × 4회)입니다. 한 번호에서 5회를 채우면 그때부터 1시간 동안 발급까지 막힙니다.
+      </div>
+
+      <h3>판정 순서</h3>
+      <p class="sub">위에서부터 차례로 확인하고, 처음 걸린 규칙의 결과를 바로 돌려줍니다. 그래서 여러 규칙에 동시에 걸려도 <b>위쪽 규칙의 문구</b>가 보입니다.</p>
+      <div class="grid g2">
+        <div class="box blue">
+          <div class="t">발급 (C10 · C20)</div>
+          <div class="d">
+            ① 국외 IP → ② SMS 등록 · 휴대폰번호 → ③ <b>실패 잠금</b> → ④ <b>쿨다운</b> → ⑤ C10 시간당 · 일 한도 / C20 과다 잠금 → ⑥ 발급 · 발송 → ⑦ C20 과다 경고 문구
+          </div>
+        </div>
+        <div class="box green">
+          <div class="t">검증 (C11 · C21)</div>
+          <div class="d">
+            ① 국외 IP → ② 입력값 → ③ 최신 번호 조회(없으면 <code>04</code>) → ④ <b>실패 잠금</b> → ⑤ 유효성(사용됨 · 실패 5회 · 3분) → ⑥ 비교 → 성공 폐기 / 실패 +1
+          </div>
+        </div>
+      </div>
+
+      <h3>예시 ① 정상 사용 · 쿨다운 · 이전 번호</h3>
+      <table>
+        <tr><th>시각</th><th>사용자 행동</th><th>결과</th></tr>
+        <tr><td class="nw">10:00:00</td><td>인증번호 요청 (C10)</td><td><code>00</code> 발송 — 번호 A</td></tr>
+        <tr><td class="nw">10:00:20</td><td>"안 왔네" 다시 요청</td><td><code>01</code> 30초 이내 재전송 불가</td></tr>
+        <tr><td class="nw">10:00:40</td><td>다시 요청</td><td><code>00</code> 발송 — 번호 B (A는 이제 최신이 아님)</td></tr>
+        <tr><td class="nw">10:01:00</td><td>먼저 온 번호 A 입력</td><td><code>01</code> 불일치 (1/5) — 최신 B와 비교했기 때문</td></tr>
+        <tr><td class="nw">10:01:30</td><td>번호 B 입력</td><td><code>00</code> 인증 성공 → B 즉시 폐기</td></tr>
+        <tr><td class="nw">10:02:00</td><td>B를 한 번 더 입력</td><td><code>04</code> 유효하지 않음 (이미 사용됨)</td></tr>
+      </table>
+
+      <h3>예시 ② 유효시간 3분</h3>
+      <table>
+        <tr><th>시각</th><th>사용자 행동</th><th>결과</th></tr>
+        <tr><td class="nw">10:00:00</td><td>인증번호 요청</td><td><code>00</code> 발송 — 번호 A</td></tr>
+        <tr><td class="nw">10:03:10</td><td>번호 A 입력</td><td><code>04</code> 유효하지 않음 (3분 초과)</td></tr>
+        <tr><td class="nw">10:03:15</td><td>새로 요청</td><td><code>00</code> 발송 — 번호 B, 다시 3분</td></tr>
+      </table>
+
+      <h3>예시 ③ 검증 실패 잠금</h3>
+      <table>
+        <tr><th>시각</th><th>사용자 행동</th><th>결과</th></tr>
+        <tr><td class="nw">10:00</td><td>요청 → 번호 A</td><td><code>00</code></td></tr>
+        <tr><td class="nw">10:01 ~ 10:02</td><td>A에 틀린 번호 4회</td><td><code>01</code> (1/5) … (4/5)</td></tr>
+        <tr><td class="nw">10:02:30</td><td>A에 틀린 번호 1회 더</td><td><code>03</code> 실패 횟수 초과 잠금 — <b>잠금 시작</b></td></tr>
+        <tr><td class="nw">10:05</td><td>새 번호 요청</td><td><code>03</code> 잠금 (발급도 막힘)</td></tr>
+        <tr><td class="nw">11:02:30 이후</td><td>새 번호 요청</td><td><code>00</code> 발송 — 잠금 해제</td></tr>
+      </table>
+
+      <h3>예시 ④ C10 시간당 한도 (이동 구간)</h3>
+      <table>
+        <tr><th>시각</th><th>사용자 행동</th><th>결과</th></tr>
+        <tr><td class="nw">10:00 · 10:05 · 10:10 · 10:15 · 10:20</td><td>요청 5회</td><td>모두 <code>00</code> 발송</td></tr>
+        <tr><td class="nw">10:25</td><td>6번째 요청</td><td><code>02</code> "<b>11:00</b> 이후에 다시 시도" (가장 오래된 10:00 + 1시간)</td></tr>
+        <tr><td class="nw">11:00 이후</td><td>요청</td><td><code>00</code> 발송 — 10:00 건이 1시간 구간에서 빠짐</td></tr>
+        <tr><td class="nw">11:05 전</td><td>또 요청</td><td>최근 1시간에 다시 5건이면 <code>02</code> (다음 가능 시각은 10:05 + 1시간)</td></tr>
+      </table>
+      <p class="sub">일 한도 15회는 이동 구간이 아니라 <b>매일 00:00에 초기화</b>됩니다.</p>
+
+      <h3>예시 ⑤ C20 추가 인증 경고 · 잠금</h3>
+      <table>
+        <tr><th>상황</th><th>결과</th></tr>
+        <tr><td>최근 10분에 4회 받은 상태에서 5번째 요청</td><td><code>02</code> 발송 + "요청이 많습니다. 계속 요청 시 잠금" 경고 (발송은 정상)</td></tr>
+        <tr><td>최근 30분에 이미 8회 받은 상태에서 요청</td><td><code>03</code> 요청 과다 잠금 — 30분 구간에서 가장 오래된 건이 빠지면 다시 가능</td></tr>
+        <tr><td>1분 이내 재요청</td><td><code>01</code> 1분 이내 재전송 불가 — 판정 순서가 <b>실패 잠금 → 쿨다운 → 과다 잠금</b>이라, 과다 잠금 상태여도 1분 이내면 쿨다운 문구가 먼저 보입니다</td></tr>
+      </table>
+
+      <h3>애플리케이션에서 추가로 적용되는 규칙</h3>
+      <table>
+        <tr><th>규칙</th><th>위치</th><th>내용</th></tr>
+        <tr><td>발송 계정 일치 · 3분</td><td><code>AuthController.validateSmsVfcRequest</code></td><td>세션에 저장한 <b>발송 계정</b>과 같은지, 발송 후 <b>3분 이내</b>인지 DB 검증 전에 먼저 확인. 다른 아이디로 받은 번호 사용 차단</td></tr>
+        <tr><td>화면 타이머</td><td>로그인 화면 · <code>autoLoginSmsVfc.jsp</code></td><td>유효시간 3분 · 재전송 30초를 화면에 표시, 새로고침해도 서버 시각 기준으로 이어서 표시</td></tr>
+        <tr><td>POS 강제 로그아웃</td><td><code>posSmsVfcCodeSend / Verify</code></td><td>결과 <code>03</code>(잠금)이면 세션을 끊고 로그인 화면으로 이동</td></tr>
+        <tr><td>일반 로그인 실패</td><td><code>loginProcess</code></td><td>C11 실패 시 로그인 이력 FAIL 기록 후 로그인 화면(<code>smsAuth=Y</code>)으로 메시지와 함께 이동</td></tr>
+      </table>
+
+      <div class="note">테스트 계정(249)도 위 규칙(쿨다운 · 한도 · 실패 잠금 · 국외 IP)은 똑같이 적용됩니다. 다른 점은 SMS를 보내지 않고 <code>123456</code>으로 통과한다는 것뿐입니다.</div>
+    </section>
+
+    <!-- 9 -->
+    <section id="s9">
+      <h2><span class="num">9</span>결과 코드 전체</h2>
+      <table>
+        <tr><th class="c">코드</th><th>CHK · CDI</th><th>C10 · C20 발급</th><th>C11 · C21 검증</th></tr>
+        <tr><td class="c"><span class="badge b-green">00</span></td><td>등록됨 / DI 일치</td><td>발송 완료</td><td>인증 성공</td></tr>
+        <tr><td class="c"><span class="badge b-gray">01</span></td><td>미등록 / DI 없음·불일치</td><td>쿨다운 (재전송 불가)</td><td>입력값 없음 / 불일치 (n/5)</td></tr>
+        <tr><td class="c"><span class="badge b-amber">02</span></td><td>–</td><td>C10 시간당 한도 / <b>C20 발송 + 과다 경고</b></td><td>–</td></tr>
+        <tr><td class="c"><span class="badge b-red">03</span></td><td>–</td><td>실패 잠금 / C10 일 한도 / C20 요청 과다 잠금</td><td>실패 잠금 (5회 도달 포함)</td></tr>
+        <tr><td class="c"><span class="badge b-amber">04</span></td><td>–</td><td>미등록 아이디 / 휴대폰번호 없음</td><td>요청 이력 없음 / 유효하지 않음(사용됨·만료)</td></tr>
+        <tr><td class="c"><span class="badge b-red">05</span></td><td>–</td><td colspan="2">허용되지 않은 국가(IP)에서의 요청 — 관리자 문의</td></tr>
+        <tr><td class="c"><span class="badge b-gray">99</span></td><td colspan="3">처리 구분 오류 / NO_DATA_FOUND 예외. 그 외 예외는 ROLLBACK 후 <code>ORA-20001 FN_GET_TB_CM_SMS_VFC_CODE ERROR</code></td></tr>
+      </table>
+      <p class="sub"><b>C20의 02는 실패가 아니라 "발송 성공 + 경고"</b>입니다. 애플리케이션에서도 C20의 00·02를 발송 성공으로 처리합니다.</p>
+    </section>
+
+    <!-- 10 -->
+    <section id="s10">
+      <h2><span class="num">10</span>테스트 계정</h2>
+      <table>
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>판별</td><td><code>TB_CM_NMCODE</code> 그룹 <b>249</b>의 <code>NMCODE_NM</code>에 아이디가 있으면 테스트 계정</td></tr>
+        <tr><td>발급 (C10 · C20)</td><td>인증번호는 생성·저장하지만 <b>SMS는 발송하지 않음</b></td></tr>
+        <tr><td>검증 (C11 · C21)</td><td><code>'123456'</code> 입력 시 <b>무조건 성공</b> (실제 인증번호도 성공)</td></tr>
+        <tr><td>그 외 규칙</td><td>쿨다운·한도·실패 잠금·국외 IP 판정은 일반 계정과 동일하게 적용</td></tr>
+      </table>
+      <div class="note danger"><b>운영 주의</b> — 249에 등록된 계정은 고정 번호로 SMS 인증을 통과합니다. 실제 사용자 계정이 등록되지 않도록 주기적으로 확인하세요 (13장 점검 쿼리).</div>
+    </section>
+
+    <!-- 11 -->
+    <section id="s11">
+      <h2><span class="num">11</span>사용 객체</h2>
+      <table>
+        <tr><th>객체</th><th>종류</th><th>용도</th><th class="c">읽기 / 쓰기</th></tr>
+        <tr><td><code>TB_CM_SMS_USER_REGIST</code></td><td>Table</td><td>SMS 사용 등록자 (USER_ID, DI, TEL_NO 암호화)</td><td class="c">R</td></tr>
+        <tr><td><code>TB_CM_SMS_VFC_CODE</code></td><td>Table</td><td>인증번호 발급·검증 이력</td><td class="c">R / W</td></tr>
+        <tr><td><code>SEQ_TB_CM_SMS_VFC_CODE</code></td><td>Sequence</td><td>인증번호 SEQ</td><td class="c">–</td></tr>
+        <tr><td><code>TB_CM_NMCODE</code> (249)</td><td>Table</td><td>테스트 계정 목록</td><td class="c">R</td></tr>
+        <tr><td><code>SBPENC.E / SBPENC.D</code></td><td>Function</td><td>암호화 / 복호화 (인증번호, 휴대폰번호)</td><td class="c">–</td></tr>
+        <tr><td><code>FN_CHK_LOGIN_BLOCK</code></td><td>Function</td><td>국외 IP 차단 판정 (Y / M / N)</td><td class="c">–</td></tr>
+        <tr><td><code>TB_CM_IP_ALLOW</code></td><td>Table</td><td>국외 IP 허용 (FN_CHK_LOGIN_BLOCK 내부)</td><td class="c">R (간접)</td></tr>
+        <tr><td><code>PKG_SDK_SMS_SYSTEM_SEND.SP_SDK_SMS_SEND_ENC_S01</code></td><td>Package Proc</td><td>SMS 발송</td><td class="c">W</td></tr>
+      </table>
+
+      <h3>TB_CM_SMS_VFC_CODE 컬럼</h3>
+      <table>
+        <tr><th>컬럼</th><th>내용</th><th>컬럼</th><th>내용</th></tr>
+        <tr><td><code>USER_ID</code></td><td>아이디</td><td><code>VFC_SUCC_DT</code></td><td>검증 성공일시 (값 있으면 사용됨)</td></tr>
+        <tr><td><code>SEQ</code></td><td>SEQ_TB_CM_SMS_VFC_CODE</td><td><code>VFC_FAIL_CNT</code></td><td>검증 실패 횟수</td></tr>
+        <tr><td><code>VFC_DIV_CD</code></td><td><code>01</code> 로그인 / <code>02</code> 추가</td><td><code>REG_DT / REG_ID</code></td><td>등록</td></tr>
+        <tr><td><code>VFC_NO</code></td><td>인증번호 (암호화)</td><td><code>MOD_DT / MOD_ID</code></td><td>수정 (실패 잠금 기준 시각)</td></tr>
+        <tr><td><code>VFC_NO_CRT_DT</code></td><td>발급일시 (YYYYMMDDHH24MISS)</td><td colspan="2"></td></tr>
+      </table>
+    </section>
+
+    <!-- 12 -->
+    <section id="s12">
+      <h2><span class="num">12</span>애플리케이션 호출부</h2>
+      <h3>호출 경로</h3>
+      <div class="flow">
+        <div class="step"><b>AuthController</b></div><span class="arrow">→</span>
+        <div class="step"><b>AuthServiceImpl</b><small>callSmsVfcCode</small></div><span class="arrow">→</span>
+        <div class="step"><b>AuthMapper.getSmsVfcCode</b><small>Login.xml</small></div><span class="arrow">→</span>
+        <div class="step green"><b>FN_GET_TB_CM_SMS_VFC_CODE</b></div>
+      </div>
+<pre><span class="cm">/* Login.xml — AuthMapper.getSmsVfcCode (4번째 인자 : 접속 IP) */</span>
+SELECT  FN_GET_TB_CM_SMS_VFC_CODE(#{userId}, #{opFg1}, #{opFg2}, #{ip})
+FROM    DUAL</pre>
+
+      <h3>AuthServiceImpl 메서드</h3>
+      <table>
+        <tr><th>메서드</th><th class="c">OP_FG1</th><th>비고</th></tr>
+        <tr><td><code>checkSmsUser(userId)</code></td><td class="c">CHK</td><td>SMS 등록 여부</td></tr>
+        <tr><td><code>requestLoginSmsVfcCode(userId)</code></td><td class="c">C10</td><td>로그인 인증번호 발급</td></tr>
+        <tr><td><code>verifyLoginSmsVfcCode(userId, no)</code></td><td class="c">C11</td><td>로그인 인증번호 검증</td></tr>
+        <tr><td><code>requestAdditionalSmsVfcCode(userId)</code></td><td class="c">C20</td><td>추가 인증번호 발급</td></tr>
+        <tr><td><code>verifyAdditionalSmsVfcCode(userId, no)</code></td><td class="c">C21</td><td>추가 인증번호 검증</td></tr>
+      </table>
+
+      <h3>callSmsVfcCode 결과 변환</h3>
+      <ul class="clean">
+        <li>IP: <code>HttpUtils.getClientIp(WebUtil.getRequest())</code> — 요청 컨텍스트가 없으면 빈 값 (국외 IP 판정 생략)</li>
+        <li><code>'|'</code> 앞 = 코드, 뒤 = 메시지로 분리 → <code>SmsVfcResultVO(code, message, sent)</code></li>
+        <li><b>발송 성공(sent)</b>: C10의 <code>00</code>, C20의 <code>00</code> · <code>02</code></li>
+        <li>DB 예외 / null / 구분자 없음 → <code>99</code> "SMS 인증 처리 중 오류가 발생했습니다." (로그인 전체 예외로 번지지 않게)</li>
+      </ul>
+
+      <h3>AuthController 사용 위치</h3>
+      <table>
+        <tr><th>URL / 메서드</th><th class="c">구분</th><th>처리</th></tr>
+        <tr><td><code>POST /auth/loginSmsUserRegistYn.sb</code></td><td class="c">CHK</td><td>로그인 화면에서 SMS 입력란 표시 여부 판단. <code>00</code> Y / <code>01</code> N / 그 외 FAIL</td></tr>
+        <tr><td><code>POST /auth/loginSmsVfcCodeSend.sb</code></td><td class="c">C10</td><td>일반 로그인 발급. 성공 시 세션에 발송 계정·시각 저장</td></tr>
+        <tr><td><code>POST /auth/login.sb</code> (loginProcess)</td><td class="c">CHK → C11</td><td>일반 로그인 성공 후 SMS 등록이면 세션의 발송 계정·3분 확인 후 C11 검증. 실패 시 로그인 이력 FAIL + 로그인 화면(<code>smsAuth=Y</code>)</td></tr>
+        <tr><td><code>setLoginSmsVfcSessionState</code></td><td class="c">CHK</td><td>POS 자동로그인 메인 진입 시 SMS 대상이면 인증 대기 상태로 저장</td></tr>
+        <tr><td><code>POST /auth/posSmsVfcCodeSend.sb</code></td><td class="c">C10</td><td>POS 발급. <b><code>03</code>이면 강제 로그아웃</b></td></tr>
+        <tr><td><code>POST /auth/posSmsVfcCodeVerify.sb</code></td><td class="c">C11</td><td>POS 검증. 성공 시 로그인 완료 반영 · 메인 이동. <b><code>03</code> 강제 로그아웃</b>, <code>04</code> 만료 표시</td></tr>
+      </table>
+      <div class="note">애플리케이션도 세션 기준으로 <b>발송 계정 일치 + 3분</b>을 한 번 더 확인합니다 (<code>validateSmsVfcRequest</code>). DB 함수의 3분 확인과 이중으로 동작합니다.</div>
+    </section>
+
+    <!-- 13 -->
+    <section id="s13">
+      <h2><span class="num">13</span>호출 예시 · 점검 쿼리</h2>
+<pre><span class="cm">-- 호출 예시</span>
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'CHK', '',       '')               FROM DUAL;
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'CDI', 'DI값',   '')               FROM DUAL;
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'C10', '',       '211.104.152.65') FROM DUAL;
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'C11', '123456', '211.104.152.65') FROM DUAL;
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'C20', '',       '211.104.152.65') FROM DUAL;
+SELECT FN_GET_TB_CM_SMS_VFC_CODE('kjsun1117', 'C21', '123456', '211.104.152.65') FROM DUAL;
+
+<span class="cm">-- 사용자별 최근 인증번호 이력 (인증번호 값은 암호화되어 있어 조회하지 않음)</span>
+SELECT  USER_ID, SEQ, VFC_DIV_CD, VFC_NO_CRT_DT, VFC_SUCC_DT, VFC_FAIL_CNT, MOD_DT
+FROM    TB_CM_SMS_VFC_CODE
+WHERE   USER_ID = :USER_ID
+ORDER BY VFC_NO_CRT_DT DESC, SEQ DESC;
+
+<span class="cm">-- 현재 실패 잠금 중인 사용자 (1시간 이내 실패 5회)</span>
+SELECT  USER_ID, VFC_DIV_CD, MAX(MOD_DT) AS LAST_FAIL_DT
+FROM    TB_CM_SMS_VFC_CODE
+WHERE   VFC_FAIL_CNT >= 5
+AND     MOD_DT >= TO_CHAR(SYSDATE - 1/24, 'YYYYMMDDHH24MISS')
+GROUP BY USER_ID, VFC_DIV_CD
+ORDER BY LAST_FAIL_DT DESC;
+
+<span class="cm">-- 오늘 발급 건수 상위 (C10 일 15회 한도 근접 확인)</span>
+SELECT  USER_ID, VFC_DIV_CD, COUNT(*) AS CNT
+FROM    TB_CM_SMS_VFC_CODE
+WHERE   VFC_NO_CRT_DT >= TO_CHAR(TRUNC(SYSDATE), 'YYYYMMDDHH24MISS')
+GROUP BY USER_ID, VFC_DIV_CD
+ORDER BY CNT DESC;
+
+<span class="cm">-- 테스트 계정 목록 (실사용 계정이 섞여 있지 않은지 점검)</span>
+SELECT  NMCODE_CD, NMCODE_NM
+FROM    TB_CM_NMCODE
+WHERE   NMCODE_GRP_CD = '249';</pre>
+    </section>
+
+    <!-- 14 -->
+    <section id="s14">
+      <h2><span class="num">14</span>확인 · 개선 사항</h2>
+      <table>
+        <tr><th class="c">#</th><th>항목</th><th>내용</th><th class="c">구분</th></tr>
+        <tr><td class="c">1</td><td>테스트 계정 주석</td><td>헤더·4단계 주석은 "A0001, A0002"로 되어 있으나 실제 로직은 <code>TB_CM_NMCODE</code> 249 조회. 주석을 실제 기준으로 맞출 필요</td><td class="c"><span class="badge b-gray">주석</span></td></tr>
+        <tr><td class="c">2</td><td>트리거 이름</td><td>이 함수 주석은 <code>TR_TB_WB_LOGIN_HIST_R90</code>, <code>FN_GET_MENU_CHK_YN2</code> 주석은 <code>R98</code>. 실제 트리거 이름 확인 필요</td><td class="c"><span class="badge b-amber">확인</span></td></tr>
+        <tr><td class="c">3</td><td>난수 생성</td><td><code>DBMS_RANDOM</code>은 암호학적 난수가 아님. 보안 인증번호는 <code>DBMS_CRYPTO.RANDOMINTEGER</code> 사용 권장</td><td class="c"><span class="badge b-amber">개선</span></td></tr>
+        <tr><td class="c">4</td><td>IP 미전달 시 판정 생략</td><td>OP_FG3가 비면 국외 IP 판정을 건너뜀. 모든 호출부가 IP를 넘기는지 확인 (배치·내부 호출 포함)</td><td class="c"><span class="badge b-amber">확인</span></td></tr>
+        <tr><td class="c">5</td><td>테스트 계정 고정 번호</td><td>249 등록 계정은 <code>123456</code>으로 항상 통과. 운영 계정 등록 여부 정기 점검</td><td class="c"><span class="badge b-red">보안</span></td></tr>
+        <tr><td class="c">6</td><td>SMS 발송 실패 처리</td><td>발송 프로시저 예외 시 발급 INSERT까지 ROLLBACK 후 <code>-20001</code>. 애플리케이션은 <code>99</code>로 변환해 안내</td><td class="c"><span class="badge b-gray">참고</span></td></tr>
+        <tr><td class="c">7</td><td>잠금 수동 해제</td><td>잠금은 시간 경과로만 풀림. 고객 문의 대응용 관리자 해제 기능 필요 여부 검토</td><td class="c"><span class="badge b-gray">검토</span></td></tr>
+      </table>
+    </section>
+
+    <footer>SMS 인증 함수 FN_GET_TB_CM_SMS_VFC_CODE 정리 · 2026-10-02</footer>
+  </main>
+</div>
+</body>
+</html>

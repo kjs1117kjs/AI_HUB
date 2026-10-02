@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사용자 일시정지 기능 개발 정리</title>
+<style>
+  :root {
+    --ink:#1f2933; --sub:#52606d; --muted:#8a96a3; --line:#e4e7eb; --bg:#f5f7fa; --card:#fff;
+    --blue:#2563eb; --blue-soft:#eaf1ff; --red:#c0392b; --red-soft:#fdecea;
+    --amber:#b45309; --amber-soft:#fff4e0; --green:#15803d; --green-soft:#e7f6ec; --gray-soft:#eef1f4;
+    --purple:#6d28d9; --purple-soft:#f1ebff;
+    --mono:"D2Coding","Consolas","Menlo",monospace;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif; color:var(--ink); background:var(--bg); line-height:1.65; font-size:14px; }
+  .layout { display:flex; min-height:100vh; }
+
+  nav.toc { width:260px; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto; background:#111827; color:#cbd2d9; padding:28px 16px; }
+  nav.toc .brand { color:#fff; font-weight:800; font-size:16px; margin-bottom:4px; }
+  nav.toc .ver { color:#7b8794; font-size:12px; margin-bottom:20px; }
+  nav.toc .grp { color:#7b8794; font-size:11px; font-weight:700; letter-spacing:1px; margin:16px 10px 4px; }
+  nav.toc a { display:block; color:#cbd2d9; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:13px; }
+  nav.toc a:hover { background:#1f2937; color:#fff; }
+  nav.toc a .n { display:inline-block; width:24px; color:#60a5fa; font-weight:700; }
+
+  main { flex:1; padding:40px 48px 80px; max-width:1200px; }
+
+  .hero { background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%); color:#fff; border-radius:14px; padding:34px 36px; margin-bottom:30px; box-shadow:0 12px 30px rgba(37,99,235,.25); }
+  .hero h1 { margin:0 0 8px; font-size:26px; letter-spacing:-.5px; }
+  .hero p { margin:0; opacity:.92; }
+  .hero .meta { margin-top:18px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero .meta span { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.25); padding:4px 10px; border-radius:999px; font-size:12px; }
+
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:28px 30px; margin-bottom:22px; }
+  section h2 { margin:0 0 18px; font-size:19px; display:flex; align-items:center; gap:10px; }
+  section h2 .num { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:28px; padding:0 6px; border-radius:8px; background:var(--blue); color:#fff; font-size:14px; }
+  section h3 { font-size:15px; margin:26px 0 10px; color:#1e3a8a; }
+  section h3:first-of-type { margin-top:6px; }
+  p { margin:8px 0; }
+  .sub { color:var(--sub); }
+
+  .grid { display:grid; gap:14px; }
+  .g2 { grid-template-columns:repeat(2,1fr); } .g3 { grid-template-columns:repeat(3,1fr); } .g4 { grid-template-columns:repeat(4,1fr); }
+  .box { border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px; background:#fff; }
+  .box .t { font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .box .d { color:var(--sub); font-size:13px; }
+  .box.blue { background:var(--blue-soft); border-color:#c7d8ff; } .box.red { background:var(--red-soft); border-color:#f5c6c0; }
+  .box.amber { background:var(--amber-soft); border-color:#f8d9a8; } .box.green { background:var(--green-soft); border-color:#bfe5cc; }
+  .box.purple { background:var(--purple-soft); border-color:#d9c8ff; }
+  .ico { font-size:18px; }
+
+  table { width:100%; border-collapse:collapse; margin:10px 0 4px; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:7px 10px; vertical-align:top; text-align:left; }
+  th { background:#f1f4f8; font-weight:700; color:#334e68; white-space:nowrap; }
+  tr:nth-child(even) td { background:#fbfcfd; }
+  td.c, th.c { text-align:center; } td.nw { white-space:nowrap; }
+
+  code, .code { font-family:var(--mono); font-size:12.5px; background:var(--gray-soft); border:1px solid #e1e5ea; border-radius:4px; padding:1px 5px; }
+  pre { font-family:var(--mono); font-size:12.5px; line-height:1.55; background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; overflow-x:auto; margin:10px 0; }
+  pre .cm { color:#7dd3fc; }
+
+  .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid transparent; white-space:nowrap; }
+  .b-blue { background:var(--blue-soft); color:var(--blue); border-color:#c7d8ff; }
+  .b-red { background:var(--red-soft); color:var(--red); border-color:#f5c6c0; }
+  .b-amber { background:var(--amber-soft); color:var(--amber); border-color:#f8d9a8; }
+  .b-green { background:var(--green-soft); color:var(--green); border-color:#bfe5cc; }
+  .b-gray { background:var(--gray-soft); color:#52606d; border-color:#dde2e7; }
+  .b-purple { background:var(--purple-soft); color:var(--purple); border-color:#d9c8ff; }
+
+  .note { border-left:4px solid var(--blue); background:var(--blue-soft); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0; font-size:13px; }
+  .note.warn { border-color:var(--amber); background:var(--amber-soft); }
+  .note.danger { border-color:var(--red); background:var(--red-soft); }
+
+  .flow { display:flex; flex-direction:column; margin:10px 0; }
+  .lane { display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:stretch; padding:12px 0; border-bottom:1px dashed var(--line); }
+  .lane:last-child { border-bottom:0; }
+  .lane-name { font-weight:700; color:#334e68; font-size:13px; display:flex; align-items:center; }
+  .steps { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .step { border:1px solid var(--line); background:#fff; border-radius:8px; padding:8px 12px; font-size:12.5px; line-height:1.4; min-width:110px; text-align:center; }
+  .step b { display:block; font-size:13px; } .step small { color:var(--muted); }
+  .step.blue { background:var(--blue-soft); border-color:#c7d8ff; } .step.red { background:var(--red-soft); border-color:#f5c6c0; }
+  .step.amber { background:var(--amber-soft); border-color:#f8d9a8; } .step.green { background:var(--green-soft); border-color:#bfe5cc; }
+  .arrow { color:var(--muted); font-weight:700; font-size:16px; padding:0 2px; }
+
+  .state { display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; padding:18px; background:#fafbfc; border:1px solid var(--line); border-radius:10px; margin:12px 0; }
+  .st { width:150px; text-align:center; border-radius:12px; padding:14px 10px; font-weight:800; font-size:15px; }
+  .st small { display:block; font-weight:500; font-size:12px; margin-top:4px; }
+  .st.ok { background:var(--green-soft); color:var(--green); border:2px solid #9fd8b3; }
+  .st.ps { background:var(--red-soft); color:var(--red); border:2px solid #f1a9a0; }
+  .trans { display:flex; flex-direction:column; gap:8px; font-size:12.5px; color:var(--sub); }
+
+  ul.clean { margin:6px 0; padding-left:20px; } ul.clean li { margin:3px 0; }
+  .check { list-style:none; padding:0; margin:6px 0; }
+  .check li { padding:7px 0 7px 30px; position:relative; border-bottom:1px dashed var(--line); }
+  .check li:last-child { border-bottom:0; }
+  .check li::before { content:""; position:absolute; left:4px; top:10px; width:14px; height:14px; border:2px solid #9aa5b1; border-radius:3px; }
+  .msg { background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:13px; white-space:pre-line; }
+
+  footer { color:var(--muted); font-size:12px; text-align:center; margin-top:30px; }
+
+  @media (max-width:980px) { nav.toc { display:none; } main { padding:20px; } .g3,.g4 { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:640px) { .g2,.g3,.g4 { grid-template-columns:1fr; } .lane { grid-template-columns:1fr; } }
+  @media print { nav.toc { display:none; } body { background:#fff; } main { padding:0; max-width:none; } section { break-inside:auto; border-color:#ccc; } .hero { box-shadow:none; } pre { white-space:pre-wrap; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="toc">
+    <div class="brand">사용자 일시정지</div>
+    <div class="ver">개발 정리 (전체) · 2026.10.02</div>
+    <div class="grp">개요</div>
+    <a href="#s1"><span class="n">1</span>개요</a>
+    <a href="#s2"><span class="n">2</span>전체 흐름</a>
+    <a href="#s3"><span class="n">3</span>상태 · 코드 정의</a>
+    <div class="grp">기능</div>
+    <a href="#s4"><span class="n">4</span>관리자 화면</a>
+    <a href="#s5"><span class="n">5</span>자동 일시정지</a>
+    <a href="#s6"><span class="n">6</span>세션 즉시 차단</a>
+    <a href="#s7"><span class="n">7</span>로그인 · 본인 해제</a>
+    <a href="#s8"><span class="n">8</span>자동 해제 Job</a>
+    <a href="#s9"><span class="n">9</span>제외(허용) 등록</a>
+    <div class="grp">구성</div>
+    <a href="#s10"><span class="n">10</span>Oracle 객체 전체</a>
+    <a href="#s11"><span class="n">11</span>테이블 · 메시지 상세</a>
+    <a href="#s12"><span class="n">12</span>애플리케이션 구성</a>
+    <a href="#s13"><span class="n">13</span>설정값 모음</a>
+    <div class="grp">운영</div>
+    <a href="#s14"><span class="n">14</span>권한 (GRANT)</a>
+    <a href="#s15"><span class="n">15</span>운영 · 모니터링</a>
+    <a href="#s16"><span class="n">16</span>테스트 시나리오</a>
+    <a href="#s17"><span class="n">17</span>배포 체크리스트</a>
+    <a href="#s18"><span class="n">18</span>남은 과제</a>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <h1>사용자 일시정지 기능 개발 정리</h1>
+      <p>비정상 이용(봇·자동화 조회, 국외IP 접근 등)을 탐지해 계정을 일시정지하고, 기존 세션 차단부터 해제·이력까지 이어지는 전체 구조와 사용 객체를 정리한 문서입니다.</p>
+      <div class="meta">
+        <span>시스템관리 &gt; 통계 &gt; 사용자웹사용이력</span>
+        <span>로그인 · 인증</span>
+        <span>Oracle Function · Procedure · Job</span>
+        <span>작성일 2026-10-02</span>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section id="s1">
+      <h2><span class="num">1</span>개요</h2>
+      <p>계정 상태값 <code>TB_WB_USER_INFO.USER_STAT_FG = '50'</code>(일시정지)을 중심으로 <b>탐지 → 정지 → 세션 차단 → 해제 → 이력</b>이 하나의 흐름으로 동작합니다.</p>
+      <div class="grid g4" style="margin-top:14px;">
+        <div class="box red"><div class="t"><span class="ico">⛔</span>정지</div><div class="d">관리자 수동 정지(조회정보 팝업) 또는 자동 일시정지 프로시저(5분 주기)</div></div>
+        <div class="box amber"><div class="t"><span class="ico">🔌</span>차단</div><div class="d">이미 로그인된 세션도 다음 요청에서 즉시 종료 (<code>FN_GET_MENU_CHK_YN2</code> → <code>'P'</code>)</div></div>
+        <div class="box green"><div class="t"><span class="ico">🔓</span>해제</div><div class="d">로그인 화면 본인 숫자확인 · 30분 자동 해제 Job · 관리자 수동 해제</div></div>
+        <div class="box blue"><div class="t"><span class="ico">🗂️</span>이력</div><div class="d"><code>TB_WB_USER_PAUSE_HIST</code>에 정지·해제·시험 판정을 스냅샷과 함께 기록</div></div>
+      </div>
+      <h3>개발 범위</h3>
+      <table>
+        <tr><th>구분</th><th>내용</th></tr>
+        <tr><td>관리자 화면</td><td>조회정보 팝업에 일시정지·해제(비고·비밀번호·스냅샷 이력), 일시정지 이력, 웹사용자정보변경이력 추가</td></tr>
+        <tr><td>자동 일시정지</td><td>판정 7개 항목(G1·G2·B1~B5), 항목별 시험/실제 모드, 화이트리스트, 1회 최대 인원 안전장치</td></tr>
+        <tr><td>세션 차단</td><td>모든 요청 경로의 DB 함수에서 상태 확인 → 인터셉터에서 세션 종료</td></tr>
+        <tr><td>본인 해제</td><td>로그인 시 숫자 이미지 확인 화면 → 해제 → 재로그인 (1시간 1회, 봇 방어)</td></tr>
+        <tr><td>자동 해제</td><td>일시정지 30분 경과 시 Job으로 정상화 (기존 개발)</td></tr>
+      </table>
+    </section>
+
+    <!-- 2 -->
+    <section id="s2">
+      <h2><span class="num">2</span>전체 흐름</h2>
+      <div class="flow">
+        <div class="lane"><div class="lane-name">① 정지</div><div class="steps">
+          <div class="step"><b>이상 행위 감지</b><small>5분 주기 프로시저</small></div><span class="arrow">→</span>
+          <div class="step"><b>관리자 확인</b><small>조회정보 팝업</small></div><span class="arrow">→</span>
+          <div class="step red"><b>USER_STAT_FG = 50</b><small>이력 PROC_FG = P</small></div>
+        </div></div>
+        <div class="lane"><div class="lane-name">② 기존 세션</div><div class="steps">
+          <div class="step"><b>다음 요청</b><small>화면 이동 / 조회</small></div><span class="arrow">→</span>
+          <div class="step amber"><b>FN_GET_MENU_CHK_YN2</b><small>'P' 반환</small></div><span class="arrow">→</span>
+          <div class="step amber"><b>인터셉터</b><small>세션 삭제</small></div><span class="arrow">→</span>
+          <div class="step"><b>안내 후 로그인 화면</b></div>
+        </div></div>
+        <div class="lane"><div class="lane-name">③ 다시 로그인</div><div class="steps">
+          <div class="step"><b>ID / 비밀번호</b><small>정상 확인됨</small></div><span class="arrow">→</span>
+          <div class="step"><b>상태 50 판정</b><small>로그인 이력 SUS</small></div><span class="arrow">→</span>
+          <div class="step blue"><b>1시간 내 본인 해제?</b><small>있으면 안내만</small></div><span class="arrow">→</span>
+          <div class="step blue"><b>숫자확인 화면</b><small>/auth/pauseVfc.sb</small></div>
+        </div></div>
+        <div class="lane"><div class="lane-name">④ 본인 해제</div><div class="steps">
+          <div class="step green"><b>숫자 일치</b></div><span class="arrow">→</span>
+          <div class="step green"><b>USER_STAT_FG = 00</b><small>이력 PROC_FG = R</small></div><span class="arrow">→</span>
+          <div class="step"><b>"다시 로그인해 주세요"</b></div><span class="arrow">→</span>
+          <div class="step"><b>정상 로그인</b></div>
+        </div></div>
+        <div class="lane"><div class="lane-name">④' 다른 해제</div><div class="steps">
+          <div class="step green"><b>30분 경과</b><small>SP_JOB_CHK_LOGIN_IUD01</small></div>
+          <div class="step green"><b>관리자 해제</b><small>조회정보 팝업</small></div>
+          <div class="step green"><b>사용자정보 수정</b><small>⑤ 변경이력으로 확인</small></div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section id="s3">
+      <h2><span class="num">3</span>상태 · 코드 정의</h2>
+
+      <div class="state">
+        <div class="st ok">00 정상<small>USER_STAT_FG</small></div>
+        <div class="trans"><div>→ 관리자 일시정지 · 자동 일시정지</div><div>← 본인 해제 · 30분 자동 해제 · 관리자 해제</div></div>
+        <div class="st ps">50 일시정지<small>USER_STAT_FG</small></div>
+      </div>
+
+      <h3>TB_WB_USER_INFO.USER_STAT_FG</h3>
+      <table>
+        <tr><th class="c">코드</th><th>의미</th><th class="c">코드</th><th>의미</th></tr>
+        <tr><td class="c">00</td><td>정상</td><td class="c">31</td><td>로그인 이후 180일 경과</td></tr>
+        <tr><td class="c">10</td><td>로그인 횟수 초과</td><td class="c">40</td><td>휴면계정</td></tr>
+        <tr><td class="c">20</td><td>비밀번호 만료</td><td class="c"><span class="badge b-red">50</span></td><td><b>일시정지</b></td></tr>
+        <tr><td class="c">30</td><td>로그인 이후 90일 경과</td><td class="c">99</td><td>초기 비밀번호</td></tr>
+      </table>
+      <p class="sub">일시정지는 <b>상태가 00일 때만</b> 적용됩니다. 다른 상태의 계정은 정지되지 않고 이력에 "미반영(RESULT_FG=N)"으로 남습니다.</p>
+
+      <h3>TB_WB_USER_PAUSE_HIST.PROC_FG</h3>
+      <table>
+        <tr><th class="c">코드</th><th>의미</th><th>상태 변경</th><th>기록 주체</th></tr>
+        <tr><td class="c"><span class="badge b-red">P</span></td><td>일시정지</td><td>00 → 50</td><td>관리자 ID / <code>SP_JOB_AUTO_PAUSE</code></td></tr>
+        <tr><td class="c"><span class="badge b-green">R</span></td><td>해제</td><td>50 → 00</td><td>관리자 ID / 본인 ID / <code>SP_JOB_CHK_LOGIN</code></td></tr>
+        <tr><td class="c"><span class="badge b-gray">T</span></td><td>시험(미적용) — 자동 판정 시험 운영</td><td>변경 없음</td><td><code>SP_JOB_AUTO_PAUSE</code></td></tr>
+      </table>
+
+      <h3>처리 경로별 구분 (PROC_ID / REMARK)</h3>
+      <table>
+        <tr><th>경로</th><th class="c">PROC_FG</th><th>PROC_ID</th><th>REMARK</th></tr>
+        <tr><td>관리자 수동 일시정지</td><td class="c">P</td><td>관리자 ID</td><td>관리자 입력 비고</td></tr>
+        <tr><td>관리자 수동 해제</td><td class="c">R</td><td>관리자 ID</td><td>관리자 입력 비고</td></tr>
+        <tr><td>자동 일시정지 (실제)</td><td class="c">P</td><td><code>SP_JOB_AUTO_PAUSE</code></td><td>자동 일시정지 [실제] B1,B2 …</td></tr>
+        <tr><td>자동 판정 (시험·보류)</td><td class="c">T</td><td><code>SP_JOB_AUTO_PAUSE</code></td><td>자동 일시정지 [시험] … / [인원초과 보류 n명] …</td></tr>
+        <tr><td>본인 숫자확인 해제</td><td class="c">R</td><td>본인 ID</td><td><code>로그인 화면 본인 숫자확인 해제</code> (1시간 1회 판정 기준 문자열)</td></tr>
+        <tr><td>30분 자동 해제</td><td class="c">R</td><td><code>SP_JOB_CHK_LOGIN</code></td><td>30분 경과 자동 해제 (SP_JOB_CHK_LOGIN)</td></tr>
+      </table>
+
+      <h3>위험도 (RISK) — 조회정보 팝업 ① 및 이력 공통</h3>
+      <table>
+        <tr><th class="c">코드</th><th>표시</th><th>조건</th></tr>
+        <tr><td class="c"><span class="badge b-red">A</span></td><td>★★ 국외IP에서 조회중</td><td>최근 조회 IP가 국외IP 차단 IP와 같고 5분 실조회 &gt; 0</td></tr>
+        <tr><td class="c"><span class="badge b-red">B</span></td><td>★ 국외IP+조회중</td><td>10분 국외IP 접근 &gt; 0 이고 5분 실조회 &gt; 0</td></tr>
+        <tr><td class="c"><span class="badge b-amber">C</span></td><td>국외IP 최근접근</td><td>10분 국외IP 접근 &gt; 0</td></tr>
+        <tr><td class="c"><span class="badge b-amber">D</span></td><td>국외IP+로그인실패</td><td>5분 로그인 실패 &gt; 0 이고 기간 국외IP &gt; 0</td></tr>
+        <tr><td class="c"><span class="badge b-gray">E</span></td><td>국외IP 기간이력</td><td>기간 국외IP &gt; 0</td></tr>
+        <tr><td class="c"><span class="badge b-gray">F</span></td><td>최근 로그인실패</td><td>5분 로그인 실패 &gt; 0</td></tr>
+      </table>
+
+      <h3>기타 코드</h3>
+      <table>
+        <tr><th>구분</th><th>값</th><th>의미</th></tr>
+        <tr><td><code>TB_WB_LOGIN_HIST.STAT_CD</code></td><td><code>SUS</code></td><td>일시정지 계정 로그인 시도 (LoginResult.SUSPEND_ACCOUNT)</td></tr>
+        <tr><td rowspan="3"><code>FN_GET_MENU_CHK_YN2</code> 반환</td><td><code>Y</code></td><td>허용</td></tr>
+        <tr><td><code>N</code></td><td>메뉴 제한 (기존)</td></tr>
+        <tr><td><code>P</code></td><td>일시정지 사용자 (신규)</td></tr>
+        <tr><td><code>TB_LG_WB_USER_INFO_LOG.PROC_FG</code></td><td><code>I / U / D</code></td><td>등록 / 수정 / 삭제 (가정, 실제 값 확인 필요)</td></tr>
+      </table>
+    </section>
+
+    <!-- 4 -->
+    <section id="s4">
+      <h2><span class="num">4</span>관리자 화면 — 조회정보 팝업</h2>
+      <p class="sub">시스템관리 &gt; 통계 &gt; 사용자웹사용이력 &gt; <b>[조회정보]</b>. 맨 위 <b>조회기간</b>이 모든 영역에 공통 적용되고, ④⑤는 ② USER_ID 입력값을 사용합니다(비우면 전체).</p>
+      <table>
+        <tr><th>영역</th><th>데이터</th><th>주요 기능</th></tr>
+        <tr><td><b>① USER_ID 종합</b></td><td>조회건수·로그인·국외IP·현재메뉴 불일치 지표, 위험도</td><td>임계치 OR 조건 조회(USER_ID 입력 시 임계치 미적용), 초과 강조, USER_ID 클릭 → ②③④⑤ 조회</td></tr>
+        <tr><td><b>② IP별 상세</b></td><td>USER_ID 1명의 IP별 조회·국외IP·SecViol</td><td><span class="badge b-blue">일시정지</span> <span class="badge b-blue">일시정지해제</span>, 0건 시 원천 데이터 진단</td></tr>
+        <tr><td><b>③ 메뉴(URL)별 건수</b></td><td>URL별 웹훅·HIST·불일치 건수</td><td>예외 URL 판정 표시, 호출 IP 목록</td></tr>
+        <tr><td><b>④ 일시정지 이력</b></td><td><code>TB_WB_USER_PAUSE_HIST</code></td><td>조회기간 조건, 일시정지·해제·시험 구분, 반영여부, 상태 변화, 위험도, 비고, 요약</td></tr>
+        <tr><td><b>⑤ 웹사용자정보변경이력</b></td><td><code>TB_LG_WB_USER_INFO_LOG</code></td><td>상태 변화(전→후), 일시정지 변동(해제·정지) 강조, 변경항목, 수정자. 비밀번호·자동로그인은 변경여부만</td></tr>
+      </table>
+      <h3>일시정지 / 해제 처리</h3>
+      <ul class="clean">
+        <li>확인 팝업에서 <b>비고(필수)</b>와 <b>관리자 확인 비밀번호</b> 입력</li>
+        <li>처리 시점의 ① 종합 지표를 <b>스냅샷</b>으로 이력에 저장</li>
+        <li>반환값: <code>1</code> 반영 / <code>0</code> 미반영(이력은 남김) / <code>-1</code> 비밀번호 오류 / <code>-2</code> USER_ID 없음</li>
+        <li>정지 후 대상자의 기존 세션은 <b>다음 요청에서 즉시 종료</b> (6장)</li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section id="s5">
+      <h2><span class="num">5</span>자동 일시정지 — <code>SP_JOB_AUTO_PAUSE_IUD01</code></h2>
+      <p>5분 주기 실행. 최근 5~10분 지표를 판정하며, 산출 방식은 조회정보 팝업 ① 종합 쿼리와 같습니다.</p>
+
+      <h3>판정 항목</h3>
+      <table>
+        <tr><th class="c">코드</th><th>행위</th><th>판정 기준</th><th>데이터</th><th class="c">임계치</th><th class="c">모드</th></tr>
+        <tr><td class="c"><span class="badge b-red">G1</span></td><td>국외IP에서 조회 중</td><td>오늘 국외IP 차단 IP = 최근 조회 IP, 5분 실조회 &gt; 0</td><td>BLOCK + 조회건수 알림</td><td class="c">–</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-red">G2</span></td><td>국외IP 접근 직후 조회</td><td>10분 국외IP 접근 ≥ 1, 5분 실조회 &gt; 0</td><td>BLOCK + 조회건수 알림</td><td class="c">–</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-amber">B1</span></td><td>5분 대량 조회</td><td>5분 실조회 합계</td><td>조회건수 알림 D_REAL</td><td class="c">≥ 200</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-amber">B2</span></td><td>현재메뉴 불일치 다발</td><td>5분 불일치 실건수 (예외 URL 제외)</td><td>불일치 알림 CNT</td><td class="c">≥ 30</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-amber">B3</span></td><td>다중 IP 조회</td><td>5분 조회 IP 수 (근사치)</td><td>조회건수 알림 IP_CNT 최대</td><td class="c">≥ 3</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-amber">B4</span></td><td>로그인 반복</td><td>5분 로그인 시도</td><td>로그인 알림 TOT 누적 차이</td><td class="c">≥ 20</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+        <tr><td class="c"><span class="badge b-amber">B5</span></td><td>같은 URL 반복 조회</td><td>5분 URL 1개 실조회 (NOURL·ETC 제외)</td><td>조회건수 알림 URLD</td><td class="c">≥ 60</td><td class="c"><span class="badge b-gray">T</span></td></tr>
+      </table>
+
+      <h3>항목별 모드</h3>
+      <div class="grid g3">
+        <div class="box"><div class="t"><span class="badge b-gray">N</span> 미사용</div><div class="d">판정하지 않음</div></div>
+        <div class="box amber"><div class="t"><span class="badge b-amber">T</span> 시험 운영</div><div class="d">상태 그대로, 이력 <code>PROC_FG='T'</code>만 기록 (같은 사용자 30분 내 중복 생략)</div></div>
+        <div class="box red"><div class="t"><span class="badge b-red">Y</span> 실제 적용</div><div class="d">00 → 50 일시정지, 이력 <code>PROC_FG='P'</code></div></div>
+      </div>
+      <p class="sub" style="margin-top:10px;">여러 항목에 걸리면 <b>Y 항목이 하나라도 있으면 실제 정지</b>, T 항목에만 해당하면 시험 기록입니다.</p>
+
+      <h3>안전장치 · 제외</h3>
+      <table>
+        <tr><th>구분</th><th>내용</th></tr>
+        <tr><td>1회 최대 인원</td><td>실제 정지 대상이 <b>20명 초과</b>면 데이터 오류로 보고 <b>전원 보류</b> (시험 기록 "[인원초과 보류]")</td></tr>
+        <tr><td>자동 제외</td><td>이미 일시정지(50) · 사용안함(USE_YN=N) · 관리자(<code>TB_CM_EMPLOYEE.ADMIN_FG='A'</code>)</td></tr>
+        <tr><td>화이트리스트</td><td><code>TB_CM_NMCODE</code> 그룹 <b>252</b> — 9장 참고</td></tr>
+        <tr><td>알림</td><td><code>C_ALARM_YN='Y'</code> 시 실제 정지·인원초과를 <code>TB_MONITOR_ALARM</code>에 기록 (현재 N)</td></tr>
+        <tr><td>해제</td><td>자동 정지도 30분 자동 해제 Job · 본인 해제 대상</td></tr>
+      </table>
+
+      <h3>처리 단계</h3>
+      <table>
+        <tr><th class="c">STEP</th><th>내용</th></tr>
+        <tr><td class="c">1</td><td>판정 대상 조회 (커서 <code>CUR_CAND</code> → BULK COLLECT)</td></tr>
+        <tr><td class="c">2</td><td>실제 정지 대상 인원 집계 → <code>C_MAX_REAL_PER_RUN</code> 초과 시 전원 보류</td></tr>
+        <tr><td class="c">3</td><td>대상별: 실제 정지(UPDATE + 이력 P) 또는 시험 기록(이력 T)</td></tr>
+        <tr><td class="c">4</td><td>알림 기록 (설정 시) → COMMIT</td></tr>
+      </table>
+    </section>
+
+    <!-- 6 -->
+    <section id="s6">
+      <h2><span class="num">6</span>로그인 세션 즉시 차단</h2>
+      <p><code>USER_STAT_FG='50'</code>은 새 로그인만 막기 때문에, 이미 로그인된 세션(봇 포함)을 끊기 위해 <b>모든 요청이 거치는 <code>FN_GET_MENU_CHK_YN2</code></b>에 확인을 추가했습니다.</p>
+      <table>
+        <tr><th class="c">반환</th><th>의미</th><th>AuthenticationInterceptor 처리</th></tr>
+        <tr><td class="c"><span class="badge b-green">Y</span></td><td>허용</td><td>그대로 진행</td></tr>
+        <tr><td class="c"><span class="badge b-amber">N</span></td><td>메뉴 제한 (기존)</td><td>"메뉴 사용 제한" 후 메인화면</td></tr>
+        <tr><td class="c"><span class="badge b-red">P</span></td><td><b>일시정지 (신규)</b></td><td>세션 삭제 → 화면: alert 후 최상위 창 로그인 / AJAX: <code>SESSION_EXFIRE</code> JSON</td></tr>
+      </table>
+      <div class="note"><b>'N'이 아닌 'P'를 쓰는 이유</b> — 'N'으로 처리하면 메인화면 이동 → 메인화면도 'N' → alert가 무한 반복됩니다.</div>
+      <ul class="clean">
+        <li>함수 맨 앞 <b>STEP 00</b>: <code>TB_WB_USER_INFO</code> PK 1건 조회 후 50이면 즉시 'P' 반환 (이후 판정·이력·딜레이 생략)</li>
+        <li><b>관리자 가상로그인 세션은 차단하지 않음</b> (<code>vUserId</code> 존재 시)</li>
+        <li>배포 순서 무관: 함수만 먼저 반영되면 기존 인터셉터는 'P'를 허용으로 처리 (영향 없음)</li>
+      </ul>
+      <p class="sub">안내 문구: <span class="code">평소와 다른 이용이 감지되어 로그인이 일시 제한되었습니다. 다시 로그인해 주세요.</span></p>
+    </section>
+
+    <!-- 7 -->
+    <section id="s7">
+      <h2><span class="num">7</span>로그인 · 본인 해제 (숫자확인)</h2>
+      <h3>로그인 시 판정</h3>
+      <p>비밀번호(또는 POS accessCd) 확인이 <b>일시정지 판정보다 먼저</b>이므로 아이디만 아는 사람은 숫자 화면까지 올 수 없습니다.</p>
+      <table>
+        <tr><th>조건</th><th>처리</th></tr>
+        <tr><td>최근 <b>1시간 내 본인 해제 이력</b> 있음</td><td>숫자 화면 없이 기존 안내(<code>login.pw.find.suspend</code>) → 30분 자동 해제 대기. 로그 <code>pause self release blocked … REPEAT</code></td></tr>
+        <tr><td>그 외</td><td>HttpSession에 아이디·IP·4자리 숫자 저장 → <code>/auth/pauseVfc.sb</code></td></tr>
+      </table>
+
+      <h3>숫자확인 화면 규칙</h3>
+      <div class="grid g3">
+        <div class="box"><div class="t">🖼️ 숫자 이미지</div><div class="d">서버 PNG 생성(기울기·방해선·노이즈), 텍스트 미노출, no-cache</div></div>
+        <div class="box"><div class="t">⏱️ 전체 2분</div><div class="d">초과 시 로그인 화면</div></div>
+        <div class="box"><div class="t">❌ 5회 오입력</div><div class="d">틀릴 때마다 새 숫자, 5회째 로그인 화면</div></div>
+        <div class="box"><div class="t">🔄 새 숫자 3회</div><div class="d">초과 시 로그인 화면</div></div>
+        <div class="box"><div class="t">⚡ 1초 이내 제출</div><div class="d">봇 의심 → 오입력 처리</div></div>
+        <div class="box"><div class="t">🔁 1시간 1회</div><div class="d">본인 해제 허용 횟수</div></div>
+      </div>
+
+      <h3>해제 성공 후</h3>
+      <ul class="clean">
+        <li>50 → 00 + 이력 <code>PROC_FG='R'</code> (스냅샷은 마지막 일시정지 이력에서 복사, 처리자 = 본인 ID, 트랜잭션)</li>
+        <li><b>로그인 화면으로 돌려보냄</b> — 비밀번호 재입력, SMS 등록 계정은 SMS 재인증, 기존 로그인 방어(시도 제한·브라우저·클라우드IP) 재통과</li>
+        <li>POS 자동로그인 사용자는 "POS에서 다시 접속해 주세요" 안내</li>
+      </ul>
+
+      <h3>화면 구성 · 안내 문구</h3>
+      <p class="sub">로고·상단 버튼 없이 카드 1개: 제목 → 안내 → 아이디 → 숫자 이미지 + [새 숫자] → 입력칸 → 남은 시간 → [확인] → 안내 → <b>[로그인 화면으로 이동]</b></p>
+      <div class="grid g2">
+        <div><p class="sub" style="margin:0 0 4px;">숫자 화면</p><div class="msg">평소와 다른 이용이 감지되어 계정 보호를 위해
+로그인이 일시 제한되었습니다.
+아래 숫자를 입력하면 바로 해제됩니다.</div></div>
+        <div><p class="sub" style="margin:0 0 4px;">해제 성공</p><div class="msg">일시정지가 해제되었습니다.
+다시 로그인해 주세요.
+(POS: POS에서 다시 접속해 주세요.)</div></div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section id="s8">
+      <h2><span class="num">8</span>자동 해제 Job — <code>SP_JOB_CHK_LOGIN_IUD01</code></h2>
+      <ul class="clean">
+        <li>USER_ID별 <b>최신 이력이 일시정지(P, 반영 Y)</b>, <b>30분 경과</b>, 현재 상태 50인 사용자를 00으로 해제</li>
+        <li>해제 이력 <code>PROC_FG='R'</code>, 처리자 <code>SP_JOB_CHK_LOGIN</code>, 스냅샷은 정지 당시 값 복사</li>
+        <li>최신 이력이 R이면 대상 아님 → 본인·관리자가 이미 푼 계정 중복 처리 없음</li>
+        <li>시험 기록(T)은 정지되지 않은 사용자에게만 남으므로 판정에 영향 없음</li>
+        <li>이력 없이 다른 화면에서 정지된 계정은 기준 시각이 없어 대상 아님</li>
+      </ul>
+    </section>
+
+    <!-- 9 -->
+    <section id="s9">
+      <h2><span class="num">9</span>제외(허용) 등록</h2>
+      <p>테이블 관리 항목은 <b>배포 없이 바로 반영</b>되고, 소스 하드코딩 항목은 <b>컴파일·배포가 필요</b>합니다. <b>관리자 수동 일시정지는 화이트리스트와 무관하게 항상 적용</b>됩니다.</p>
+
+      <h3>한눈에 보기</h3>
+      <table>
+        <tr><th>무엇을 제외하나</th><th>등록 위치</th><th>반영</th><th>효과 범위</th></tr>
+        <tr><td><b>국외 IP</b> (해외 출장·지사)</td><td><code>TB_CM_IP_ALLOW</code></td><td>즉시</td><td>국외IP 로그인·메뉴 차단 제외 → 차단 이력이 안 쌓여 <b>G1·G2에도 안 걸림</b></td></tr>
+        <tr><td><b>USER_ID</b> (업무상 대량 조회)</td><td><code>TB_CM_NMCODE</code> 252, <code>ITEM_1='USER'</code></td><td>다음 실행(5분)</td><td>자동 일시정지 <b>전 항목</b> 제외</td></tr>
+        <tr><td><b>IP 대역</b> (사내망)</td><td><code>TB_CM_NMCODE</code> 252, <code>ITEM_1='IP'</code></td><td>다음 실행(5분)</td><td>최근 조회 IP 일치 시 자동 일시정지 제외</td></tr>
+        <tr><td>관리자 계정</td><td>자동 (<code>ADMIN_FG='A'</code>)</td><td>–</td><td>자동 일시정지 제외</td></tr>
+        <tr><td>관리자 가상로그인</td><td>자동 (<code>vUserId</code>)</td><td>–</td><td>세션 차단('P') 제외</td></tr>
+        <tr><td>예외 URL</td><td>소스 4곳</td><td>배포·컴파일</td><td>불일치·실조회 집계 제외</td></tr>
+      </table>
+
+      <h3>① 국외 IP 제외 — TB_CM_IP_ALLOW</h3>
+      <p><code>FN_CHK_LOGIN_BLOCK</code> 판정 기준: <b>SMS 사용등록 계정 + 비한국 IP + 허용테이블 미등재 → 차단</b>. 등록하면 국외 차단 판정에서 빠지고 <code>TB_WB_LOGIN_HIST_BLOCK</code>에 기록되지 않습니다.</p>
+<pre><span class="cm">-- 테이블 구조 / 기존 등록 확인 후 같은 형식으로 등록</span>
+SELECT  COLUMN_NAME, DATA_TYPE, DATA_LENGTH, NULLABLE
+FROM    ALL_TAB_COLUMNS
+WHERE   TABLE_NAME = 'TB_CM_IP_ALLOW'
+ORDER BY COLUMN_ID;
+
+SELECT * FROM TB_CM_IP_ALLOW;</pre>
+
+      <h3>② 자동 일시정지 제외 — TB_CM_NMCODE (NMCODE_GRP_CD = '252')</h3>
+      <table>
+        <tr><th>컬럼</th><th>USER 등록</th><th>IP 등록</th></tr>
+        <tr><td><code>NMCODE_GRP_CD</code></td><td><code>'252'</code></td><td><code>'252'</code></td></tr>
+        <tr><td><code>NMCODE_CD</code></td><td>순번 (<code>'0001'</code> …)</td><td>순번</td></tr>
+        <tr><td><code>NMCODE_NM</code></td><td>USER_ID (대소문자 무관)</td><td>IP 앞자리 (<b>끝에 <code>.</code> 필수</b>)</td></tr>
+        <tr><td><code>NMCODE_ITEM_1</code></td><td><code>'USER'</code></td><td><code>'IP'</code></td></tr>
+        <tr><td><code>NMCODE_ITEM_2</code></td><td>등록 사유</td><td>등록 사유</td></tr>
+      </table>
+<pre><span class="cm">-- USER_ID 제외 (다른 필수 컬럼은 기존 NMCODE 등록 방식에 맞춰 추가)</span>
+INSERT INTO TB_CM_NMCODE (NMCODE_GRP_CD, NMCODE_CD, NMCODE_NM, NMCODE_ITEM_1, NMCODE_ITEM_2)
+VALUES ('252', '0001', 'bbqadmin', 'USER', '본사 관리자 - 매출 대량 조회 업무');
+
+<span class="cm">-- IP 대역 제외</span>
+INSERT INTO TB_CM_NMCODE (NMCODE_GRP_CD, NMCODE_CD, NMCODE_NM, NMCODE_ITEM_1, NMCODE_ITEM_2)
+VALUES ('252', '0002', '211.104.152.', 'IP', '사내 IP 대역');
+
+<span class="cm">-- 등록 현황</span>
+SELECT  NMCODE_CD, NMCODE_ITEM_1 AS 구분, NMCODE_NM AS 값, NMCODE_ITEM_2 AS 사유
+FROM    TB_CM_NMCODE
+WHERE   NMCODE_GRP_CD = '252'
+ORDER BY NMCODE_ITEM_1, NMCODE_CD;</pre>
+      <div class="note warn">252의 IP는 <b>자동 일시정지 판정에만</b> 적용됩니다. 국외 IP는 로그인·메뉴 단계 차단이 그대로 일어나므로 반드시 <code>TB_CM_IP_ALLOW</code>에 등록하세요. <code>NMCODE_ITEM_1</code>이 정확히 <code>USER</code>/<code>IP</code>인 행만 인식하므로 그룹 헤더 행은 자동으로 무시됩니다.</div>
+
+      <h3>③ 소스 하드코딩 목록 (참고)</h3>
+      <table>
+        <tr><th>위치</th><th>목록</th><th>용도</th></tr>
+        <tr><td><code>FN_CHK_LOGIN_IP_BLOCK</code></td><td><code>C_HARD_LIST</code> / <code>C_TEMP_LIST</code></td><td>계정+IP 확정 차단 / 임시 차단(딜레이)</td></tr>
+        <tr><td><code>FN_GET_CLOUD_IP_LABEL</code></td><td><code>C_CIDR_LIST</code></td><td>클라우드·호스팅 대역</td></tr>
+        <tr><td><code>FN_CHK_BLOCK_TARGET_USER_YN</code></td><td>대상 계정</td><td>감시 대상(1분 60회 차단·이력·딜레이)</td></tr>
+        <tr><td><code>FN_CHK_LOGIN_BLOCK</code></td><td><code>C_BLOCK_MODE</code></td><td>국외IP 차단 활성/관찰 모드</td></tr>
+        <tr><td><code>FN_GET_MENU_CHK_YN2</code> STEP 2</td><td><code>moms000003</code>, <code>momse08053</code> 등</td><td>계정·IP·URL 개별 메뉴 차단</td></tr>
+        <tr><td><code>TB_USER_MENU_CHK_YN_V01</code> (뷰)</td><td>사용자 × 메뉴</td><td>특정 사용자 메뉴 제한</td></tr>
+        <tr><td><code>AuthController.cloudCidrs</code></td><td>클라우드 CIDR</td><td>웹 로그인 클라우드 IP 판정</td></tr>
+        <tr><td><code>AuthController.loginProcess</code></td><td><code>momse08053</code> 등</td><td>로그인 시도 제한 시 세션 삭제 대상</td></tr>
+        <tr><td><code>CmmUtil.isBlockedId</code></td><td>차단 ID</td><td>로그인 자체 차단</td></tr>
+      </table>
+
+      <h3>④ 예외 URL — 4곳 동시 수정</h3>
+      <table>
+        <tr><th>위치</th><th>해당 부분</th></tr>
+        <tr><td><code>UserWebHist.xml</code></td><td><code>&lt;sql id="chkExcUrlEqList"&gt;</code>, <code>chkExcUrlIsExc</code>, <code>chkExcUrlRule</code></td></tr>
+        <tr><td><code>FN_GET_MENU_CHK_YN2</code></td><td>STEP 4-1 · STEP 5의 <code>NOT IN</code> / <code>NOT LIKE</code></td></tr>
+        <tr><td><code>SP_JOB_AUTO_PAUSE_IUD01</code></td><td>커서 <code>ME</code> 블록의 <code>NOT IN</code> / <code>NOT LIKE</code></td></tr>
+        <tr><td><code>menu_chk_monitor_webhook.sh</code></td><td><code>CHK_EXC_URL_EQ_LIST</code> / <code>CHK_EXC_URL_PREFIX_LIST</code></td></tr>
+      </table>
+      <p class="sub">현재 목록 — 완전일치: <code>/main.sb</code> · <code>/popup/getProdClassTree.sb</code> · <code>/common/getComboData.sb</code> · <code>/mobile/menu/menuList.sb</code> · <code>/mobile/main.sb</code> · <code>/adi/sms/sendStatus/cmmMainTopSmsSend/getCmmMainTopStoreCount.sb</code> · <code>/store/manage/storeManage/storeManage/getHqNmcodeComboList.sb</code> · <code>/common/getDeployNoticeStatus.sb</code> · <code>/sale/moms/prodSaleDayStoreMoms/prodSaleDayStoreMoms/getDivisionExcelDownloadSaveUpdate.sb</code> / 앞자리: <code>/application/main</code> · <code>/sale/main/mainContext</code> · <code>/base/prod</code> · <code>/mobile/application/main</code> · <code>/common/popup/selectStore</code></p>
+
+      <h3>⑤ 상황별 등록 가이드</h3>
+      <table>
+        <tr><th>상황</th><th>등록할 곳</th></tr>
+        <tr><td>직원이 해외 출장 중 접속 → 국외 차단됨</td><td><code>TB_CM_IP_ALLOW</code></td></tr>
+        <tr><td>본사 관리자가 업무상 대량 조회 → B1·B5 반복</td><td>252 <code>USER</code></td></tr>
+        <tr><td>사내 테스트·점검 서버에서 대량 호출</td><td>252 <code>IP</code></td></tr>
+        <tr><td>엑셀 다운로드 등 같은 URL 정상 반복 → B5</td><td>예외 URL 추가 (또는 B5 전용 URL 예외 개발)</td></tr>
+        <tr><td>특정 계정을 반드시 막아야 함</td><td>수동 일시정지 / <code>FN_CHK_LOGIN_IP_BLOCK</code> / <code>CmmUtil.isBlockedId</code></td></tr>
+      </table>
+    </section>
+
+    <!-- 10 -->
+    <section id="s10">
+      <h2><span class="num">10</span>Oracle 객체 전체</h2>
+      <p class="sub">스키마 <code>SBPORA</code> 기준. <span class="badge b-blue">신규</span> 이번 개발로 생성 / <span class="badge b-purple">수정</span> 이번 개발로 변경 / <span class="badge b-gray">참조</span> 기존 객체 사용</p>
+
+      <h3>테이블</h3>
+      <table>
+        <tr><th>테이블</th><th class="c">구분</th><th>용도</th><th>읽기</th><th>쓰기</th></tr>
+        <tr><td><code>TB_WB_USER_INFO</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>웹 사용자 정보 · <b>USER_STAT_FG</b></td><td>로그인, 세션차단, 자동정지, 팝업</td><td>정지·해제 (팝업, 자동정지, 자동해제, 본인해제)</td></tr>
+        <tr><td><code>TB_WB_USER_PAUSE_HIST</code></td><td class="c"><span class="badge b-blue">신규</span></td><td>일시정지·해제·시험 이력 + 스냅샷</td><td>팝업 ④, 자동해제, 본인해제 1시간 판정</td><td>팝업, 자동정지, 자동해제, 본인해제</td></tr>
+        <tr><td><code>TB_MONITOR_ALARM</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>웹훅 알림 (조회건수·로그인 시도 집계, 현재메뉴 불일치, Oracle Job)</td><td>팝업 ①②③, 자동정지</td><td>자동정지 알림 (C_ALARM_YN=Y)</td></tr>
+        <tr><td><code>TB_WB_LOGIN_HIST_BLOCK</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>국외IP 차단 이력 (REAL_IP, COUNTRY_CODE, BLOCK_REASON)</td><td>팝업 ①②, 자동정지 G1·G2</td><td>–</td></tr>
+        <tr><td><code>TB_WB_LOGIN_HIST_CHK</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>메뉴 접근 이력 (PROC_FG='C', 감시 대상)</td><td>팝업 ①③ (로그인IP수, HIST)</td><td><code>FN_GET_MENU_CHK_YN2</code></td></tr>
+        <tr><td><code>TB_WB_LOGIN_HIST</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>로그인 이력 (STAT_CD=SUS)</td><td>사용자웹사용이력</td><td>로그인 처리</td></tr>
+        <tr><td><code>TB_WB_MENU_USE_HIST</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>메뉴 사용 이력</td><td>사용자웹사용이력, <code>FN_GET_MENU_CHK_YN2</code></td><td>인터셉터</td></tr>
+        <tr><td><code>TB_LG_WB_USER_INFO_LOG</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>사용자정보 변경 로그 (B_ 전 / 후)</td><td>팝업 ⑤</td><td>(트리거 추정)</td></tr>
+        <tr><td><code>TB_CM_NMCODE</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>공통코드 — <b>252 화이트리스트</b>, 184 공지폴링, 231 세션 12시간</td><td>자동정지</td><td>운영 등록</td></tr>
+        <tr><td><code>TB_CM_EMPLOYEE</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>관리자 구분 (ADMIN_FG='A')</td><td>자동정지 제외</td><td>–</td></tr>
+        <tr><td><code>TB_CM_IP_ALLOW</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>국외IP 허용</td><td><code>FN_CHK_LOGIN_BLOCK</code></td><td>운영 등록</td></tr>
+        <tr><td><code>TB_WB_RESRCE_INFO</code></td><td class="c"><span class="badge b-gray">참조</span></td><td>메뉴(리소스) 정보</td><td>사용자웹사용이력, 인터셉터</td><td>–</td></tr>
+      </table>
+
+      <h3>뷰 · 시퀀스 · 인덱스</h3>
+      <table>
+        <tr><th>객체</th><th>종류</th><th class="c">구분</th><th>용도</th></tr>
+        <tr><td><code>TB_USER_MENU_CHK_YN_V01</code></td><td>View</td><td class="c"><span class="badge b-gray">참조</span></td><td>사용자별 메뉴 제한 (<code>FN_GET_MENU_CHK_YN2</code> STEP 1)</td></tr>
+        <tr><td><code>TB_WB_USER_INFO_DTL_V01</code></td><td>View</td><td class="c"><span class="badge b-gray">참조</span></td><td>사용자웹사용이력 메인 그리드 사용자 상세</td></tr>
+        <tr><td><code>SEQ_TB_WB_USER_PAUSE_HIST</code></td><td>Sequence</td><td class="c"><span class="badge b-blue">신규</span></td><td>일시정지 이력 PAUSE_SEQ</td></tr>
+        <tr><td><code>SQ_WB_LOGIN_HIST</code></td><td>Sequence</td><td class="c"><span class="badge b-gray">참조</span></td><td>로그인 이력</td></tr>
+        <tr><td><code>SQ_WB_MENU_HIST</code></td><td>Sequence</td><td class="c"><span class="badge b-gray">참조</span></td><td>메뉴 사용 이력</td></tr>
+        <tr><td><code>IDX_TB_WB_LOGIN_HIST_CHK_01</code></td><td>Index</td><td class="c"><span class="badge b-gray">참조</span></td><td>(USER_ID, PROC_DT) — 1분 60회 판정</td></tr>
+      </table>
+
+      <h3>함수 · 프로시저 · 트리거 · Job</h3>
+      <table>
+        <tr><th>객체</th><th>종류</th><th class="c">구분</th><th>용도</th></tr>
+        <tr><td><code>FN_GET_MENU_CHK_YN2</code></td><td>Function</td><td class="c"><span class="badge b-purple">수정</span></td><td>모든 요청 메뉴 사용 판정. <b>STEP 00 일시정지 'P' 반환 추가</b></td></tr>
+        <tr><td><code>SP_JOB_AUTO_PAUSE_IUD01</code></td><td>Procedure</td><td class="c"><span class="badge b-blue">신규</span></td><td>자동 일시정지 (5분 주기)</td></tr>
+        <tr><td><code>SP_JOB_CHK_LOGIN_IUD01</code></td><td>Procedure</td><td class="c"><span class="badge b-purple">수정</span></td><td>일시정지 30분 경과 자동 해제</td></tr>
+        <tr><td><code>FN_GET_REAL_IP</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>XFF 체인 → 실제 IP</td></tr>
+        <tr><td><code>FN_CHK_BLOCK_TARGET_USER_YN</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>감시 대상 계정 여부</td></tr>
+        <tr><td><code>FN_CHK_LOGIN_IP_BLOCK</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>계정+IP 차단 판정 (N 차단 / T 임시 / Y 허용)</td></tr>
+        <tr><td><code>FN_GET_CLOUD_IP_LABEL</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>클라우드·호스팅 대역 목록</td></tr>
+        <tr><td><code>FN_CHK_LOGIN_BLOCK</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>국외IP 차단 판정 (Y / M 관찰 / N)</td></tr>
+        <tr><td><code>FN_GET_TB_CM_SMS_VFC_CODE</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>SMS 인증 (CHK/C10/C11) — 재로그인 시 SMS 인증</td></tr>
+        <tr><td><code>FN_GET_TB_MS_ACCESS_MANAGMENT_CHECK</code></td><td>Function</td><td class="c"><span class="badge b-gray">참조</span></td><td>POS 자동로그인 accessCd 검증</td></tr>
+        <tr><td><code>TR_TB_WB_LOGIN_HIST_R98</code></td><td>Trigger</td><td class="c"><span class="badge b-gray">참조</span></td><td>로그인 이력 IP 차단 (메뉴 판정과 같은 기준)</td></tr>
+        <tr><td><code>JOB_SP_JOB_AUTO_PAUSE</code></td><td>Scheduler Job</td><td class="c"><span class="badge b-blue">신규(예정)</span></td><td><code>SP_JOB_AUTO_PAUSE_IUD01</code> 5분 주기 실행</td></tr>
+      </table>
+      <p class="sub">세션은 Oracle이 아닌 <b>Redis</b>(<code>sbp:web:real:{세션ID}</code>)와 WAS HttpSession에 저장됩니다.</p>
+    </section>
+
+    <!-- 11 -->
+    <section id="s11">
+      <h2><span class="num">11</span>테이블 · 메시지 상세</h2>
+
+      <h3>TB_WB_USER_PAUSE_HIST 컬럼</h3>
+      <table>
+        <tr><th>컬럼</th><th>설명</th><th>컬럼</th><th>설명</th></tr>
+        <tr><td><code>PAUSE_SEQ</code></td><td>PK (SEQ_TB_WB_USER_PAUSE_HIST)</td><td><code>LGN_TODAY_TOT</code></td><td>기간 로그인 시도</td></tr>
+        <tr><td><code>USER_ID</code></td><td>대상 사용자</td><td><code>LGN_TODAY_ERR</code></td><td>기간 로그인 실패</td></tr>
+        <tr><td><code>PROC_FG</code></td><td>P 정지 / R 해제 / T 시험</td><td><code>LGN_MIN5_ERR</code></td><td>5분 로그인 실패</td></tr>
+        <tr><td><code>PROC_DT</code></td><td>처리일시 (YYYYMMDDHH24MISS)</td><td><code>LGN_IP_CNT</code></td><td>로그인 IP 수</td></tr>
+        <tr><td><code>PROC_ID</code></td><td>처리자</td><td><code>BLK_TODAY_CNT</code></td><td>기간 국외IP 접근</td></tr>
+        <tr><td><code>BEF_STAT_FG</code></td><td>처리 전 상태</td><td><code>BLK_MIN10_CNT</code></td><td>10분 국외IP 접근</td></tr>
+        <tr><td><code>AFT_STAT_FG</code></td><td>처리 후 상태</td><td><code>CHK_LAST_IP</code></td><td>최종 조회 IP</td></tr>
+        <tr><td><code>RESULT_FG</code></td><td>반영 Y / 미반영 N</td><td><code>CHK_IP_CNT</code></td><td>조회 IP 수</td></tr>
+        <tr><td><code>CHK_DAY1 / CHK_DAY2</code></td><td>판정 조회기간</td><td><code>IP_HIT</code></td><td>국외IP 일치 Y/N</td></tr>
+        <tr><td><code>RISK</code></td><td>위험도 A~F</td><td><code>COUNTRY_CODE</code></td><td>국가 코드</td></tr>
+        <tr><td><code>TODAY_REAL / TODAY_TOT</code></td><td>기간 실조회 / 총조회</td><td><code>BLOCK_REASON</code></td><td>차단 사유 (≤500)</td></tr>
+        <tr><td><code>MIN5_REAL</code></td><td>5분 실조회</td><td><code>SUMMARY_TXT</code></td><td>화면·판정 요약 (≤2000)</td></tr>
+        <tr><td><code>ME_REAL</code></td><td>현재메뉴 불일치 실건수</td><td><code>REMARK</code></td><td>비고·처리 사유 (≤1000)</td></tr>
+        <tr><td colspan="2"></td><td><code>REG_DT / REG_ID / MOD_DT / MOD_ID</code></td><td>등록·수정 정보</td></tr>
+      </table>
+      <p class="sub">자동 정지 이력은 기간 지표(TODAY_*, LGN_TODAY_*)를 0으로 두고 5분 지표·판정 내용을 <code>SUMMARY_TXT</code>에 남깁니다.</p>
+
+      <h3>TB_MONITOR_ALARM 메시지 필드 (ALARM_MSG 파싱)</h3>
+      <table>
+        <tr><th>알림 (ALARM_TITLE)</th><th>필드</th><th>사용처</th></tr>
+        <tr><td><code>%조회건수%집계%</code></td><td><code>USER</code> · <code>DATE</code> · <code>D_TOT</code> · <code>D_EXC</code> · <code>D_REAL</code> · <code>IP</code> · <code>IP_CNT</code> · <code>IPS</code> · <code>IPD</code>(IP별 건수) · <code>URLD</code>(URL=총/실) · <code>FIRST</code> · <code>LAST</code></td><td>팝업 ①②③, 자동정지 G1·G2·B1·B3·B5</td></tr>
+        <tr><td><code>%로그인 시도%집계%</code></td><td><code>USER</code> · <code>DATE</code> · <code>TOT</code> · <code>SUCC</code> · <code>ERR1~5</code> · <code>ERR_TOT</code> · <code>FIRST</code> · <code>LAST</code> (WAS·일자별 당일 누적)</td><td>팝업 ①②, 자동정지 B4</td></tr>
+        <tr><td><code>%현재메뉴 불일치%</code></td><td><code>USER</code> · <code>DATE</code> · <code>MIN</code>(1분 구간) · <code>URL</code> · <code>CNT</code> (재전송 시 증가 → MAX)</td><td>팝업 ①②③, 자동정지 B2</td></tr>
+        <tr><td><code>%Oracle Job%</code> + <code>LOGIN BLOCKED</code></td><td><code>Login Blocked: …,USER_ID,IP,STAT,…</code> (ORA-20001)</td><td>팝업 ② SecViol</td></tr>
+        <tr><td><code>[자동일시정지] …</code></td><td>처리일시 · 실제 · 시험 · 대상</td><td>자동정지 알림 (신규)</td></tr>
+      </table>
+
+      <h3>TB_LG_WB_USER_INFO_LOG (팝업 ⑤)</h3>
+      <p class="sub"><code>PROC_DT · PROC_FG · USER_ID</code> + 변경 전 <code>B_*</code> / 변경 후 컬럼 (USER_PWD, AUTH_GRP_CD, LAST_LOGIN_DT, LAST_PWD_CHG_DT, LOGIN_FAIL_CNT, USER_STAT_FG, USE_YN, REG/MOD, AREA_FG, LOGIN_AUTO_SERIAL, MOB_LOGIN_AUTO_SERIAL). 비밀번호·자동로그인 시리얼은 값 대신 <b>변경여부</b>만 조회합니다.</p>
+    </section>
+
+    <!-- 12 -->
+    <section id="s12">
+      <h2><span class="num">12</span>애플리케이션 구성</h2>
+
+      <h3>관리자 화면 파일</h3>
+      <table>
+        <tr><th>파일</th><th>주요 변경</th></tr>
+        <tr><td><code>userWebHist.jsp / .js</code></td><td>[조회정보] 버튼, 팝업 import</td></tr>
+        <tr><td><code>userWebChkCnt.jsp / .js</code></td><td>①~⑤ 영역, 일시정지·해제 버튼과 확인 팝업(모드 P/R), 이력 기간 조건, 버튼 스타일·명칭(현재화면 엑셀다운로드)</td></tr>
+        <tr><td><code>UserWebHistController.java</code></td><td>팝업 조회 · 정지/해제 + 이력 · 이력 · 변경이력 엔드포인트</td></tr>
+        <tr><td><code>UserWebHistService(Impl).java</code></td><td>정지·해제 + 이력 공통(<code>insertPauseHist</code>), 기간 보정(<code>setChkCntPeriodDefaults</code>)</td></tr>
+        <tr><td><code>UserWebHistMapper.java / UserWebHist.xml</code></td><td>종합·IP·URL·진단 쿼리, 이력 등록·조회(T 표시), 사용자정보변경이력</td></tr>
+        <tr><td><code>UserWebHistVO.java</code></td><td>조회기간·임계치·이력·스냅샷 필드</td></tr>
+      </table>
+
+      <h3>로그인 · 인증 파일</h3>
+      <table>
+        <tr><th>파일</th><th>주요 변경</th></tr>
+        <tr><td><code>AuthController.java</code></td><td>SUSPEND 분기 → 숫자 화면, 숫자 화면·이미지·새 숫자·확인, 로그인 GET 시 대기정보 정리</td></tr>
+        <tr><td><code>AuthService(Impl).java</code></td><td><code>getPauseSelfReleaseBlockReason</code>, <code>releasePauseBySelf</code>(@Transactional)</td></tr>
+        <tr><td><code>AuthMapper.java / Login.xml</code></td><td>본인 해제 차단 사유(1시간 1회), 50→00 해제, 해제 이력 등록</td></tr>
+        <tr><td><code>pauseVfc.jsp</code> <span class="badge b-blue">신규</span></td><td><code>/WEB-INF/view/application/pos/</code> 숫자확인 화면</td></tr>
+        <tr><td><code>AuthenticationInterceptor.java</code></td><td>'P' 반환 시 세션 삭제·로그인 이동 (<code>getUserMenuChkYn</code>, <code>writePauseLogoutScript</code>)</td></tr>
+        <tr><td><code>context-interceptor.xml</code></td><td><code>&lt;mvc:exclude-mapping path="/auth/pauseVfc*.sb"/&gt;</code></td></tr>
+        <tr><td>메시지 프로퍼티</td><td>팝업 해제·변경이력 메시지 키</td></tr>
+      </table>
+
+      <h3>URL 전체</h3>
+      <table>
+        <tr><th>URL</th><th>방식</th><th>용도</th></tr>
+        <tr><td colspan="3" style="background:#f6f8fb;"><b>조회정보 팝업</b> — 접두 <code>/sys/stats/userWebHist/userWebHist/</code></td></tr>
+        <tr><td><code>getUserWebChkCntList.sb</code></td><td>POST</td><td>① USER_ID 종합</td></tr>
+        <tr><td><code>getUserWebChkCntIpList.sb</code></td><td>POST</td><td>② IP별 상세</td></tr>
+        <tr><td><code>getUserWebChkCntIpDiag.sb</code></td><td>POST</td><td>② 0건 시 원천 데이터 진단</td></tr>
+        <tr><td><code>getUserWebChkCntMenuList.sb</code></td><td>POST</td><td>③ 메뉴(URL)별 건수</td></tr>
+        <tr><td><code>getUserPauseHistList.sb</code></td><td>POST</td><td>④ 일시정지 이력</td></tr>
+        <tr><td><code>getUserInfoLogList.sb</code></td><td>POST</td><td>⑤ 웹사용자정보변경이력</td></tr>
+        <tr><td><code>getPauseUserIdWithHist.sb</code></td><td>POST</td><td>일시정지 + 이력</td></tr>
+        <tr><td><code>getResumeUserIdWithHist.sb</code></td><td>POST</td><td>일시정지 해제 + 이력</td></tr>
+        <tr><td><code>getPauseUserId.sb / getResumeUserId.sb</code></td><td>POST</td><td>(기존) 메인 그리드 정지·해제 — 이력 없음</td></tr>
+        <tr><td colspan="3" style="background:#f6f8fb;"><b>로그인 · 본인 해제</b> — 인증 인터셉터 예외</td></tr>
+        <tr><td><code>/auth/login.sb</code></td><td>POST</td><td>SUSPEND → 숫자 화면 리다이렉트</td></tr>
+        <tr><td><code>/auth/pauseVfc.sb</code></td><td>GET</td><td>숫자확인 화면 (뷰 <code>application/pos/pauseVfc</code>)</td></tr>
+        <tr><td><code>/auth/pauseVfcImg.sb</code></td><td>GET</td><td>숫자 이미지 PNG</td></tr>
+        <tr><td><code>/auth/pauseVfcRenew.sb</code></td><td>POST</td><td>새 숫자</td></tr>
+        <tr><td><code>/auth/pauseVfcVerify.sb</code></td><td>POST</td><td>숫자 확인 → 해제</td></tr>
+      </table>
+
+      <h3>HttpSession 키 (숫자확인 대기정보)</h3>
+      <table>
+        <tr><th>키</th><th>내용</th><th>키</th><th>내용</th></tr>
+        <tr><td><code>PAUSE_VFC_USER_ID</code></td><td>대상 아이디</td><td><code>PAUSE_VFC_CODE</code></td><td>4자리 숫자</td></tr>
+        <tr><td><code>PAUSE_VFC_LOGIN_IP</code></td><td>접속 IP (해제 이력 기록)</td><td><code>PAUSE_VFC_ISSUED_AT</code></td><td>숫자 발급 시각</td></tr>
+        <tr><td><code>PAUSE_VFC_POS_AUTO</code></td><td>POS 자동로그인 여부</td><td><code>PAUSE_VFC_FAIL_CNT</code></td><td>오입력 횟수</td></tr>
+        <tr><td><code>PAUSE_VFC_FAIL_URL</code></td><td>복귀 URL (아이디 포함)</td><td><code>PAUSE_VFC_RENEW_CNT</code></td><td>새 숫자 횟수</td></tr>
+        <tr><td><code>PAUSE_VFC_STARTED_AT</code></td><td>대기 시작 시각 (2분)</td><td colspan="2"></td></tr>
+      </table>
+      <p class="sub">로그인 화면(GET) 진입, 해제 완료, 실패 종료 시 모두 삭제됩니다. 비밀번호는 저장하지 않습니다.</p>
+
+      <h3>메시지 키 (추가)</h3>
+      <table>
+        <tr><th>키</th><th>값</th></tr>
+        <tr><td><code>userWebChkCnt.resume / .resume.title / .resume.exec / .resume.guide</code></td><td>일시정지해제 / 일시정지 해제 / 해제 실행 / 해제 안내</td></tr>
+        <tr><td><code>userWebChkCnt.sec.userInfoLog</code></td><td>⑤ 웹사용자정보변경이력</td></tr>
+        <tr><td><code>userWebChkCnt.log.*</code></td><td>처리일시 · 구분 · 일시정지변동 · 사용자상태(전→후) · 변경항목 · 수정자 · 수정일시 · 사용여부 · 권한그룹 · 로그인실패 · 비밀번호변경 · 비밀번호변경일시 · 최종로그인일시</td></tr>
+        <tr><td><code>login.pw.find.suspend</code> (기존)</td><td>1시간 내 재정지·본인 해제 불가 시 안내</td></tr>
+      </table>
+    </section>
+
+    <!-- 13 -->
+    <section id="s13">
+      <h2><span class="num">13</span>설정값 모음</h2>
+      <table>
+        <tr><th>위치</th><th>설정</th><th>현재 값</th></tr>
+        <tr><td rowspan="6"><code>SP_JOB_AUTO_PAUSE_IUD01</code><br><span class="sub">변경 후 재컴파일</span></td><td><code>C_MODE_G1 · G2 · B1 · B2 · B3 · B4 · B5</code></td><td>전부 <code>'T'</code></td></tr>
+        <tr><td><code>C_TH_B1 / B2 / B3 / B4 / B5</code></td><td>200 / 30 / 3 / 20 / 60</td></tr>
+        <tr><td><code>C_MAX_REAL_PER_RUN</code></td><td>20명</td></tr>
+        <tr><td><code>C_TEST_COOLDOWN_MIN</code></td><td>30분</td></tr>
+        <tr><td><code>C_ALARM_YN</code></td><td><code>'N'</code></td></tr>
+        <tr><td><code>C_WHITE_GRP_CD</code></td><td><code>'252'</code></td></tr>
+        <tr><td rowspan="5"><code>AuthController</code><br><span class="sub">PAUSE_VFC_*</span></td><td>숫자 유효 / 전체 유효</td><td>2분 / 2분</td></tr>
+        <tr><td>최소 입력시간</td><td>1초</td></tr>
+        <tr><td>오입력 / 새 숫자</td><td>5회 / 3회</td></tr>
+        <tr><td>본인 해제 허용</td><td>최근 1시간 1회</td></tr>
+        <tr><td>숫자 자릿수</td><td>4자리 (SecureRandom)</td></tr>
+        <tr><td><code>SP_JOB_CHK_LOGIN_IUD01</code></td><td><code>V_PAUSE_LIMIT_MIN</code></td><td>30분</td></tr>
+        <tr><td><code>AuthenticationInterceptor</code></td><td><code>PAUSE_LOGOUT_MSG</code></td><td>세션 종료 안내 문구</td></tr>
+      </table>
+    </section>
+
+    <!-- 14 -->
+    <section id="s14">
+      <h2><span class="num">14</span>권한 (GRANT)</h2>
+      <div class="note danger">프로시저·함수 안의 SQL은 <b>Role로 받은 권한을 인정하지 않습니다.</b> 웹 쿼리에서 잘 조회되던 테이블도 프로시저 컴파일 시 <code>ORA-00942</code>가 날 수 있으며, 소유자가 <code>SBPORA</code>에게 <b>직접 GRANT</b>해야 합니다.</div>
+<pre><span class="cm">-- 프로시저 사용 객체의 직접 권한 점검</span>
+SELECT  O.OBJECT_NAME, O.OWNER, O.OBJECT_TYPE
+,       CASE WHEN O.OWNER = USER THEN '본인 소유 (OK)'
+             WHEN EXISTS (SELECT 1 FROM USER_TAB_PRIVS P
+                          WHERE P.OWNER = O.OWNER AND P.TABLE_NAME = O.OBJECT_NAME
+                          AND P.PRIVILEGE = 'SELECT') THEN '직접 GRANT (OK)'
+             ELSE '★ 직접 권한 없음 — GRANT 필요'
+        END AS PRIV_CHK
+FROM    ALL_OBJECTS O
+WHERE   O.OBJECT_NAME IN ( 'TB_MONITOR_ALARM', 'TB_WB_LOGIN_HIST_BLOCK', 'TB_WB_USER_INFO'
+                         , 'TB_CM_EMPLOYEE', 'TB_CM_NMCODE', 'TB_WB_USER_PAUSE_HIST'
+                         , 'SEQ_TB_WB_USER_PAUSE_HIST' )
+AND     O.OBJECT_TYPE IN ('TABLE', 'VIEW', 'SEQUENCE')
+ORDER BY 1;
+
+<span class="cm">-- 소유자 또는 DBA 실행</span>
+GRANT SELECT         ON &lt;소유자&gt;.TB_MONITOR_ALARM TO SBPORA;
+GRANT INSERT         ON &lt;소유자&gt;.TB_MONITOR_ALARM TO SBPORA;   <span class="cm">-- 알림 사용 시</span>
+
+<span class="cm">-- 재컴파일 · 오류 확인</span>
+ALTER PROCEDURE SBPORA.SP_JOB_AUTO_PAUSE_IUD01 COMPILE;
+SELECT * FROM USER_ERRORS WHERE NAME = 'SP_JOB_AUTO_PAUSE_IUD01';</pre>
+      <p class="sub">시노님이 없으면 프로시저 안의 <code>TB_MONITOR_ALARM</code>(4곳: CHK_RAW, LGN_RAW, ME_RAW·URL_RAW, PRC_ALARM)을 <code>&lt;소유자&gt;.TB_MONITOR_ALARM</code>으로 바꿔야 합니다.</p>
+    </section>
+
+    <!-- 15 -->
+    <section id="s15">
+      <h2><span class="num">15</span>운영 · 모니터링</h2>
+      <h3>운영 절차</h3>
+      <div class="grid g3">
+        <div class="box amber"><div class="t">1. 시험 운영 (1~2주)</div><div class="d">전 항목 T 모드. 걸린 사용자 확인 → 오탐은 화이트리스트 등록 또는 임계치 상향</div></div>
+        <div class="box blue"><div class="t">2. 항목별 실제 전환</div><div class="d">오탐이 적은 G1·G2부터 하나씩 Y로 전환 후 재컴파일</div></div>
+        <div class="box green"><div class="t">3. 알림 · 고도화</div><div class="d">알림 사용, B3·B4·B5 검증, 반복 위반 단계 강화 검토</div></div>
+      </div>
+
+      <h3>Job 등록 (기존 Job 등록 방식과 동일하게)</h3>
+<pre>BEGIN
+    DBMS_SCHEDULER.CREATE_JOB
+    (   job_name        => 'JOB_SP_JOB_AUTO_PAUSE'
+    ,   job_type        => 'PLSQL_BLOCK'
+    ,   job_action      => 'DECLARE V_RET VARCHAR2(4000); BEGIN SBPORA.SP_JOB_AUTO_PAUSE_IUD01(V_RET); END;'
+    ,   start_date      => SYSTIMESTAMP
+    ,   repeat_interval => 'FREQ=MINUTELY;INTERVAL=5'
+    ,   enabled         => TRUE
+    ,   comments        => '자동 일시정지 (5분 주기)'
+    );
+END;
+/</pre>
+
+      <h3>조회 쿼리</h3>
+<pre><span class="cm">-- 자동 판정 이력 (최근순)</span>
+SELECT  PROC_DT, USER_ID, PROC_FG, RESULT_FG, RISK
+,       MIN5_REAL, ME_REAL, CHK_IP_CNT, CHK_LAST_IP, IP_HIT, REMARK, SUMMARY_TXT
+FROM    TB_WB_USER_PAUSE_HIST
+WHERE   PROC_ID = 'SP_JOB_AUTO_PAUSE'
+ORDER BY PROC_DT DESC;
+
+<span class="cm">-- 항목별 · 일자별 걸린 인원 (임계치 조정용)</span>
+SELECT  SUBSTR(PROC_DT, 1, 8) AS PROC_DATE
+,       SUM(CASE WHEN REMARK LIKE '%G1%' THEN 1 ELSE 0 END) AS G1
+,       SUM(CASE WHEN REMARK LIKE '%G2%' THEN 1 ELSE 0 END) AS G2
+,       SUM(CASE WHEN REMARK LIKE '%B1%' THEN 1 ELSE 0 END) AS B1
+,       SUM(CASE WHEN REMARK LIKE '%B2%' THEN 1 ELSE 0 END) AS B2
+,       SUM(CASE WHEN REMARK LIKE '%B3%' THEN 1 ELSE 0 END) AS B3
+,       SUM(CASE WHEN REMARK LIKE '%B4%' THEN 1 ELSE 0 END) AS B4
+,       SUM(CASE WHEN REMARK LIKE '%B5%' THEN 1 ELSE 0 END) AS B5
+,       COUNT(DISTINCT USER_ID) AS USER_CNT
+FROM    TB_WB_USER_PAUSE_HIST
+WHERE   PROC_ID = 'SP_JOB_AUTO_PAUSE'
+GROUP BY SUBSTR(PROC_DT, 1, 8)
+ORDER BY 1 DESC;
+
+<span class="cm">-- 현재 일시정지 중인 사용자와 마지막 정지 이력</span>
+SELECT  U.USER_ID, U.MOD_DT, U.MOD_ID, H.PROC_DT, H.PROC_ID, H.REMARK
+FROM    TB_WB_USER_INFO U
+LEFT OUTER JOIN (
+        SELECT  X.*, ROW_NUMBER() OVER (PARTITION BY X.USER_ID ORDER BY X.PROC_DT DESC, X.PAUSE_SEQ DESC) RN
+        FROM    TB_WB_USER_PAUSE_HIST X
+        WHERE   X.PROC_FG = 'P'
+        ) H ON H.USER_ID = U.USER_ID AND H.RN = 1
+WHERE   U.USER_STAT_FG = '50'
+ORDER BY H.PROC_DT DESC;
+
+<span class="cm">-- 본인 해제 이력</span>
+SELECT  PROC_DT, USER_ID, RESULT_FG, SUMMARY_TXT
+FROM    TB_WB_USER_PAUSE_HIST
+WHERE   PROC_FG = 'R' AND REMARK = '로그인 화면 본인 숫자확인 해제'
+ORDER BY PROC_DT DESC;</pre>
+
+      <h3>서버 로그 키워드</h3>
+      <table>
+        <tr><th>키워드</th><th>의미</th></tr>
+        <tr><td><code>pause self release blocked</code></td><td>1시간 내 재정지로 본인 해제 차단 (REPEAT)</td></tr>
+        <tr><td><code>pause self release too fast</code></td><td>숫자 표시 후 1초 이내 제출 (봇 의심)</td></tr>
+        <tr><td><code>userMenuChkYn URL : …, result : P</code></td><td>일시정지 사용자 요청 감지</td></tr>
+        <tr><td><code>paused user session closed</code></td><td>일시정지 사용자 세션 종료</td></tr>
+      </table>
+    </section>
+
+    <!-- 16 -->
+    <section id="s16">
+      <h2><span class="num">16</span>테스트 시나리오</h2>
+      <table>
+        <tr><th class="c">#</th><th>시나리오</th><th>기대 결과</th></tr>
+        <tr><td class="c">1</td><td>조회정보 팝업에서 계정 A 일시정지</td><td>상태 50, ④ 이력 P(반영), ⑤ 변경이력 정지 표시</td></tr>
+        <tr><td class="c">2</td><td>계정 A가 로그인된 화면에서 메뉴 클릭</td><td>안내 alert 후 로그인 화면, 로그 <code>result : P</code></td></tr>
+        <tr><td class="c">3</td><td>계정 A가 조회 버튼(AJAX)</td><td>세션 만료 방식 안내 후 로그인 화면</td></tr>
+        <tr><td class="c">4</td><td>계정 A 로그인</td><td>숫자확인 화면 이동, 로그인 이력 SUS</td></tr>
+        <tr><td class="c">5</td><td>숫자 틀리게 입력</td><td>새 숫자로 교체, (1/5) 표시</td></tr>
+        <tr><td class="c">6</td><td>숫자 표시 직후 1초 안에 제출</td><td>"입력이 너무 빠릅니다" + 오입력 처리</td></tr>
+        <tr><td class="c">7</td><td>[새 숫자] 4회</td><td>3회 초과 안내 후 로그인 화면</td></tr>
+        <tr><td class="c">8</td><td>2분 방치</td><td>입력시간 초과 안내 후 로그인 화면</td></tr>
+        <tr><td class="c">9</td><td>숫자 정상 입력</td><td>해제 안내 후 아이디 입력된 로그인 화면, 상태 00, 이력 R(본인 ID)</td></tr>
+        <tr><td class="c">10</td><td>다시 로그인</td><td>정상 진입 (SMS 등록 계정은 SMS 인증)</td></tr>
+        <tr><td class="c">11</td><td>1시간 내 재정지 후 로그인</td><td>숫자 화면 없이 기존 안내, 로그 REPEAT</td></tr>
+        <tr><td class="c">12</td><td>정지 후 30분 방치</td><td>Job 자동 해제, 이력 R(SP_JOB_CHK_LOGIN)</td></tr>
+        <tr><td class="c">13</td><td>팝업 [일시정지해제]</td><td>상태 00, 이력 R(관리자 ID)</td></tr>
+        <tr><td class="c">14</td><td>관리자 가상로그인으로 정지 계정 접속</td><td>세션 차단 안 됨</td></tr>
+        <tr><td class="c">15</td><td>자동 정지 프로시저 수동 실행 (T 모드)</td><td>대상자 이력 T, 상태 변경 없음, 30분 내 재실행 시 중복 기록 없음</td></tr>
+        <tr><td class="c">16</td><td>대상자를 252 USER로 등록 후 실행</td><td>판정 대상에서 제외</td></tr>
+        <tr><td class="c">17</td><td>항목 하나를 Y로 바꾸고 실행</td><td>상태 50, 이력 P(SP_JOB_AUTO_PAUSE), 기존 세션 즉시 차단</td></tr>
+      </table>
+    </section>
+
+    <!-- 17 -->
+    <section id="s17">
+      <h2><span class="num">17</span>배포 체크리스트</h2>
+      <ul class="check">
+        <li><code>context-interceptor.xml</code>이 배포물에 포함되고 서버를 <b>재시작</b>하는지 (Rebuild 누락 시 숫자 화면이 로그인으로 튕김)</li>
+        <li>리눅스 서버 Tomcat 옵션 <code>-Djava.awt.headless=true</code> 및 폰트 패키지 (숫자 이미지)</li>
+        <li><code>pauseVfc</code> 화면 Tiles 매핑이 운영에서 정상인지</li>
+        <li><code>TB_WB_USER_PAUSE_HIST</code> · <code>SEQ_TB_WB_USER_PAUSE_HIST</code> 운영 생성, <code>SUMMARY_TXT</code> 길이 2000 이상</li>
+        <li><code>FN_GET_MENU_CHK_YN2</code> · <code>SP_JOB_AUTO_PAUSE_IUD01</code> · <code>SP_JOB_CHK_LOGIN_IUD01</code> 컴파일 후 INVALID 객체 없는지</li>
+        <li><code>TB_MONITOR_ALARM</code> 등 타 스키마 테이블에 <b>SBPORA 직접 GRANT</b></li>
+        <li>자동 정지 Job · 자동 해제 Job 등록 (5분 주기)</li>
+        <li>화이트리스트 252 초기 등록 (업무상 대량 조회 계정 · 사내 IP), 해외 근무자 <code>TB_CM_IP_ALLOW</code></li>
+        <li>메시지 <code>login.pw.find.suspend</code> 문구 · 신규 메시지 키 배포</li>
+        <li><code>userMenuChkYn</code> / <code>FN_GET_MENU_CHK_YN2</code>의 <b>다른 호출처</b>(모바일 등) 확인 — 'P'를 'N'으로만 판단하면 통과됨</li>
+        <li>JS 캐시 버전(<code>?ver=</code>) 갱신</li>
+      </ul>
+    </section>
+
+    <!-- 18 -->
+    <section id="s18">
+      <h2><span class="num">18</span>남은 과제</h2>
+      <table>
+        <tr><th>과제</th><th>내용</th><th class="c">상태</th></tr>
+        <tr><td>시험 운영 · 임계치 조정</td><td>1~2주 결과로 항목별 Y 전환 및 임계치 확정</td><td class="c"><span class="badge b-amber">진행 예정</span></td></tr>
+        <tr><td>타 스키마 GRANT</td><td><code>TB_MONITOR_ALARM</code> 직접 권한 후 프로시저 재컴파일</td><td class="c"><span class="badge b-amber">진행 중</span></td></tr>
+        <tr><td>'P' 다른 호출처 확인</td><td>모바일 인터셉터 등 <code>userMenuChkYn</code> 사용처</td><td class="c"><span class="badge b-amber">확인 필요</span></td></tr>
+        <tr><td>TB_CM_IP_ALLOW 등록 기준</td><td>테이블 구조 확인 후 등록 절차 확정</td><td class="c"><span class="badge b-amber">확인 필요</span></td></tr>
+        <tr><td>자동 정지 알림</td><td><code>TB_MONITOR_ALARM</code> 필수 컬럼 확인 후 <code>C_ALARM_YN='Y'</code></td><td class="c"><span class="badge b-amber">진행 예정</span></td></tr>
+        <tr><td>반복 위반 단계 강화</td><td><code>PAUSE_LV</code> 컬럼 — 24시간 내 2회: 본인 해제 불가·2시간 / 3회: 관리자만</td><td class="c"><span class="badge b-gray">검토</span></td></tr>
+        <tr><td>고위험 정지 제외</td><td>위험도 A/B·국외IP 일치 정지의 본인 해제 차단 및 자동 해제 제외 (쿼리 주석 보관)</td><td class="c"><span class="badge b-gray">보류</span></td></tr>
+        <tr><td>SMS 등록 계정 SMS 해제</td><td>숫자 이미지 대신 SMS 인증번호로 해제</td><td class="c"><span class="badge b-gray">선택</span></td></tr>
+        <tr><td>예외 URL 단일 관리</td><td>4곳 분산 → <code>TB_CM_NMCODE</code> 그룹으로 통합</td><td class="c"><span class="badge b-gray">개선</span></td></tr>
+        <tr><td>B5 URL 예외</td><td>정상 반복 URL이 시험 기록에 반복되면 URL 단위 예외</td><td class="c"><span class="badge b-gray">시험 후</span></td></tr>
+      </table>
+    </section>
+
+    <footer>사용자 일시정지 기능 개발 정리 (전체) · 2026-10-02</footer>
+  </main>
+</div>
+</body>
+</html>

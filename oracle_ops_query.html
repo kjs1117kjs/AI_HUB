@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오라클 운영 점검 쿼리 모음</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#fafaf8}
+.wrap{max-width:960px;margin:0 auto;padding:16px 20px 60px}
+.oq{font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;color:#1a1a1a;padding:1rem 0}
+.oq h1{font-size:22px;font-weight:500;margin:0 0 14px}
+.oq .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.oq input{font-size:13px;height:32px;padding:0 8px;border:0.5px solid #bbb;border-radius:8px;background:#fff;color:#1a1a1a;width:100%;box-sizing:border-box;font-family:inherit}
+.oq input:focus{outline:none;border-color:#378add;box-shadow:0 0 0 2px #b5d4f4}
+.oq button{font-size:13px;padding:5px 10px;border:0.5px solid #bbb;border-radius:8px;background:transparent;color:#1a1a1a;cursor:pointer;font-family:inherit}
+.oq button:hover{background:#f1efe8}
+.oq .chip.on{background:#e6f1fb;color:#0c447c;border-color:#85b7eb}
+.oq .card{background:#fff;border:0.5px solid #ddd;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.oq .cat{font-size:11px;padding:2px 8px;border-radius:8px;background:#f1efe8;color:#555}
+.oq .desc{font-size:13px;line-height:1.7;color:#555;margin:6px 0 0;white-space:pre-wrap}
+.oq .mg{font-size:12px;color:#888;margin:6px 0 0}
+.oq pre{font-family:Consolas,"D2Coding",monospace;font-size:12px;line-height:1.55;background:#f5f5f3;border-radius:8px;padding:10px 12px;overflow-x:auto;margin:8px 0 0;white-space:pre}
+.oq .pv{color:#185fa5;font-weight:500}
+.oq .pe{color:#a32d2d}
+.oq .lbl{font-size:12px;color:#555;margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="oq">
+<h1>오라클 운영 점검 쿼리 모음</h1>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+<i class="ti ti-search" aria-hidden="true" style="font-size:18px;color:#555"></i>
+<input id="q" placeholder="검색: 락, 느린, TEMP, 블로커, ASH, 테이블스페이스, V$SQL ..." style="flex:1;height:36px;font-size:14px">
+<span id="cnt" style="font-size:12px;color:#555;min-width:56px;text-align:right"></span>
+</div>
+<div id="chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+<div style="background:#f1efe8;border-radius:12px;padding:10px 12px;margin-bottom:12px">
+<div style="font-size:12px;color:#555;margin-bottom:8px">아래 값을 넣으면 모든 쿼리의 파란 자리표시가 바뀝니다. 빨간 ‹이름›은 아직 비어 있는 값입니다.</div>
+<div id="params" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div>
+</div>
+<div style="display:flex;gap:6px;margin-bottom:12px">
+<button id="openAll"><i class="ti ti-chevron-down" aria-hidden="true"></i> 모두 펼치기</button>
+<button id="closeAll">모두 접기</button>
+</div>
+<div id="list"></div>
+</div>
+</div>
+<script>
+const CAT={all:'전체',now:'지금 실행 중',hist:'지난 쿼리(V$SQL)',ash:'과거 시점(ASH/AWR)',lock:'락',kill:'세션 종료 절차',space:'공간/메모리',job:'잡/스케줄러',util:'유틸',guide:'판단 가이드'};
+const PDEF=[['SID','SID','예: 1022'],['SERIAL','SERIAL#','예: 51827'],['SQL_ID','SQL_ID','예: bcxtv7jkz66p8'],['SPID','OS PID','top 의 PID'],['TABLE','테이블명','예: PLAN_TABLE$'],['KEYWORD','검색 문구','예: TB_LOG_DAILY'],['MACHINE','머신명','예: LIMKJOO'],['SCHEMA','스키마','SBPORA'],['HOURS','최근 N시간','1'],['FROM','시작시각','YYYY-MM-DD HH24:MI'],['TO','종료시각','YYYY-MM-DD HH24:MI']];
+const P={SCHEMA:'SBPORA',HOURS:'1'};
+(function(){const z=n=>String(n).padStart(2,'0');const f=d=>d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes());const n=new Date();P.TO=f(n);P.FROM=f(new Date(n.getTime()-3600000));})();
+const D=[
+{c:'guide',t:'LAST_CALL_ET 읽는 법 (먼저 볼 것)',k:'status active inactive 경과',g:`LAST_CALL_ET 는 STATUS 와 같이 봐야 의미가 생긴다.
+  STATUS = ACTIVE   → 지금 SQL 을 몇 초째 돌리는 중
+  STATUS = INACTIVE → 몇 초째 아무것도 안 하고 노는 중
+
+같은 3600 이어도
+  ACTIVE 3600   = 1시간짜리 쿼리가 돌고 있다 (무겁지만 일은 하는 중)
+  INACTIVE 3600 = 1시간째 방치돼 있다
+여기에 열린 트랜잭션까지 있으면 [락] 놀면서 트랜잭션 붙잡은 세션 이고,
+실무에서 남을 막는 원인의 대부분이 이 조합이다.`},
+{c:'guide',t:'상황 A: 화면이 안 넘어가요 / 저장이 안 돼요',k:'신고 대응 순서 락',g:`1. [락] 블로킹 관계 한눈에 → 대기가 있나?
+     0건  → 락 문제가 아니다. [지금 실행 중] 현재 실행 중인 세션과 SQL 로 무거운 쿼리를 본다.
+     1건+ → 블로커 SID 를 확보한다.
+2. [종료 절차] 대상 세션 전수 조사 → 누가 무엇을 하다 멈췄나
+3. 피해 세션 수 확인 (전수 조사 4번 쿼리) → 급한 정도 판단
+4. [종료 절차] 롤백 비용 → 끊으면 롤백이 얼마나 걸리나
+5. 담당자 합의 후 [종료 절차] 문장 생성 → 실행
+6. [종료 절차] 종료 후 확인`},
+{c:'guide',t:'상황 B: 아까 잠깐 느렸는데 지금은 괜찮아요',k:'과거 느림 ash awr',g:`지금 조회해도 안 나온다. 이미 끝난 일이다.
+  · 공유 풀에 남은 통계 → [지난 쿼리] 최근 실행된 느린 SQL
+  · 실행 단위 시작/종료와 누가 돌렸는지 → [과거 시점] ASH 실행 단위 소요시간
+  · 시간대를 알면 → [과거 시점] DB 시간을 가장 많이 쓴 SQL, 대기 이벤트 분포
+메모리 ASH 는 보통 몇 시간~하루치. 그보다 과거는 AWR(DBA_HIST_*)이 필요하고
+Diagnostics Pack 라이선스 대상이다.`},
+{c:'guide',t:'상황 C: 블로커가 V$SESSION 엔 보이는데 ASH 엔 안 나옴',k:'ash 블로커 inactive',g:`ASH 는 ACTIVE 세션만 샘플링한다.
+즉 그 블로커는 놀고 있으면서 트랜잭션만 붙잡고 있는 세션이다.
+→ [락] 놀면서 트랜잭션 붙잡은 세션 으로 직행. 가장 흔한 원인이다.`},
+{c:'guide',t:'끊으면 안 되는 세션 / 끊기 전에 먼저 할 것',k:'kill 주의 pos solbi',g:`끊으면 안 되는 세션
+  · solbi_api* / solbi_was* 의 ACTIVE POS 실시간 트랜잭션 → 매출 유실 위험. 앱 담당자 없이 금지.
+  · 언두블록이 매우 큰 대량 배치 → 끊는 게 기다리는 것보다 느릴 수 있다.
+  · SYS / 백그라운드 (TYPE <> 'USER') → 인스턴스가 내려갈 수 있다.
+
+먼저 해볼 것
+  · 19c 이상이면 CANCEL SQL 로 SQL 만 취소. 커넥션은 살아서 앱이 재시도한다.
+  · WAS 커넥션풀이 원인이면 DB 세션을 끊어도 풀이 다시 만든다. WAS 쪽 정리가 근본 조치.
+  · 개발 툴(DBeaver, SQL Developer)이면 본인에게 연락해 커밋/롤백하게 하는 게 가장 안전.
+  · OS kill -9 는 KILL SESSION 이 안 먹을 때의 최후 수단이고 DBA 와 함께 한다.`},
+{c:'guide',t:'재발 방지',k:'예방 autocommit 인덱스 fk',g:`· 개발 툴의 자동 커밋 설정 확인. 수동 커밋 모드에서 커밋을 잊는 게 대부분의 원인.
+· 애플리케이션 트랜잭션 안에서 외부 호출(HTTP, 파일)을 하지 않는다.
+· 같은 행을 여러 세션이 동시에 MERGE 하는 구간은 처리 순서를 정하거나 배치 시간대를 분리.
+· FK 컬럼에 인덱스가 없으면 enq: TM - contention 이 난다. TM 경합이 보이면 인덱스 누락 의심.
+· 바인드 변수를 안 쓰는 리터럴 SQL 이 많으면 공유 풀이 조각나 ORA-04031 로 이어진다.`},
+{c:'guide',t:'이번 정리에서 고친 점 (원본 쿼리의 문제)',k:'버그 수정 오류',g:`1. 세션별 CPU 쿼리: 조인 조건이 '-- cpuand st.statistic# = ...' 주석에 묻혀 카티션 곱이 났다.
+2. Top SQL 3종: elapsed_time/1000 을 (Sec)로 표기 → 실제는 밀리초. 초는 /1000000.
+3. 평균 메모리 Top N: ROWNUM <= 5 가 ORDER BY 보다 먼저 적용돼 정렬 전 아무 5건이 나왔다.
+4. 락 모드 DECODE 에서 8 을 'X' 로 표기 → Exclusive 는 6.
+5. TX 락 모드 계산 BITAND(p1, 65536) → BITAND(p1, 65535) 가 맞다.
+6. V$LOCK.ID1 = DBA_OBJECTS.OBJECT_ID 를 TYPE 조건 없이 조인 → TX 락의 ID1 은 언두 정보라 엉뚱한 객체가 붙는다. TYPE='TM' 필수.
+7. '10분 이내 수행 쿼리': 문자열에 -10 을 하는 산술 + LOGON_TIME 기준이라 의도대로 동작하지 않았다. 삭제.
+8. V$SESSION 과 V$SQL 조인 후 ELAPSED_TIME > 1000000 → 누적값이라 '이번 실행이 1초 넘음'이 아니다. LAST_CALL_ET 로 교체.
+9. 락 조회의 STATUS='ACTIVE' 필터 → 진짜 원인인 INACTIVE 블로커가 빠진다.
+10. MINUTES_CONNECTED(LOGON_TIME 기준)는 접속 시간이지 락 시간이 아니다 → 트랜잭션 START_TIME 사용.
+11. V$SQL 을 SQL_ID 로만 조인 → 차일드 커서 수만큼 행이 중복. CHILD_NUMBER 도 함께 조인.
+12. DBMS_ROWID.ROWID_CREATE 에 OBJECT_ID 사용 → DATA_OBJECT_ID 여야 한다(MOVE/TRUNCATE 후 다름).
+13. 테이블스페이스 쿼리의 UNION → UNION ALL. 우연히 값이 같은 행이 합쳐질 수 있다.
+14. pga_tot / pga_per_sess 가 같은 식이었다.
+15. 락 수집 루프가 날짜 테이블 400건 커서를 반복용으로 썼다 → FOR i IN 1..N.
+16. _kghdsidx_count 히든 파라미터 변경은 오라클 서포트 지시 없이 하면 안 되므로 모음에서 뺐다.
+17. V$OPEN_CURSOR 의 user_name='ilips' → 사용자명은 대문자로 저장된다.`},
+{c:'now',t:'현재 실행 중인 세션과 SQL',k:'active 실행중 무거운 쿼리 last_call_et 대기이벤트',d:`"지금 뭐가 돌고 있냐"에 대한 답. 경과초가 큰 순서로 나온다.
+대기이벤트가 비었거나 ON CPU 면 계산 중(정상), enq: 로 시작하면 락 대기 → [락] 으로.
+블로커SID 에 값이 있으면 그 세션이 나를 막고 있는 것이다.`,m:'원본 [12], 현재 실행 중인 쿼리 찾기(기본/최종확인1), 쿼리 수행상태 조회, 현재 세션에서 사용되는 쿼리, 오래걸린 쿼리 찾기(ACTIVE) 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       S.MODULE
+,       S.LAST_CALL_ET                                  AS 현재SQL경과초
+,       ROUND(S.LAST_CALL_ET / 60, 1)                   AS 현재SQL경과분
+,       S.WAIT_CLASS                                    AS 대기분류
+,       S.EVENT                                         AS 대기이벤트
+,       S.SECONDS_IN_WAIT                               AS 대기초
+,       S.BLOCKING_SESSION                              AS 블로커SID
+,       TO_CHAR(S.SQL_EXEC_START, 'MM-DD HH24:MI:SS')   AS SQL시작시각
+,       S.SQL_ID
+,       Q.SQL_TEXT
+FROM    V$SESSION S
+,       V$SQL     Q
+WHERE   S.STATUS            =   'ACTIVE'
+AND     S.TYPE              =   'USER'
+AND     S.SID               <>  SYS_CONTEXT('USERENV', 'SID')
+AND     Q.SQL_ID        (+) =   S.SQL_ID
+AND     Q.CHILD_NUMBER  (+) =   S.SQL_CHILD_NUMBER
+ORDER
+BY      S.LAST_CALL_ET DESC;`},
+{c:'now',t:'오래 걸리는 작업의 진행률과 남은 시간',k:'longops 진행률 풀스캔 해시조인 남은시간',d:`풀스캔, 정렬, 해시조인, 롤백처럼 오라클이 총량을 아는 작업만, 6초 넘게 걸려야 올라온다.
+여기 없다고 안 도는 게 아니다(반복 단건 DML 등은 안 잡힘).
+남은초는 현재 속도 유지 가정의 추정치라 줄어드는 경향만 본다.`,m:'원본 [13], 추천 확인 ② 통합',s:`SELECT  L.SID
+,       L.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       L.OPNAME                                            AS 작업
+,       L.TARGET                                            AS 대상
+,       ROUND(L.SOFAR / NULLIF(L.TOTALWORK, 0) * 100, 1)    AS 진행률PCT
+,       L.ELAPSED_SECONDS                                   AS 경과초
+,       L.TIME_REMAINING                                    AS 남은초추정
+,       TO_CHAR(L.START_TIME, 'MM-DD HH24:MI:SS')           AS 시작시각
+,       L.SQL_ID
+,       L.MESSAGE
+FROM    V$SESSION_LONGOPS L
+,       V$SESSION         S
+WHERE   L.TIME_REMAINING    >   0
+AND     S.SID               =   L.SID
+AND     S.SERIAL#           =   L.SERIAL#
+ORDER
+BY      L.TIME_REMAINING DESC;`},
+{c:'now',t:'세션별 CPU / PGA 메모리 사용량',k:'cpu pga 메모리 세션 리소스',d:`CPU초는 로그인 이후 누적이다. 커넥션풀처럼 오래 붙어 있는 세션은 자연히 커지므로
+급하게 오르는 세션을 보려면 몇 분 간격으로 두 번 돌려 차이를 본다.
+메모리 기준으로 보려면 ORDER BY 를 P.PGA_ALLOC_MEM DESC 로 바꾼다.`,m:'원본 세션별 CPU Time/Memory(조인 버그 수정), CPU 사용량 세션, UGA/PGA 확인 쿼리 4종 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       P.SPID                                      AS OS_PID
+,       S.USERNAME
+,       S.MACHINE
+,       S.MODULE
+,       S.STATUS
+,       S.SQL_ID
+,       S.EVENT
+,       ROUND(ST.VALUE / 100, 1)                    AS CPU초_누적
+,       ROUND(P.PGA_USED_MEM  / 1048576, 1)         AS PGA사용MB
+,       ROUND(P.PGA_ALLOC_MEM / 1048576, 1)         AS PGA할당MB
+,       ROUND(P.PGA_MAX_MEM   / 1048576, 1)         AS PGA최대MB
+FROM    V$SESSION  S
+,       V$PROCESS  P
+,       V$SESSTAT  ST
+,       V$STATNAME SN
+WHERE   S.TYPE          =   'USER'
+AND     P.ADDR          =   S.PADDR
+AND     ST.SID          =   S.SID
+AND     SN.STATISTIC#   =   ST.STATISTIC#
+AND     SN.NAME         =   'CPU used by this session'
+ORDER
+BY      ST.VALUE DESC
+FETCH FIRST 30 ROWS ONLY;`},
+{c:'now',t:'OS PID(top) ↔ 세션 ↔ SQL 찾기',k:'spid os pid top kill -9 프로세스',d:`서버 top 에서 CPU 를 많이 먹는 oracle 프로세스 PID 를 보고 어떤 세션/SQL 인지 찾을 때.
+반대로 SID 로 OS PID 를 찾을 때도 같은 쿼리를 쓴다(조건만 바꿈).
+KILL SESSION 이 안 먹을 때 OS 에서 kill -9 할 PID 도 이것으로 확인하지만, 최후 수단이다.`,m:'원본 프로세스 아이디로 쿼리문 알아내기 3종, 죽지 않는 세션 OS PID 찾기 통합',s:`SELECT  P.SPID                                      AS OS_PID
+,       S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                              AS 경과초
+,       NVL(S.SQL_ID, S.PREV_SQL_ID)                AS SQL_ID
+,       Q.SQL_FULLTEXT
+FROM    V$PROCESS P
+,       V$SESSION S
+,       V$SQL     Q
+WHERE   S.PADDR             =   P.ADDR
+AND     P.SPID              =   '{{SPID}}'
+--AND   S.SID               =   {{SID}}
+AND     Q.SQL_ID        (+) =   S.SQL_ID
+AND     Q.CHILD_NUMBER  (+) =   S.SQL_CHILD_NUMBER;`},
+{c:'now',t:'접속 현황 요약 (머신/프로그램별) + 세션 한계',k:'커넥션풀 세션수 유휴 resource_limit processes sessions',d:`락이 아니라 커넥션이 반납되지 않고 쌓이는 문제를 잡을 때.
+유휴1시간이상이 계속 커지면 WAS 커넥션풀 반납이 안 되는 것이다.
+두 번째 쿼리는 processes/sessions 가 한계(LIMIT_VALUE)에 얼마나 가까운지, 최대치(MAX_UTILIZATION)가 얼마였는지 본다.`,m:'원본 [14], Client별 Memory 사용량, 세션 쿼리 확인, v$resource_limit 통합',s:`SELECT  S.MACHINE
+,       S.PROGRAM
+,       S.USERNAME
+,       COUNT(*)                                                                    AS 세션수
+,       SUM(CASE WHEN S.STATUS = 'ACTIVE'   THEN 1 ELSE 0 END)                      AS 활성
+,       SUM(CASE WHEN S.STATUS = 'INACTIVE' THEN 1 ELSE 0 END)                      AS 유휴
+,       SUM(CASE WHEN S.STATUS = 'INACTIVE' AND S.LAST_CALL_ET > 3600 THEN 1 ELSE 0 END) AS 유휴1시간이상
+,       MAX(S.LAST_CALL_ET)                                                         AS 최대유휴초
+,       ROUND(SUM(P.PGA_USED_MEM) / 1048576)                                        AS PGA합계MB
+,       TO_CHAR(MIN(S.LOGON_TIME), 'MM-DD HH24:MI')                                 AS 가장오래된접속
+FROM    V$SESSION S
+,       V$PROCESS P
+WHERE   S.TYPE  =   'USER'
+AND     P.ADDR  =   S.PADDR
+GROUP
+BY      S.MACHINE
+,       S.PROGRAM
+,       S.USERNAME
+ORDER
+BY      세션수 DESC;
+
+SELECT  RESOURCE_NAME
+,       CURRENT_UTILIZATION     AS 현재
+,       MAX_UTILIZATION         AS 기동후최대
+,       LIMIT_VALUE             AS 한계
+FROM    V$RESOURCE_LIMIT
+WHERE   RESOURCE_NAME   IN  ('processes', 'sessions', 'transactions');`},
+{c:'now',t:'SQL_ID 로 전문 / 바인드값 / 실행계획 보기',k:'sql_id 전문 fulltext 바인드 bind 실행계획 xplan',d:`다른 쿼리에서 범인 SQL_ID 를 찾은 뒤 상세를 볼 때 쓴다.
+바인드값은 V$SQL_BIND_CAPTURE 에 주기적으로(기본 15분 간격) 캡처된 것이라 실제 실행값과 다를 수 있다.
+ALLSTATS LAST 는 STATISTICS_LEVEL=ALL 이거나 GATHER_PLAN_STATISTICS 힌트가 있어야 실측치가 나온다. 없으면 'TYPICAL' 로 본다.`,m:'원본 상세확인 sql_fulltext, SQL쿼리 CPU Top 20 의 bind_values 부분, 추천 확인 실행계획 통합',s:`SELECT  SQL_FULLTEXT
+FROM    V$SQL
+WHERE   SQL_ID  =   '{{SQL_ID}}'
+AND     ROWNUM  =   1;
+
+SELECT  NAME
+,       POSITION
+,       DATATYPE_STRING
+,       VALUE_STRING
+,       LAST_CAPTURED
+FROM    V$SQL_BIND_CAPTURE
+WHERE   SQL_ID          =   '{{SQL_ID}}'
+AND     WAS_CAPTURED    =   'YES'
+ORDER
+BY      LAST_CAPTURED DESC
+,       POSITION;
+
+SELECT  *
+FROM    TABLE(DBMS_XPLAN.DISPLAY_CURSOR('{{SQL_ID}}', NULL, 'TYPICAL'));`},
+{c:'hist',t:'최근 실행된 느린 SQL (1회 평균 경과시간)',k:'느린 오래걸린 5초 10초 평균 elapsed v$sql',d:`공유 풀에 남아 있는 통계라 라이선스 없이 볼 수 있다. 끝난 쿼리를 찾을 때 첫 번째로 돌린다.
+마지막 줄 >= 5 가 '평균 5초 이상' 기준이다. 필요하면 숫자만 바꾼다.
+회당버퍼가 크면 읽는 양이 많은 것(인덱스/조건 문제), 회당디스크가 크면 물리 I/O 문제다.
+공유 풀에서 밀려난 SQL 은 안 나오므로 오래 지난 일은 [과거 시점] AWR 로 본다.`,m:'원본 실행시간 5초 이상(2개), 느린쿼리 확인(전체 2개), 10초 이상(2개), 오라클 오래걸린 쿼리 찾기, Expected Run Time 통합',s:`SELECT  A.SQL_ID
+,       A.PARSING_SCHEMA_NAME                                   AS 스키마
+,       A.MODULE
+,       A.EXECUTIONS                                            AS 실행횟수
+,       ROUND(A.ELAPSED_TIME   / A.EXECUTIONS / 1000000, 3)     AS 회당경과초
+,       ROUND(A.CPU_TIME       / A.EXECUTIONS / 1000000, 3)     AS 회당CPU초
+,       ROUND(A.BUFFER_GETS    / A.EXECUTIONS)                  AS 회당버퍼
+,       ROUND(A.DISK_READS     / A.EXECUTIONS)                  AS 회당디스크
+,       ROUND(A.ROWS_PROCESSED / A.EXECUTIONS)                  AS 회당건수
+,       TO_CHAR(A.LAST_ACTIVE_TIME, 'MM-DD HH24:MI:SS')         AS 마지막실행
+,       A.SQL_TEXT
+FROM    V$SQL A
+WHERE   A.EXECUTIONS            >   0
+AND     A.LAST_ACTIVE_TIME      >   SYSDATE - {{HOURS}} / 24
+AND     A.PARSING_SCHEMA_NAME   NOT IN ('SYS', 'SYSTEM')
+AND     A.ELAPSED_TIME / A.EXECUTIONS / 1000000     >=  5
+ORDER
+BY      A.ELAPSED_TIME / A.EXECUTIONS DESC
+FETCH FIRST 50 ROWS ONLY;`},
+{c:'hist',t:'부하 비중 Top SQL (CPU / 경과 / 버퍼)',k:'top 부하 cpu 비중 ratio 처리량 logical reads',d:`전체 SQL 중 각 SQL 이 차지하는 비중(%)을 본다. "DB 를 가장 바쁘게 만드는 SQL" 을 찾는 용도.
+회당은 빠르지만 실행 횟수가 엄청 많은 SQL 도 여기서 잡힌다(느린 SQL 쿼리에선 안 보임).
+기준을 바꾸려면 마지막 ORDER BY 를 경과비중PCT / 버퍼비중PCT / 회당경과초 로 바꾼다.
+툴(SQL Developer, TOAD, DBeaver)과 딕셔너리 조회는 걸러낸다.`,m:'원본 CPU 사용량 기준/실행시간 기준/처리량 기준, CPU Top 20/평균 수행시간 Top 20/처리량 Top 20 의 6개를 1개로 통합',s:`SELECT  *
+FROM    (
+            SELECT  A.SQL_ID
+            ,       A.PARSING_SCHEMA_NAME                                       AS 스키마
+            ,       A.MODULE
+            ,       A.EXECUTIONS                                                AS 실행횟수
+            ,       ROUND(A.CPU_TIME     / 1000000, 1)                          AS 총CPU초
+            ,       ROUND(A.ELAPSED_TIME / 1000000, 1)                          AS 총경과초
+            ,       A.BUFFER_GETS                                               AS 총버퍼
+            ,       ROUND(RATIO_TO_REPORT(A.CPU_TIME)     OVER () * 100, 1)     AS CPU비중PCT
+            ,       ROUND(RATIO_TO_REPORT(A.ELAPSED_TIME) OVER () * 100, 1)     AS 경과비중PCT
+            ,       ROUND(RATIO_TO_REPORT(A.BUFFER_GETS)  OVER () * 100, 1)     AS 버퍼비중PCT
+            ,       ROUND(A.ELAPSED_TIME / A.EXECUTIONS / 1000000, 3)           AS 회당경과초
+            ,       TO_CHAR(A.LAST_ACTIVE_TIME, 'MM-DD HH24:MI')                AS 마지막실행
+            ,       A.SQL_TEXT
+            FROM    V$SQLAREA A
+            WHERE   A.EXECUTIONS            >   1
+            AND     A.PARSING_SCHEMA_NAME   NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'SYSMAN', 'XDB', 'MDSYS', 'CTXSYS', 'WMSYS', 'ORDSYS')
+            AND     NVL(A.MODULE, '-')      NOT LIKE 'SQL Developer%'
+            AND     NVL(A.MODULE, '-')      NOT LIKE 'TOAD%'
+            AND     NVL(A.MODULE, '-')      NOT LIKE 'DBeaver%'
+            AND     NVL(A.MODULE, '-')      NOT LIKE 'SQL*Plus%'
+            AND     UPPER(A.SQL_TEXT)       NOT LIKE '%V$%'
+            AND     UPPER(A.SQL_TEXT)       NOT LIKE '%DBA#_%' ESCAPE '#'
+            AND     UPPER(A.SQL_TEXT)       NOT LIKE 'DECLARE%'
+        )
+ORDER
+BY      CPU비중PCT DESC
+FETCH FIRST 20 ROWS ONLY;`},
+{c:'hist',t:'지표별 Top N (버퍼/디스크/실행/파싱/버전/메모리)',k:'buffer gets disk reads executions parse version count sharable top10',d:`예전 "Top 10 by ..." 6종과 디스크 I/O 쿼리들을 컬럼 하나에 모았다. 정렬 기준만 바꿔 쓴다.
+  · 버퍼/회당버퍼 큼 → 비효율 실행계획 의심
+  · 회당디스크 큼 → 물리 I/O, 캐시 부족 또는 풀스캔
+  · 파싱이 실행과 비슷 → 커서 재사용 안 됨(앱에서 매번 prepare)
+  · 버전수 큼 → 같은 SQL 이 공유 안 됨(바인드 타입/길이 불일치 등)
+  · 공유메모리 큼 → 거대 SQL/PL-SQL, ORA-04031 원인 후보`,m:'원본 Top 10 by Buffer Gets/Physical Reads/Executions/Parse Calls/Sharable Memory/Version Count, 1회 평균 Disk I/O(3개), i/o 사용량 순 프로세스, 총/평균 메모리 사용량 SQL(ROWNUM 버그 수정), 가중치 정렬 쿼리 통합',s:`SELECT  A.SQL_ID
+,       A.EXECUTIONS                                        AS 실행
+,       A.BUFFER_GETS                                       AS 버퍼
+,       ROUND(A.BUFFER_GETS / NULLIF(A.EXECUTIONS, 0))      AS 회당버퍼
+,       A.DISK_READS                                        AS 디스크
+,       ROUND(A.DISK_READS  / NULLIF(A.EXECUTIONS, 0))      AS 회당디스크
+,       A.ROWS_PROCESSED                                    AS 처리건수
+,       A.PARSE_CALLS                                       AS 파싱
+,       A.VERSION_COUNT                                     AS 버전수
+,       ROUND(A.SHARABLE_MEM / 1024)                        AS 공유메모리KB
+,       A.SORTS                                             AS 정렬
+,       TO_CHAR(A.LAST_ACTIVE_TIME, 'MM-DD HH24:MI')        AS 마지막실행
+,       SUBSTR(A.SQL_TEXT, 1, 100)                          AS SQL_TEXT
+FROM    V$SQLAREA A
+WHERE   A.PARSING_SCHEMA_NAME   NOT IN ('SYS', 'SYSTEM')
+ORDER
+BY      A.BUFFER_GETS DESC
+-- 바꿔 쓰기: 회당버퍼 DESC / A.DISK_READS DESC / 회당디스크 DESC / A.EXECUTIONS DESC
+--           A.PARSE_CALLS DESC / A.VERSION_COUNT DESC / A.SHARABLE_MEM DESC
+FETCH FIRST 20 ROWS ONLY;`},
+{c:'hist',t:'특정 테이블/문구가 들어간 SQL 찾기',k:'like 테이블 문구 검색 mybatis 주석 delete',d:`"이 테이블을 건드리는 SQL 이 뭐가 있었지?", "이 MyBatis 주석(/* StoreBatchChange */) SQL 이 얼마나 걸리지?" 를 볼 때.
+검색 문구 칸에 테이블명이나 주석 문자열을 넣는다. 대소문자 무시.
+SQL_FULLTEXT 는 CLOB 이라 공유 풀이 크면 몇 초 걸릴 수 있다.`,m:'원본 특정 테이블에 사용된 쿼리, SQL_FULLTEXT LIKE DELETE, TB_LOG_DAILY_DATA_CHECK 2종, SBPORA 모듈 제외 조회 통합',s:`SELECT  A.SQL_ID
+,       A.PARSING_SCHEMA_NAME                                           AS 스키마
+,       A.MODULE
+,       A.EXECUTIONS                                                    AS 실행횟수
+,       ROUND(A.ELAPSED_TIME / NULLIF(A.EXECUTIONS, 0) / 1000000, 3)    AS 회당경과초
+,       TO_CHAR(A.FIRST_LOAD_TIME)                                      AS 최초로드
+,       TO_CHAR(A.LAST_ACTIVE_TIME, 'MM-DD HH24:MI:SS')                 AS 마지막실행
+,       A.SQL_TEXT
+FROM    V$SQLAREA A
+WHERE   A.PARSING_SCHEMA_NAME   =       '{{SCHEMA}}'
+AND     UPPER(A.SQL_FULLTEXT)   LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+AND     A.LAST_ACTIVE_TIME      >       SYSDATE - {{HOURS}} / 24
+--AND   A.MODULE                NOT IN  ('JDBC Thin Client', 'DBMS_SCHEDULER')
+ORDER
+BY      A.LAST_ACTIVE_TIME DESC;`},
+{c:'hist',t:'그 문구의 SQL 을 지금 돌리고 있는 세션 + 세션 몰림',k:'세션 몰림 같은sql 동시 kill storebatchchange',d:`첫 번째: 검색 문구가 든 SQL 을 실행 중인 세션과 KILL 문, 대기 이벤트까지.
+두 번째: 세션 수가 갑자기 늘었을 때 어떤 SQL 에 몰려 있는지 SQL_ID 별로 센다.
+같은 SQL 에 ACTIVE 가 수십 개면 그 SQL 이 느려져서 요청이 쌓이는 중이다.`,m:'원본 /* StoreBatchChange 조회 2종, 세션 쿼리 확인(GROUP BY), 세션 확인 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                                                              AS 경과초
+,       S.EVENT                                                                     AS 대기이벤트
+,       S.SQL_ID
+,       Q.SQL_TEXT
+,       'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;' AS KILL문
+FROM    V$SESSION S
+,       V$SQL     Q
+WHERE   Q.SQL_ID            =       S.SQL_ID
+AND     Q.CHILD_NUMBER      =       S.SQL_CHILD_NUMBER
+AND     UPPER(Q.SQL_TEXT)   LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      S.LAST_CALL_ET DESC;
+
+SELECT  S.SQL_ID
+,       COUNT(*)                                                    AS 세션수
+,       SUM(CASE WHEN S.STATUS = 'ACTIVE' THEN 1 ELSE 0 END)        AS 활성
+,       MAX(S.LAST_CALL_ET)                                         AS 최대경과초
+,       MIN(SUBSTR(Q.SQL_TEXT, 1, 100))                             AS SQL_TEXT
+FROM    V$SESSION S
+,       V$SQL     Q
+WHERE   S.TYPE              =   'USER'
+AND     Q.SQL_ID            =   S.SQL_ID
+AND     Q.CHILD_NUMBER      =   S.SQL_CHILD_NUMBER
+GROUP
+BY      S.SQL_ID
+ORDER
+BY      세션수 DESC;`},
+{c:'hist',t:'테이블 풀스캔 하는 SQL',k:'full scan 풀스캔 sql_plan 인덱스 튜닝',d:`실행계획에 TABLE ACCESS FULL 이 있는 SQL 을 버퍼 사용량 순으로 본다.
+작은 코드 테이블 풀스캔은 정상이다. 대상 객체가 큰 테이블이고 실행 횟수도 많으면 인덱스 검토 대상.
+SQL 하나가 여러 테이블을 풀스캔하면 그중 하나만 대표로 나온다.`,m:'원본 optimize 안 된 쿼리 확인(1) (hash_value 조인을 sql_id+child 로 수정), (2) 통합',s:`SELECT  *
+FROM    (
+            SELECT  T.SQL_ID
+            ,       P.OBJECT_OWNER
+            ,       P.OBJECT_NAME                                           AS 풀스캔테이블
+            ,       T.EXECUTIONS                                            AS 실행
+            ,       T.BUFFER_GETS                                           AS 버퍼
+            ,       ROUND(T.BUFFER_GETS / NULLIF(T.EXECUTIONS, 0))          AS 회당버퍼
+            ,       T.DISK_READS                                            AS 디스크
+            ,       SUBSTR(T.SQL_TEXT, 1, 100)                              AS SQL_TEXT
+            ,       ROW_NUMBER() OVER (PARTITION BY T.SQL_ID ORDER BY T.BUFFER_GETS DESC) AS RN
+            FROM    V$SQL      T
+            ,       V$SQL_PLAN P
+            WHERE   P.SQL_ID        =   T.SQL_ID
+            AND     P.CHILD_NUMBER  =   T.CHILD_NUMBER
+            AND     P.OPERATION     =   'TABLE ACCESS'
+            AND     P.OPTIONS       =   'FULL'
+            AND     P.OBJECT_OWNER  NOT IN ('SYS', 'SYSTEM')
+            AND     T.EXECUTIONS    >   1
+        )
+WHERE   RN  =   1
+ORDER
+BY      버퍼 DESC
+FETCH FIRST 30 ROWS ONLY;`},
+{c:'ash',t:'ASH 실행 단위 소요시간 (끝난 쿼리 1건씩)',k:'ash 소요시간 실행단위 sql_exec_id 누가 오래걸린',d:`V$SQL 은 SQL 별 누적이지만 이건 "몇 시 몇 분에 시작한 그 한 번의 실행이 몇 초 걸렸나"를 보여준다.
+1초 샘플이라 1~2초 미만 실행은 안 잡히고, 소요초는 마지막 샘플 기준이라 실제보다 최대 1초 짧다.
+MACHINE/PROGRAM 은 ASH 에 직접 기록된 값이라 이미 접속을 끊은 세션도 나온다.
+Diagnostics Pack 라이선스 대상이다.`,m:'원본 최근 실행된 쿼리 중 느린 쿼리 찾기 2종(최종 확인1), v$session 서브쿼리를 ASH 컬럼으로 교체',s:`SELECT  A.SQL_ID
+,       U.USERNAME                                                          AS DB유저
+,       MAX(A.MACHINE)                                                      AS MACHINE
+,       MAX(A.PROGRAM)                                                      AS PROGRAM
+,       MAX(A.MODULE)                                                       AS MODULE
+,       A.SESSION_ID || ',' || A.SESSION_SERIAL#                            AS 세션
+,       A.SQL_EXEC_ID
+,       TO_CHAR(A.SQL_EXEC_START, 'MM-DD HH24:MI:SS')                       AS 시작시각
+,       TO_CHAR(MAX(A.SAMPLE_TIME), 'MM-DD HH24:MI:SS')                     AS 마지막샘플
+,       ROUND((CAST(MAX(A.SAMPLE_TIME) AS DATE) - A.SQL_EXEC_START) * 86400) AS 소요초
+,       COUNT(*)                                                            AS 샘플수
+,       (SELECT MIN(Q.SQL_TEXT) FROM V$SQL Q WHERE Q.SQL_ID = A.SQL_ID)     AS SQL_TEXT
+FROM    V$ACTIVE_SESSION_HISTORY A
+,       ALL_USERS                U
+WHERE   A.SQL_EXEC_START    >   SYSDATE - {{HOURS}} / 24
+AND     A.SQL_ID            IS NOT NULL
+AND     U.USER_ID       (+) =   A.USER_ID
+GROUP
+BY      A.SQL_ID
+,       U.USERNAME
+,       A.SESSION_ID
+,       A.SESSION_SERIAL#
+,       A.SQL_EXEC_ID
+,       A.SQL_EXEC_START
+ORDER
+BY      소요초 DESC
+FETCH FIRST 50 ROWS ONLY;`},
+{c:'ash',t:'최근 N시간 DB 시간을 가장 많이 쓴 SQL',k:'ash 샘플 많이 사용된 cpu io 락경합 top',d:`ASH 는 1초마다 활성 세션을 찍으므로 샘플수 ≈ 그 SQL 이 쓴 DB 시간(초)이다.
+CPU / IO대기 / 락경합 칸으로 "왜" 시간이 들었는지까지 나뉜다.
+  · CPU 가 대부분 → 읽는 양이 많음(실행계획/인덱스)
+  · IO대기가 대부분 → 물리 디스크 읽기
+  · 락경합이 대부분 → 쿼리는 멀쩡하고 다른 세션 때문에 기다림
+원본은 V$SQLAREA 와 내부조인해서 공유 풀에서 밀려난 SQL 이 빠졌는데, 스칼라 서브쿼리로 바꿔 빠지지 않게 했다.
+MyBatis SQL 만 보려면 주석 줄의 조건을 쓴다.`,m:'원본 최근 한시간내 가장 많이 사용된 쿼리 2종, 추천 확인 ASH 통합',s:`SELECT  A.SQL_ID
+,       COUNT(*)                                                                    AS 샘플수_약초
+,       ROUND(COUNT(*) / 60, 1)                                                     AS 약분
+,       SUM(CASE WHEN A.SESSION_STATE = 'ON CPU'   THEN 1 ELSE 0 END)               AS CPU
+,       SUM(CASE WHEN A.WAIT_CLASS    = 'User I/O' THEN 1 ELSE 0 END)               AS IO대기
+,       SUM(CASE WHEN A.WAIT_CLASS IN ('Application', 'Concurrency') THEN 1 ELSE 0 END) AS 락경합
+,       COUNT(DISTINCT A.SESSION_ID)                                                AS 세션수
+,       TO_CHAR(MAX(A.SAMPLE_TIME), 'MM-DD HH24:MI:SS')                             AS 마지막
+,       MAX(A.MODULE)                                                               AS MODULE
+,       (SELECT MIN(Q.SQL_TEXT) FROM V$SQL Q WHERE Q.SQL_ID = A.SQL_ID)             AS SQL_TEXT
+FROM    V$ACTIVE_SESSION_HISTORY A
+WHERE   A.SAMPLE_TIME   >   SYSTIMESTAMP - NUMTODSINTERVAL({{HOURS}}, 'HOUR')
+AND     A.SQL_ID        IS NOT NULL
+AND     A.USER_ID       =   (SELECT USER_ID FROM ALL_USERS WHERE USERNAME = '{{SCHEMA}}')
+--AND   EXISTS (SELECT 1 FROM V$SQL Q WHERE Q.SQL_ID = A.SQL_ID AND Q.SQL_TEXT LIKE '/*%')
+GROUP
+BY      A.SQL_ID
+ORDER
+BY      샘플수_약초 DESC
+FETCH FIRST 20 ROWS ONLY;`},
+{c:'ash',t:'특정 시간대 대기 이벤트 분포',k:'대기이벤트 wait class 시간대 시스템 전체',d:`시작/종료시각 칸의 구간 동안 DB 전체가 무엇 때문에 바빴는지 큰 그림을 본다.
+CPU 가 위면 계산 부하, db file sequential/scattered read 면 디스크 I/O, enq: TX 면 행 락, log file sync 면 커밋 과다다.
+메모리 ASH 에 없는 오래된 구간은 V$ACTIVE_SESSION_HISTORY 를 DBA_HIST_ACTIVE_SESS_HISTORY 로 바꾸고 COUNT(*) * 10 으로 본다(10초 샘플).`,m:'추천 확인 ④ 대기 이벤트 분포, ③ 시간대 ASH 통합',s:`SELECT  NVL(A.WAIT_CLASS, 'CPU')                AS 대기분류
+,       NVL(A.EVENT, 'ON CPU')                  AS 이벤트
+,       COUNT(*)                                AS 샘플수_약초
+,       ROUND(RATIO_TO_REPORT(COUNT(*)) OVER () * 100, 1) AS 비중PCT
+,       COUNT(DISTINCT A.SQL_ID)                AS SQL수
+FROM    V$ACTIVE_SESSION_HISTORY A
+WHERE   A.SAMPLE_TIME   BETWEEN TO_TIMESTAMP('{{FROM}}', 'YYYY-MM-DD HH24:MI')
+                        AND     TO_TIMESTAMP('{{TO}}',   'YYYY-MM-DD HH24:MI')
+GROUP
+BY      A.WAIT_CLASS
+,       A.EVENT
+ORDER
+BY      샘플수_약초 DESC
+FETCH FIRST 15 ROWS ONLY;`},
+{c:'ash',t:'특정 머신(PC)이 실행한 SQL 추적',k:'machine pc 개발자 desktop 누가 실행 추적',d:`"그 PC 에서 무슨 쿼리를 돌렸지?" 를 볼 때. 머신명과 검색 문구(예: 본사코드 H0665)로 좁힌다.
+문구 조건이 필요 없으면 EXISTS 블록을 지운다.
+메모리 ASH 범위(보통 수 시간)만 나온다.`,m:'원본 쿼리찾기의 ASH 2종(DISTINCT 버전, GROUP BY 버전) 통합',s:`SELECT  A.MACHINE
+,       A.PROGRAM
+,       A.SESSION_ID || ',' || A.SESSION_SERIAL#            AS 세션
+,       A.SQL_ID
+,       TO_CHAR(MIN(A.SAMPLE_TIME), 'MM-DD HH24:MI:SS')     AS 처음
+,       TO_CHAR(MAX(A.SAMPLE_TIME), 'MM-DD HH24:MI:SS')     AS 마지막
+,       COUNT(*)                                            AS 샘플수
+,       (SELECT MIN(DBMS_LOB.SUBSTR(Q.SQL_FULLTEXT, 4000, 1))
+         FROM   V$SQL Q
+         WHERE  Q.SQL_ID = A.SQL_ID)                        AS SQL_TEXT
+FROM    V$ACTIVE_SESSION_HISTORY A
+WHERE   UPPER(A.MACHINE)    LIKE    '%' || UPPER('{{MACHINE}}') || '%'
+AND     EXISTS  (
+                    SELECT  1
+                    FROM    V$SQL Q
+                    WHERE   Q.SQL_ID                =       A.SQL_ID
+                    AND     UPPER(Q.SQL_FULLTEXT)   LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+                )
+GROUP
+BY      A.MACHINE
+,       A.PROGRAM
+,       A.SESSION_ID
+,       A.SESSION_SERIAL#
+,       A.SQL_ID
+ORDER
+BY      MAX(A.SAMPLE_TIME) DESC;`},
+{c:'ash',t:'AWR 기간별 Top SQL (어제, 지난주)',k:'awr dba_hist_sqlstat 기간 cpu top 과거',d:`시작/종료시각 구간의 스냅샷을 합산한다. 공유 풀에서 이미 사라진 SQL 도 나온다.
+원본은 PX_SERVERS_EXECS_DELTA 로 GROUP BY 해서 같은 SQL 이 여러 줄로 쪼개지고, 스냅샷을 SNAP_ID 로만 조인해 중복 위험이 있어 정리했다.
+경과 기준으로 보려면 ORDER BY 를 X.총경과초 DESC 로.`,m:'원본 CPU 사용율이 높은 쿼리(DBA_HIST), 추천 확인 AWR Top SQL 통합',s:`SELECT  X.SQL_ID
+,       X.실행횟수
+,       X.총CPU초
+,       X.총경과초
+,       ROUND(X.총CPU초  / NULLIF(X.실행횟수, 0), 3)          AS 회당CPU초
+,       ROUND(X.총경과초 / NULLIF(X.실행횟수, 0), 3)          AS 회당경과초
+,       X.총버퍼
+,       DBMS_LOB.SUBSTR(T.SQL_TEXT, 200, 1)                  AS SQL_TEXT
+FROM    (
+            SELECT  S.DBID
+            ,       S.SQL_ID
+            ,       SUM(S.EXECUTIONS_DELTA)                         AS 실행횟수
+            ,       ROUND(SUM(S.CPU_TIME_DELTA)     / 1000000, 1)   AS 총CPU초
+            ,       ROUND(SUM(S.ELAPSED_TIME_DELTA) / 1000000, 1)   AS 총경과초
+            ,       SUM(S.BUFFER_GETS_DELTA)                        AS 총버퍼
+            FROM    DBA_HIST_SQLSTAT  S
+            ,       DBA_HIST_SNAPSHOT N
+            WHERE   N.SNAP_ID               =   S.SNAP_ID
+            AND     N.DBID                  =   S.DBID
+            AND     N.INSTANCE_NUMBER       =   S.INSTANCE_NUMBER
+            AND     N.BEGIN_INTERVAL_TIME   BETWEEN TO_TIMESTAMP('{{FROM}}', 'YYYY-MM-DD HH24:MI')
+                                            AND     TO_TIMESTAMP('{{TO}}',   'YYYY-MM-DD HH24:MI')
+            AND     S.PARSING_SCHEMA_NAME   NOT IN ('SYS', 'SYSTEM')
+            GROUP
+            BY      S.DBID
+            ,       S.SQL_ID
+        ) X
+,       DBA_HIST_SQLTEXT T
+WHERE   T.DBID      (+) =   X.DBID
+AND     T.SQL_ID    (+) =   X.SQL_ID
+ORDER
+BY      X.총CPU초 DESC
+FETCH FIRST 40 ROWS ONLY;`},
+{c:'ash',t:'AWR 에서 SQL 텍스트로 과거 실행 찾기',k:'awr sqltext 검색 과거 7일 bill_no',d:`"이런 문구가 들어간 SQL 이 지난 7일 동안 언제 몇 번 돌았나". 스냅샷(보통 1시간) 단위로 나온다.
+AWR 은 기본적으로 부하 상위 SQL 만 저장하므로 가벼운 SQL 은 없을 수 있다.`,m:'원본 쿼리찾기 DBA_HIST_SQLTEXT 검색(스냅샷 조인 조건 보완)',s:`SELECT  T.SQL_ID
+,       TO_CHAR(N.BEGIN_INTERVAL_TIME, 'YYYY-MM-DD HH24:MI')   AS 스냅시각
+,       H.EXECUTIONS_DELTA                                     AS 실행횟수
+,       ROUND(H.ELAPSED_TIME_DELTA / NULLIF(H.EXECUTIONS_DELTA, 0) / 1000000, 3) AS 회당경과초
+,       DBMS_LOB.SUBSTR(T.SQL_TEXT, 2000, 1)                   AS SQL_TEXT
+FROM    DBA_HIST_SQLTEXT  T
+,       DBA_HIST_SQLSTAT  H
+,       DBA_HIST_SNAPSHOT N
+WHERE   UPPER(T.SQL_TEXT)       LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+AND     H.DBID                  =       T.DBID
+AND     H.SQL_ID                =       T.SQL_ID
+AND     N.SNAP_ID               =       H.SNAP_ID
+AND     N.DBID                  =       H.DBID
+AND     N.INSTANCE_NUMBER       =       H.INSTANCE_NUMBER
+AND     N.BEGIN_INTERVAL_TIME   >       SYSDATE - 7
+ORDER
+BY      N.BEGIN_INTERVAL_TIME DESC;`},
+{c:'ash',t:'과거 락 경합 이력 (어제 몇 시에 누가 막았나)',k:'row lock contention 과거 락 이력 awr ash blocking',d:`지나간 락 사고를 사후 분석할 때. 대기 세션, 블로커 세션, 대기 중이던 SQL 이 시간순으로 나온다.
+최근 몇 시간은 V$ACTIVE_SESSION_HISTORY 로 바꾸면 1초 단위로 더 촘촘하다.
+블로커가 INACTIVE 였다면 블로커 쪽 SQL 은 기록에 없다(ASH 는 활성 세션만 기록).`,m:'원본 row lock 조회(멀티) DBA_HIST_ACTIVE_SESS_HISTORY (문자열 비교를 범위 조건으로 변경)',s:`SELECT  TO_CHAR(A.SAMPLE_TIME, 'MM-DD HH24:MI:SS')      AS 샘플시각
+,       A.INSTANCE_NUMBER
+,       A.SESSION_ID || ',' || A.SESSION_SERIAL#        AS 대기세션
+,       A.MACHINE                                       AS 대기MACHINE
+,       A.SQL_ID                                        AS 대기SQL_ID
+,       A.EVENT
+,       A.BLOCKING_INST_ID
+,       A.BLOCKING_SESSION || ',' || A.BLOCKING_SESSION_SERIAL# AS 블로커세션
+,       O.OBJECT_NAME                                   AS 대기객체
+FROM    DBA_HIST_ACTIVE_SESS_HISTORY A
+,       DBA_OBJECTS                  O
+WHERE   A.SAMPLE_TIME   BETWEEN TO_TIMESTAMP('{{FROM}}', 'YYYY-MM-DD HH24:MI')
+                        AND     TO_TIMESTAMP('{{TO}}',   'YYYY-MM-DD HH24:MI')
+AND     A.EVENT         LIKE    'enq: T%'
+AND     O.OBJECT_ID (+) =       A.CURRENT_OBJ#
+ORDER
+BY      A.SAMPLE_TIME;`},
+{c:'ash',t:'실행계획 변경 여부 (갑자기 느려진 SQL)',k:'plan_hash_value 실행계획 변경 갑자기 느려짐',d:`평소엔 빨랐는데 어느 날부터 느려졌다면 실행계획이 바뀐 경우가 많다.
+같은 SQL_ID 에 PLAN_HASH_VALUE 가 여러 개이고 그중 하나만 회당초가 크면 계획 변경이 원인이다.
+통계 수집 직후, 바인드 값 편차가 큰 SQL 에서 자주 생긴다. 대응은 통계 재수집이나 SQL Plan Baseline 고정을 DBA 와 검토.`,m:'추천 확인 ⑤ 신규',s:`SELECT  TO_CHAR(N.BEGIN_INTERVAL_TIME, 'MM-DD HH24:MI')   AS 스냅시각
+,       S.PLAN_HASH_VALUE
+,       S.EXECUTIONS_DELTA                                  AS 실행
+,       ROUND(S.ELAPSED_TIME_DELTA / NULLIF(S.EXECUTIONS_DELTA, 0) / 1000000, 3) AS 회당초
+,       ROUND(S.BUFFER_GETS_DELTA  / NULLIF(S.EXECUTIONS_DELTA, 0))             AS 회당버퍼
+FROM    DBA_HIST_SQLSTAT  S
+,       DBA_HIST_SNAPSHOT N
+WHERE   S.SQL_ID            =   '{{SQL_ID}}'
+AND     N.SNAP_ID           =   S.SNAP_ID
+AND     N.DBID              =   S.DBID
+AND     N.INSTANCE_NUMBER   =   S.INSTANCE_NUMBER
+ORDER
+BY      N.BEGIN_INTERVAL_TIME DESC;`},
+{c:'lock',t:'블로킹 관계 한눈에 (원인 / 피해자)',k:'blocking 블로커 waiter 대기 락 원인 피해',d:`락 문제가 의심되면 가장 먼저 돌린다. 한 줄 = 기다리는 세션 1개와 그를 막는 세션.
+0건이면 지금 락 대기는 없다.
+블로커상태가 INACTIVE 면 커밋 안 하고 방치된 세션일 가능성이 크고, 블로커SQL_ID 는 그 세션이 마지막에 실행한 SQL 이다.
+V$LOCK 끼리 셀프조인하던 예전 방식보다 V$SESSION.BLOCKING_SESSION 이 정확하고 빠르다.`,m:'원본 락이 걸린 세션 확인(v$lock 셀프조인), 블로킹 및 WAITING SID, Waiting/Blocking session 확인, 블로킹 세션, 락 대기 중인 세션까지 함께 보기(최종 확인1) 통합',s:`SELECT  W.SID                            AS 대기SID
+,       W.SERIAL#                        AS 대기SERIAL
+,       W.USERNAME                       AS 대기USER
+,       W.MACHINE                        AS 대기MACHINE
+,       W.EVENT                          AS 대기이벤트
+,       W.SECONDS_IN_WAIT                AS 대기초
+,       W.SQL_ID                         AS 대기SQL_ID
+,       O.OBJECT_NAME                    AS 대기중인객체
+,       B.SID                            AS 블로커SID
+,       B.SERIAL#                        AS 블로커SERIAL
+,       B.USERNAME                       AS 블로커USER
+,       B.MACHINE                        AS 블로커MACHINE
+,       B.PROGRAM                        AS 블로커PROGRAM
+,       B.STATUS                         AS 블로커상태
+,       B.LAST_CALL_ET                   AS 블로커경과초
+,       NVL(B.SQL_ID, B.PREV_SQL_ID)     AS 블로커SQL_ID
+FROM    V$SESSION   W
+,       V$SESSION   B
+,       DBA_OBJECTS O
+WHERE   W.BLOCKING_SESSION  IS NOT NULL
+AND     B.SID               =   W.BLOCKING_SESSION
+AND     O.OBJECT_ID     (+) =   W.ROW_WAIT_OBJ#
+ORDER
+BY      W.SECONDS_IN_WAIT DESC;`},
+{c:'lock',t:'락 트리 (A가 B를 막고, B가 C를 막고)',k:'트리 connect by 연쇄 블로킹 holder waiter',d:`블로킹이 연쇄로 걸렸을 때 맨 위(뿌리) 세션을 찾는다. 들여쓰기가 없는 줄이 진짜 원인이다.
+뿌리 하나만 정리하면 아래가 전부 풀리는 경우가 많다.`,m:'원본 lock 잡고 있는 놈/대기하는 놈 CONNECT BY 정리',s:`SELECT  LPAD(' ', (LEVEL - 1) * 4) || S.SID || ',' || S.SERIAL#     AS 세션트리
+,       S.USERNAME
+,       S.STATUS
+,       S.MACHINE
+,       S.PROGRAM
+,       S.EVENT
+,       S.SECONDS_IN_WAIT                                           AS 대기초
+,       S.LAST_CALL_ET                                              AS 경과초
+,       NVL(S.SQL_ID, S.PREV_SQL_ID)                                AS SQL_ID
+FROM    V$SESSION S
+WHERE   LEVEL   >   1
+OR      EXISTS  (SELECT 1 FROM V$SESSION X WHERE X.BLOCKING_SESSION = S.SID)
+CONNECT BY PRIOR S.SID = S.BLOCKING_SESSION
+START WITH S.BLOCKING_SESSION IS NULL;`},
+{c:'lock',t:'락 걸린 테이블 + 세션 + 트랜잭션 (주력)',k:'locked_object 락 테이블 세션 트랜잭션 언두 락모드',d:`지금 DML 락(TM)을 잡고 있는 모든 세션과 테이블. 막고있는세션수가 큰 순서로 나온다.
+락모드 RX(3)는 일반 INSERT/UPDATE/DELETE, X(6)는 LOCK TABLE 이나 DDL 성격이다.
+트랜잭션시작이 오래됐고 STATUS 가 INACTIVE 면 커밋을 잊은 세션이다.
+예전 쿼리들은 STATUS='ACTIVE' 필터로 진짜 원인(INACTIVE 블로커)을 빼거나, LOGON_TIME 으로 락 시간을 오해하거나, V$SQL 조인으로 행이 중복됐다.`,m:'원본 락 걸린 테이블+세션 정보 조회(가장 많이 쓰는 쿼리), 락걸린 테이블의 실행중인 쿼리(메인) 3종, 실제로 락을 잡고 있는 세션만, 락 걸린 쿼리 확인(minutes_connected), DML lock 조회, Lock_Role 쿼리, 락발생 사용자와 SQL/OBJECT 등 약 12개 통합',s:`SELECT  O.OWNER
+,       O.OBJECT_NAME                                                       AS 테이블
+,       L.SESSION_ID                                                        AS SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                                                      AS 경과초
+,       DECODE(L.LOCKED_MODE, 0, 'None', 1, 'Null', 2, 'RS', 3, 'RX', 4, 'S', 5, 'SRX', 6, 'X', L.LOCKED_MODE) AS 락모드
+,       T.START_TIME                                                        AS 트랜잭션시작
+,       T.USED_UBLK                                                         AS 언두블록
+,       (SELECT COUNT(*) FROM V$SESSION W WHERE W.BLOCKING_SESSION = S.SID) AS 막고있는세션수
+,       NVL(S.SQL_ID, S.PREV_SQL_ID)                                        AS SQL_ID
+,       TO_CHAR(S.LOGON_TIME, 'MM-DD HH24:MI:SS')                           AS 접속시각
+FROM    V$LOCKED_OBJECT L
+,       DBA_OBJECTS     O
+,       V$SESSION       S
+,       V$TRANSACTION   T
+WHERE   O.OBJECT_ID     =   L.OBJECT_ID
+AND     S.SID           =   L.SESSION_ID
+AND     T.SES_ADDR  (+) =   S.SADDR
+--AND   O.OBJECT_NAME   =   UPPER('{{TABLE}}')
+ORDER
+BY      막고있는세션수 DESC
+,       S.LAST_CALL_ET DESC;`},
+{c:'lock',t:'특정 테이블(들)에 락 잡은 세션 + KILL 문',k:'테이블명 tm kill 제우스 plan_table',d:`테이블 이름을 알 때. 여러 테이블이면 IN 목록에 추가한다(제우스 F0010_LOG ... 같은 묶음).
+KILL 문은 만들어 주기만 한다. 실행 전 [세션 종료 절차] 의 확인을 거친다.
+V$LOCK 을 쓸 때는 반드시 TYPE='TM' 조건을 둬야 ID1 이 객체 번호가 된다.`,m:'원본 락이 걸린 테이블명을 알고 있는 경우, 해당 테이블에 LOCK 걸렸는지, 특정 테이블 lock 여부, 제우스 락 KILL, PLAN_TABLE$ 조회 통합',s:`SELECT  'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;' AS KILL문
+,       S.SID
+,       S.SERIAL#
+,       O.OBJECT_NAME
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                              AS 경과초
+,       S.LOCKWAIT
+,       TO_CHAR(S.LOGON_TIME, 'MM-DD HH24:MI:SS')   AS 접속시각
+FROM    V$LOCK      L
+,       V$SESSION   S
+,       DBA_OBJECTS O
+WHERE   L.TYPE          =   'TM'
+AND     S.SID           =   L.SID
+AND     O.OBJECT_ID     =   L.ID1
+AND     O.OBJECT_NAME   IN  (   UPPER('{{TABLE}}')
+--                          ,   'F0010_LOG'
+--                          ,   'TB_ZEUS_TO_LYNK_STORE'
+                            )
+ORDER
+BY      S.LAST_CALL_ET DESC;`},
+{c:'lock',t:'놀면서 트랜잭션만 붙잡은 세션 (킬 후보 1순위)',k:'inactive 트랜잭션 커밋안함 방치 dbeaver 킬후보',d:`UPDATE/DELETE 만 하고 커밋 없이 창을 열어둔 세션이 여기에 잡힌다.
+ASH 는 ACTIVE 만 기록하므로 이 세션들은 ASH 에 흔적이 없다.
+막고있는세션수 0 = 아직 피해 없음(급하지 않음), 1 이상 = 그 수만큼 업무가 멈춰 있음.`,m:'원본 [15]',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       S.LAST_CALL_ET                                                          AS 유휴초
+,       ROUND(S.LAST_CALL_ET / 60, 1)                                           AS 유휴분
+,       T.START_TIME                                                            AS 트랜잭션시작
+,       ROUND((SYSDATE - TO_DATE(T.START_TIME, 'MM/DD/YY HH24:MI:SS')) * 1440, 1) AS 트랜잭션경과분
+,       T.USED_UBLK                                                             AS 언두블록
+,       (SELECT COUNT(*) FROM V$LOCKED_OBJECT LO WHERE LO.SESSION_ID = S.SID)   AS 잠근객체수
+,       (SELECT COUNT(*) FROM V$SESSION W WHERE W.BLOCKING_SESSION = S.SID)     AS 막고있는세션수
+,       S.PREV_SQL_ID                                                           AS 마지막SQL_ID
+,       (SELECT MIN(SUBSTR(Q.SQL_TEXT, 1, 200)) FROM V$SQL Q WHERE Q.SQL_ID = S.PREV_SQL_ID) AS 마지막SQL
+FROM    V$SESSION     S
+,       V$TRANSACTION T
+WHERE   T.SES_ADDR  =   S.SADDR
+AND     S.STATUS    =   'INACTIVE'
+ORDER
+BY      막고있는세션수 DESC
+,       S.LAST_CALL_ET DESC;`},
+{c:'lock',t:'행 락 상세 (어느 행에서 왜 막혔나)',k:'tx 행락 rowid row lock contention 모드6 모드4 unique',d:`enq: TX 대기 세션이 정확히 어떤 테이블의 어떤 행에서 기다리는지 ROWID 까지 뽑는다.
+요청모드 6 = 같은 행을 동시에 수정, 4 = 유니크키 중복 입력 경합/ITL 부족/비트맵 인덱스.
+뽑힌 ROWID 로 두 번째 쿼리를 돌리면 그 행 데이터를 볼 수 있다.`,m:'원본 TX Lock 발생 원인 조회(모드 계산 버그 수정), TX Lock 경합 모니터링, lock 걸린 파일 블록정보, lock 걸린 row 확인(OBJECT_ID → DATA_OBJECT_ID 수정) 통합',s:`SELECT  W.SID
+,       W.SERIAL#
+,       W.EVENT
+,       W.SECONDS_IN_WAIT                                                   AS 대기초
+,       W.BLOCKING_SESSION                                                  AS 블로커SID
+,       CHR(BITAND(W.P1, -16777216) / 16777215) || CHR(BITAND(W.P1, 16711680) / 65535) AS 락타입
+,       BITAND(W.P1, 65535)                                                 AS 요청모드
+,       O.OWNER
+,       O.OBJECT_NAME
+,       DBMS_ROWID.ROWID_CREATE(1, O.DATA_OBJECT_ID, W.ROW_WAIT_FILE#, W.ROW_WAIT_BLOCK#, W.ROW_WAIT_ROW#) AS 잠긴ROWID
+,       W.SQL_ID
+FROM    V$SESSION   W
+,       DBA_OBJECTS O
+WHERE   W.EVENT         LIKE    'enq: TX%'
+AND     O.OBJECT_ID     =       W.ROW_WAIT_OBJ#;
+
+SELECT  *
+FROM    {{TABLE}}
+WHERE   ROWID   =   '위에서_나온_잠긴ROWID';`},
+{c:'lock',t:'RAC 전체 인스턴스 블로킹',k:'rac gv$ 인스턴스 blocking_instance',d:`단일 인스턴스면 [블로킹 관계 한눈에] 와 결과가 같으니 넘어간다.
+RAC 는 대기 세션과 블로커가 다른 노드에 있을 수 있어 V$ 로는 블로커가 안 보일 수 있다.
+RAC 에서 다른 노드 세션을 끊을 때는 KILL 문에 ,@INST_ID 를 붙인다.`,m:'원본 [20], [18-4] 통합',s:`SELECT  W.INST_ID                       AS 대기인스턴스
+,       W.SID                           AS 대기SID
+,       W.USERNAME
+,       W.MACHINE
+,       W.SECONDS_IN_WAIT               AS 대기초
+,       W.EVENT
+,       W.BLOCKING_INSTANCE             AS 블로커인스턴스
+,       W.BLOCKING_SESSION              AS 블로커SID
+,       B.USERNAME                      AS 블로커USER
+,       B.MACHINE                       AS 블로커MACHINE
+,       B.STATUS                        AS 블로커상태
+,       B.LAST_CALL_ET                  AS 블로커경과초
+,       'ALTER SYSTEM KILL SESSION ''' || B.SID || ',' || B.SERIAL# || ',@' || B.INST_ID || ''' IMMEDIATE;' AS KILL문_RAC
+FROM    GV$SESSION W
+,       GV$SESSION B
+WHERE   W.BLOCKING_SESSION  IS NOT NULL
+AND     B.INST_ID       (+) =   W.BLOCKING_INSTANCE
+AND     B.SID           (+) =   W.BLOCKING_SESSION
+ORDER
+BY      W.SECONDS_IN_WAIT DESC;`},
+{c:'kill',t:'킬 하기 전에: 대상 세션 전수 조사 (4종)',k:'kill 전 확인 sid 피해범위 트랜잭션 잠근객체',d:`SID 칸에 대상 SID 를 넣고 네 개를 차례로 돌린다. 네 개를 다 보고 나서야 "끊어도 되는가"를 말할 수 있다.
+  1) 누가, 어디서, 언제부터, 무엇을
+  2) 열어둔 트랜잭션 → 0건이면 끊어도 데이터 유실 없음
+  3) 잠그고 있는 객체
+  4) 피해 범위 → 0건이면 지금 아무도 피해를 안 본다. 끊을 이유를 다시 생각한다.`,m:'원본 [16-1~4], 세션 상세 7단계(sid=2395) 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       S.MODULE
+,       S.ACTION
+,       S.PROCESS                                   AS 클라이언트PID
+,       S.STATUS
+,       TO_CHAR(S.LOGON_TIME, 'MM-DD HH24:MI:SS')   AS 접속시각
+,       S.LAST_CALL_ET                              AS 경과초
+,       S.EVENT                                     AS 대기이벤트
+,       S.BLOCKING_SESSION                          AS 나를막는세션
+,       S.SQL_ID
+,       S.PREV_SQL_ID
+FROM    V$SESSION S
+WHERE   S.SID   =   {{SID}};
+
+SELECT  T.START_TIME                                                            AS 트랜잭션시작
+,       ROUND((SYSDATE - TO_DATE(T.START_TIME, 'MM/DD/YY HH24:MI:SS')) * 1440, 1) AS 경과분
+,       T.USED_UBLK                                                             AS 언두블록
+,       T.USED_UREC                                                             AS 언두레코드
+,       T.STATUS
+FROM    V$SESSION     S
+,       V$TRANSACTION T
+WHERE   S.SID       =   {{SID}}
+AND     T.SES_ADDR  =   S.SADDR;
+
+SELECT  O.OWNER
+,       O.OBJECT_NAME
+,       O.OBJECT_TYPE
+,       DECODE(LO.LOCKED_MODE, 2, 'RS', 3, 'RX', 4, 'S', 5, 'SRX', 6, 'X', LO.LOCKED_MODE) AS 락모드
+FROM    V$LOCKED_OBJECT LO
+,       DBA_OBJECTS     O
+WHERE   LO.SESSION_ID   =   {{SID}}
+AND     O.OBJECT_ID     =   LO.OBJECT_ID
+ORDER
+BY      O.OBJECT_NAME;
+
+SELECT  W.SID                           AS 막힌SID
+,       W.USERNAME
+,       W.MACHINE
+,       W.PROGRAM
+,       W.SECONDS_IN_WAIT               AS 대기초
+,       W.EVENT
+,       W.SQL_ID
+FROM    V$SESSION W
+WHERE   W.BLOCKING_SESSION  =   {{SID}}
+ORDER
+BY      W.SECONDS_IN_WAIT DESC;`},
+{c:'kill',t:'킬의 비용: 끊으면 롤백에 얼마나 걸리나',k:'롤백 언두 비용 rollback undo kill 판단',d:`KILL SESSION 은 즉시 락 해제가 아니다. 하던 작업을 언두로 되돌린 뒤에야 락을 푼다.
+되돌릴 양이 많으면 롤백만 수십 분, 그동안 락은 그대로다. 롤백이 원래 작업보다 느린 경우도 흔하다.
+언두블록이 큰 대량 배치는 끊는 것보다 끝나길 기다리는 편이 빠를 수 있다.
+원본은 블록 크기를 8K 로 고정했는데 V$PARAMETER 에서 읽도록 바꿨다.`,m:'원본 [17], v$transaction used_ublk 조회 2종 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                                                          AS 경과초
+,       T.USED_UBLK                                                             AS 언두블록
+,       T.USED_UREC                                                             AS 언두레코드
+,       ROUND(T.USED_UBLK * (SELECT TO_NUMBER(VALUE) FROM V$PARAMETER WHERE NAME = 'db_block_size') / 1048576, 1) AS 언두MB
+,       CASE WHEN T.USED_UBLK > 100000 THEN '롤백 매우 오래(수십분+). 끊지 말고 기다리는 쪽 검토'
+             WHEN T.USED_UBLK >  10000 THEN '롤백 수 분 예상'
+             WHEN T.USED_UBLK >   1000 THEN '롤백 수십 초'
+             ELSE                           '롤백 부담 거의 없음'
+        END                                                                     AS 킬비용판단
+,       (SELECT COUNT(*) FROM V$SESSION W WHERE W.BLOCKING_SESSION = S.SID)     AS 막고있는세션수
+FROM    V$TRANSACTION T
+,       V$SESSION     S
+WHERE   S.SADDR =   T.SES_ADDR
+ORDER
+BY      T.USED_UBLK DESC;`},
+{c:'kill',t:'종료 / 취소 문장 생성 (생성만, 실행은 사람이)',k:'kill cancel disconnect 문장 생성 post_transaction',d:`위험이 낮은 순서
+  1) CANCEL SQL (19c+) : 세션은 살리고 지금 SQL 만 취소. 앱이 에러를 받고 재시도. 1순위.
+  2) DISCONNECT ... POST_TRANSACTION : 트랜잭션이 끝나면 끊는다. 유실 없음. 커밋을 영영 안 하면 영영 안 끊긴다.
+  3) KILL ... IMMEDIATE : 되돌릴 수 없음. 진행 중 트랜잭션 롤백. IMMEDIATE 는 '제어권을 바로 돌려준다'이지 '즉시 끝난다'가 아니다.
+실행 전: 피해 범위 확인(0건이면 끊지 않음), 롤백 비용 확인, 어느 팀 무슨 작업인지 확인, 운영 담당자 합의, POS 실시간 트랜잭션(solbi_api*) 아님.
+두 번째 쿼리는 일부러 조건을 좁게(유휴 30분+, 실제로 남을 막는 중) 걸었다. 숫자만 바꾸고 조건을 다 지우지는 않는다.
+세 번째는 특정 머신(퇴근한 개발자 PC 등) 세션만 정리할 때. 머신 조건을 지우면 전체가 나오니 주의.`,m:'원본 [18-1], [18-2], [18-3], 락 세션 죽이는 sql 문 2종, 오래된 세션 KILL 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                                                                              AS 경과초
+,       'ALTER SYSTEM CANCEL SQL ''' || S.SID || ',' || S.SERIAL# || ''';'                          AS "1_SQL만취소"
+,       'ALTER SYSTEM DISCONNECT SESSION ''' || S.SID || ',' || S.SERIAL# || ''' POST_TRANSACTION;' AS "2_커밋후끊기"
+,       'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;'              AS "3_즉시종료"
+FROM    V$SESSION S
+WHERE   S.SID   =   {{SID}};
+
+SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.OSUSER
+,       S.MACHINE
+,       S.PROGRAM
+,       ROUND(S.LAST_CALL_ET / 60, 1)                                                   AS 유휴분
+,       T.USED_UBLK                                                                     AS 언두블록
+,       (SELECT COUNT(*) FROM V$SESSION W WHERE W.BLOCKING_SESSION = S.SID)             AS 막고있는세션수
+,       'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;'  AS KILL문
+FROM    V$SESSION     S
+,       V$TRANSACTION T
+WHERE   T.SES_ADDR      =   S.SADDR
+AND     S.STATUS        =   'INACTIVE'
+AND     S.LAST_CALL_ET  >   1800
+AND     EXISTS  (SELECT 1 FROM V$SESSION W WHERE W.BLOCKING_SESSION = S.SID)
+ORDER
+BY      S.LAST_CALL_ET DESC;
+
+SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       ROUND(S.LAST_CALL_ET / 60, 1)                                                   AS 유휴분
+,       CASE WHEN T.SES_ADDR IS NULL THEN '트랜잭션 없음(안전)'
+             ELSE                         '트랜잭션 열려있음(롤백 발생)'
+        END                                                                             AS 트랜잭션여부
+,       'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;'  AS KILL문
+FROM    V$SESSION     S
+,       V$TRANSACTION T
+WHERE   T.SES_ADDR      (+) =       S.SADDR
+AND     UPPER(S.MACHINE)    LIKE    '%' || UPPER('{{MACHINE}}') || '%'
+--AND   UPPER(S.PROGRAM)    LIKE    '%DBEAVER%'
+AND     S.STATUS            =       'INACTIVE'
+ORDER
+BY      S.LAST_CALL_ET DESC;`},
+{c:'kill',t:'종료 후 확인: 정말 정리됐나',k:'killed sniped 롤백 진행률 확인',d:`KILL 직후 세션은 바로 사라지지 않는다.
+  KILLED : 종료 표시가 붙었고 롤백 중이거나 정리 대기 중
+  SNIPED : 프로파일 유휴 시간 초과로 오라클이 끊어둔 상태
+KILLED 가 오래 남으면 대부분 롤백 중이다. 남은언두블록이 줄고 진행률이 오르면 정상. 다시 킬해도 빨라지지 않는다.
+마지막 쿼리가 0건이면 상황 종료.`,m:'원본 [19-1], [19-2], [19-3] 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       S.STATUS
+,       S.LAST_CALL_ET                                                          AS 경과초
+,       (SELECT T.USED_UBLK FROM V$TRANSACTION T WHERE T.SES_ADDR = S.SADDR)    AS 남은언두블록
+FROM    V$SESSION S
+WHERE   S.STATUS    IN  ('KILLED', 'SNIPED')
+ORDER
+BY      S.LAST_CALL_ET DESC;
+
+SELECT  L.SID
+,       L.OPNAME                                            AS 작업
+,       ROUND(L.SOFAR / NULLIF(L.TOTALWORK, 0) * 100, 1)    AS 진행률PCT
+,       L.ELAPSED_SECONDS                                   AS 경과초
+,       L.TIME_REMAINING                                    AS 남은초추정
+FROM    V$SESSION_LONGOPS L
+WHERE   UPPER(L.OPNAME)     LIKE    '%ROLLBACK%'
+AND     L.TIME_REMAINING    >       0;
+
+SELECT  COUNT(*)                AS 남은대기세션수
+,       MAX(SECONDS_IN_WAIT)    AS 최대대기초
+FROM    V$SESSION
+WHERE   BLOCKING_SESSION    IS NOT NULL;`},
+{c:'kill',t:'오래 방치된 유휴 세션 정리 후보',k:'오래된 세션 inactive 방치 정리 logon_time',d:`수십 일째 접속만 유지하고 아무것도 안 한 세션. 열린 트랜잭션 여부를 같이 보여주도록 보강했다.
+트랜잭션 없음이면 끊어도 데이터 영향은 없지만, WAS 풀 커넥션이면 앱 쪽에서 오류가 날 수 있으니 PROGRAM 을 확인한다.
+기준(63일, 32일)은 원본 그대로이며 필요에 맞게 바꾼다.`,m:'원본 오래된 세션(3개 복사본) 통합',s:`SELECT  'ALTER SYSTEM KILL SESSION ''' || S.SID || ',' || S.SERIAL# || ''' IMMEDIATE;' AS KILL문
+,       S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       TO_CHAR(S.LOGON_TIME, 'YYYY-MM-DD HH24:MI')         AS 접속시각
+,       TO_CHAR(S.PREV_EXEC_START, 'YYYY-MM-DD HH24:MI')    AS 마지막실행
+,       TRUNC(S.LAST_CALL_ET / 3600)                        AS 유휴시간
+,       CASE WHEN T.SES_ADDR IS NULL THEN 'N' ELSE 'Y' END  AS 트랜잭션열림
+FROM    V$SESSION     S
+,       V$TRANSACTION T
+WHERE   S.STATUS            =   'INACTIVE'
+AND     S.USERNAME          NOT IN ('SYS')
+AND     S.LOGON_TIME        <   TRUNC(SYSDATE) - 63
+AND     S.PREV_EXEC_START   <   TRUNC(SYSDATE) - 32
+AND     T.SES_ADDR      (+) =   S.SADDR
+ORDER
+BY      S.LOGON_TIME;`},
+{c:'kill',t:'지금 계정으로 KILL 이 되는지 권한 확인',k:'권한 alter system ora-01031',d:`V$ 뷰 조회 권한과 KILL 권한은 별개다. ALTER SYSTEM 이 없으면 문장을 만들 수는 있어도 실행 시 ORA-01031 이 난다.
+그 경우 DBA 계정으로 실행하거나 만든 문장을 DBA 에게 전달한다.`,m:'원본 [22]',s:`SELECT  PRIVILEGE
+FROM    SESSION_PRIVS
+WHERE   PRIVILEGE   IN  ('ALTER SYSTEM', 'SELECT ANY DICTIONARY', 'ALTER SESSION')
+ORDER
+BY      PRIVILEGE;`},
+{c:'space',t:'테이블스페이스 사용량 (자동확장 최대치 포함)',k:'테이블스페이스 용량 디스크 사용률 autoextend',d:`원본의 같은 쿼리 6개 복사본을 하나로 합쳤다.
+할당대비사용PCT 가 높아도 자동확장(AUTOEXTEND)이면 아직 늘어날 수 있다. 진짜 위험 지표는 최대대비사용PCT 다.
+TEMP 는 DBA_DATA_FILES 가 아니라 DBA_TEMP_FILES 에 있어 여기 안 나온다 → TEMP 쿼리 참고.
+DBA_EXTENTS 로 합산하던 버전은 객체가 많으면 매우 느려 뺐다.`,m:'원본 테이블스페이스별 디스크 사용량(6개 복사본), INIT/NEXT/사용율 버전(3개), 기본 정보 조회 통합',s:`SELECT  D.TABLESPACE_NAME
+,       ROUND(D.ALLOC_MB)                                                   AS 할당MB
+,       ROUND(D.ALLOC_MB - NVL(F.FREE_MB, 0))                               AS 사용MB
+,       ROUND(NVL(F.FREE_MB, 0))                                            AS 여유MB
+,       ROUND((D.ALLOC_MB - NVL(F.FREE_MB, 0)) / D.ALLOC_MB * 100, 1)       AS 할당대비사용PCT
+,       ROUND(D.MAX_MB)                                                     AS 최대확장MB
+,       ROUND((D.ALLOC_MB - NVL(F.FREE_MB, 0)) / D.MAX_MB * 100, 1)         AS 최대대비사용PCT
+FROM    (
+            SELECT  TABLESPACE_NAME
+            ,       SUM(BYTES) / 1048576                                                            AS ALLOC_MB
+            ,       SUM(GREATEST(BYTES, DECODE(AUTOEXTENSIBLE, 'YES', MAXBYTES, BYTES))) / 1048576  AS MAX_MB
+            FROM    DBA_DATA_FILES
+            GROUP
+            BY      TABLESPACE_NAME
+        ) D
+,       (
+            SELECT  TABLESPACE_NAME
+            ,       SUM(BYTES) / 1048576    AS FREE_MB
+            FROM    DBA_FREE_SPACE
+            GROUP
+            BY      TABLESPACE_NAME
+        ) F
+WHERE   F.TABLESPACE_NAME   (+) =   D.TABLESPACE_NAME
+ORDER
+BY      최대대비사용PCT DESC;`},
+{c:'space',t:'데이터파일별 사용량',k:'데이터파일 datafile 경로 파일별',d:`어느 파일이 꽉 찼는지, 파일 경로가 어디인지 볼 때. 파일 추가나 RESIZE 판단용.`,m:'원본 파일경로별 여유공간, 테이블스페이스 별 크기 조회, 사용 중인 파일 합계 통합',s:`SELECT  D.TABLESPACE_NAME
+,       D.FILE_NAME
+,       ROUND(D.BYTES / 1048576)                                    AS 크기MB
+,       ROUND((D.BYTES - NVL(F.FREE, 0)) / 1048576)                 AS 사용MB
+,       ROUND(NVL(F.FREE, 0) / D.BYTES * 100, 1)                    AS 여유PCT
+,       D.AUTOEXTENSIBLE                                            AS 자동확장
+,       ROUND(D.MAXBYTES / 1048576)                                 AS 최대MB
+FROM    DBA_DATA_FILES D
+,       (
+            SELECT  FILE_ID
+            ,       SUM(BYTES)  AS FREE
+            FROM    DBA_FREE_SPACE
+            GROUP
+            BY      FILE_ID
+        ) F
+WHERE   F.FILE_ID   (+) =   D.FILE_ID
+ORDER
+BY      D.TABLESPACE_NAME
+,       D.FILE_NAME;`},
+{c:'space',t:'TEMP 사용량 (누가 얼마나) + ORA-01652',k:'temp 임시 정렬 해시 ora-01652 sort',d:`대량 정렬/해시조인은 TEMP 를 쓰고, 가득 차면 ORA-01652 가 난다.
+첫 번째: 지금 TEMP 를 쓰는 세션과 SQL. 두 번째: TEMP 전체 크기와 사용량.
+원본의 V$SORT_USAGE 와 V$SQLTEXT 를 ADDRESS 로 조인하던 방식은 SQL 조각이 여러 줄로 나와 SQL_ID 방식으로 바꿨다.`,m:'원본 v$sort_usage 2종, v$sort_segment, DBA_TEMP_FILES, 추천 확인 ③ 통합',s:`SELECT  S.SID
+,       S.SERIAL#
+,       S.USERNAME
+,       S.MACHINE
+,       U.SQL_ID
+,       U.TABLESPACE
+,       U.SEGTYPE                                                   AS 용도
+,       ROUND(U.BLOCKS * T.BLOCK_SIZE / 1048576, 1)                 AS TEMP_MB
+,       (SELECT MIN(SUBSTR(Q.SQL_TEXT, 1, 100)) FROM V$SQL Q WHERE Q.SQL_ID = U.SQL_ID) AS SQL_TEXT
+FROM    V$TEMPSEG_USAGE U
+,       V$SESSION       S
+,       DBA_TABLESPACES T
+WHERE   S.SADDR             =   U.SESSION_ADDR
+AND     T.TABLESPACE_NAME   =   U.TABLESPACE
+ORDER
+BY      U.BLOCKS DESC;
+
+SELECT  F.TABLESPACE_NAME
+,       ROUND(SUM(F.BYTES) / 1048576)                               AS 전체MB
+,       ROUND(MAX(S.USED_BLOCKS) * MAX(T.BLOCK_SIZE) / 1048576)     AS 사용MB
+,       ROUND(MAX(S.MAX_USED_BLOCKS) * MAX(T.BLOCK_SIZE) / 1048576) AS 기동후최대사용MB
+FROM    DBA_TEMP_FILES  F
+,       V$SORT_SEGMENT  S
+,       DBA_TABLESPACES T
+WHERE   S.TABLESPACE_NAME   (+) =   F.TABLESPACE_NAME
+AND     T.TABLESPACE_NAME       =   F.TABLESPACE_NAME
+GROUP
+BY      F.TABLESPACE_NAME;`},
+{c:'space',t:'용량 큰 테이블/세그먼트 Top',k:'테이블 크기 용량 segment 백업테이블 정리',d:`삭제 후보(백업 테이블 _BK, _20240103, TMP_ 등)를 찾을 때. 검색 문구 칸에 '%' 를 넣으면 전체.
+인덱스·LOB 도 공간을 차지하므로 SEGMENT_TYPE 조건을 풀어 같이 본다.
+USER_TABLES 의 NUM_ROWS * AVG_ROW_LEN 은 통계 기준 추정치라 실제 할당 크기는 DBA_SEGMENTS 로 본다.`,m:'원본 DBA_SEGMENTS/USER_SEGMENTS 크기 조회 약 10개(KJS, TMP, LOG, 20 패턴 등), 테이블별 용량 통합',s:`SELECT  S.OWNER
+,       S.SEGMENT_NAME
+,       S.SEGMENT_TYPE
+,       S.TABLESPACE_NAME
+,       ROUND(S.BYTES / 1048576)            AS MB
+FROM    DBA_SEGMENTS S
+WHERE   S.OWNER             =       '{{SCHEMA}}'
+AND     S.SEGMENT_TYPE      LIKE    'TABLE%'
+AND     S.SEGMENT_NAME      LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      S.BYTES DESC
+FETCH FIRST 30 ROWS ONLY;`},
+{c:'space',t:'테이블/세그먼트 증가량 (AWR)',k:'증가량 용량 증가 seg_stat 하루 테이블스페이스 증가',d:`구간 동안 어떤 세그먼트가 얼마나 늘었나. 갑자기 공간이 줄었을 때 범인 테이블을 찾는다.
+SPACE_USED_DELTA 는 실제 사용 공간 변화라 DELETE 가 많으면 음수가 나올 수 있다.
+합계만 보려면 바깥 SELECT 를 SUM(증가MB) 로 바꾼다. 원본은 스냅샷을 SNAP_ID 로만 조인해 중복 위험이 있어 DBID/인스턴스 조건을 추가했다.`,m:'원본 테이블 데이터 증가 확인 1~4(시간별, 기간별, 큰거 20개, 하루 증가량 등 8개) 통합',s:`SELECT  O.OWNER
+,       O.OBJECT_NAME
+,       O.OBJECT_TYPE
+,       O.TABLESPACE_NAME
+,       ROUND(SUM(S.SPACE_USED_DELTA) / 1048576, 1)     AS 증가MB
+FROM    DBA_HIST_SEG_STAT     S
+,       DBA_HIST_SEG_STAT_OBJ O
+,       DBA_HIST_SNAPSHOT     N
+WHERE   O.DBID              =   S.DBID
+AND     O.OBJ#              =   S.OBJ#
+AND     O.DATAOBJ#          =   S.DATAOBJ#
+AND     N.SNAP_ID           =   S.SNAP_ID
+AND     N.DBID              =   S.DBID
+AND     N.INSTANCE_NUMBER   =   S.INSTANCE_NUMBER
+AND     N.END_INTERVAL_TIME BETWEEN TO_TIMESTAMP('{{FROM}}', 'YYYY-MM-DD HH24:MI')
+                            AND     TO_TIMESTAMP('{{TO}}',   'YYYY-MM-DD HH24:MI')
+AND     O.OWNER             NOT IN ('SYS', 'SYSTEM')
+GROUP
+BY      O.OWNER
+,       O.OBJECT_NAME
+,       O.OBJECT_TYPE
+,       O.TABLESPACE_NAME
+ORDER
+BY      증가MB DESC
+FETCH FIRST 20 ROWS ONLY;`},
+{c:'space',t:'SGA / PGA 전체 메모리',k:'sga pga 메모리 사용량 shared pool buffer cache',d:`SGA 구성(버퍼캐시, 공유풀 등)과 PGA 전체 사용량.
+PGA 'total PGA allocated' 가 PGA_AGGREGATE_TARGET 을 계속 넘으면 정렬이 TEMP 로 밀리고 메모리 압박이 생긴다.
+'over allocation count' 가 증가 중이면 PGA 설정이 부족하다는 신호.`,m:'원본 V$SGA, v$process pga 합계 3종, SGA+PGA 계산, v$sgastat shared pool 통합',s:`SELECT  COMPONENT
+,       ROUND(CURRENT_SIZE / 1048576)   AS 현재MB
+FROM    V$SGA_DYNAMIC_COMPONENTS
+WHERE   CURRENT_SIZE    >   0
+ORDER
+BY      CURRENT_SIZE DESC;
+
+SELECT  NAME
+,       CASE WHEN UNIT = 'bytes' THEN ROUND(VALUE / 1048576) ELSE VALUE END    AS 값
+,       CASE WHEN UNIT = 'bytes' THEN 'MB' ELSE UNIT END                       AS 단위
+FROM    V$PGASTAT
+WHERE   NAME    IN  (   'aggregate PGA target parameter'
+                    ,   'total PGA allocated'
+                    ,   'total PGA inuse'
+                    ,   'maximum PGA allocated'
+                    ,   'over allocation count'
+                    );`},
+{c:'space',t:'공유 풀 / ORA-04031 / 리터럴 SQL',k:'shared pool ora-04031 literal bind 바인드 조각화',d:`ORA-04031 은 공유 풀이 조각나고 여유가 없을 때 큰 SQL/PL-SQL 을 올리지 못해 난다.
+첫 번째: 바인드 변수 없이 값만 바꿔 실행되는 리터럴 SQL. FORCE_MATCHING_SIGNATURE 가 같으면 리터럴만 다른 같은 SQL 이라 앞 40자 비교보다 정확하다.
+두 번째: 예약 영역 실패(REQUEST_FAILURES)가 0 보다 크면 실제로 할당에 실패한 적이 있다.
+_kghdsidx_count 같은 히든 파라미터 변경은 서포트 지시 없이 하지 않는다.`,m:'원본 Literal SQL 찾기 4종, shared_pool_reserved 3종, 공유메모리 많이 사용 정렬 5종(sharable/runtime/persistent mem) 통합',s:`SELECT  A.FORCE_MATCHING_SIGNATURE
+,       COUNT(*)                                        AS 비슷한SQL수
+,       SUM(A.EXECUTIONS)                               AS 총실행
+,       ROUND(SUM(A.SHARABLE_MEM) / 1048576, 1)         AS 공유메모리MB
+,       MIN(A.PARSING_SCHEMA_NAME)                      AS 스키마
+,       MIN(SUBSTR(A.SQL_TEXT, 1, 100))                 AS 예시SQL
+FROM    V$SQLAREA A
+WHERE   A.FORCE_MATCHING_SIGNATURE  >   0
+GROUP
+BY      A.FORCE_MATCHING_SIGNATURE
+HAVING  COUNT(*)    >   30
+ORDER
+BY      비슷한SQL수 DESC;
+
+SELECT  ROUND(FREE_SPACE / 1048576, 1)  AS 예약영역여유MB
+,       REQUESTS
+,       REQUEST_MISSES
+,       REQUEST_FAILURES
+,       LAST_FAILURE_SIZE
+FROM    V$SHARED_POOL_RESERVED;
+
+SELECT  ROUND(BYTES / 1048576, 1)       AS 공유풀여유MB
+FROM    V$SGASTAT
+WHERE   POOL    =   'shared pool'
+AND     NAME    =   'free memory';`},
+{c:'space',t:'열린 커서 수 (커서 누수)',k:'cursor 커서 open_cursors 누수 ora-01000',d:`애플리케이션이 ResultSet/Statement 를 닫지 않으면 세션별 현재 커서 수가 계속 늘고 결국 ORA-01000 이 난다.
+현재커서가 OPEN_CURSORS 파라미터에 근접한 세션, 같은 SQL 을 여러 개 열어둔 세션을 본다.
+사용자명은 대문자로 저장되므로 조건에 대문자를 쓴다.`,m:'원본 현재 커서 수 확인 2종(2개 복사본), current cursor 확인(recursive calls) 통합',s:`SELECT  S.SID
+,       S.USERNAME
+,       S.MACHINE
+,       S.PROGRAM
+,       ST.VALUE                                                    AS 현재커서
+,       (SELECT VALUE FROM V$PARAMETER WHERE NAME = 'open_cursors') AS 한계
+FROM    V$SESSTAT  ST
+,       V$STATNAME SN
+,       V$SESSION  S
+WHERE   SN.STATISTIC#   =   ST.STATISTIC#
+AND     SN.NAME         =   'opened cursors current'
+AND     S.SID           =   ST.SID
+AND     S.TYPE          =   'USER'
+ORDER
+BY      ST.VALUE DESC
+FETCH FIRST 20 ROWS ONLY;
+
+SELECT  OC.SQL_ID
+,       COUNT(*)                        AS 열린수
+,       COUNT(DISTINCT OC.SID)          AS 세션수
+,       MIN(OC.SQL_TEXT)                AS SQL_TEXT
+FROM    V$OPEN_CURSOR OC
+WHERE   OC.USER_NAME    =   '{{SCHEMA}}'
+GROUP
+BY      OC.SQL_ID
+ORDER
+BY      열린수 DESC
+FETCH FIRST 20 ROWS ONLY;`},
+{c:'space',t:'SQL 작업영역(정렬/해시) 메모리 Top',k:'workarea 정렬 해시 메모리 pga sql',d:`지금 PGA 를 가장 많이 쓰는 정렬/해시 작업과 그 SQL. TEMP 로 넘쳤는지(TEMPSEG_SIZE)도 같이 본다.`,m:'원본 V$SQL_WORKAREA_ACTIVE top 10, V$SQL_WORKAREA estimated_optimal_size 통합',s:`SELECT  W.SID
+,       W.SQL_ID
+,       W.OPERATION_TYPE                            AS 작업
+,       ROUND(W.ACTUAL_MEM_USED / 1048576, 1)       AS 사용MB
+,       ROUND(W.TEMPSEG_SIZE / 1048576, 1)          AS TEMP넘친MB
+,       W.NUMBER_PASSES                             AS 패스수
+,       (SELECT MIN(SUBSTR(Q.SQL_TEXT, 1, 100)) FROM V$SQL Q WHERE Q.SQL_ID = W.SQL_ID) AS SQL_TEXT
+FROM    V$SQL_WORKAREA_ACTIVE W
+ORDER
+BY      W.ACTUAL_MEM_USED DESC
+FETCH FIRST 10 ROWS ONLY;`},
+{c:'space',t:'캐시 Hit Ratio (참고용)',k:'hit ratio buffer cache library dictionary',d:`예전 튜닝 지표. 기동 후 누적값이라 지금 상태를 잘 반영하지 못하고, 비효율 SQL 이 버퍼를 많이 읽으면 오히려 높게 나온다.
+"99% 니까 괜찮다"로 판단하지 말고 보조 지표로만 본다. 실제 판단은 ASH 대기 이벤트와 Top SQL 로 한다.`,m:'원본 Buffer Cache/Library Cache/Data Dictionary Hit Ratio (3개 복사본) 통합',s:`SELECT  'Buffer Cache'                AS 구분
+,       ROUND((1 - SUM(DECODE(NAME, 'physical reads', VALUE, 0))
+                 / NULLIF(SUM(DECODE(NAME, 'db block gets', VALUE, 0))
+                        + SUM(DECODE(NAME, 'consistent gets', VALUE, 0)), 0)) * 100, 2) AS PCT
+FROM    V$SYSSTAT
+UNION ALL
+SELECT  'Library Cache'
+,       ROUND((1 - SUM(RELOADS) / NULLIF(SUM(PINS), 0)) * 100, 2)
+FROM    V$LIBRARYCACHE
+UNION ALL
+SELECT  'Dictionary Cache'
+,       ROUND((1 - SUM(GETMISSES) / NULLIF(SUM(GETS), 0)) * 100, 2)
+FROM    V$ROWCACHE;`},
+{c:'job',t:'잡 실행 이력 (얼마나 걸렸고 실패했나)',k:'scheduler job 잡 로그 run_duration 실패 artisee',d:`최근 하루 잡 실행 이력을 오래 걸린 순으로. 검색 문구 칸에 잡 이름 일부(예: ARTISEE)를 넣는다. 전체는 '%'.
+STATUS 가 SUCCEEDED 가 아닌 것만 보려면 주석을 푼다. 실패 원인은 ERRORS / ADDITIONAL_INFO 에 있다.
+다른 스키마 잡까지 보려면 USER_ 를 DBA_ 로 바꾸고 OWNER 컬럼을 추가한다.`,m:'원본 잡 로그 확인 5종(실행시간 체크, 특정 3개 잡, 전체 등) 통합',s:`SELECT  A.JOB_NAME
+,       A.STATUS
+,       TO_CHAR(A.ACTUAL_START_DATE, 'MM-DD HH24:MI:SS')    AS 시작
+,       A.RUN_DURATION                                      AS 소요
+,       A.CPU_USED
+,       A.ERROR#
+,       A.ERRORS
+,       A.ADDITIONAL_INFO
+FROM    USER_SCHEDULER_JOB_RUN_DETAILS A
+WHERE   A.LOG_DATE  >       SYSTIMESTAMP - NUMTODSINTERVAL(1, 'DAY')
+AND     A.JOB_NAME  LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+--AND   A.STATUS    <>      'SUCCEEDED'
+ORDER
+BY      A.RUN_DURATION DESC;`},
+{c:'job',t:'잡 상태 / 다음 실행 / 지금 도는 잡',k:'scheduler 잡 상태 next_run running',d:`첫 번째: 잡 설정과 마지막/다음 실행 시각. 30분 주기 잡의 LAST_RUN_DURATION 이 주기에 가까우면 겹쳐 돌 위험이 있다.
+두 번째: 지금 실행 중인 잡과 그 세션 SID. 잡이 락을 잡고 있다면 이 SID 로 [종료 절차] 를 밟는다.`,m:'원본 잡 확인 ARTISEE_ 2종 + 지금 도는 잡 신규',s:`SELECT  A.JOB_NAME
+,       A.STATE
+,       A.ENABLED
+,       A.REPEAT_INTERVAL
+,       TO_CHAR(A.LAST_START_DATE, 'MM-DD HH24:MI:SS')  AS 마지막시작
+,       A.LAST_RUN_DURATION                             AS 마지막소요
+,       TO_CHAR(A.NEXT_RUN_DATE, 'MM-DD HH24:MI:SS')    AS 다음실행
+,       A.RUN_COUNT
+,       A.FAILURE_COUNT
+,       A.JOB_ACTION
+FROM    USER_SCHEDULER_JOBS A
+WHERE   A.JOB_NAME  LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      A.JOB_NAME;
+
+SELECT  R.JOB_NAME
+,       R.SESSION_ID                    AS SID
+,       R.ELAPSED_TIME                  AS 경과
+,       R.CPU_USED
+FROM    USER_SCHEDULER_RUNNING_JOBS R;`},
+{c:'util',t:'프로시저/함수 소스에서 문구 찾기',k:'프로시저 프로시져 함수 소스 검색 user_source',d:`어떤 테이블/컬럼을 쓰는 프로시저가 어디 있는지 찾을 때. 줄 번호까지 나온다.
+원본은 USER_OBJECTS 와 조인했는데 USER_SOURCE 만으로 충분하다.`,m:'원본 정보확인(USER_SOURCE), 프로시저 문구 검색 DISTINCT 통합',s:`SELECT  S.NAME
+,       S.TYPE
+,       S.LINE
+,       TRIM(S.TEXT)        AS 소스
+FROM    USER_SOURCE S
+WHERE   UPPER(S.TEXT)   LIKE    '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      S.NAME
+,       S.LINE;`},
+{c:'util',t:'컬럼명 / 코멘트로 테이블 찾기',k:'컬럼 코멘트 comment 테이블 정의서',d:`"이 값 어느 테이블 무슨 컬럼에 있지?" 를 찾을 때. 컬럼명 조건과 코멘트 조건 중 필요한 쪽 주석을 푼다.
+원본은 ALL_TAB_COMMENTS 와 내부조인이라 코멘트 없는 테이블이 빠졌는데 외부조인으로 바꿨다.`,m:'원본 테이블 컬럼 코멘트 조회',s:`SELECT  A.TABLE_NAME
+,       TC.COMMENTS                                         AS 테이블코멘트
+,       A.COLUMN_NAME
+,       CASE
+            WHEN A.DATA_TYPE IN ('VARCHAR2', 'CHAR', 'NVARCHAR2', 'NCHAR')
+                THEN A.DATA_TYPE || '(' || A.DATA_LENGTH || ')'
+            WHEN A.DATA_TYPE = 'NUMBER' AND A.DATA_PRECISION IS NOT NULL
+                THEN A.DATA_TYPE || '(' || A.DATA_PRECISION || ',' || NVL(A.DATA_SCALE, 0) || ')'
+            ELSE A.DATA_TYPE
+        END                                                 AS 데이터타입
+,       CC.COMMENTS                                         AS 컬럼코멘트
+FROM    ALL_TAB_COLUMNS  A
+,       ALL_COL_COMMENTS CC
+,       ALL_TAB_COMMENTS TC
+WHERE   A.OWNER             =   '{{SCHEMA}}'
+AND     CC.OWNER        (+) =   A.OWNER
+AND     CC.TABLE_NAME   (+) =   A.TABLE_NAME
+AND     CC.COLUMN_NAME  (+) =   A.COLUMN_NAME
+AND     TC.OWNER        (+) =   A.OWNER
+AND     TC.TABLE_NAME   (+) =   A.TABLE_NAME
+AND     UPPER(A.COLUMN_NAME)    LIKE '%' || UPPER('{{KEYWORD}}') || '%'
+--AND   UPPER(CC.COMMENTS)      LIKE '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      A.TABLE_NAME
+,       A.COLUMN_ID;`},
+{c:'util',t:'컬럼 기본값(DATA_DEFAULT)에서 값 찾기',k:'data_default 기본값 long 검색',d:`DATA_DEFAULT 는 LONG 타입이라 LIKE 를 직접 못 쓴다. XML 로 변환해서 검색하는 우회 방법이다.
+예: KISA_ORIG_CODE 기본값 '301220041' 이 어느 테이블에 박혀 있는지.`,m:'원본 DATA_DEFAULT 찾기',s:`SELECT  TABLE_NAME
+,       COLUMN_NAME
+,       DATA_DEFAULT
+FROM    XMLTABLE(
+            '/ROWSET/ROW'
+            PASSING DBMS_XMLGEN.GETXMLTYPE(
+                'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_ID, DATA_DEFAULT '
+             || 'FROM USER_TAB_COLUMNS WHERE DATA_DEFAULT IS NOT NULL'
+            )
+            COLUMNS
+                TABLE_NAME      VARCHAR2(128)   PATH 'TABLE_NAME'
+            ,   COLUMN_NAME     VARCHAR2(128)   PATH 'COLUMN_NAME'
+            ,   COLUMN_ID       NUMBER          PATH 'COLUMN_ID'
+            ,   DATA_DEFAULT    VARCHAR2(4000)  PATH 'DATA_DEFAULT'
+        )
+WHERE   UPPER(DATA_DEFAULT) LIKE '%' || UPPER('{{KEYWORD}}') || '%'
+ORDER
+BY      TABLE_NAME
+,       COLUMN_ID;`},
+{c:'util',t:'제약조건 / 인덱스 컬럼 확인 (ORA-00001 대응)',k:'constraint pk 제약조건 인덱스 ora-00001 무결성',d:`ORA-00001 무결성 제약조건(SBPORA.PK_TB_MS_PRINTER) 위배 같은 에러가 나면 제약조건 이름을 검색 문구에 넣어 어떤 컬럼 조합이 중복됐는지 본다.
+두 번째는 테이블의 인덱스와 컬럼 순서. 테이블명 칸을 쓴다.`,m:'원본 CONSTRAINT_NAME 찾기, constraint 정보 조회, index 목록/전체/칼럼별 조회 통합',s:`SELECT  C.TABLE_NAME
+,       C.CONSTRAINT_NAME
+,       DECODE(C.CONSTRAINT_TYPE, 'P', 'PK', 'R', 'FK', 'U', 'Unique', 'C', 'Check', C.CONSTRAINT_TYPE) AS 유형
+,       CC.POSITION
+,       CC.COLUMN_NAME
+FROM    ALL_CONSTRAINTS  C
+,       ALL_CONS_COLUMNS CC
+WHERE   C.OWNER             =   '{{SCHEMA}}'
+AND     C.CONSTRAINT_NAME   =   UPPER('{{KEYWORD}}')
+AND     CC.OWNER            =   C.OWNER
+AND     CC.CONSTRAINT_NAME  =   C.CONSTRAINT_NAME
+ORDER
+BY      CC.POSITION;
+
+SELECT  I.INDEX_NAME
+,       I.UNIQUENESS
+,       IC.COLUMN_POSITION
+,       IC.COLUMN_NAME
+,       I.STATUS
+FROM    ALL_INDEXES     I
+,       ALL_IND_COLUMNS IC
+WHERE   I.TABLE_OWNER       =   '{{SCHEMA}}'
+AND     I.TABLE_NAME        =   UPPER('{{TABLE}}')
+AND     IC.INDEX_OWNER      =   I.OWNER
+AND     IC.INDEX_NAME       =   I.INDEX_NAME
+ORDER
+BY      I.INDEX_NAME
+,       IC.COLUMN_POSITION;`},
+{c:'util',t:'Flashback: 잘못 UPDATE 한 데이터 되살려 보기',k:'flashback as of timestamp versions 복구 undo_retention',d:`UNDO 에 남아 있는 동안만 과거 시점을 조회할 수 있다. 보관시간은 첫 쿼리(undo_retention, 보통 15분 정도)로 확인한다. 보장값이 아니라 목표값이라 UNDO 가 부족하면 더 빨리 사라진다.
+AS OF TIMESTAMP : 그 시점의 데이터 그대로.
+VERSIONS BETWEEN : 그 사이 변경 이력(I/U/D)과 변경 시각.
+복구할 때는 AS OF 결과를 백업 테이블로 먼저 CREATE TABLE AS 해두고 비교한 뒤 반영한다.`,m:'원본 Flashback 보관시간, 10분 전 조회, VERSIONS BETWEEN 통합',s:`SELECT  NAME
+,       VALUE / 60      AS 보관분
+FROM    V$PARAMETER
+WHERE   NAME    =   'undo_retention';
+
+SELECT  *
+FROM    {{TABLE}} AS OF TIMESTAMP (SYSTIMESTAMP - INTERVAL '10' MINUTE)
+WHERE   1 = 1;
+
+SELECT  VERSIONS_STARTTIME      AS 변경시각
+,       VERSIONS_OPERATION      AS 작업
+,       A.*
+FROM    {{TABLE}} VERSIONS BETWEEN TIMESTAMP (SYSTIMESTAMP - INTERVAL '30' MINUTE) AND SYSTIMESTAMP A
+ORDER
+BY      VERSIONS_STARTTIME;`},
+{c:'util',t:'락 상황 주기 수집 (재현 안 되는 락 잡기)',k:'수집 루프 모니터링 스냅샷 dbms_session sleep 간헐',d:`간헐적으로 생기는 락을 잡으려고 일정 간격으로 블로킹 상황을 테이블에 쌓는다. 별도 세션에서 돌린다.
+원본은 날짜 테이블 400건 커서를 반복용으로 써서 의도가 안 보였고, 세 개 테이블에 나눠 쌓았다. 한 테이블에 수집시각과 함께 쌓도록 정리했다.
+아래 예시는 10초 간격 360회(1시간). 18c 이상은 DBMS_SESSION.SLEEP, 그 이하는 DBMS_LOCK.SLEEP(EXECUTE 권한 필요).
+운영 스키마에 만든 수집 테이블은 분석이 끝나면 꼭 DROP 한다(예전 LOCK_CHK_20250530_00x 등).`,m:'원본 LOCK_CHK_20250530_001~003 생성 + PL/SQL 루프 4개 통합',s:`CREATE TABLE {{SCHEMA}}.LOCK_SNAP
+AS
+SELECT  SYSDATE                         AS 수집시각
+,       W.SID                           AS 대기SID
+,       W.USERNAME                      AS 대기USER
+,       W.EVENT                         AS 대기이벤트
+,       W.SECONDS_IN_WAIT               AS 대기초
+,       W.SQL_ID                        AS 대기SQL_ID
+,       B.SID                           AS 블로커SID
+,       B.SERIAL#                       AS 블로커SERIAL
+,       B.USERNAME                      AS 블로커USER
+,       B.MACHINE                       AS 블로커MACHINE
+,       B.PROGRAM                       AS 블로커PROGRAM
+,       B.STATUS                        AS 블로커상태
+,       NVL(B.SQL_ID, B.PREV_SQL_ID)    AS 블로커SQL_ID
+FROM    V$SESSION W
+,       V$SESSION B
+WHERE   1 = 0
+AND     B.SID   =   W.BLOCKING_SESSION;
+
+BEGIN
+    FOR I IN 1 .. 360 LOOP
+        INSERT INTO {{SCHEMA}}.LOCK_SNAP
+        SELECT  SYSDATE
+        ,       W.SID
+        ,       W.USERNAME
+        ,       W.EVENT
+        ,       W.SECONDS_IN_WAIT
+        ,       W.SQL_ID
+        ,       B.SID
+        ,       B.SERIAL#
+        ,       B.USERNAME
+        ,       B.MACHINE
+        ,       B.PROGRAM
+        ,       B.STATUS
+        ,       NVL(B.SQL_ID, B.PREV_SQL_ID)
+        FROM    V$SESSION W
+        ,       V$SESSION B
+        WHERE   W.BLOCKING_SESSION  IS NOT NULL
+        AND     B.SID               =   W.BLOCKING_SESSION;
+        COMMIT;
+        DBMS_SESSION.SLEEP(10);
+    END LOOP;
+END;
+/
+
+-- 분석 후 정리
+-- DROP TABLE {{SCHEMA}}.LOCK_SNAP PURGE;`}
+];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function fill(s,html){return s.replace(/\{\{(\w+)\}\}/g,(m,k)=>{const v=(P[k]||'').trim();const o=v||('‹'+k+'›');return html?'<span class="pv'+(v?'':' pe')+'">'+esc(o)+'</span>':o;});}
+function fillHtml(s){const parts=s.split(/(\{\{\w+\}\})/);return parts.map(p=>/^\{\{\w+\}\}$/.test(p)?fill(p,true):esc(p)).join('');}
+let cat='all',open={};
+const pw=$('params');
+PDEF.forEach(([k,l,ph])=>{const d=document.createElement('div');d.innerHTML='<div class="lbl">'+l+'</div>';const i=document.createElement('input');i.placeholder=ph;i.value=P[k]||'';i.oninput=()=>{P[k]=i.value;drawCode();};d.appendChild(i);pw.appendChild(d);});
+const cw=$('chips');
+Object.keys(CAT).forEach(k=>{const b=document.createElement('button');b.className='chip'+(k==='all'?' on':'');b.textContent=CAT[k]+(k==='all'?' '+D.length:' '+D.filter(x=>x.c===k).length);b.onclick=()=>{cat=k;[...cw.children].forEach(c=>c.classList.remove('on'));b.classList.add('on');filter();};cw.appendChild(b);});
+const list=$('list');
+D.forEach((x,i)=>{const c=document.createElement('div');c.className='card';c.id='c'+i;
+const head='<div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><div style="min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cat">'+CAT[x.c]+'</span><span style="font-size:15px;font-weight:500">'+esc(x.t)+'</span></div></div><div style="display:flex;gap:6px;flex-shrink:0">'+(x.s?'<button data-t="'+i+'">SQL 보기</button><button data-cp="'+i+'" aria-label="복사"><i class="ti ti-copy" aria-hidden="true"></i> 복사</button>':'')+'</div></div>';
+const body=x.g?'<div class="desc" style="color:#1a1a1a">'+esc(x.g)+'</div>':'<div class="desc">'+esc(x.d)+'</div>'+(x.m?'<div class="mg">'+esc(x.m)+'</div>':'')+'<pre id="p'+i+'" style="display:none"></pre>';
+c.innerHTML=head+body;list.appendChild(c);});
+list.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.t!==undefined){const i=+t.dataset.t;open[i]=!open[i];show(i);}else if(t.dataset.cp!==undefined){copy(+t.dataset.cp,t);}});
+function show(i){const p=$('p'+i);if(!p)return;p.style.display=open[i]?'block':'none';const b=list.querySelector('[data-t="'+i+'"]');if(b)b.textContent=open[i]?'SQL 접기':'SQL 보기';if(open[i])p.innerHTML=fillHtml(D[i].s);}
+function drawCode(){D.forEach((x,i)=>{if(open[i])show(i);});}
+function copy(i,btn){const txt=fill(D[i].s,false);const done=()=>{btn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> 복사됨';setTimeout(()=>{btn.innerHTML='<i class="ti ti-copy" aria-hidden="true"></i> 복사';},1500);};
+const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);done();};
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,fb);}else fb();}
+function filter(){const q=$('q').value.trim().toLowerCase().split(/\s+/).filter(Boolean);let n=0;
+D.forEach((x,i)=>{const hay=(x.t+' '+x.k+' '+(x.d||'')+' '+(x.g||'')+' '+(x.m||'')+' '+(x.s||'')+' '+CAT[x.c]).toLowerCase();
+const ok=(cat==='all'||x.c===cat)&&q.every(w=>hay.indexOf(w)>=0);$('c'+i).style.display=ok?'block':'none';if(ok)n++;
+if(ok&&q.length&&x.s&&(x.s.toLowerCase().indexOf(q[0])>=0)&&!open[i]){open[i]=true;show(i);}});
+$('cnt').textContent=n+'개';}
+$('q').oninput=filter;
+$('openAll').onclick=()=>{D.forEach((x,i)=>{if(x.s){open[i]=true;show(i);}});};
+$('closeAll').onclick=()=>{D.forEach((x,i)=>{if(x.s){open[i]=false;show(i);}});};
+filter();
+</script>
+</body>
+</html>

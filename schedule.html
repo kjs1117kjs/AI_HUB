@@ -822,6 +822,9 @@
     #imodal .f-3{grid-template-columns:1fr;}
     .iv-bar input[type=search]{width:100%;}
   }
+
+  .btn.icon.wait{border-color:var(--star); color:#a06a00;}
+
 </style>
 </head>
 <body>
@@ -866,6 +869,7 @@
     <div class="menu-group">
       <button class="btn icon" id="btnTheme" onclick="toggleTheme()" title="다크 모드로 전환">🌙</button>
       <button class="btn icon" id="btnDensity" onclick="toggleDensity()" title="행 간격을 좁게">≡</button>
+      <button class="btn icon" id="btnKeep" onclick="toggleKeepAlive()" title="탭 활성 유지">🔒</button>
     </div>
     <button class="btn" onclick="hwrap.hidden=false" title="사용법과 두레이복사 설정 방법">? 사용법</button>
   </div>
@@ -3609,9 +3613,112 @@ function applyUI(){
   if(bd){ bd.classList.toggle("on", uiDensity==="compact");
           bd.title = uiDensity==="compact" ? "행 간격을 넓게" : "행 간격을 좁게"; }
 }
-function persistUI(){ idbSet("ui",{theme:uiTheme, density:uiDensity, hiddenCols:[...hiddenCols], colWidths, customPreset}); }
+function persistUI(){ idbSet("ui",{theme:uiTheme, density:uiDensity, hiddenCols:[...hiddenCols], colWidths, customPreset, keepAlive}); }
 function toggleTheme(){ uiTheme = uiTheme==="dark" ? "light" : "dark"; applyUI(); persistUI(); }
 function toggleDensity(){ uiDensity = uiDensity==="compact" ? "normal" : "compact"; applyUI(); persistUI(); }
+/* ══ 탭 활성 유지 ══════════════════════════
+   1) Web Lock 보유 → Chrome 탭 정지(freeze) 대상에서 제외
+   2) 들리지 않는 수준의 오디오 재생 → '소리 재생 중' 탭으로 인식되어 비활성화·타이머 지연 제외
+      (자동재생 정책상 화면을 한 번 클릭/키 입력해야 시작, 탭에 🔊 표시)
+   + 그래도 비활성화될 경우 대비: 탭을 떠날 때 미저장 변경을 IndexedDB에 임시 보관 → 다시 열면 복구 */
+let keepAlive = true;
+let kaCtx = null, kaOsc = null, kaLockRelease = null, kaLocked = false;
+const KA_LOCK = "일정관리-keepalive-" + Math.random().toString(36).slice(2);   // 탭마다 고유
+
+function kaRunning(){ return !!(kaCtx && kaCtx.state === "running"); }
+function kaLock(){
+  if(kaLocked || !navigator.locks) return;
+  kaLocked = true;
+  navigator.locks.request(KA_LOCK, ()=> new Promise(res=>{ kaLockRelease = res; }))
+    .catch(()=>{}).finally(()=>{ kaLocked = false; kaLockRelease = null; });
+}
+function kaUnlock(){ if(kaLockRelease) kaLockRelease(); }
+function kaAudioStart(){
+  try{
+    if(!kaCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      kaCtx = new AC();
+      kaCtx.onstatechange = updateKeepUI;
+      const g = kaCtx.createGain();
+      g.gain.value = 0.001;                 // 약 -60dB: 귀엔 안 들리지만 Chrome은 '재생 중'으로 인식
+      kaOsc = kaCtx.createOscillator();
+      kaOsc.frequency.value = 20;           // 20Hz 저주파
+      kaOsc.connect(g).connect(kaCtx.destination);
+      kaOsc.start();
+    }
+    if(kaCtx.state === "suspended") kaCtx.resume().then(updateKeepUI, ()=>{});
+  }catch(e){}
+  updateKeepUI();
+}
+function kaAudioStop(){
+  if(!kaCtx) return;
+  try{ kaOsc.stop(); }catch(e){}
+  kaCtx.close().catch(()=>{});
+  kaCtx = null; kaOsc = null;
+}
+function applyKeepAlive(){
+  if(keepAlive){ kaLock(); kaAudioStart(); }
+  else{ kaUnlock(); kaAudioStop(); }
+  updateKeepUI();
+}
+function toggleKeepAlive(){
+  if(keepAlive && !kaRunning()){ kaAudioStart(); return; }   // 대기 상태에서 누르면 '시작'
+  keepAlive = !keepAlive;
+  applyKeepAlive(); persistUI();
+  toast(keepAlive ? "탭 활성 유지 켜짐 — 다른 탭에 있어도 비활성화되지 않습니다" : "탭 활성 유지 꺼짐", "ok");
+}
+function updateKeepUI(){
+  const b = document.getElementById("btnKeep"); if(!b) return;
+  const run = kaRunning();
+  b.textContent = keepAlive ? "🔒" : "🔓";
+  b.classList.toggle("on",   keepAlive && run);
+  b.classList.toggle("wait", keepAlive && !run);
+  b.title = !keepAlive ? "탭 활성 유지: 꺼짐 — 누르면 켭니다"
+          : run ? "탭 활성 유지: 켜짐 — 다른 탭에 있어도 이 화면이 비활성화되지 않습니다 (탭에 🔊 표시)"
+                : "탭 활성 유지: 대기 — 화면을 한 번 클릭하면 시작됩니다 (브라우저 자동재생 정책)";
+}
+/* 첫 클릭/키 입력 시 오디오 시작 (중간에 멈춰도 다음 입력 때 재개) */
+["pointerdown","keydown"].forEach(ev=> document.addEventListener(ev, e=>{
+  if(!keepAlive || kaRunning()) return;
+  if(e.target && e.target.closest && e.target.closest("#btnKeep")) return;
+  kaAudioStart();
+}, {capture:true, passive:true}));
+
+/* ── 안전장치: 탭을 떠날 때 미저장 변경 임시 보관 ── */
+function saveRecovery(){
+  if(!dirty) return;
+  idbSet("recovery", {at: Date.now(), s: snapshot()});
+}
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") saveRecovery(); });
+window.addEventListener("pagehide", saveRecovery);
+
+async function checkRecovery(){
+  const rec = await idbGet("recovery");
+  if(!rec || !rec.s) return false;
+  const d = new Date(rec.at), p = n=>String(n).padStart(2,"0");
+  const when = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  showPrompt("저장하지 않은 작업이 있습니다",
+    `${when}에 저장하지 않은 채 남아 있던 작업 내용이 있습니다.` +
+    (document.wasDiscarded ? `<br>(Chrome이 탭을 비활성화해서 화면이 다시 열렸습니다)` : "") +
+    `<br>[복구]하면 그 상태로 돌아갑니다. 복구 후 꼭 [데이터 저장]을 눌러주세요.`,
+    [{label:"버리기", fn:()=> idbSet("recovery", null)},
+     {label:"복구", primary:true, fn:()=> applyRecovery(rec)}]);
+  return true;
+}
+function applyRecovery(rec){
+  let o;
+  try{ o = JSON.parse(rec.s); }catch(e){ toast("복구 데이터를 읽지 못했습니다", "err"); return; }
+  if(Array.isArray(o.rows)) data = o.rows;
+  memos = o.memos || []; meetings = o.meetings || [];
+  if(Array.isArray(o.infos)) infos = o.infos;
+  selected.clear(); activeRowIdx = null; colFilters = {}; page = 1;
+  render();
+  cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
+  resetHistory();
+  dirty = true; updateSaveState();
+  toast("저장하지 않았던 작업을 복구했습니다 — [데이터 저장]으로 저장하세요", "ok", 6500);
+}
 
 async function ensurePermission(handle, mode){
   try{
@@ -3638,8 +3745,10 @@ async function restoreSettings(){
     if(Array.isArray(ui.hiddenCols)) hiddenCols = new Set(ui.hiddenCols.filter(c=>COLS.includes(c)));
     if(ui.colWidths && typeof ui.colWidths==="object"){ colWidths = {}; for(const c of COLS) if(ui.colWidths[c]) colWidths[c]=ui.colWidths[c]; }
     if(Array.isArray(ui.customPreset)) customPreset = ui.customPreset.filter(c=>COLS.includes(c));
+    if(ui.keepAlive === false) keepAlive = false;          // ← 추가
   }
   applyUI();
+  applyKeepAlive();                                        // ← 추가
   const saved = await idbGet("loc");
   if(saved){
     if(saved.dir) dirHandle = saved.dir;                 // FileSystemDirectoryHandle은 IndexedDB에 저장 가능
@@ -3648,9 +3757,10 @@ async function restoreSettings(){
   const dooray = await idbGet("dooray");
   if(dooray){ doorayToken = dooray.token || ""; doorayProject = dooray.project || ""; }
   refreshLocUI();
+  const recovering = await checkRecovery();                // ← 추가
   if(dirHandle){
     stat.textContent = `저장 위치 연결됨: ${locLabel()} — [데이터 불러오기]로 이어서 작업하세요`;
-  }else{
+  }else if(!recovering){                                   // ← 기존 }else{ 를 이렇게 변경
     /* 화면 시작 시 저장위치 미지정 → 설정 안내 팝업 */
     showPrompt("저장 위치를 지정해주세요",
       `데이터가 저장될 폴더가 아직 지정되지 않았습니다.<br>` +
@@ -3857,6 +3967,7 @@ async function saveJson(){
       }
       await backupThenWrite(text);
       dirty = false;
+      idbSet("recovery", null);   // ← 추가
       setLastSaved();
       updateSaveState();
       stat.textContent = `저장 완료: ${locLabel()} (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건 · 이전본 _백업1~${MAX_BACKUPS} · 오늘자 ${dailyBackupName()} 보관)`;
@@ -3870,6 +3981,7 @@ async function saveJson(){
   /* 3) 대체: 다운로드 */
   fallbackDownload(text, `일정관리_data_${stamp()}.json`, "application/json;charset=utf-8");
   dirty = false;
+  idbSet("recovery", null);   // ← 추가
   setLastSaved();
   updateSaveState();
   stat.textContent = `다운로드 폴더에 저장했습니다 (일정 ${data.length.toLocaleString()}건 + 직접입력 ${memos.length}건).`;

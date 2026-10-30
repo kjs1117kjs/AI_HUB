@@ -825,6 +825,70 @@
 
   .btn.icon.wait{border-color:var(--star); color:#a06a00;}
 
+  /* ── 진행중업무 모달 ── */
+  #wwrap{position:fixed; inset:0; z-index:51; background:rgba(20,32,44,.45); display:flex; align-items:center; justify-content:center; padding:18px;}
+  #wwrap[hidden]{display:none;}
+  #wmodal{background:var(--panel); border-radius:10px; box-shadow:0 16px 48px var(--shadow); width:min(1240px,100%); height:min(820px,90vh); display:flex; flex-direction:column;}
+  #wmodal .wm-head{display:flex; align-items:center; gap:8px; padding:12px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  #wmodal .wm-head h2{font-size:15px; color:var(--accent); margin-right:4px;}
+  #wmodal .wm-head h2::before{content:"▶ ";}
+  #wmodal .wm-tabs{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  #wmodal .wm-tabs button{border:0; background:var(--panel); padding:5px 13px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit;}
+  #wmodal .wm-tabs button.on{background:var(--accent); color:#fff;}
+  #wmodal #wq{margin-left:auto; border:1px solid var(--line); border-radius:5px; padding:6px 9px; font-size:12.5px; font-family:inherit; background:var(--panel); color:var(--ink); outline:none; width:160px;}
+  #wmodal .wm-body{display:flex; flex:1; min-height:0;}
+  #wmodal .wm-list{flex:1 1 60%; overflow:auto; border-right:1px solid var(--line); min-width:0;}
+  #wmodal .wm-list table{width:100%; min-width:660px;}
+  #wmodal .wm-list thead th{position:sticky; top:0;}
+  #wmodal .wm-list tbody tr{cursor:pointer;}
+  #wmodal .wm-list tbody tr.sel td{background:var(--accent-soft) !important;}
+  #wmodal .wm-list tr.w-done td{color:var(--ink-soft);}
+  #wmodal td.center{text-align:center;}
+  #wmodal td.w-title{max-width:340px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #wmodal td.w-title .dday{margin:0 0 0 6px;}
+  #wmodal .src{display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; margin-right:3px;}
+  .w-act{font-family:inherit; font-size:11.5px; font-weight:700; border:1px dashed var(--accent); color:var(--accent); background:transparent; border-radius:5px; padding:2px 9px; cursor:pointer;}
+  .w-act:hover{background:var(--accent-soft);}
+  .w-act.done{border-color:var(--ink-soft); color:var(--ink-soft);}
+  .w-act.done:hover{border-color:var(--danger); color:var(--danger); background:transparent;}
+  .w-pri{display:inline-block; min-width:22px; font-size:11px; font-weight:700; border-radius:4px; padding:1px 5px;}
+  .w-pri.p0{background:#fdecea; color:#c0392b;}
+  .w-pri.p1{background:var(--line-soft); color:var(--ink-soft);}
+  .w-pri.p2{color:var(--ink-soft);}
+  td.w-live{color:var(--accent); font-weight:700;}
+  .w-prog{display:inline-block; width:56px; height:7px; background:var(--line-soft); border-radius:4px; overflow:hidden; vertical-align:middle;}
+  .w-prog i{display:block; height:100%; background:var(--accent);}
+  .w-progv{font-size:11px; color:var(--ink-soft); margin-left:5px; font-variant-numeric:tabular-nums;}
+  #wmodal .wm-side{flex:0 0 400px; overflow:auto; padding:14px 18px; font-size:12.5px;}
+  #wmodal .wm-side .f-row{display:flex; flex-direction:column; gap:4px; margin-bottom:10px;}
+  #wmodal .wm-side .f-row b{font-size:12px;}
+  #wmodal .wm-side .f-2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  #wmodal .wm-side input:not([type=checkbox]):not([type=range]), #wmodal .wm-side select, #wmodal .wm-side textarea{
+    border:1px solid var(--line); border-radius:5px; padding:7px 9px; width:100%; font-family:inherit; font-size:12.5px; outline:none; background:var(--panel); color:var(--ink);}
+  #wmodal .wm-side textarea{min-height:90px; resize:vertical; line-height:1.5;}
+  #wmodal .wm-side input:focus, #wmodal .wm-side select:focus, #wmodal .wm-side textarea:focus{border-color:var(--accent);}
+  #wmodal .w-dt{display:flex; gap:5px;}
+  #wmodal .w-dt .btn{padding:5px 10px; flex-shrink:0;}
+  #wmodal .w-linked{background:var(--line-soft); border-radius:6px; padding:8px 10px; margin-bottom:12px; font-size:12px; line-height:1.6;}
+  #wmodal .w-linked .btn{padding:2px 8px; font-size:11.5px; margin-left:4px;}
+  #wmodal .w-empty{color:var(--ink-soft); padding:40px 0; text-align:center; line-height:1.8;}
+  #wmodal .btn.danger{border-color:var(--danger); color:var(--danger);}
+  .w-pick-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .w-chk{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--ink-soft); cursor:pointer;}
+  .w-pick-list{margin:8px 0; border:1px solid var(--line-soft); border-radius:7px; max-height:calc(90vh - 270px); overflow:auto;}
+  .w-pick-item{display:flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer; border-top:1px solid var(--line-soft); font-size:12px;}
+  .w-pick-item:first-child{border-top:0;}
+  .w-pick-item:hover{background:var(--accent-soft);}
+  .wp-no{color:var(--ink-soft); font-size:11px; min-width:44px;}
+  .wp-t{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .wp-d{color:var(--ink-soft); font-size:11px; white-space:nowrap;}
+  #wmodal .wm-foot{display:flex; align-items:center; gap:10px; padding:11px 18px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); flex-wrap:wrap;}
+  #wmodal .wm-foot .btn{margin-left:auto;}
+  @media (max-width:860px){
+    #wmodal .wm-body{flex-direction:column; overflow:auto;}
+    #wmodal .wm-list{border-right:0; border-bottom:1px solid var(--line); flex:0 0 auto; max-height:45vh;}
+    #wmodal .wm-side{flex:0 0 auto;}
+  }
 </style>
 </head>
 <body>
@@ -848,6 +912,7 @@
   <div class="toolbar">
     <button class="btn bell" onclick="openNoti('on', false)" title="중요일정 알림 목록을 엽니다 (5분간 화면 동작이 없으면 자동으로 표시됩니다)">🔔 중요알림<span id="cntNoti"></span></button>
     <button class="btn" onclick="openMeet()" title="회의일정을 등록·관리합니다 (예정 회의는 중요알림에도 함께 표시됩니다)">🗓 회의일정<span id="cntMeet"></span></button>
+    <button class="btn" onclick="openWork()" title="지금 진행 중인 업무만 모아 시작/완료 일시를 관리합니다">▶ 진행중업무<span id="cntWork"></span></button>
     <input type="search" id="q" placeholder="전체 검색">
     <button class="btn warn" id="btnClearF" onclick="clearFilters()" hidden>필터 해제</button>
     <button class="btn primary" onclick="addRow()">＋ 행 추가</button>
@@ -888,6 +953,7 @@
   <button onclick="bulkImp(true)">★ 중요</button>
   <button onclick="bulkImp(false)">중요 해제</button>
   <button onclick="bulkDuplicate()">⧉ 복제</button>
+  <button onclick="bulkToWork()">▶ 진행중업무</button>
   <button class="danger" onclick="bulkDelete()">🗑 삭제</button>
   <button class="ghost sp" onclick="bulkClear()">선택 해제 ✕</button>
 </div>
@@ -1077,6 +1143,73 @@
     </div>
   </div>
 </div>
+<!-- 진행중업무 모달 -->
+<div id="wwrap" hidden>
+  <div id="wmodal">
+    <div class="wm-head">
+      <h2>진행중업무</h2>
+      <div class="wm-tabs">
+        <button id="wtOn" class="on" onclick="setWFilter('on')">진행중<span id="wCntOn"></span></button>
+        <button id="wtDone" onclick="setWFilter('done')">완료<span id="wCntDone"></span></button>
+        <button id="wtAll" onclick="setWFilter('all')">전체<span id="wCntAll"></span></button>
+      </div>
+      <input type="search" id="wq" placeholder="업무 검색">
+      <button class="btn" onclick="openWorkPick()">＋ 일정에서 추가</button>
+      <button class="btn primary" onclick="newFreeWork()">＋ 직접 작성</button>
+    </div>
+    <div class="wm-body">
+      <div class="wm-list">
+        <table>
+          <thead><tr><th>상태</th><th>우선</th><th>제목</th><th>시작일시</th><th>완료일시</th><th>소요</th><th>진척</th></tr></thead>
+          <tbody id="wtbody"></tbody>
+        </table>
+        <div class="nm-empty" id="wEmpty" hidden></div>
+      </div>
+      <div class="wm-side">
+        <div class="w-empty" id="wSideEmpty">왼쪽에서 업무를 선택하거나<br>[＋ 일정에서 추가] / [＋ 직접 작성]으로 등록하세요.</div>
+
+        <div id="wPick" hidden>
+          <div class="w-pick-head"><b>등록된 일정에서 추가</b>
+            <label class="w-chk"><input type="checkbox" id="wPickStart" checked> 추가하면서 바로 시작</label></div>
+          <input type="search" id="wPickQ" placeholder="제목·CODE·No·개발자·요청 검색">
+          <div class="w-pick-list" id="wPickList"></div>
+          <button class="btn" onclick="fillWorkForm(curWork())">닫기</button>
+        </div>
+
+        <div id="wForm" hidden>
+          <div class="w-linked" id="wLinked"></div>
+          <div class="f-row"><b>제목 *</b><input type="text" id="wfTitle" data-wf="제목" placeholder="업무 제목"></div>
+          <div class="f-2">
+            <div class="f-row"><b>상태</b><select id="wfStatus" data-wf="상태"><option>진행</option><option>대기</option><option>보류</option><option>완료</option></select></div>
+            <div class="f-row"><b>우선순위</b><select id="wfPri" data-wf="우선순위"><option>상</option><option>중</option><option>하</option></select></div>
+          </div>
+          <div class="f-row"><b>시작일시</b>
+            <div class="w-dt"><input type="datetime-local" id="wfStart" data-wf="시작" data-dt="1">
+              <button class="btn" onclick="wNow('시작')">지금</button><button class="btn" onclick="wClearDt('시작')" title="지우기">✕</button></div></div>
+          <div class="f-row"><b>완료일시</b>
+            <div class="w-dt"><input type="datetime-local" id="wfEnd" data-wf="완료" data-dt="1">
+              <button class="btn" onclick="wNow('완료')">지금</button><button class="btn" onclick="wClearDt('완료')" title="지우기">✕</button></div></div>
+          <div class="f-2">
+            <div class="f-row"><b>완료예정일</b><input type="date" id="wfDue" data-wf="완료예정"></div>
+            <div class="f-row"><b>진척률 <span id="wfProgV">0%</span></b><input type="range" id="wfProg" data-wf="진척" min="0" max="100" step="10"></div>
+          </div>
+          <div class="f-2">
+            <div class="f-row"><b>요청자</b><input type="text" id="wfReq" data-wf="요청자"></div>
+            <div class="f-row"><b>링크</b><input type="text" id="wfLink" data-wf="링크" placeholder="두레이 URL 등"></div>
+          </div>
+          <div class="f-row"><b>다음 할 일</b><textarea id="wfNext" data-wf="다음할일" style="min-height:52px" placeholder="다시 이어서 할 때 바로 볼 한 줄"></textarea></div>
+          <div class="f-row"><b>메모 / 진행 기록</b><textarea id="wfMemo" data-wf="메모"></textarea>
+            <button class="btn" style="align-self:flex-start" onclick="wStampMemo()">🕒 현재 일시 넣기</button></div>
+          <div><button class="btn danger" onclick="delWork()">삭제</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="wm-foot">
+      <span>빈 [▶ 시작]/[■ 완료] 칸을 누르면 현재 일시가 들어갑니다 · 소요 = 시작~완료(진행 중이면 지금까지) · 입력은 즉시 반영되며 데이터 저장/엑셀 내보내기 시 함께 저장됩니다</span>
+      <button class="btn" onclick="closeWork()">닫기</button>
+    </div>
+  </div>
+</div>
 
 <!-- 사용법(도움말) 모달 -->
 <div id="hwrap" hidden>
@@ -1117,6 +1250,7 @@
         <li>각 항목의 [알림] 체크를 끄면 자동 알림에서 빠지고, 전체/표시/미표시 탭으로 관리합니다. <b>No를 클릭하면</b> 알림이 닫히며 해당 업무로 바로 이동합니다.</li>
         <li><b>[＋ 직접입력 추가]</b>로 일정 목록과 무관한 중요일정을 알림에만 등록할 수도 있습니다.</li>
         <li>두레이 일정 상세 화면을 <b>제목부터 드래그해 복사</b>한 뒤 회의 폼의 어느 칸에나 <b>붙여넣으면</b> 제목·일시·장소·참석자·등록자·알림·공개가 자동으로 채워집니다.</li>
+        <li><b>[▶ 진행중업무]</b>에서 지금 하고 있는 업무만 따로 관리합니다. <b>[＋ 일정에서 추가]</b>로 등록된 업무를 가져오거나 <b>[＋ 직접 작성]</b>으로 임의 업무를 만들 수 있고, 빈 <b>시작/완료</b> 칸을 누르면 현재 일시가 들어가며 소요시간이 자동 계산됩니다. 표에서 여러 행을 체크한 뒤 상단 바의 <b>[▶ 진행중업무]</b>로 한 번에 보낼 수도 있습니다.</li>
         <li><b>[🗓 회의일정]</b> 버튼에서 회의(제목·일시·장소·참석자·등록자·사전알림·메모)를 별도로 등록·관리합니다. 알림이 켜진 예정 회의는 중요알림 팝업의 <b>회의일정</b> 영역에 가까운 순으로 표시되며, 시작 임박·진행 중 회의는 붉게 강조됩니다.</li>
         <li>알림 창 <b>아래쪽</b>에는 중요 표시가 없어도 <b>개발완료예정이 지났는데 미완료</b>인 <b>지연된 일정</b>이 함께 표시되며, No를 누르면 해당 업무로 이동합니다.</li>
       </ul>
@@ -1303,7 +1437,7 @@ let dirty = false;                               // 마지막 저장 이후 변�
 const HIST_MAX = 30;
 let history = [], histIdx = -1, restoringHistory = false;
 
-function snapshot(){ return JSON.stringify({rows:data, memos:memos, meetings:meetings, infos:infos}); }
+function snapshot(){ return JSON.stringify({rows:data, memos:memos, meetings:meetings, infos:infos, works:works}); }
 function resetHistory(){ history = [{s:snapshot(), label:""}]; histIdx = 0; updateUndoUI(); }
 function pushHistory(label){
   if(restoringHistory) return;
@@ -1318,6 +1452,9 @@ function restoreTo(idx){
   const o = JSON.parse(history[idx].s);
   restoringHistory = true;
   data = o.rows; memos = o.memos; meetings = o.meetings || []; infos = o.infos || [];
+  works = o.works || [];
+  if(!wwrap.hidden){ renderWork(); fillWorkForm(curWork()); }
+  updateWorkCount();
   if(!mwrap.hidden) renderMeet();
   cntMeet.textContent = ` ${upcomingMeetings().length}`;
   selected.clear(); activeRowIdx = null;
@@ -2453,6 +2590,7 @@ document.addEventListener("keydown", e=>{
   if(e.key==="Escape"){
     if(!fpop.hidden) fpClose();
     else if(!iwrap.hidden) closeInfoForm();
+    else if(!wwrap.hidden) closeWork();
     else if(!nwrap.hidden) closeNoti();
   }
 });
@@ -3544,6 +3682,7 @@ setInterval(()=>{
   const el = document.getElementById("idleLeft");
   if(!nwrap.hidden){ el.textContent = "🔔 중요알림 표시 중"; el.classList.remove("soon"); return; }
   if(!mwrap.hidden){ el.textContent = "🗓 회의일정 편집 중"; el.classList.remove("soon"); resetIdle(); return; }
+  if(!wwrap.hidden){ el.textContent = "▶ 진행중업무 편집 중"; el.classList.remove("soon"); resetIdle(); return; }
   const remain = IDLE_MS - (Date.now() - lastActivity);
   if(remain <= 0){
     openNoti("on", true);                        // 표시(체크된) 항목만으로 자동 팝업
@@ -3712,6 +3851,8 @@ function applyRecovery(rec){
   if(Array.isArray(o.rows)) data = o.rows;
   memos = o.memos || []; meetings = o.meetings || [];
   if(Array.isArray(o.infos)) infos = o.infos;
+  if(Array.isArray(o.works)) works = o.works;
+  updateWorkCount();
   selected.clear(); activeRowIdx = null; colFilters = {}; page = 1;
   render();
   cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
@@ -3813,7 +3954,7 @@ function stamp(){
 function payload(){
   return JSON.stringify({
     app:"일정관리", version:3, savedAt:new Date().toISOString(),
-    count:data.length, rows:data, memos:memos, meetings:meetings, infos:infos
+    count:data.length, rows:data, memos:memos, meetings:meetings, infos:infos, works:works
   });
 }
 /* ── 맨 아래 '마지막 저장' 표시 갱신 ── */
@@ -4047,8 +4188,10 @@ function parseAndApply(text){
     ? parsed.meetings.filter(m=>m && typeof m==="object").map(normMeet) : [];
   const newInfos = Array.isArray(parsed.infos)
     ? parsed.infos.filter(m=>m && typeof m==="object").map(normInfo) : null;
-  if(!rows.length && !newMemos.length && !newMeets.length && !(newInfos&&newInfos.length)){ alert("불러올 데이터가 없습니다."); return false; }
-  applyImport(rows, newMemos, "데이터", newMeets, newInfos);
+  const newWorks = Array.isArray(parsed.works)
+    ? parsed.works.filter(m=>m && typeof m==="object").map(normWork) : null;
+  if(!rows.length && !newMemos.length && !newMeets.length && !(newInfos&&newInfos.length) && !(newWorks&&newWorks.length)){ alert("불러올 데이터가 없습니다."); return false; }
+  applyImport(rows, newMemos, "데이터", newMeets, newInfos, newWorks);
   if(!Array.isArray(parsed) && parsed.savedAt) setLastSaved(parsed.savedAt);
   return true;
 }
@@ -4093,20 +4236,27 @@ xlsxInput.addEventListener("change", ev=>{
         const ijson = XLSX.utils.sheet_to_json(wb.Sheets["정보정리"], {defval:""});
         newInfos = ijson.map(normInfo).filter(o => INFO_COLS.some(c => String(o[c]??"").trim() !== ""));
       }
-      if(!rows.length && !newMemos.length && !newMeets.length && !(newInfos&&newInfos.length)){
+      /* 진행중업무 시트 */
+      let newWorks = null;
+      if(wb.Sheets["진행중업무"]){
+        newWorks = XLSX.utils.sheet_to_json(wb.Sheets["진행중업무"], {defval:""})
+          .map(normWork).filter(w => w["제목"].trim() || w["시작"]);
+      }
+      if(!rows.length && !newMemos.length && !newMeets.length && !(newInfos&&newInfos.length) && !(newWorks&&newWorks.length)){
         alert("가져올 데이터가 없습니다. 첫 행이 제목행(CODE, PROJECT…)인지 확인하세요."); return;
       }
-      applyImport(rows, newMemos, "엑셀", newMeets, newInfos);
+      applyImport(rows, newMemos, "엑셀", newMeets, newInfos, newWorks);
     });
   };
   reader.readAsArrayBuffer(f);
 });
-function applyImport(rows, newMemos, label, newMeets, newInfos){
+function applyImport(rows, newMemos, label, newMeets, newInfos, newWorks){
   newMeets = newMeets || [];
   const memoTxt = newMemos.length ? ` + 직접입력 ${newMemos.length}건` : "";
   const meetTxt = newMeets.length ? ` + 회의 ${newMeets.length}건` : "";
   const infoTxt = (newInfos && newInfos.length) ? ` + 정보 ${newInfos.length}건` : "";
-  const replace = confirm(`${label}에서 일정 ${rows.length.toLocaleString()}건${memoTxt}${meetTxt}${infoTxt}을 불러왔습니다.\n\n[확인] 기존 목록 교체\n[취소] 기존 목록 뒤에 추가`);
+  const workTxt = (newWorks && newWorks.length) ? ` + 진행중업무 ${newWorks.length}건` : "";
+  const replace = confirm(`${label}에서 일정 ${rows.length.toLocaleString()}건${memoTxt}${meetTxt}${infoTxt}${workTxt}을 불러왔습니다.\n\n[확인] 기존 목록 교체\n[취소] 기존 목록 뒤에 추가`);
   if(replace){ data = rows; memos = newMemos; meetings = newMeets; }
   else{
     data = data.concat(rows); memos = memos.concat(newMemos);
@@ -4117,13 +4267,20 @@ function applyImport(rows, newMemos, label, newMeets, newInfos){
     if(replace) infos = newInfos;
     else{ const iid = new Set(infos.map(o=>o.id)); infos = infos.concat(newInfos.filter(o=>!iid.has(o.id))); }
   }
+  if(newWorks && newWorks.length){
+    if(replace) works = newWorks;
+    else{ const wid = new Set(works.map(w=>w.id)); works = works.concat(newWorks.filter(w=>!wid.has(w.id))); }
+    wSel = null;
+  }
+  updateWorkCount();
+  if(!wwrap.hidden){ renderWork(); fillWorkForm(curWork()); }
   if(!mwrap.hidden) renderMeet();
   colFilters = {}; page = 1;
   markDirty("데이터 불러오기");
   render();
   resetHistory();                                  // 불러온 상태를 되돌리기 시작점으로
   if(!nwrap.hidden) renderNoti();
-  stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건, 회의 ${meetings.length}건`;
+  stat.textContent = `${label} 불러오기 완료 — 일정 ${data.length.toLocaleString()}건, 직접입력 ${memos.length}건, 회의 ${meetings.length}건, 진행중업무 ${works.length}건`;
   toast(`${label} 불러오기 완료 · ${data.length.toLocaleString()}건`, "ok");
 }
 async function exportExcel(filteredOnly){
@@ -4165,6 +4322,8 @@ async function exportExcel(filteredOnly){
     XLSX.utils.book_append_sheet(wb, tws, "회의일정");
     /* 시트4: 정보정리 */
     XLSX.utils.book_append_sheet(wb, infoSheet(), "정보정리");
+    /* 시트5: 진행중업무 */
+    XLSX.utils.book_append_sheet(wb, workSheet(), "진행중업무");
 
     const xname = `일정관리${filteredOnly?"_화면":""}_${stamp()}.xlsx`;
     /* 1) 지정 폴더가 있으면 그 폴더에 바로 저장 */
@@ -4475,8 +4634,348 @@ function exportInfoExcel(){
   });
 }
 
+/* ══ 진행중업무 ══════════════════════════════
+   지금 손에 잡은 업무만 모아 시작/완료 일시·소요시간을 관리.
+   - 등록된 일정에서 가져오거나(CODE+No로 연결) 일정과 무관하게 직접 작성
+   - 원본 일정 데이터는 변경하지 않음
+   - 일시는 "YYYY-MM-DD HH:MM" 문자열 저장 · json의 works / 엑셀 '진행중업무' 시트 */
+const WORK_COLS = ["제목","상태","우선순위","시작","완료","완료예정","진척","요청자","링크","다음할일","메모"];
+const WORK_PRI  = {"상":0,"중":1,"하":2};
+const WORK_ST   = {"진행":0,"대기":1,"보류":2,"완료":3};
+let works = [];
+let wFilter = "on";
+let wSel = null;
+const wwrap = document.getElementById("wwrap");
+
+/* ── 일시 헬퍼 ── */
+function dtStr(d, withTime){
+  const p=n=>String(n).padStart(2,"0");
+  const s=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  return withTime ? `${s} ${p(d.getHours())}:${p(d.getMinutes())}` : s;
+}
+function nowDt(){ return dtStr(new Date(), true); }
+function dtToInput(v){ const m=String(v??"").match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/); return m ? `${m[1]}T${m[2]}` : ""; }
+function inputToDt(v){ return v ? String(v).replace("T"," ").slice(0,16) : ""; }
+function dtMs(v){ const m=String(v??"").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/); return m ? new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]).getTime() : null; }
+function shortDt(v){
+  const s=String(v??""); if(s.length<16) return s;
+  return (s.slice(0,4)===String(new Date().getFullYear()) ? "" : s.slice(2,4)+".") + s.slice(5,7)+"."+s.slice(8,10)+" "+s.slice(11,16);
+}
+function fmtDur(ms){
+  if(ms==null || isNaN(ms) || ms<0) return "";
+  const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor(m%1440/60), mi=m%60;
+  return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${mi}분` : `${mi}분`;
+}
+
+/* ── 정규화 · 원본 일정 찾기 ── */
+function normWork(src){
+  const w = {id: src.id || ("w"+Date.now().toString(36)+Math.random().toString(36).slice(2,6))};
+  let ref = null;
+  if(src.ref && typeof src.ref==="object") ref = src.ref;
+  else if(String(src["연결CODE"]??"").trim() || String(src["연결No"]??"").trim())
+    ref = {CODE:src["연결CODE"], No:src["연결No"], "제목":src["제목"]};
+  w.ref = ref ? {CODE:String(ref.CODE??"").trim(), No:String(ref.No??"").trim(), "제목":String(ref["제목"]??"").trim()} : null;
+  w.src = w.ref ? "row" : "free";
+  for(const c of WORK_COLS){
+    const raw = src[c];
+    w[c] = (raw instanceof Date && !isNaN(raw)) ? dtStr(raw, c!=="완료예정") : String(clean(raw));
+  }
+  w["진척"] = Math.max(0, Math.min(100, Math.round(Number(w["진척"])||0)));
+  if(!(w["상태"] in WORK_ST)) w["상태"] = w["완료"] ? "완료" : (w["시작"] ? "진행" : "대기");
+  if(!(w["우선순위"] in WORK_PRI)) w["우선순위"] = "중";
+  if(w["완료예정"]) w["완료예정"] = parseYmd(w["완료예정"]) ? ymdToInput(w["완료예정"]) : "";
+  return w;
+}
+function rowRef(r){ return {CODE:String(r.CODE??"").trim(), No:String(r.No??"").trim(), "제목":String(r["제목"]??"").trim()}; }
+function sameRef(a, b){
+  if(!a || !b) return false;
+  if(a.CODE || a.No) return a.CODE===b.CODE && a.No===b.No;
+  return !!a["제목"] && a["제목"]===b["제목"];
+}
+function workRowIdx(w){ return w && w.ref ? data.findIndex(r=>sameRef(w.ref, rowRef(r))) : -1; }
+function curWork(){ return works.find(w=>w.id===wSel) || null; }
+function updateWorkCount(){
+  const n = works.filter(w=>w["상태"]!=="완료").length;
+  document.getElementById("cntWork").textContent = n ? ` ${n}` : "";
+}
+
+/* ── 필드 변경(모든 수정은 여기로) ── */
+function setWorkField(w, field, val, label){
+  const prev = String(w[field]??"");
+  if(prev === String(val??"")) return false;
+  w[field] = val;
+  if(field==="시작" && val && !prev && w["상태"]==="대기") w["상태"] = "진행";
+  if(field==="완료"){
+    if(val){ if(!w["시작"]) w["시작"] = val; w["상태"] = "완료"; w["진척"] = 100; }
+    else if(w["상태"]==="완료") w["상태"] = "진행";
+  }
+  if(field==="상태" && val==="완료" && !w["완료"]){
+    w["완료"] = nowDt(); if(!w["시작"]) w["시작"] = w["완료"]; w["진척"] = 100;
+  }
+  markDirty(label || `진행중업무 ${field} 수정`);
+  afterWorkChange();
+  return true;
+}
+function afterWorkChange(){
+  renderWork();
+  const w = curWork();
+  if(w && !document.getElementById("wForm").hidden) fillWorkForm(w);
+  updateWorkCount();
+}
+
+/* ── 모달 열기/닫기 ── */
+function openWork(){
+  wwrap.hidden = false;
+  setWFilter(wFilter);
+  fillWorkForm(curWork());
+}
+function closeWork(){
+  /* 내용 없이 만들기만 한 직접작성 항목은 정리 */
+  works = works.filter(w => !(w.src==="free" && !String(w["제목"]).trim() && !w["시작"] && !String(w["메모"]).trim()));
+  if(!curWork()) wSel = null;
+  wwrap.hidden = true;
+  updateWorkCount();
+  resetIdle();
+}
+wwrap.addEventListener("mousedown", e=>{ if(e.target===wwrap) closeWork(); });
+function setWFilter(f){
+  wFilter = f;
+  for(const [id,k] of [["wtOn","on"],["wtDone","done"],["wtAll","all"]])
+    document.getElementById(id).classList.toggle("on", k===f);
+  renderWork();
+}
+document.getElementById("wq").addEventListener("input", ()=>renderWork());
+
+/* ── 목록 ── */
+function workDueHtml(w){
+  if(w["상태"]==="완료" || !w["완료예정"]) return "";
+  const d = parseYmd(w["완료예정"]); if(!d) return "";
+  const t = new Date(); t.setHours(0,0,0,0);
+  const days = Math.round((d - t)/86400000);
+  const label = days<0 ? `D+${-days}` : days===0 ? "D-DAY" : `D-${days}`;
+  const cls = days<0 ? "late" : days<=3 ? "soon" : days<=DUE_SOON_DAYS ? "near" : "ok";
+  return `<span class="dday ${cls}" title="완료예정 ${esc(w["완료예정"])}">${label}</span>`;
+}
+function renderWork(){
+  const on = works.filter(w=>w["상태"]!=="완료"), done = works.filter(w=>w["상태"]==="완료");
+  document.getElementById("wCntOn").textContent   = ` ${on.length}`;
+  document.getElementById("wCntDone").textContent = ` ${done.length}`;
+  document.getElementById("wCntAll").textContent  = ` ${works.length}`;
+  let list = wFilter==="on" ? on : wFilter==="done" ? done : [...works];
+  const q = document.getElementById("wq").value.trim().toLowerCase();
+  if(q) list = list.filter(w => WORK_COLS.some(c=>String(w[c]??"").toLowerCase().includes(q)));
+  list.sort((a,b)=>{
+    if(wFilter==="done") return String(b["완료"]).localeCompare(String(a["완료"]));
+    return (WORK_ST[a["상태"]]-WORK_ST[b["상태"]])
+        || (WORK_PRI[a["우선순위"]]-WORK_PRI[b["우선순위"]])
+        || String(a["시작"]||"9").localeCompare(String(b["시작"]||"9"));
+  });
+  const now = Date.now(), h = [];
+  for(const w of list){
+    const s = dtMs(w["시작"]), e = dtMs(w["완료"]);
+    const running = s!=null && e==null;
+    const dur = s!=null ? fmtDur((e ?? now) - s) : "";
+    const pg = w["진척"]||0;
+    h.push(`<tr class="${w.id===wSel?"sel":""}${w["상태"]==="완료"?" w-done":""}" data-wid="${esc(w.id)}">
+      <td class="center"><span class="badge b-${esc(w["상태"])}">${esc(w["상태"])}</span></td>
+      <td class="center"><span class="w-pri p${WORK_PRI[w["우선순위"]]}">${esc(w["우선순위"])}</span></td>
+      <td class="w-title" title="${esc(w["제목"])}"><span class="src ${w.src==="row"?"src-row":"src-memo"}">${w.src==="row"?"일정":"직접"}</span>${esc(w["제목"]||"(제목 없음)")}${workDueHtml(w)}</td>
+      <td class="center nowrap">${w["시작"] ? `<span class="mt-time" title="${esc(w["시작"])}">${esc(shortDt(w["시작"]))}</span>`
+                                          : `<button class="w-act" data-wstart title="클릭하면 현재 일시로 시작">▶ 시작</button>`}</td>
+      <td class="center nowrap">${w["완료"] ? `<span class="mt-time" title="${esc(w["완료"])}">${esc(shortDt(w["완료"]))}</span>`
+                                          : `<button class="w-act done" data-wdone title="클릭하면 현재 일시로 완료">■ 완료</button>`}</td>
+      <td class="center nowrap${running?" w-live":""}" title="${running?"진행 중(지금까지)":""}">${dur}</td>
+      <td class="nowrap"><span class="w-prog"><i style="width:${pg}%"></i></span><span class="w-progv">${pg}%</span></td></tr>`);
+  }
+  document.getElementById("wtbody").innerHTML = h.join("");
+  const em = document.getElementById("wEmpty");
+  em.hidden = list.length>0;
+  em.textContent = q ? "검색 결과가 없습니다."
+    : wFilter==="done" ? "완료된 업무가 없습니다."
+    : "진행중인 업무가 없습니다. [＋ 일정에서 추가] 또는 [＋ 직접 작성]으로 등록하세요.";
+  document.getElementById("wtbody").parentElement.style.display = list.length ? "" : "none";
+}
+document.getElementById("wtbody").addEventListener("click", e=>{
+  const tr = e.target.closest("tr[data-wid]"); if(!tr) return;
+  const w = works.find(x=>x.id===tr.dataset.wid); if(!w) return;
+  wSel = w.id;
+  if(e.target.closest("[data-wstart]")){ setWorkField(w, "시작", nowDt(), "업무 시작"); fillWorkForm(w); return; }
+  if(e.target.closest("[data-wdone]")){
+    if(setWorkField(w, "완료", nowDt(), "업무 완료"))
+      toast(`업무 완료: ${w["제목"]||"(제목 없음)"} · ${fmtDur(dtMs(w["완료"])-dtMs(w["시작"]))||"0분"}`, "ok");
+    fillWorkForm(w); return;
+  }
+  fillWorkForm(w); renderWork();
+});
+/* 진행 중 소요시간 30초마다 갱신 */
+setInterval(()=>{ if(!wwrap.hidden) renderWork(); }, 30000);
+
+/* ── 오른쪽 편집 폼 ── */
+function fillWorkForm(w){
+  document.getElementById("wPick").hidden = true;
+  document.getElementById("wSideEmpty").hidden = !!w;
+  document.getElementById("wForm").hidden = !w;
+  if(!w) return;
+  wfTitle.value = w["제목"]||""; wfStatus.value = w["상태"]; wfPri.value = w["우선순위"];
+  wfStart.value = dtToInput(w["시작"]); wfEnd.value = dtToInput(w["완료"]);
+  wfDue.value = w["완료예정"]||""; wfProg.value = w["진척"]||0; wfProgV.textContent = (w["진척"]||0)+"%";
+  wfReq.value = w["요청자"]||""; wfLink.value = w["링크"]||"";
+  wfNext.value = w["다음할일"]||""; wfMemo.value = w["메모"]||"";
+  const i = workRowIdx(w), el = document.getElementById("wLinked");
+  if(w.src==="row"){
+    el.innerHTML = i>=0
+      ? `🔗 연결된 일정: <b>${esc(histRowName(data[i], i))}</b> · ${esc(data[i]["상세구분"]||"-")}`
+        + `<button class="btn" onclick="gotoWorkRow()">표에서 보기</button>`
+      : `🔗 연결된 일정을 찾을 수 없습니다 (삭제됐거나 CODE/No가 바뀜)`;
+  }else el.innerHTML = `✏ 일정과 무관하게 직접 작성한 업무`;
+}
+document.getElementById("wForm").addEventListener("change", e=>{
+  const el = e.target.closest("[data-wf]"); if(!el) return;
+  const w = curWork(); if(!w) return;
+  const f = el.dataset.wf;
+  let v = el.value;
+  if(el.dataset.dt) v = inputToDt(v);
+  if(f==="진척") v = Number(v)||0;
+  if(["제목","요청자","링크"].includes(f)) v = v.trim();
+  setWorkField(w, f, v);
+});
+document.getElementById("wfProg").addEventListener("input", e=>{ wfProgV.textContent = e.target.value + "%"; });
+function wNow(field){
+  const w = curWork(); if(!w) return;
+  setWorkField(w, field, nowDt(), field==="시작" ? "업무 시작" : "업무 완료");
+}
+function wClearDt(field){
+  const w = curWork(); if(!w || !w[field]) return;
+  setWorkField(w, field, "", `${field}일시 지움`);
+}
+function wStampMemo(){
+  const w = curWork(); if(!w) return;
+  const cur = wfMemo.value;
+  const val = cur + (cur && !cur.endsWith("\n") ? "\n" : "") + `[${nowDt()}] `;
+  setWorkField(w, "메모", val, "진행 기록 추가");
+  wfMemo.focus();
+  wfMemo.setSelectionRange(wfMemo.value.length, wfMemo.value.length);
+}
+function gotoWorkRow(){
+  const i = workRowIdx(curWork()); if(i<0) return;
+  closeWork();
+  if(view!=="table") setView("table");
+  gotoRow(i);
+}
+function delWork(){
+  const w = curWork(); if(!w) return;
+  if(!confirm(`진행중업무에서 삭제할까요?\n${w["제목"]||"(제목 없음)"}\n(원본 일정은 지워지지 않습니다)`)) return;
+  works = works.filter(x=>x.id!==w.id); wSel = null;
+  markDirty("진행중업무 삭제");
+  fillWorkForm(null); renderWork(); updateWorkCount();
+}
+
+/* ── 추가: 직접 작성 / 일정에서 ── */
+function newFreeWork(){
+  const w = normWork({"상태":"대기"});
+  works.push(w); wSel = w.id;
+  if(wFilter==="done") setWFilter("on"); else renderWork();
+  fillWorkForm(w);
+  wfTitle.focus();
+}
+function addWorkFromRow(i, start){
+  const r = data[i]; if(!r) return null;
+  const ref = rowRef(r);
+  const dup = works.find(w=>w["상태"]!=="완료" && sameRef(w.ref, ref));
+  if(dup) return dup;                                   // 이미 진행중이면 새로 만들지 않음
+  const w = normWork({ref, "제목": evTitle(r), "상태": start ? "진행" : "대기",
+    "우선순위": r.imp ? "상" : "중",
+    "완료예정": r["개발완료예정"] || "",
+    "요청자": r["요청"] || "",
+    "링크": /^https?:\/\//.test(String(r.CODE??"")) ? r.CODE : ""});
+  if(start) w["시작"] = nowDt();
+  works.push(w);
+  return w;
+}
+function openWorkPick(){
+  document.getElementById("wSideEmpty").hidden = true;
+  document.getElementById("wForm").hidden = true;
+  document.getElementById("wPick").hidden = false;
+  wPickQ.value = "";
+  renderWorkPick();
+  wPickQ.focus();
+}
+function renderWorkPick(){
+  const q = wPickQ.value.trim().toLowerCase();
+  const active = works.filter(w=>w["상태"]!=="완료" && w.ref);
+  const out = [];
+  for(let i=0;i<data.length;i++){
+    const r = data[i];
+    if(!String(r["제목"]??"").trim()) continue;
+    if(String(r["상세구분"]??"").trim()==="완료") continue;
+    if(q && !["제목","CODE","No","개발자","요청","PROJECT"].some(c=>String(r[c]??"").toLowerCase().includes(q))) continue;
+    if(active.some(w=>sameRef(w.ref, rowRef(r)))) continue;
+    out.push(i);
+  }
+  out.sort((a,b)=> (data[b].imp?1:0)-(data[a].imp?1:0)
+    || (toNum(data[a]["개발완료예정"]) ?? Infinity) - (toNum(data[b]["개발완료예정"]) ?? Infinity));
+  const CAP = 100, h = [];
+  for(const i of out.slice(0, CAP)){
+    const r = data[i], st = String(r["상세구분"]??"").trim();
+    h.push(`<div class="w-pick-item" data-wpick="${i}" title="${esc(r["제목"])}">
+      ${STATUS_BADGE.has(st)?`<span class="badge b-${st}">${esc(st)}</span>`:""}
+      <span class="wp-no">${r.imp?"★ ":""}${esc(r.No??"")}</span>
+      <span class="wp-t">${esc(evTitle(r))}</span>
+      <span class="wp-d">${r["개발완료예정"]?esc(fmtY(r["개발완료예정"])):""}</span></div>`);
+  }
+  if(out.length > CAP) h.push(`<div class="fp-more" style="padding:6px 10px">…${out.length}건 중 ${CAP}건만 표시 · 검색으로 좁혀보세요</div>`);
+  if(!out.length) h.push(`<div class="fp-more" style="padding:14px 10px">추가할 수 있는 일정이 없습니다 (완료·이미 진행중 제외)</div>`);
+  document.getElementById("wPickList").innerHTML = h.join("");
+}
+document.getElementById("wPickQ").addEventListener("input", ()=>renderWorkPick());
+document.getElementById("wPickList").addEventListener("click", e=>{
+  const it = e.target.closest("[data-wpick]"); if(!it) return;
+  const before = works.length;
+  const w = addWorkFromRow(+it.dataset.wpick, wPickStart.checked);
+  if(!w) return;
+  wSel = w.id;
+  if(works.length > before){
+    markDirty("진행중업무 추가");
+    toast(`진행중업무에 추가: ${w["제목"]}`, "ok");
+  }
+  if(wFilter==="done") setWFilter("on"); else renderWork();
+  updateWorkCount();
+  renderWorkPick();                                      // 여러 건 연속 추가 가능하도록 목록 유지
+});
+/* 표에서 체크한 행 → 진행중업무 */
+function bulkToWork(){
+  if(!selected.size) return;
+  let added = 0, dup = 0;
+  for(const i of [...selected].sort((a,b)=>a-b)){
+    const before = works.length;
+    const w = addWorkFromRow(i, document.getElementById("wPickStart").checked);
+    if(works.length > before) added++; else if(w) dup++;
+  }
+  if(added) markDirty(`진행중업무 ${added}건 추가`);
+  selected.clear(); render();
+  toast(`진행중업무 ${added}건 추가${dup?` · 이미 진행중 ${dup}건 제외`:""}`, "ok");
+  openWork();
+}
+
+/* ── 엑셀 시트 ── */
+const WORK_XLS_HDR = ["출처","연결CODE","연결No","제목","상태","우선순위","시작","완료","소요","완료예정","진척","요청자","링크","다음할일","메모"];
+function workSheet(){
+  const rows = works.map(w=>{
+    const s = dtMs(w["시작"]), e = dtMs(w["완료"]);
+    const o = {"출처": w.src==="row"?"일정":"직접", "연결CODE": w.ref?w.ref.CODE:"", "연결No": w.ref?w.ref.No:"",
+               "소요": (s!=null && e!=null) ? fmtDur(e-s) : ""};
+    for(const c of WORK_COLS) o[c] = w[c] ?? "";
+    return o;
+  });
+  const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [Object.fromEntries(WORK_XLS_HDR.map(h=>[h,""]))], {header:WORK_XLS_HDR});
+  if(!rows.length) XLSX.utils.sheet_add_aoa(ws, [WORK_XLS_HDR], {origin:"A1"});
+  ws["!cols"] = [{wch:5},{wch:24},{wch:7},{wch:40},{wch:6},{wch:6},{wch:17},{wch:17},{wch:12},{wch:11},{wch:6},{wch:9},{wch:30},{wch:30},{wch:50}];
+  return ws;
+}
+
 render();
 cntMeet.textContent = upcomingMeetings().length ? ` ${upcomingMeetings().length}` : "";
+updateWorkCount();
 resetHistory();
 fillBulkColOptions();
 restoreSettings();

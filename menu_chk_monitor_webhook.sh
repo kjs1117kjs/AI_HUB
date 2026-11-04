@@ -1,4 +1,5 @@
 #!/bin/bash
+umask 077
 # =============================================
 # FN_GET_MENU_CHK_YN / YN2 실시간 누적 모니터 + 두레이 + 백오피스 웹훅 동시 전송
 # + 로그인 시도 실시간 모니터
@@ -11,6 +12,9 @@
 #   · 날짜 전환 루프 / FIFO / TAIL_PID / AWK_PID / LOGIN_AWK_FILE 전부 제거
 #   · catalina.out은 rotate 없이 계속 append되므로 날짜 자정 전환 문제 없음
 #   · 재시작 시 복잡한 파일 대기 로직 불필요
+# ▶ v3 (2026-09-23) 조회건수 집계에 URL별 건수(URLD) 추가
+#   · 사용자별 5분 메시지 마지막에 "| URLD:url=총/실,url=총/실" 필드 추가 (행 수·웹훅 호출 수 불변)
+#   · YN 호출(URL 없음)은 NOURL, CHK_URL_MAX 초과분은 ETC 버킷 → 버킷 합 = D_TOT
 # 실행: bash menu_chk_monitor_webhook.sh
 # 종료: Ctrl+C
 # =============================================
@@ -22,23 +26,79 @@ CATALINA_LOGS=(
 )
 
 # ── 메뉴권한체크 설정 ──
-THRESHOLD=100       # 10분 슬라이딩 윈도우 임계치
+THRESHOLD=200       # 10분 슬라이딩 윈도우 임계치
 TOP_N=10            # 터미널 표시 최대 아이디 수
 WINDOW_SEC=600      # 슬라이딩 윈도우 (10분)
 ALERT_COOL=300      # 같은 아이디 재알림 쿨타임 (5분)
 
 # ── 로그인 설정 ──
-LOGIN_THRESHOLD=50    # 당일 누적 강조 임계치
+LOGIN_THRESHOLD=100   # 당일 누적 강조 임계치
 LOGIN_SEND_SEC=60     # 웹훅 전송 주기 (1분)
 LOGIN_DOORAY_COOL=300 # 두레이 재알림 쿨타임 (초)
 
-# ── [추가] Oracle 오류(ORA-xxxxx) 감시 설정 ──
+# ══════════════════════════════════════════════════════════════════
+# ── USER_ID 별 조회건수 집계 설정 ──
+#   "메뉴권한체크(FN_GET_MENU_CHK_YN / YN2) 호출 = 조회 1건" 으로 간주하고
+#   로그인 시도 집계와 동일하게 "일자 + USER_ID" 기준 당일 누적으로 쌓는다.
+#     · 총건수(TOT)  : 메뉴권한체크 호출 전체
+#     · 예외건수(EXC): 아래 제외 URL(메인/콤보/트리 등 화면 진입 부수 호출)에 해당하는 건
+#     · 실건수(REAL) : 총건수 - 예외건수  ← 실제 사용자가 "조회" 한 것으로 보는 수치
+#   전송: 웹훅만 (두레이 알림 없음) → TB_MONITOR_ALARM 누적
+#   ALARM_TITLE : "[서버] 조회건수 집계"
+#   ALARM_MSG   : COLLECT_DT:.. | SEND_DT:.. | DATE:yyyymmdd | USER:.. |
+#                 TOT:n | EXC:n | REAL:n | D_TOT:n | D_EXC:n | D_REAL:n |
+#                 YN:n | YN2:n | IP:마지막IP | IP_CNT:당일IP종류수 | IPS:구간IP목록 |
+#                 IPD:ip=총건수/실건수,ip=총건수/실건수 | FIRST:.. | LAST:.. | WIN:초 |
+#                 URLD:url=총건수/실건수,url=총건수/실건수
+#   IPD  버킷 규칙: IP 파라미터가 없는 YN 호출은 "NOIP", 서로 다른 IP 가 CHK_IP_MAX 를
+#                  넘으면 초과분은 "ETC" 로 합산 → 버킷 건수의 합 = D_TOT (항상 정합)
+#   URLD 버킷 규칙: URL 이 없는 YN 호출은 "NOURL", 서로 다른 URL 이 CHK_URL_MAX 를
+#                  넘으면 초과분은 "ETC" 로 합산 → 버킷 건수의 합 = D_TOT (항상 정합)
+#                  URL 은 쿼리스트링·스킴/호스트 제거 후 집계. 예외 URL 도 총건수엔 포함(실건수 0)
+#   ※ TOT/EXC/REAL = 당일 누적(프로세스 기동 이후), D_* = 직전 전송 이후 증가분.
+#     쿼리에서는 D_* 합계를 쓰는 것이 재기동/멀티 WAS 에도 안전하다.
+CHK_SEND_SEC=300     # 웹훅 전송 주기 (초) — 기본 5분. 로그인(1분)보다 길게 잡아 알람테이블 폭증 방지
+CHK_MIN_DELTA=1      # 직전 전송 이후 증가분이 이 값 미만이면 전송 생략 (0건 유저 재전송 방지)
+CHK_IP_MAX=10        # IPS/IPD 에 개별 표기할 최대 IP 개수 (초과분은 "ETC" 버킷으로 합산)
+CHK_URL_MAX=20       # URLD 에 개별 표기할 최대 URL 개수 (초과분은 "ETC" 버킷으로 합산)
+                     #   URL 1개 ≈ 60~80자 → 20개면 약 1,400자. ALARM_MSG 가 VARCHAR2(4000)이면 여유.
+
+# 제외 URL — ① 완전일치 목록
+#   ※ 원문 요건의 "AND URL IN (...) AND URL LIKE ..." 는 동시 만족이 불가능하므로
+#     OR 조건(= 목록 중 하나라도 일치하면 예외)으로 해석해 구현함.
+#   ※ etc050_01.jsp 의 CHK_EXC_EQ / CHK_EXC_PRE 와 반드시 동일하게 유지할 것
+CHK_EXC_URL_EQ_LIST=(
+    "/main.sb"
+    "/popup/getProdClassTree.sb"
+    "/common/getComboData.sb"
+    "/mobile/menu/menuList.sb"
+    "/mobile/main.sb"
+    "/adi/sms/sendStatus/cmmMainTopSmsSend/getCmmMainTopStoreCount.sb"
+    "/store/manage/storeManage/storeManage/getHqNmcodeComboList.sb"
+    "/common/getDeployNoticeStatus.sb"
+    "/sale/moms/prodSaleDayStoreMoms/prodSaleDayStoreMoms/getDivisionExcelDownloadSaveUpdate.sb"
+)
+# 제외 URL — ② 앞자리 일치(LIKE 'xxx%') 목록
+CHK_EXC_URL_PREFIX_LIST=(
+    "/application/main"
+    "/sale/main/mainContext"
+    "/base/prod"
+    "/mobile/application/main"
+    "/common/popup/selectStore"
+)
+# 배열 → 콤마 결합 문자열 (awk 전달용)
+CHK_EXC_URL_EQ="$(IFS=,; printf '%s' "${CHK_EXC_URL_EQ_LIST[*]}")"
+CHK_EXC_URL_PRE="$(IFS=,; printf '%s' "${CHK_EXC_URL_PREFIX_LIST[*]}")"
+# ══════════════════════════════════════════════════════════════════
+
+# ── Oracle 오류(ORA-xxxxx) 감시 설정 ──
 #   대상: catalina.out 안의 예외 스택트레이스에 포함된 ORA-xxxxx (대소문자 무관)
 #   블록 단위로 첫 ORA- 1건만 채택 (같은 예외가 Cause/nested 등으로 3~4회 반복 출력되므로 중복 제거)
 #   전송: 즉시(실시간) — 단, 같은 (코드+아이디) 조합은 쿨타임 내 재알림 안 함
 ORAERR_COOL=60   # 같은 오류(코드+아이디) 재알림 쿨타임 (초)
+OOM_COOL=300     # 같은 WAS+오류 유형 재알림 쿨타임 (초)
 
-# ── [추가] 현재메뉴 불일치(_menu_check_err_) 감시 설정 ──
+# ── 현재메뉴 불일치(_menu_check_err_) 감시 설정 ──
 #   대상 로그 라인 2종:
 #     _menu_check_err_<user>,<YYYYMMDDHHMMSS>,접근URL:<url>      (최근접속메뉴와 현재메뉴 불일치)
 #     _menu_check_err_<user>,<YYYYMMDDHHMMSS>,accessMenu:<url>   (메뉴 접근 없이 조회)
@@ -79,7 +139,7 @@ if [ ${#EXIST_LOGS[@]} -eq 0 ]; then
     exit 1
 fi
 
-# ── [추가] 로그인 당일 누적 복원용 시드 파일 목록 ──
+# ── 로그인 당일 누적 복원용 시드 파일 목록 ──
 #   재시작/자정전환 시 tail -F 는 파일 끝부터 읽으므로 그날 이전 누적이 사라진다.
 #   AuthController 가 카탈리나와 별도로 계속 쓰는 LOGIN_CHK_LOG_YYYYMMDD.OUT(당일 파일)을
 #   기동 시 한 번 훑어 login_cnt 를 복원한다. 파일이 없어도(=오늘 로그인 0) 조용히 건너뜀.
@@ -96,6 +156,7 @@ echo "[시작] 서버: ${SERVER_NM}"
 echo "[메뉴권한체크] 임계치: ${THRESHOLD}회 | 윈도우: $((WINDOW_SEC/60))분 | 쿨타임: $((ALERT_COOL/60))분"
 echo "[로그인] 임계치(강조): ${LOGIN_THRESHOLD}건 | 전송주기: $((LOGIN_SEND_SEC/60))분 | 과다시도 두레이 알림: 미전송(웹훅만)"
 echo "[현재메뉴불일치] 대상ID: ${MENUERR_USER_IDS} | 전송조건: 아이디매칭(URL무관) | 전송주기: $((LOGIN_SEND_SEC/60))분"
+echo "[조회건수] 기준: 메뉴권한체크(YN/YN2) 호출 | 일자+USER_ID 당일누적 | 전송주기: $((CHK_SEND_SEC/60))분 | 최소증가분: ${CHK_MIN_DELTA}건 | 제외URL: 완전일치 ${#CHK_EXC_URL_EQ_LIST[@]}개 / 앞자리일치 ${#CHK_EXC_URL_PREFIX_LIST[@]}개 | IP표기: 최대 ${CHK_IP_MAX}개 | URL표기: 최대 ${CHK_URL_MAX}개 | 알림: 웹훅만(두레이 미전송)"
 echo "[Oracle오류] 패턴: ORA-nnnnn(대소문자무관) | 전송: 즉시(블록당 1건) | 쿨타임: ${ORAERR_COOL}초 | Login Blocked: Security Violation → 두레이 제외(웹훅만)"
 echo "[로그파일] ${EXIST_LOGS[*]}"
 echo "[로그인시드] ${#LOGIN_SEED_FILES[@]}개 파일: ${LOGIN_SEED_FILES[*]:-(없음, 0부터 시작)}"
@@ -135,7 +196,7 @@ export DOORAY_URL DOORAY_URL_ER WEBHOOK_URL WEBHOOK_TOKEN SERVER_NM
 WEBHOOK_LOGFILE="${WEBHOOK_LOGFILE:-/dev/null}"
 export WEBHOOK_LOGFILE
 
-# ── [변경] 웹훅 로그 파일을 날짜별로 자동 분리 ──
+# ── 웹훅 로그 파일을 날짜별로 자동 분리 ──
 #   기존: WEBHOOK_LOGFILE(고정 경로)을 프로세스 시작 시 1회 캡처 → 자정이 지나도
 #         재시작 전까지 계속 어제 파일에 기록됨(그래서 매일 00:40 재시작으로 굴려왔음).
 #   변경: "디렉터리 + 접두어"만 넘기고, 실제 파일명은 awk 내부에서 기록할 때마다
@@ -158,15 +219,12 @@ echo "[웹훅로그] 디렉터리: ${_WH_LOG_DIR} | 파일: ${_WH_LOG_PREFIX}YYY
 #   · 로그인시도   : _login_chk_log_ 패턴 — 당일 누적, 1분 주기 웹훅 전송
 #   · tail 하나 → awk 하나 → 두 로직 동시 처리 (리소스 최소화)
 # ══════════════════════════════════════════════════════════════════
-# ── [변경] tail + 하트비트를 하나의 스트림으로 awk 에 공급 ──
-#   기존: 1분 전송 타이머가 "새 로그 라인이 들어올 때만" 체크됨 → 새벽 등 조용한 시간엔
-#         집계 전송이 지연/누락됨. __HEARTBEAT__ 라인을 10초마다 주입해 타이머가 항상 돌게 한다.
+# ── tail + 하트비트를 하나의 스트림으로 awk 에 공급 ──
+#   1분 전송 타이머가 "새 로그 라인이 들어올 때만" 체크되면 새벽 등 조용한 시간엔
+#   집계 전송이 지연/누락됨. __HEARTBEAT__ 라인을 10초마다 주입해 타이머가 항상 돌게 한다.
 #   (하트비트 라인은 메뉴/로그인 어떤 패턴에도 매칭되지 않고, 타이머 블록만 깨운다.)
-# ── [추가] 터미널 대시보드 출력 여부 판단 ──
+# ── 터미널 대시보드 출력 여부 판단 ──
 #   stdout이 실제 터미널(tty)일 때만 clear+현황판을 찍는다.
-#   nohup/파일 리다이렉트(webhook_ctl.sh start 등)로 실행되면 매 매칭 라인마다
-#   풀스크린 프레임이 그대로 로그 파일에 append되어 디스크/CPU만 낭비하고
-#   tail -f로 봐도 스크롤이 너무 빨라 실질적으로 못 읽는다 → tty가 아니면 스킵.
 if [ -t 1 ]; then IS_TTY=1; else IS_TTY=0; fi
 echo "[대시보드] stdout tty 여부: $([ "$IS_TTY" = 1 ] && echo '터미널(출력함)' || echo '파일/파이프(생략함, 알림은 webhook_monitor_*.log 로 계속 기록)')"
 
@@ -186,6 +244,13 @@ echo "[대시보드] stdout tty 여부: $([ "$IS_TTY" = 1 ] && echo '터미널(�
     -v menuerr_ids="$MENUERR_USER_IDS" \
     -v menuerr_urls="$MENUERR_URLS" \
     -v oraerr_cool="$ORAERR_COOL" \
+    -v oom_cool="$OOM_COOL" \
+    -v chk_send_sec="$CHK_SEND_SEC" \
+    -v chk_min_delta="$CHK_MIN_DELTA" \
+    -v chk_ip_max="$CHK_IP_MAX" \
+    -v chk_url_max="$CHK_URL_MAX" \
+    -v chk_exc_eq="$CHK_EXC_URL_EQ" \
+    -v chk_exc_pre="$CHK_EXC_URL_PRE" \
     -v log_dir="$_WH_LOG_DIR" \
     -v log_prefix="$_WH_LOG_PREFIX" \
     -v is_tty="$IS_TTY" \
@@ -198,7 +263,7 @@ echo "[대시보드] stdout tty 여부: $([ "$IS_TTY" = 1 ] && echo '터미널(�
 function do_login_send(    k, collect_dt, now, send_dt,
                            kp, s_succ, s_err1, s_err2, s_err3, s_err4, s_err5, err_tot,
                            wh_title, wh_msg, cfg, sh, sent_cnt,
-                           cur_tot, err_a, log_over, sh_opened) {
+                           cur_tot, err_a, log_over, sh_opened, safe_id) {
     now        = systime()
     collect_dt = strftime("%Y%m%d%H%M%S", now)
     send_dt    = strftime("%Y-%m-%d %H:%M:%S", now)
@@ -230,7 +295,8 @@ function do_login_send(    k, collect_dt, now, send_dt,
                            s_succ, s_err1, s_err2, s_err3, s_err4, s_err5, err_tot,
                            login_first[k], login_last[k])
 
-        cfg = sprintf("/tmp/.lgin_cfg_%s_%d.cfg", kp[2], now)
+        safe_id = kp[2]; gsub(/[^A-Za-z0-9]/, "_", safe_id)
+        cfg = sprintf("/tmp/.lgin_cfg_%s_%d_%d.cfg", safe_id, sent_cnt, now)
         print "url = \"" wh_url "\""                            > cfg
         print "header = \"X-Webhook-Token: " wh_token "\""    >> cfg
         print "data-urlencode = \"alarm_title=" wh_title "\""  >> cfg
@@ -242,9 +308,7 @@ function do_login_send(    k, collect_dt, now, send_dt,
         login_prev[k] = cur_tot
         sent_cnt++
 
-        # ── [변경] 로그인 과다시도 두레이 알림 제거 ──
-        #   임계치(login_thr) 초과 시 두레이(DOORAY_URL_ER)로 보내던 알림을 전송하지 않음.
-        #   백오피스 웹훅 집계 전송은 위에서 그대로 유지되며, 초과 여부는 웹훅 로그로만 기록.
+        # ── 로그인 과다시도: 두레이 미전송, 웹훅 로그로만 기록 ──
         if (cur_tot >= login_thr) {
             if (!(k in login_alerted) || (now - login_alerted[k]) >= login_dooray_cool) {
                 login_alerted[k] = now
@@ -272,10 +336,9 @@ function do_login_send(    k, collect_dt, now, send_dt,
 }
 
 # ════════════════════════════════════════════════════════
-# [추가] 현재메뉴 불일치 집계 전송 함수 (1분 주기, 로그인 집계와 동일 타이머)
+# 현재메뉴 불일치 집계 전송 함수 (1분 주기, 로그인 집계와 동일 타이머)
 #   · 키: 1분구간(YYYYMMDDHHMM) SUBSEP 사용자ID SUBSEP URL — 1분 구간별 건수
 #   · 변경분(diff)만 전송 — menuerr_prev 와 비교해 변경된 키만 웹훅
-#   · 임시 sh 파일로 curl 병렬 실행 → awk 블로킹 최소화 (로그인 집계와 동일 구조)
 # ════════════════════════════════════════════════════════
 function do_menuerr_send(    k, kp, now, collect_dt, send_dt,
                              wh_title, wh_msg, cfg, sh, sent_cnt,
@@ -303,7 +366,6 @@ function do_menuerr_send(    k, kp, now, collect_dt, send_dt,
                            collect_dt, send_dt, substr(kp[1], 1, 8), kp[1], kp[2], kp[3], cur,
                            menuerr_first[k], menuerr_last[k])
 
-        # cfg 파일명: 사용자ID(영숫자 외 치환) + 순번 + 시각 — 같은 초 내 다건도 충돌 없음
         safe_id = kp[2]; gsub(/[^A-Za-z0-9]/, "_", safe_id)
         cfg = sprintf("/tmp/.mnuerr_cfg_%s_%d_%d.cfg", safe_id, sent_cnt, now)
         print "url = \"" wh_url "\""                           > cfg
@@ -332,19 +394,287 @@ function do_menuerr_send(    k, kp, now, collect_dt, send_dt,
 }
 
 # ════════════════════════════════════════════════════════
-# [추가] Oracle 오류(ORA-xxxxx) 전송 — 후보 저장 + 블록 마감 시 확정 전송
-#   · store_ora_candidate: 블록 안 ORA- 매칭 라인마다 호출. 지금까지 저장된 것보다 메시지가
-#     더 길면(더 완전하면) 교체 — 버퍼 분할로 짤린 줄이 먼저 잡혀도 뒤에 완전한 줄이 나오면 대체됨
-#   · close_ora_block: 블록이 끝나는 시점(다음 타임스탬프 라인 도달)에 호출, 그 블록의 최종 후보 1건 전송
-#   · dedupe 키는 "코드"만 사용(사용자 무관) — 같은 오류를 서로 다른 로거가 각각 찍어
-#     블록이 2개로 나뉘어도(사용자ID가 다르게 잡히거나 하나는 "-" 로 잡혀도) 쿨타임 안이면 1번만 전송
-#   · 두레이는 에러 채널(DOORAY_URL_ER), 웹훅은 기존 "Oracle Job 오류 감지" 포맷과 동일하게
-#     (10분 배치 잡 send_dooray.sh 가 쌓아온 데이터와 같은 화면에서 보이도록 포맷 통일)
-#   · 전송은 로그인집계/현재메뉴불일치와 동일하게 "임시 sh파일 + system(\"bash 파일 &\")" 방식 사용.
-#     system(\"함수명 ...\")으로 exported bash 함수를 직접 부르는 방식은 system()이 내부적으로
-#     /bin/sh 를 쓰기 때문에(서버의 /bin/sh 가 dash 등 bash가 아니면) 조용히 실패할 수 있어 지양.
-#     ENVIRON["DOORAY_URL_ER"] 로 URL을 직접 읽어 curl 커맨드를 파일에 쓰고 "bash 파일"로 명시 실행하면
-#     쉘 종류와 무관하게 항상 동작 — 로그인 과다시도 두레이 알림(위 do_login_send)과 동일한 검증된 패턴.
+# 조회건수 — 제외 URL 판정
+#   · 쿼리스트링(?이후) 제거 후 판정
+#   · 완전일치 목록(chk_exc_eq_set) 또는 앞자리일치 목록(chk_exc_pre_a) 중 하나라도 걸리면 예외
+# ════════════════════════════════════════════════════════
+function chk_is_exc(url,    u, i) {
+    if (url == "") return 0
+    u = url
+    sub(/\?.*$/, "", u)
+    if (u in chk_exc_eq_set) return 1
+    for (i = 1; i <= chk_exc_pre_n; i++) {
+        if (index(u, chk_exc_pre_a[i]) == 1) return 1
+    }
+    return 0
+}
+
+# ════════════════════════════════════════════════════════
+# 조회건수 — 메뉴권한체크 1건을 당일 누적에 반영
+#   키: 일자(YYYYMMDD) SUBSEP USER_ID  (로그인 집계와 동일한 키 구조)
+#   · 총건수 : YN + YN2 전부 (제외 URL 포함 — "몇 번 호출했나" 그대로)
+#   · 예외건수: YN2 이면서 제외 URL 인 건
+#   · YN 은 URL 파라미터가 없어(2번째 인자가 컬럼명) 예외 판정 불가 → 항상 실건수로 집계
+# ════════════════════════════════════════════════════════
+function chk_collect(user, fn, url, ip, fmt_now,    day, ckey, ikey, bkey, isexc, bucket,
+                                                  u, ubucket, ukey) {
+    if (user == "" || user ~ /[ \t,]/) return
+    day = substr(fmt_now, 1, 4) substr(fmt_now, 6, 2) substr(fmt_now, 9, 2)
+    if (length(day) != 8 || day !~ /^[0-9]{8}$/) day = strftime("%Y%m%d", systime())
+
+    ckey  = day SUBSEP user
+    isexc = (fn == "YN2" && chk_is_exc(url)) ? 1 : 0
+
+    chk_tot[ckey]++
+    if (fn == "YN2") {
+        chk_yn2[ckey]++
+        if (isexc) chk_exc[ckey]++
+    } else {
+        chk_yn[ckey]++
+    }
+    if (!(ckey in chk_first)) chk_first[ckey] = fmt_now
+    chk_last[ckey] = fmt_now
+
+    # ══════════════════════════════════════════════════════════════
+    # IP 별 집계
+    #   · YN2 만 IP 파라미터를 가짐. YN(=IP 없음)은 "NOIP" 버킷으로 모아
+    #     IP별 건수의 합 = 전체 건수 가 되도록 맞춘다(누락 없이 정합).
+    #   · 서로 다른 IP 가 chk_ip_max 개를 넘으면 초과분은 "ETC" 버킷으로 합산.
+    #   · 버킷별 건수는 "이번 전송 구간"의 증가분 — 전송 시 초기화된다.
+    # ══════════════════════════════════════════════════════════════
+    bucket = "NOIP"
+    if (fn == "YN2" && ip != "" && ip != "-") {
+        gsub(/^[ \t]+|[ \t]+$/, "", ip)
+        gsub(/[,=\/|]/, ".", ip)          # 메시지 구분자(, = / |) 방어
+        if (ip != "") {
+            chk_ip[ckey] = ip
+            ikey = ckey SUBSEP ip
+            if (!(ikey in chk_ipall)) { chk_ipall[ikey] = 1; chk_ipn[ckey]++ }
+
+            if (index("," chk_ipl[ckey] ",", "," ip ",") > 0) {
+                bucket = ip
+            } else if (chk_ipl_n[ckey] < chk_ip_max) {
+                bucket = ip
+            } else {
+                bucket = "ETC"
+            }
+        }
+    }
+
+    if (index("," chk_ipl[ckey] ",", "," bucket ",") == 0) {
+        chk_ipl[ckey]   = (chk_ipl[ckey] == "") ? bucket : chk_ipl[ckey] "," bucket
+        chk_ipl_n[ckey]++
+    }
+
+    bkey = ckey SUBSEP bucket
+    chk_ipt[bkey]++                       # 버킷 총건수
+    if (!isexc) chk_ipr[bkey]++           # 버킷 실건수(예외 제외)
+
+    # ══════════════════════════════════════════════════════════════
+    # [v3] URL 별 집계 — IPD 와 동일 규칙
+    #   · YN2 만 URL 을 가짐. YN(URL 없음)은 "NOURL" 버킷 → 합계 = D_TOT
+    #   · 쿼리스트링·스킴/호스트 제거, 메시지 구분자(| , =) 제거 ("/" 는 URL 이므로 유지)
+    #   · 서로 다른 URL 이 chk_url_max 를 넘으면 초과분은 "ETC"
+    #   · 버킷 건수는 "이번 전송 구간" 증가분 — 전송 시 초기화
+    #   · 예외 URL 도 총건수엔 포함되고 실건수는 0 → 화면에서 예외 표기 가능
+    # ══════════════════════════════════════════════════════════════
+    ubucket = "NOURL"
+    if (fn == "YN2" && url != "" && url != "-") {
+        u = url
+        sub(/\?.*$/, "", u)                           # 쿼리스트링 제거
+        sub(/^[A-Za-z]+:\/\/[^\/]+/, "", u)           # http://host 제거
+        gsub(/^[ \t]+|[ \t]+$/, "", u)
+        gsub(/[|,=]/, ".", u)                         # 메시지 구분자 방어
+        if (length(u) > 120) u = substr(u, 1, 120)    # 비정상 긴 URL 방어
+        if (u != "") {
+            if (index("," chk_ul[ckey] ",", "," u ",") > 0) {
+                ubucket = u
+            } else if (chk_ul_n[ckey] < chk_url_max) {
+                ubucket = u
+            } else {
+                ubucket = "ETC"
+            }
+        }
+    }
+
+    if (index("," chk_ul[ckey] ",", "," ubucket ",") == 0) {
+        chk_ul[ckey]   = (chk_ul[ckey] == "") ? ubucket : chk_ul[ckey] "," ubucket
+        chk_ul_n[ckey]++
+    }
+
+    ukey = ckey SUBSEP ubucket
+    chk_ut[ukey]++                        # URL 버킷 총건수
+    if (!isexc) chk_ur[ukey]++            # URL 버킷 실건수(예외 제외)
+}
+
+# ════════════════════════════════════════════════════════
+# 조회건수 집계 전송 함수 (CHK_SEND_SEC 주기)
+#   · 증가분(D_TOT)이 chk_min_delta 미만인 아이디는 스킵 → 변경분만 전송
+#   · 임시 sh + curl -K cfg 병렬 실행 (로그인/현재메뉴불일치와 동일 구조)
+#   · 두레이 전송 없음 — 백오피스 웹훅(TB_MONITOR_ALARM)만
+# ════════════════════════════════════════════════════════
+function do_chk_send(    k, kp, now, collect_dt, send_dt,
+                         cur, prev, p_exc, exc, real, d_tot, d_exc, d_real,
+                         yn, yn2, ip_last, ip_cnt, ip_win, ip_det,
+                         bn, bkts, bi, bb, bt, br,
+                         un, ubkts, ui, ub, ut, ur, url_det,
+                         wh_title, wh_msg, cfg, sh, sent_cnt,
+                         sh_opened, safe_id, log_line) {
+    now        = systime()
+    collect_dt = strftime("%Y%m%d%H%M%S", now)
+    send_dt    = strftime("%Y-%m-%d %H:%M:%S", now)
+    sent_cnt   = 0
+    sh         = sprintf("/tmp/.chkcnt_send_%d.sh", now)
+    sh_opened  = 0
+
+    for (k in chk_tot) {
+        cur   = chk_tot[k]
+        prev  = (k in chk_prev)     ? chk_prev[k]     : 0
+        d_tot = cur - prev
+        if (d_tot < chk_min_delta) continue
+
+        exc    = (k in chk_exc) ? chk_exc[k] : 0
+        yn     = (k in chk_yn)  ? chk_yn[k]  : 0
+        yn2    = (k in chk_yn2) ? chk_yn2[k] : 0
+        real   = cur - exc
+        p_exc  = (k in chk_prev_exc) ? chk_prev_exc[k] : 0
+        d_exc  = exc - p_exc
+        d_real = d_tot - d_exc
+
+        # ── IP 정보 ──
+        ip_last = (k in chk_ip)  ? chk_ip[k]  : "-"
+        ip_cnt  = (k in chk_ipn) ? chk_ipn[k] : 0
+        ip_win  = ((k in chk_ipl) && chk_ipl[k] != "") ? chk_ipl[k] : "-"
+        ip_det  = "-"
+        if (ip_win != "-") {
+            ip_det = ""
+            bn = split(chk_ipl[k], bkts, ",")
+            for (bi = 1; bi <= bn; bi++) {
+                bb = bkts[bi]
+                bt = (k SUBSEP bb) in chk_ipt ? chk_ipt[k SUBSEP bb] : 0
+                br = (k SUBSEP bb) in chk_ipr ? chk_ipr[k SUBSEP bb] : 0
+                ip_det = ip_det ((ip_det == "") ? "" : ",") sprintf("%s=%d/%d", bb, bt, br)
+            }
+            if (ip_det == "") ip_det = "-"
+        }
+
+        # ── [v3] URL 정보 ──  URLD : url=총건수/실건수,url=총건수/실건수  (NOURL / ETC 포함)
+        url_det = "-"
+        if ((k in chk_ul) && chk_ul[k] != "") {
+            url_det = ""
+            un = split(chk_ul[k], ubkts, ",")
+            for (ui = 1; ui <= un; ui++) {
+                ub = ubkts[ui]
+                ut = (k SUBSEP ub) in chk_ut ? chk_ut[k SUBSEP ub] : 0
+                ur = (k SUBSEP ub) in chk_ur ? chk_ur[k SUBSEP ub] : 0
+                url_det = url_det ((url_det == "") ? "" : ",") sprintf("%s=%d/%d", ub, ut, ur)
+            }
+            if (url_det == "") url_det = "-"
+        }
+
+        if (!sh_opened) {
+            print "#!/bin/sh" > sh
+            sh_opened = 1
+        }
+
+        split(k, kp, SUBSEP)   # kp[1]=일자(YYYYMMDD)  kp[2]=USER_ID
+
+        wh_title = sprintf("[%s] 조회건수 집계", server)
+        wh_msg   = sprintf("COLLECT_DT:%s | SEND_DT:%s | DATE:%s | USER:%s | TOT:%d | EXC:%d | REAL:%d | D_TOT:%d | D_EXC:%d | D_REAL:%d | YN:%d | YN2:%d | IP:%s | IP_CNT:%d | IPS:%s | IPD:%s | FIRST:%s | LAST:%s | WIN:%d | URLD:%s",
+                           collect_dt, send_dt, kp[1], kp[2],
+                           cur, exc, real, d_tot, d_exc, d_real,
+                           yn, yn2, ip_last, ip_cnt, ip_win, ip_det,
+                           chk_first[k], chk_last[k], chk_send_sec, url_det)
+
+        safe_id = kp[2]; gsub(/[^A-Za-z0-9]/, "_", safe_id)
+        cfg = sprintf("/tmp/.chkcnt_cfg_%s_%d_%d.cfg", safe_id, sent_cnt, now)
+        print "url = \"" wh_url "\""                           > cfg
+        print "header = \"X-Webhook-Token: " wh_token "\""    >> cfg
+        print "data-urlencode = \"alarm_title=" wh_title "\""  >> cfg
+        print "data-urlencode = \"alarm_msg=" wh_msg "\""      >> cfg
+        print "data-urlencode = \"src_system=" server "\""     >> cfg
+        close(cfg)
+        print "curl -s --connect-timeout 10 --max-time 15 -K " cfg " > /dev/null 2>&1 &" >> sh
+
+        chk_prev[k]     = cur
+        chk_prev_exc[k] = exc
+
+        # 이번 구간 IP 버킷 초기화 — 다음 구간은 새로 수집 (당일 누적 IP 종류수는 유지)
+        if ((k in chk_ipl) && chk_ipl[k] != "") {
+            bn = split(chk_ipl[k], bkts, ",")
+            for (bi = 1; bi <= bn; bi++) {
+                delete chk_ipt[k SUBSEP bkts[bi]]
+                delete chk_ipr[k SUBSEP bkts[bi]]
+            }
+        }
+        chk_ipl[k]   = ""
+        chk_ipl_n[k] = 0
+
+        # [v3] 이번 구간 URL 버킷 초기화 — 다음 구간은 새로 수집
+        if ((k in chk_ul) && chk_ul[k] != "") {
+            un = split(chk_ul[k], ubkts, ",")
+            for (ui = 1; ui <= un; ui++) {
+                delete chk_ut[k SUBSEP ubkts[ui]]
+                delete chk_ur[k SUBSEP ubkts[ui]]
+            }
+        }
+        chk_ul[k]   = ""
+        chk_ul_n[k] = 0
+
+        sent_cnt++
+    }
+
+    chk_purge()
+
+    if (!sh_opened) return
+
+    print "wait" >> sh
+    print "rm -f /tmp/.chkcnt_cfg_*_" now ".cfg" >> sh
+    print "rm -f " sh >> sh
+    close(sh)
+    system("bash " sh " &")
+
+    log_line = sprintf("[%s] [조회건수집계] 변경 %d명 전송 (집계시각: %s)",
+                       strftime("%Y-%m-%d %H:%M:%S"), sent_cnt, collect_dt)
+    wlog(log_line)
+}
+
+# ════════════════════════════════════════════════════════
+# 조회건수 — 오래된 일자 키 정리 (당일/전일만 유지, 메모리 무한증가 방지)
+# ════════════════════════════════════════════════════════
+function chk_purge(    k, kp, d0, d1) {
+    d0 = strftime("%Y%m%d", systime())
+    d1 = strftime("%Y%m%d", systime() - 86400)
+    for (k in chk_tot) {
+        split(k, kp, SUBSEP)
+        if (kp[1] != d0 && kp[1] != d1) {
+            delete chk_tot[k];      delete chk_exc[k]
+            delete chk_yn[k];       delete chk_yn2[k]
+            delete chk_first[k];    delete chk_last[k]
+            delete chk_prev[k];     delete chk_prev_exc[k]
+            delete chk_ip[k];       delete chk_ipn[k]
+            delete chk_ipl[k];      delete chk_ipl_n[k]
+            delete chk_ul[k];       delete chk_ul_n[k]
+        }
+    }
+    # IP 중복판정 셋 / 버킷 카운트도 같이 정리 (키 = 일자 SUBSEP USER_ID SUBSEP IP)
+    for (k in chk_ipall) {
+        split(k, kp, SUBSEP)
+        if (kp[1] != d0 && kp[1] != d1) delete chk_ipall[k]
+    }
+    for (k in chk_ipt) {
+        split(k, kp, SUBSEP)
+        if (kp[1] != d0 && kp[1] != d1) { delete chk_ipt[k]; delete chk_ipr[k] }
+    }
+    # [v3] URL 버킷 카운트 정리 (키 = 일자 SUBSEP USER_ID SUBSEP URL)
+    for (k in chk_ut) {
+        split(k, kp, SUBSEP)
+        if (kp[1] != d0 && kp[1] != d1) { delete chk_ut[k]; delete chk_ur[k] }
+    }
+}
+
+# ════════════════════════════════════════════════════════
+# Oracle 오류(ORA-xxxxx) 전송 — 후보 저장 + 블록 마감 시 확정 전송
 # ════════════════════════════════════════════════════════
 function store_ora_candidate(line,    low, pos, rest, code, msg) {
     low = tolower(line)
@@ -352,7 +682,6 @@ function store_ora_candidate(line,    low, pos, rest, code, msg) {
     if (pos == 0) return
     rest = substr(line, pos)
 
-    # 코드 추출: ORA- 뒤 숫자 (원본 표기 그대로 보존)
     if (match(rest, /^[Oo][Rr][Aa]-[0-9]+/)) {
         code = substr(rest, RSTART, RLENGTH)
         msg  = substr(rest, RLENGTH + 1)
@@ -362,9 +691,8 @@ function store_ora_candidate(line,    low, pos, rest, code, msg) {
     }
     sub(/^[: \t]+/, "", msg)
     gsub(/[ \t]+$/, "", msg)
-    if (length(msg) > 200) msg = substr(msg, 1, 200) "..."   # 메시지 과도한 길이 방지
+    if (length(msg) > 200) msg = substr(msg, 1, 200) "..."
 
-    # 이번 블록에서 처음 찾은 경우, 또는 이번 줄의 메시지가 지금까지 저장된 것보다 더 길면(더 완전하면) 교체
     if (!ora_has_match || length(msg) > length(ora_msg)) {
         ora_code      = code
         ora_msg       = msg
@@ -375,28 +703,18 @@ function store_ora_candidate(line,    low, pos, rest, code, msg) {
 function close_ora_block(    key, now, safe_msg, dooray_json, wh_title, wh_msg, cfg, sh, json, log_line, skip_dooray) {
     if (!ora_has_match) return
 
-    key = ora_code
+    key = ora_code SUBSEP ora_user
     now = systime()
     if ((key in oraerr_alerted) && (now - oraerr_alerted[key]) < oraerr_cool) return
     oraerr_alerted[key] = now
 
-    # Oracle 메시지에 흔한 "TABLE"."COLUMN" 같은 큰따옴표를 JSON 문자열 안에 그대로 넣으면 안 되므로
-    # JSON 표준 이스케이프 처리 (백슬래시 → 큰따옴표 순서로).
     safe_msg = ora_msg
     gsub(/\\/, "\\\\", safe_msg)
     gsub(/"/, "\\\"", safe_msg)
 
-    # ── [추가] "Login Blocked: Security Violation" 포함 시 두레이 전송 제외 ──
-    #   (계정 잠금 정책에 의한 정상 차단이므로 두레이 알림 불필요 — 백오피스 웹훅은 그대로 전송)
-    #   대소문자 무관 비교: 로거/DB 트리거 표기 차이에도 안전하게 매칭
+    # "Login Blocked: Security Violation" 포함 시 두레이 전송 제외 (웹훅은 전송)
     skip_dooray = (index(tolower(ora_msg), tolower("Login Blocked: Security Violation")) > 0)
 
-    # ── 두레이 JSON payload는 "파일에 써서 curl -d @파일" 로 전송 ──
-    #   전에는 -d "{...}" 처럼 JSON을 통째로 bash 커맨드라인에 인라인으로 넣었는데,
-    #   그러면 JSON 이스케이프(\")가 bash 큰따옴표 파싱을 한 번 더 거치면서 백슬래시가
-    #   먹혀버려(이중 이스케이프 필요) 결과적으로 안 깨진 것처럼 보여도 실제로는 깨진 JSON이
-    #   전송되는 문제가 있었음(실제 재현됨: 웹훅은 가는데 두레이만 조용히 실패).
-    #   파일로 분리하면 bash 인용부호 해석을 아예 안 거치므로 JSON 이스케이프가 그대로 살아남는다.
     if (!skip_dooray) {
         dooray_json = sprintf("{\"botName\":\"MenuChkBot\",\"text\":\"" \
                               "\u274c **[WAS] Oracle 오류 감지**\\\\n" \
@@ -417,8 +735,6 @@ function close_ora_block(    key, now, safe_msg, dooray_json, wh_title, wh_msg, 
 
     print "#!/bin/bash" > sh
 
-    # 두레이(에러 채널) — JSON 본문을 파일에 그대로 써서 curl -d @파일 로 전송 (bash 파싱 우회)
-    #   Login Blocked: Security Violation 은 두레이 전송 제외 (웹훅만 전송)
     if (!skip_dooray) {
         printf "%s", dooray_json > json
         close(json)
@@ -428,7 +744,6 @@ function close_ora_block(    key, now, safe_msg, dooray_json, wh_title, wh_msg, 
               " > /dev/null &" >> sh
     }
 
-    # 백오피스 웹훅 — 로그인/현재메뉴불일치와 동일한 -K cfg 파일 방식
     print "url = \"" wh_url "\""                            > cfg
     print "header = \"X-Webhook-Token: " wh_token "\""    >> cfg
     print "data-urlencode = \"alarm_title=" wh_title "\""  >> cfg
@@ -451,11 +766,7 @@ function close_ora_block(    key, now, safe_msg, dooray_json, wh_title, wh_msg, 
 }
 
 # ════════════════════════════════════════════════════════
-# [추가] 현재메뉴 불일치 한 줄 파싱 → 카운트 반영
-#   대상 라인 2종만 집계 (같은 블록의 현재URL:/사용자ID:/URL: 등 다른 라인은 무시):
-#     _menu_check_err_<user>,<dt14>,접근URL:<url>
-#     _menu_check_err_<user>,<dt14>,accessMenu:<url>
-#   전송 조건: (아이디 ∈ me_id_set) — URL은 더 이상 필터링에 사용하지 않음
+# 현재메뉴 불일치 한 줄 파싱 → 카운트 반영
 # ════════════════════════════════════════════════════════
 function parse_menuerr_line(line,    p, rest, n, parts, userId, dt14, url,
                                      min12, ts_fmt, key) {
@@ -469,20 +780,18 @@ function parse_menuerr_line(line,    p, rest, n, parts, userId, dt14, url,
     dt14   = parts[2]
     if (userId == "" || length(dt14) < 14) return
 
-    # 3번째 필드가 접근URL:/accessMenu: 로 시작하는 라인만 대상
     if (index(parts[3], "접근URL:") != 1 && index(parts[3], "accessMenu:") != 1) return
     url = parts[3]; sub(/^[^:]*:/, "", url)
     if (url == "" || url == "NULL") return
 
-    # ── 전송 조건: (아이디 매칭) 만으로 판단 — URL 필터는 제거됨 ──
-    sub(/\?.*$/, "", url)                          # 쿼리스트링 제거 (표시용)
+    sub(/\?.*$/, "", url)
     if (!(tolower(userId) in me_id_set)) return
 
-    min12  = substr(dt14, 1, 12)                   # YYYYMMDDHHMM — 1분 구간 키
+    min12  = substr(dt14, 1, 12)
     ts_fmt = substr(dt14,1,4)"-"substr(dt14,5,2)"-"substr(dt14,7,2) \
              " "substr(dt14,9,2)":"substr(dt14,11,2)":"substr(dt14,13,2)
 
-    key = min12 SUBSEP userId SUBSEP url           # (분 · 아이디 · URL) 별 1분 집계
+    key = min12 SUBSEP userId SUBSEP url
     menuerr_cnt[key]++
     if (!(key in menuerr_first)) menuerr_first[key] = ts_fmt
     menuerr_last[key] = ts_fmt
@@ -490,7 +799,6 @@ function parse_menuerr_line(line,    p, rest, n, parts, userId, dt14, url,
 
 # ════════════════════════════════════════════════
 # [공용] 로그인 한 줄 파싱 → 카운트 반영 (라이브/시드 공용, 전송 안 함)
-#   라이브 블록과 시드가 동일 함수를 써야 파싱 버그가 갈라지지 않는다.
 # ════════════════════════════════════════════════
 function parse_login_line(line,    type_cd, n, parts, pref, nf, pp,
                           userId, dt14, day, ts_fmt, key_id) {
@@ -531,8 +839,6 @@ function parse_login_line(line,    type_cd, n, parts, pref, nf, pp,
 
 # ════════════════════════════════════════════════
 # [시드] 기동 시 오늘자 LOGIN_CHK_LOG 파일들을 훑어 당일 누적 복원
-#   · getline < 파일 : 파일이 없으면 -1 반환 → while 미진입 → 에러/중단 전혀 없음
-#   · 복원 후 login_prev 를 현재값과 동기화 → 재시작을 "무음"으로(이미 보낸 값 재전송 안 함)
 # ════════════════════════════════════════════════
 function seed_login(files,    n, arr, i, line, k, rc) {
     if (files == "") return
@@ -546,11 +852,56 @@ function seed_login(files,    n, arr, i, line, k, rc) {
 }
 
 # ════════════════════════════════════════════════
-# [변경] 웹훅 로그 기록 — 기록 시점의 날짜로 파일명 생성
-#   · print >> 변수  형태로 매 호출 시 오늘 날짜 파일명을 계산 → 자정 자동 전환
-#   · 기록 후 close() 로 즉시 flush(= tail -f 실시간 반영) + fd 누수 방지
-#   · log_dir 가 비면 조용히 건너뜀(과거 /dev/null 동작 대체)
+# 웹훅 로그 기록 — 기록 시점의 날짜로 파일명 생성
 # ════════════════════════════════════════════════
+function send_oom_alert(line,    now, ts, was, type, key, body, wh_title, wh_msg, sh, cfg, json) {
+    now = systime()
+    ts  = strftime("%Y-%m-%d %H:%M:%S", now)
+
+    was = "unknown"
+    if (match(cur_log, /neo[0-9]+/)) was = substr(cur_log, RSTART, RLENGTH)
+
+    type = line
+    sub(/^.*java\.lang\.OutOfMemoryError:?[ \t]*/, "", type)
+    gsub(/[^A-Za-z0-9 ._-]/, "", type)
+    type = substr(type, 1, 80)
+    if (type == "") type = "unknown"
+
+    key = was SUBSEP type
+    if ((key in oom_alerted) && (now - oom_alerted[key]) < oom_cool) return
+    oom_alerted[key] = now
+    oom_seq++
+
+    body = "{\"botName\":\"MenuChkBot\",\"text\":\"**[WAS] OutOfMemoryError 감지**\\n" \
+           "서버: " server "\\nWAS: " was "\\n유형: " type "\\n감지시각: " ts "\"}"
+    wh_title = sprintf("[%s] OutOfMemoryError 감지", server)
+    wh_msg   = sprintf("WAS:%s | TYPE:%s | DETECT_DT:%s", was, type, ts)
+
+    sh   = sprintf("/tmp/.oom_send_%d_%d.sh", now, oom_seq)
+    cfg  = sprintf("/tmp/.oom_cfg_%d_%d.cfg", now, oom_seq)
+    json = sprintf("/tmp/.oom_body_%d_%d.json", now, oom_seq)
+
+    printf "%s", body > json
+    close(json)
+
+    print "url = \"" wh_url "\""                           > cfg
+    print "header = \"X-Webhook-Token: " wh_token "\""    >> cfg
+    print "data-urlencode = \"alarm_title=" wh_title "\"" >> cfg
+    print "data-urlencode = \"alarm_msg=" wh_msg "\""     >> cfg
+    print "data-urlencode = \"src_system=" server "\""    >> cfg
+    close(cfg)
+
+    print "#!/bin/bash" > sh
+    print "curl -s -X POST \"" ENVIRON["DOORAY_URL_ER"] "\" -H \"Content-Type: application/json\" -d @" json " > /dev/null 2>&1 &" >> sh
+    print "curl -s --connect-timeout 10 --max-time 15 -K " cfg " > /dev/null 2>&1 &" >> sh
+    print "wait" >> sh
+    print "rm -f " cfg " " json " " sh >> sh
+    close(sh)
+    system("bash " sh " &")
+
+    wlog(sprintf("[%s] [OOM] %s | %s", ts, wh_title, wh_msg))
+}
+
 function wlog(msg,    fn) {
     if (log_dir == "") return
     fn = log_dir "/" log_prefix strftime("%Y%m%d") ".log"
@@ -571,29 +922,22 @@ BEGIN {
     cur_ts       = ""
     print "[통합모니터] awk 시작" > "/dev/stderr"
 
-    # ── [수정] menuerr_cnt 등을 배열로 명시 초기화 ──
-    #   원인: "모든 라인" 타이머 블록이 매 줄마다 length(menuerr_cnt)를 호출하는데,
-    #         실제 _menu_check_err_ 로그가 아직 한 번도 안 들어온 시점(기동 직후)에는
-    #         menuerr_cnt가 배열로 확정된 적이 없어 gawk가 스칼라로 타입을 굳혀버림.
-    #         이후 첫 매칭 라인에서 menuerr_cnt[key]++ 를 시도하면
-    #         "attempt to use scalar as array" fatal error로 awk 전체가 죽음
-    #         (login_cnt는 seed_login()이 기동 시 먼저 배열로 써서 우연히 안전했음).
-    #   해결: split("", arr) 로 처음부터 빈 배열임을 명시 → 타입 확정을 배열로 고정.
+    # 배열 타입 확정 (타이머 블록이 매 줄 length() 호출 → 스칼라로 굳는 것 방지)
     split("", menuerr_cnt)
     split("", menuerr_prev)
     split("", menuerr_first)
     split("", menuerr_last)
 
-    # ── [추가] Oracle 오류 감시 상태 초기화 ──
-    ora_active    = 0     # 현재 예외 블록(ERROR+Exception 헤더 ~ 다음 타임스탬프 라인) 안인지 여부
-    ora_has_match = 0     # 이 블록에서 ORA- 라인을 한 번이라도 찾았는지
+    # Oracle 오류 감시 상태 초기화
+    ora_active    = 0
+    ora_has_match = 0
     ora_user      = "-"
     ora_ts        = ""
     ora_code      = ""
     ora_msg       = ""
-    split("", oraerr_alerted)   # 코드별 마지막 전송 시각 — 쿨타임 판단용 (사용자 무관, 코드만으로 dedupe)
+    split("", oraerr_alerted)
 
-    # ── [추가] 현재메뉴 불일치 감시 대상 셋 구성 (아이디는 소문자 비교) ──
+    # 현재메뉴 불일치 감시 대상 셋 구성 (아이디는 소문자 비교)
     me_n = split(menuerr_ids, me_a, ",")
     for (me_i = 1; me_i <= me_n; me_i++) {
         gsub(/^[ \t]+|[ \t]+$/, "", me_a[me_i])
@@ -605,7 +949,48 @@ BEGIN {
         if (me_a[me_i] != "") me_url_set[me_a[me_i]] = 1
     }
 
-    # ── [추가] 당일 누적 복원 (재시작/자정전환 대비) ──
+    # 조회건수 집계 상태 초기화
+    split("", chk_tot)      # 당일 누적 총건수      key = 일자 SUBSEP USER_ID
+    split("", chk_exc)      # 당일 누적 예외건수
+    split("", chk_yn)       # YN  호출수 (URL 없음)
+    split("", chk_yn2)      # YN2 호출수
+    split("", chk_first)    # 최초 감지시각
+    split("", chk_last)     # 최종 감지시각
+    split("", chk_prev)     # 직전 전송 시점의 총건수 (증가분 계산용)
+    split("", chk_prev_exc) # 직전 전송 시점의 예외건수
+    split("", chk_ip)       # 마지막 관측 IP (YN2 만)
+    split("", chk_ipn)      # 당일 서로 다른 IP 개수
+    split("", chk_ipall)    # IP 중복판정 셋  key = 일자 SUBSEP USER_ID SUBSEP IP
+    split("", chk_ipl)      # 이번 전송구간 IP 버킷 목록 (콤마 구분, NOIP/ETC 포함)
+    split("", chk_ipl_n)    # 이번 전송구간 버킷 개수
+    split("", chk_ipt)      # 버킷별 총건수  key = 일자 SUBSEP USER_ID SUBSEP 버킷
+    split("", chk_ipr)      # 버킷별 실건수
+    split("", chk_ul)       # [v3] 이번 전송구간 URL 버킷 목록 (콤마 구분, NOURL/ETC 포함)
+    split("", chk_ul_n)     # [v3] 이번 전송구간 URL 버킷 개수
+    split("", chk_ut)       # [v3] URL 버킷별 총건수  key = 일자 SUBSEP USER_ID SUBSEP URL
+    split("", chk_ur)       # [v3] URL 버킷별 실건수
+    chk_last_send = systime()
+
+    # 제외 URL 셋 구성 — ① 완전일치
+    split("", chk_exc_eq_set)
+    ck_n = split(chk_exc_eq, ck_a, ",")
+    for (ck_i = 1; ck_i <= ck_n; ck_i++) {
+        gsub(/^[ \t]+|[ \t]+$/, "", ck_a[ck_i])
+        if (ck_a[ck_i] != "") chk_exc_eq_set[ck_a[ck_i]] = 1
+    }
+    # 제외 URL 셋 구성 — ② 앞자리일치
+    chk_exc_pre_n = 0
+    ck_n = split(chk_exc_pre, ck_a, ",")
+    for (ck_i = 1; ck_i <= ck_n; ck_i++) {
+        gsub(/^[ \t]+|[ \t]+$/, "", ck_a[ck_i])
+        if (ck_a[ck_i] != "") chk_exc_pre_a[++chk_exc_pre_n] = ck_a[ck_i]
+    }
+    if (chk_send_sec  == "" || chk_send_sec  + 0 <= 0) chk_send_sec  = 300
+    if (chk_min_delta == "")                           chk_min_delta = 1
+    if (chk_ip_max    == "" || chk_ip_max    + 0 <= 0) chk_ip_max    = 5
+    if (chk_url_max   == "" || chk_url_max   + 0 <= 0) chk_url_max   = 20
+
+    # 당일 누적 복원 (재시작/자정전환 대비)
     seed_login(seed_files)
 }
 
@@ -620,12 +1005,7 @@ BEGIN {
 }
 
 # ════════════════════════════════════════════════
-# [추가] Oracle 오류(ORA-xxxxx) 블록 추적
-#   · 새 타임스탬프 라인 = 새 로그 문장 시작 → 이전 예외 블록 "마감"(그때 전송)
-#   · continuation 라인(###, Caused by: 등)은 타임스탬프가 없어 블록이 유지됨
-#   · 블록 안에서 ORA- 라인이 여러 번 나오면(반복/두 로거가 각각 기록 등) "가장 메시지가 긴(완전한) 것" 하나만 채택
-#     → I/O 버퍼 분할로 어떤 줄이 "ORA-12899:" 까지만 끊겨 들어와도, 뒤이어 상세 메시지가 붙은
-#       다른 줄이 나오면 그걸로 교체되어 전송됨 (짤린 메시지 그대로 나가는 문제 방지)
+# Oracle 오류(ORA-xxxxx) 블록 추적
 # ════════════════════════════════════════════════
 /^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}/ {
     if (ora_active && ora_has_match) close_ora_block()
@@ -633,7 +1013,6 @@ BEGIN {
     ora_has_match = 0
 }
 
-# 예외 블록 시작 — ERROR 레벨 + Exception 키워드가 함께 있는 헤더 라인이면 사용자ID까지 확보
 /ERROR/ && /Exception/ {
     ora_active = 1
     ora_ts     = (cur_ts != "") ? cur_ts : strftime("%Y-%m-%d %H:%M:%S", systime())
@@ -644,10 +1023,6 @@ BEGIN {
     }
 }
 
-# ORA- 라인 감지 (대소문자 무관, "### Cause:" / "Caused by:" 등 표현과 무관하게 전부 매칭)
-#   · 헤더(ERROR+Exception)를 못 잡았어도(로그 포맷이 다르거나 tail이 블록 중간부터 시작한 경우)
-#     이 줄 자체가 블록을 새로 연다 — 사용자ID는 확보 못했으므로 "-" 로 처리, 절대 누락되지 않게
-#   · 전송은 여기서 바로 하지 않고 후보로만 저장 — 블록이 닫힐 때(close_ora_block) 확정 전송
 tolower($0) ~ /ora-[0-9]+/ {
     if (!ora_active) {
         ora_active = 1
@@ -657,12 +1032,13 @@ tolower($0) ~ /ora-[0-9]+/ {
     store_ora_candidate($0)
 }
 
-# 스크립트 종료 시점 — 마지막 블록이 전송 안 된 채 남아있으면 마저 전송
+/^==> .* <==$/ { cur_log = $2 }
+
+/java\.lang\.OutOfMemoryError/ { send_oom_alert($0) }
+
 END {
     if (ora_active && ora_has_match) close_ora_block()
 }
-
-
 
 # ════════════════════════════════════════════════
 # 모든 라인 — 1분 타이머 체크 (로그인 집계 + 현재메뉴 불일치 전송)
@@ -673,6 +1049,12 @@ END {
         if (length(login_cnt)   > 0) do_login_send()
         if (length(menuerr_cnt) > 0) do_menuerr_send()
         login_last_send = now
+    }
+
+    # 조회건수 집계 전송 타이머 (기본 5분 — 로그인 타이머와 독립)
+    if ((now - chk_last_send) >= chk_send_sec) {
+        if (length(chk_tot) > 0) do_chk_send()
+        chk_last_send = now
     }
 }
 
@@ -686,21 +1068,21 @@ index($0, PAT1) || index($0, PAT2) {
 
     split($0, a, q)
     user = a[2]
-    # YN  : 2번째 파라미터가 컬럼명(작은따옴표 없음) → a[6] 없음 → "-"
-    # YN2 : 3번째 파라미터가 IP → a[6]
-    ip = (fn == "YN2") ? a[6] : "-"
+    ip  = (fn == "YN2") ? a[6] : "-"
+    url = (fn == "YN2") ? a[4] : ""
 
-    # YN2 제외 URL — 해당 URL은 집계에서 스킵
+    now     = systime()
+    fmt_now = (cur_ts != "") ? cur_ts : strftime("%Y-%m-%d %H:%M:%S", now)
+
+    # 조회건수 집계 — 아래 제외(next)보다 먼저 호출
+    chk_collect(user, fn, url, ip, fmt_now)
+
+    # YN2 제외 URL — 해당 URL은 (과다호출 감시용) 슬라이딩 윈도우 집계에서 스킵
     if (fn == "YN2") {
-        url = a[4]
         if (index(url, "/common/popup/selectStore/getSelectHqNmcodeMomsList.sb") > 0 ||
             index(url, "/common/popup/selectStore/getSelectBrandMomsList.sb")    > 0 ||
             index(url, "/common/popup/selectStore/getSelectBranchMomsList.sb")   > 0) next
     }
-
-    now = systime()
-
-    fmt_now = (cur_ts != "") ? cur_ts : strftime("%Y-%m-%d %H:%M:%S", now)
 
     q_time[tail_idx] = now
     q_user[tail_idx] = user
@@ -708,7 +1090,6 @@ index($0, PAT1) || index($0, PAT2) {
     q_fmt[tail_idx]  = fmt_now
     tail_idx++
 
-    # IP 갱신 — YN2일 때만 (YN 마지막 진입 시 IP 덮어쓰기 방지)
     if (!(user in last_ip)) last_ip[user] = "-"
     if (fn == "YN2" && ip != "" && ip != "-") last_ip[user] = ip
     last_ts[user] = fmt_now
@@ -775,9 +1156,7 @@ index($0, PAT1) || index($0, PAT2) {
         }
     }
 
-    # 터미널 현황 출력 — stdout이 tty일 때만 (파일/파이프로 리다이렉트되면 스킵)
-    #   nohup으로 돌 때 매 매칭 라인마다 풀스크린을 로그에 append하는 걸 방지.
-    #   알림(두레이/웹훅)과 wlog() 기록은 위에서 이미 처리되어 이 블록과 무관하게 항상 동작함.
+    # 터미널 현황 출력 — stdout이 tty일 때만
     if (is_tty) {
         n = 0
         for (u in cnt) keys[++n] = u
@@ -824,14 +1203,25 @@ index($0, PAT1) || index($0, PAT2) {
                int(win/60), total_yn, total_yn2, n, thr, over, strftime("%Y-%m-%d %H:%M:%S")
         printf "알림: 두레이 + 백오피스 웹훅 동시 전송 (쿨타임 %d분)\n", int(cool/60)
 
+        chk_d0 = strftime("%Y%m%d")
+        ck_users = 0; ck_tot_s = 0; ck_exc_s = 0
+        for (u in chk_tot) {
+            split(u, ckp, SUBSEP)
+            if (ckp[1] != chk_d0) continue
+            ck_users++
+            ck_tot_s += chk_tot[u]
+            ck_exc_s += (u in chk_exc) ? chk_exc[u] : 0
+        }
+        printf "조회건수(당일누적): 총 %d건 / 예외 %d건 / 실 %d건  |  대상 %d개 아이디  |  전송주기 %d분  |  다음전송 %d초 후\n",
+               ck_tot_s, ck_exc_s, ck_tot_s - ck_exc_s, ck_users,
+               int(chk_send_sec/60), (chk_send_sec - (systime() - chk_last_send))
+
         for (i = 1; i <= n; i++) delete keys[i]
     }
 }
 
 # ════════════════════════════════════════════════
 # [2] 로그인 시도 파싱 (_login_chk_log_ 패턴)
-#   catalina.out 에서 직접 파싱 (v2 변경)
-#   형식: _login_chk_log_succ_userid,YYYYMMDDHHMMSS,처리여부:성공
 # ════════════════════════════════════════════════
 /_login_chk_log_/ && /,처리여부:/ {
     parse_login_line($0)
@@ -839,7 +1229,6 @@ index($0, PAT1) || index($0, PAT2) {
 
 # ════════════════════════════════════════════════
 # [3] 현재메뉴 불일치 파싱 (_menu_check_err_ 패턴)
-#   대상 라인 2종 (접근URL: / accessMenu: 라인만 — 블록 내 다른 라인은 무시)
 # ════════════════════════════════════════════════
 /_menu_check_err_/ && (/,접근URL:/ || /,accessMenu:/) {
     parse_menuerr_line($0)

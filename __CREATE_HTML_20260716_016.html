@@ -4986,7 +4986,7 @@ function buildCustomModal(p,boxId){
   const headLead=single?'<th class="sp-no">No</th>':'<th class="chk"><input type="checkbox" id="call"></th>';
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(p.name)}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
     <table class="m-search">${searchRows.map((r,ri)=>`<tr>${fieldCtrl(r[0],ri*2)}${fieldCtrl(r[1],ri*2+1)}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input data-pf="0"></td><td></td><td></td></tr>'}</table>
-    <div class="m-btns">${single?'<span class="sp-hint">코드를 클릭하거나 행을 더블클릭하면 선택됩니다.</span>':''}<button class="btn btn-sm" id="crl">조회</button>${single?'':'<button class="btn btn-primary btn-sm" id="cap2">선택</button>'}</div>
+    <div class="m-btns">${single?'<span class="sp-hint">코드를 클릭하면 선택됩니다.</span>':''}<button class="btn btn-sm" id="crl">조회</button>${single?'':'<button class="btn btn-primary btn-sm" id="cap2">선택</button>'}</div>
     <div class="m-grid-wrap"><table class="m-grid${single?' sp-grid':''}"><thead><tr>${headLead}${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="cpbody"></tbody></table></div></div>`;
   bindX();
   const body=modalBox.querySelector('#cpbody');

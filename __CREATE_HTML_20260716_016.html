@@ -4388,7 +4388,7 @@ function buildSpecExport(){
   let popSec='';
   if((state.popups||[]).length||(state.infoPopups||[]).length){
     popSec='<h2>§popup§. 팝업 정의</h2>';
-    if(state.popups.length) popSec+=`<table><thead><tr><th style="width:36px">No</th><th>선택 팝업명</th><th>컬럼</th></tr></thead><tbody>`+state.popups.map((pp,i)=>`<tr><td class="c">${i+1}</td><td>${esc(pp.name)}${pp.single?' <span class="mut">(단독선택)</span>':''}</td><td>${(pp.columns||[]).map(k=>esc(k.name)).join(' · ')||'—'}</td></tr>`).join('')+`</tbody></table>`;
+    if(state.popups.length) popSec+=`<table><thead><tr><th style="width:36px">No</th><th>선택 팝업명</th><th>컬럼</th></tr></thead><tbody>`+state.popups.map((pp,i)=>`<tr><td class="c">${i+1}</td><td>${esc(pp.name)}${pp.single?` <span class="mut">(단독선택 · 클릭 컬럼: ${esc((pp.columns||[])[pp.pickCol|0]||'')})</span>`:''}</td><td>${(pp.columns||[]).map(k=>esc(k.name)).join(' · ')||'—'}</td></tr>`).join('')+`</tbody></table>`;
     if(state.infoPopups.length) popSec+=`<table><thead><tr><th style="width:36px">No</th><th>정보 팝업명</th><th>구성</th></tr></thead><tbody>`+state.infoPopups.map((ip,i)=>{
       const secs=(ip.sections||[]).map(s=>s.columns?`그리드(${(s.columns||[]).length}컬럼)`:`폼(${(s.fields||[]).length}필드)`).join(' + ');
       return `<tr><td class="c">${i+1}</td><td>${esc(ip.name)}</td><td>${(ip.tabs&&ip.tabs.length?'탭: '+ip.tabs.map(esc).join('·')+' / ':'')+secs}</td></tr>`;}).join('')+`</tbody></table>`;
@@ -4983,10 +4983,11 @@ function buildCustomModal(p,boxId){
   const cols=p.columns.length?p.columns:['코드','명칭'];
   const data=p.data&&p.data.length?p.data:[cols.map(c=>c+' 예시')];
   const hasFields=!!p.fields.length;
+  const pc=Math.min(Math.max(0,p.pickCol|0),cols.length-1);   /* 단독선택 : 클릭 컬럼 */
   const headLead=single?'<th class="sp-no">No</th>':'<th class="chk"><input type="checkbox" id="call"></th>';
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">${esc(p.name)}</span><button class="x" data-x>&times;</button></div><div class="modal-body">
     <table class="m-search">${searchRows.map((r,ri)=>`<tr>${fieldCtrl(r[0],ri*2)}${fieldCtrl(r[1],ri*2+1)}</tr>`).join('')||'<tr><td class="ml">검색</td><td><input data-pf="0"></td><td></td><td></td></tr>'}</table>
-    <div class="m-btns">${single?'<span class="sp-hint">코드를 클릭하면 선택됩니다.</span>':''}<button class="btn btn-sm" id="crl">조회</button>${single?'':'<button class="btn btn-primary btn-sm" id="cap2">선택</button>'}</div>
+    <div class="m-btns">${single?'<span class="sp-hint">'+esc(cols[pc])+'을(를) 클릭하면 선택됩니다.</span>':''}<button class="btn btn-sm" id="crl">조회</button>${single?'':'<button class="btn btn-primary btn-sm" id="cap2">선택</button>'}</div>
     <div class="m-grid-wrap"><table class="m-grid${single?' sp-grid':''}"><thead><tr>${headLead}${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="cpbody"></tbody></table></div></div>`;
   bindX();
   const body=modalBox.querySelector('#cpbody');
@@ -4994,7 +4995,7 @@ function buildCustomModal(p,boxId){
   const pick=r=>{ if(!r) return; setBoxValue(boxId,label(r)); closeModal(); };
   const cellHtml=(r,ci)=>{
     const v=esc(String(r[ci]==null?'':r[ci]));
-    return (single&&ci===0)?`<a class="sp-pick" data-spick="${esc(label(r))}">${v}</a>`:v;
+    return (single&&ci===pc)?`<a class="sp-pick" data-spick="${esc(label(r))}">${v}</a>`:v;
   };
   const draw=l=>{
     body.innerHTML=l.map((r,i)=>`<tr data-i="${i}">${single?`<td class="sp-no">${i+1}</td>`:`<td class="chk"><input type="checkbox" class="cpc" value="${i}"></td>`}${cols.map((c,ci)=>`<td>${cellHtml(r,ci)}</td>`).join('')}</tr>`).join('')
@@ -5054,11 +5055,26 @@ function buildCustomModal(p,boxId){
 $('newPopupBtn').onclick=()=>openPopupBuilder();
 function openPopupBuilder(existing){
   const draft=existing?JSON.parse(JSON.stringify(existing)):{id:null,name:'',fields:[],columns:[],data:[]};
+  if(!(draft.pickCol>=0)) draft.pickCol=0;
+  /* 단독선택 : 클릭 컬럼 선택 콤보 동기화 */
+  const syncPick=()=>{
+    const sel=modalBox.querySelector('#pbPickCol'), row=modalBox.querySelector('#pbPickRow');
+    if(!sel||!row) return;
+    if(!(draft.pickCol>=0&&draft.pickCol<draft.columns.length)) draft.pickCol=0;
+    sel.innerHTML=draft.columns.length
+      ? draft.columns.map((c,i)=>`<option value="${i}" ${i===draft.pickCol?'selected':''}>${i+1}. ${esc(c)}</option>`).join('')
+      : '<option value="0">(② 결과 컬럼을 먼저 추가하세요)</option>';
+    row.style.display=modalBox.querySelector('#pbSingle').checked?'':'none';
+  };
   const renderFields=()=>modalBox.querySelector('#pbFields').innerHTML=draft.fields.length?draft.fields.map((f,i)=>`<div class="pf-item"><span class="t">${f.type==='combo'?'콤보':f.type==='date'?'일자':f.type==='filter'?'필터':'텍스트'}</span><span class="nm">${esc(f.label)}${f.type==='combo'&&f.options.length?` <span style="color:#8794a6">(${esc(f.options.join(', '))})</span>`:''}</span><button class="rm" data-fi="${i}">✕</button></div>`).join(''):'<div class="pop-none">조회조건을 추가하세요.</div>';
-  const renderCols=()=>modalBox.querySelector('#pbCols').innerHTML=draft.columns.length?draft.columns.map((c,i)=>`<div class="pf-item"><span class="nm">${esc(c)}</span><button class="rm" data-ci="${i}">✕</button></div>`).join(''):'<div class="pop-none">결과 컬럼을 추가하세요.</div>';
+  const renderCols=()=>{
+    modalBox.querySelector('#pbCols').innerHTML=draft.columns.length?draft.columns.map((c,i)=>`<div class="pf-item"><span class="nm">${esc(c)}${modalBox.querySelector('#pbSingle').checked&&i===draft.pickCol?' <span style="color:#2278df;font-weight:700;">(클릭 컬럼)</span>':''}</span><button class="rm" data-ci="${i}">✕</button></div>`).join(''):'<div class="pop-none">결과 컬럼을 추가하세요.</div>';
+    syncPick();
+  };
   modalBox.innerHTML=`<div class="modal-hd"><span class="mt">🪟 팝업 만들기</span><button class="x" data-x>&times;</button></div><div class="modal-body">
     <div class="pb-row"><label>팝업명</label><input class="b-txt" id="pbName" style="flex:1" placeholder="예: 사원선택, 거래처선택" value="${esc(draft.name)}"></div>
     <div class="pb-row"><label></label><label class="b-chk"><input type="checkbox" id="pbSingle" ${draft.single?'checked':''}> 단독선택 (체크박스 없이 코드 클릭으로 1건 선택)</label></div>
+    <div class="pb-row" id="pbPickRow" style="display:none;"><label>클릭 컬럼</label><select class="b-sel" id="pbPickCol" style="min-width:180px;"></select><span style="font-size:11.5px;color:#7a828d;">파란색 링크로 표시되며, 클릭하면 그 행이 선택됩니다</span></div>
     <div class="pb-sub">① 팝업 조회조건</div>
     <div class="pb-row"><input class="b-txt" id="pbFieldLbl" style="width:150px" placeholder="조건명 (예: 사원명)"><select class="b-sel" id="pbFieldType"><option value="text">텍스트</option><option value="combo">콤보박스</option><option value="date">일자</option><option value="filter">검색+필터</option></select><input class="b-txt" id="pbFieldOpts" style="flex:1" placeholder="콤보 옵션(쉼표, 콤보일 때)"><button class="type-btn accent" id="pbAddField">＋ 조건</button></div>
     <div class="pf-list" id="pbFields"></div>
@@ -5070,11 +5086,14 @@ function openPopupBuilder(existing){
     <textarea class="paste-ta" id="pbData" style="min-height:80px" placeholder="E1001, 홍길동, 영업팀">${(draft.data||[]).map(r=>r.join(', ')).join('\n')}</textarea>
     <div class="m-btns" style="margin-top:14px;"><button class="btn btn-sm" data-x>취소</button><button class="btn btn-primary btn-sm" id="pbSave">${existing?'수정 저장':'팝업 저장'}</button></div></div>`;
   openModal(true);bindX();renderFields();renderCols();
+  modalBox.querySelector('#pbSingle').onchange=renderCols;
+  modalBox.querySelector('#pbPickCol').onchange=e=>{draft.pickCol=+e.target.value||0;renderCols();};
   modalBox.querySelector('#pbAddField').onclick=()=>{const lbl=modalBox.querySelector('#pbFieldLbl').value.trim();const type=modalBox.querySelector('#pbFieldType').value;const opts=modalBox.querySelector('#pbFieldOpts').value.split(',').map(s=>s.trim()).filter(Boolean);if(!lbl){alert('조건명을 입력하세요.');return;}draft.fields.push({label:lbl,type,options:opts});modalBox.querySelector('#pbFieldLbl').value='';modalBox.querySelector('#pbFieldOpts').value='';renderFields();};
   modalBox.querySelector('#pbAddCol').onclick=()=>{const nm=modalBox.querySelector('#pbColName').value.trim();if(!nm){alert('컬럼명을 입력하세요.');return;}draft.columns.push(nm);modalBox.querySelector('#pbColName').value='';renderCols();};
   modalBox.querySelector('#pbFields').onclick=e=>{const b=e.target.closest('[data-fi]');if(b){draft.fields.splice(+b.dataset.fi,1);renderFields();}};
-  modalBox.querySelector('#pbCols').onclick=e=>{const b=e.target.closest('[data-ci]');if(b){draft.columns.splice(+b.dataset.ci,1);renderCols();}};
-  modalBox.querySelector('#pbSave').onclick=()=>{const name=modalBox.querySelector('#pbName').value.trim();if(!name){alert('팝업명을 입력하세요.');return;}if(!draft.columns.length){alert('결과 컬럼을 1개 이상 추가하세요.');return;}const raw=modalBox.querySelector('#pbData').value.trim();draft.data=raw?raw.split(/\r?\n/).filter(Boolean).map(line=>line.split(/\t|,/).map(s=>s.trim())):[];draft.single=modalBox.querySelector('#pbSingle').checked;draft.name=name;if(existing){const idx=state.popups.findIndex(p=>p.id===existing.id);state.popups[idx]=Object.assign(existing,draft);}else{draft.id='p'+(seq++);state.popups.push(draft);}closeModal();render();};
+  modalBox.querySelector('#pbCols').onclick=e=>{const b=e.target.closest('[data-ci]');if(!b)return;const ci=+b.dataset.ci;draft.columns.splice(ci,1);
+    if(draft.pickCol>ci) draft.pickCol--; else if(draft.pickCol===ci) draft.pickCol=0;
+    renderCols();};  modalBox.querySelector('#pbSave').onclick=()=>{const name=modalBox.querySelector('#pbName').value.trim();if(!name){alert('팝업명을 입력하세요.');return;}if(!draft.columns.length){alert('결과 컬럼을 1개 이상 추가하세요.');return;}const raw=modalBox.querySelector('#pbData').value.trim();draft.data=raw?raw.split(/\r?\n/).filter(Boolean).map(line=>line.split(/\t|,/).map(s=>s.trim())):[];draft.single=modalBox.querySelector('#pbSingle').checked;draft.pickCol=Math.min(Math.max(0,+modalBox.querySelector('#pbPickCol').value||0),draft.columns.length-1);draft.name=name;if(existing){const idx=state.popups.findIndex(p=>p.id===existing.id);state.popups[idx]=Object.assign(existing,draft);}else{draft.id='p'+(seq++);state.popups.push(draft);}closeModal();render();};
 }
 function renderPopChips(){
   const box=$('popChips');
